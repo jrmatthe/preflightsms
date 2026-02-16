@@ -12,7 +12,7 @@ const PolicyTraining = dynamic(() => import("../components/PolicyTraining"), { s
 
 const COMPANY_NAME = "PVTAIR";
 const ADMIN_PASSWORD = "pvtair2026";
-const LOGO_URL = "/pvtair-logo.png";
+const LOGO_URL = "/logo.png";
 
 const BLACK = "#000000";
 const NEAR_BLACK = "#111111";
@@ -881,6 +881,7 @@ function AuthScreen({ onAuth }) {
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ ...card, padding: "32px 28px", maxWidth: 400, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 80, objectFit: "contain", marginBottom: 12 }} onError={e => { e.target.style.display = "none"; }} />
           <div style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif", marginBottom: 4 }}>PreflightSMS</div>
           <div style={{ fontSize: 11, color: MUTED }}>Safety Management System</div></div>
 
@@ -1268,7 +1269,7 @@ export default function PVTAIRFrat() {
   const userName = profile?.full_name || "";
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
   return (
-    <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
+    <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} />
       {isOnline && session && (
