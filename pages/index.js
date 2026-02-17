@@ -575,7 +575,7 @@ function FRATForm({ onSubmit }) {
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div style={{ ...card, padding: "20px 22px 24px", marginBottom: 18 }}>
-        <h2 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 16 }}>Flight Information</h2>
+        <h2 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 16 }}>Flight Risk Assessment Tool</h2>
         <div className="flight-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, minWidth: 0 }}>
           {[{ key: "pilot", label: "Pilot in Command", placeholder: "Full name", type: "text" },
             { key: "aircraft", label: "Aircraft Type", type: "select" },
