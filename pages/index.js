@@ -636,6 +636,35 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
         </div>
       </div>
 
+      {/* Photo Attachments */}
+      <div style={{ ...card, padding: "18px 22px", marginBottom: 18, borderRadius: 10 }}>
+        <div style={{ color: MUTED, fontSize: 11, marginBottom: 12 }}>Attach photos of HAZMAT PIC notifications or other documents</div>
+        {attachments.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8, marginBottom: 12 }}>
+            {attachments.map((att, idx) => (
+              <div key={idx} style={{ position: "relative", borderRadius: 8, overflow: "hidden", border: `1px solid ${BORDER}`, background: BLACK, aspectRatio: "1" }}>
+                <img src={att.preview} alt={att.file.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <button onClick={() => removePhoto(idx)} style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.7)", border: `1px solid ${BORDER}`, color: WHITE, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>&times;</button>
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "4px 6px", background: "rgba(0,0,0,0.7)", fontSize: 9, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{att.file.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 8 }}>
+          <label style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 16px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: OFF_WHITE, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Take Photo
+            <input type="file" accept="image/*" capture="environment" onChange={handleAddPhoto} style={{ display: "none" }} />
+          </label>
+          <label style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 16px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: OFF_WHITE, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            Choose File
+            <input type="file" accept="image/*" multiple onChange={handleAddPhoto} style={{ display: "none" }} />
+          </label>
+        </div>
+        {uploadingPhotos && <div style={{ color: CYAN, fontSize: 11, marginTop: 8, textAlign: "center" }}>Uploading photos...</div>}
+      </div>
+
       <WeatherBriefing briefing={wxAnalysis.briefing} reasons={wxAnalysis.reasons} flags={wxAnalysis.flags} stationSummaries={wxAnalysis.stationSummaries} wxLoading={wxLoading} wxError={wxError} />
 
       <div className="frat-grid" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 24 }}>
@@ -665,42 +694,6 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
             <h3 style={{ margin: "0 0 10px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Remarks / Mitigations</h3>
             <textarea placeholder="Note any mitigations applied..." value={fi.remarks} onChange={e => setFi(p => ({ ...p, remarks: e.target.value }))}
               style={{ width: "100%", minHeight: 60, padding: 10, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", color: OFF_WHITE, background: NEAR_BLACK }} /></div>
-
-          {/* Photo Attachments */}
-          <div style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10 }}>
-            <h3 style={{ margin: "0 0 10px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Attachments</h3>
-            <div style={{ color: MUTED, fontSize: 11, marginBottom: 12 }}>Attach photos of HAZMAT PIC notifications, NOTAMs, or other documents</div>
-            
-            {/* Photo grid */}
-            {attachments.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8, marginBottom: 12 }}>
-                {attachments.map((att, idx) => (
-                  <div key={idx} style={{ position: "relative", borderRadius: 8, overflow: "hidden", border: `1px solid ${BORDER}`, background: BLACK, aspectRatio: "1" }}>
-                    <img src={att.preview} alt={att.file.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    <button onClick={() => removePhoto(idx)} style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.7)", border: `1px solid ${BORDER}`, color: WHITE, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>&times;</button>
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "4px 6px", background: "rgba(0,0,0,0.7)", fontSize: 9, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{att.file.name}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add photo buttons */}
-            <div style={{ display: "flex", gap: 8 }}>
-              {/* Camera capture (mobile) */}
-              <label style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 16px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: OFF_WHITE, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                Take Photo
-                <input type="file" accept="image/*" capture="environment" onChange={handleAddPhoto} style={{ display: "none" }} />
-              </label>
-              {/* File picker */}
-              <label style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 16px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: OFF_WHITE, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                Choose File
-                <input type="file" accept="image/*" multiple onChange={handleAddPhoto} style={{ display: "none" }} />
-              </label>
-            </div>
-            {uploadingPhotos && <div style={{ color: CYAN, fontSize: 11, marginTop: 8, textAlign: "center" }}>Uploading photos...</div>}
-          </div>
         </div>
 
         <div className="score-panel-desktop" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
