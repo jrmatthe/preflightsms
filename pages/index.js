@@ -690,7 +690,7 @@ function FlightBoard({ flights, onUpdateFlight }) {
   const [airportCoords, setAirportCoords] = useState({});
   const [selectedFlight, setSelectedFlight] = useState(null);
 
-  // Tick every 30s to update estimated positions
+  // Force re-render every 15s to update estimated positions
   useEffect(() => { const iv = setInterval(() => setTick(t => t + 1), 15000); return () => clearInterval(iv); }, []);
 
   // Fetch airport coordinates for all flights
@@ -705,8 +705,8 @@ function FlightBoard({ flights, onUpdateFlight }) {
     }).catch(() => {});
   }, [flights]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const now = useMemo(() => Date.now(), [tick]);
+  // Use tick to ensure fresh time on each render cycle
+  const now = Date.now(); void tick;
   const recent = flights.filter(f => f.status !== "ARRIVED" || (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000);
   const displayed = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
   const activeFlights = flights.filter(f => f.status === "ACTIVE");
@@ -736,8 +736,8 @@ function FlightBoard({ flights, onUpdateFlight }) {
     };
   };
 
-  // Compute map data inline (recomputes on tick)
-  const mapData = useMemo(() => {
+  // Compute map data (recomputes each render triggered by tick)
+  const mapData = (() => {
     if (activeFlights.length === 0) return null;
     const allCoords = [];
     activeFlights.forEach(f => {
@@ -753,7 +753,7 @@ function FlightBoard({ flights, onUpdateFlight }) {
     const toX = (lon) => ((lon - minLon) / (maxLon - minLon)) * W;
     const toY = (lat) => H - ((lat - minLat) / (maxLat - minLat)) * H;
     return { W, H, toX, toY };
-  }, [activeFlights, airportCoords, tick]);
+  })();
 
   const renderMap = () => {
     if (!mapData) return <div style={{ ...card, height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: MUTED, fontSize: 12 }}>Loading map...</div>;
@@ -793,6 +793,7 @@ function FlightBoard({ flights, onUpdateFlight }) {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <span style={{ display: "none" }}>{tick}</span>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 6 }}>
           {["ACTIVE", "ARRIVED", "ALL"].map(f => (
