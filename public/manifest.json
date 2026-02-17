@@ -1,6 +1,6 @@
 {
-  "name": "PVTAIR Flight Risk Assessment Tool",
-  "short_name": "PVTAIR FRAT",
+  "name": "PreflightSMS",
+  "short_name": "PreflightSMS",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
