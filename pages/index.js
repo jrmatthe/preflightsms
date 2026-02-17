@@ -451,23 +451,24 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName }) {
     <button key={t.id} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
       title={t.label}
       style={{
-        width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center",
+        width: "100%", height: 40, display: "flex", alignItems: "center", gap: 8, paddingLeft: 14,
         background: currentView === t.id ? "rgba(255,255,255,0.08)" : "transparent",
         color: currentView === t.id ? WHITE : MUTED,
         border: "none", borderLeft: currentView === t.id ? `2px solid ${WHITE}` : "2px solid transparent",
-        cursor: "pointer", fontSize: 18, transition: "all 0.15s", borderRadius: 0,
+        cursor: "pointer", fontSize: 15, transition: "all 0.15s", borderRadius: 0,
         fontFamily: "inherit",
       }}>
-      {t.icon}
+      <span style={{ width: 20, textAlign: "center" }}>{t.icon}</span>
+      <span style={{ fontSize: 11, fontWeight: currentView === t.id ? 700 : 500, letterSpacing: 0.3 }}>{t.label}</span>
     </button>);
   return (<>
     {/* Desktop sidebar */}
     <aside className="nav-sidebar" style={{
-      position: "fixed", left: 0, top: 0, bottom: 0, width: 60, zIndex: 100,
+      position: "fixed", left: 0, top: 0, bottom: 0, width: 140, zIndex: 100,
       background: NEAR_BLACK, borderRight: `1px solid ${BORDER}`,
-      display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12,
+      display: "flex", flexDirection: "column", paddingTop: 12,
     }}>
-      <div style={{ marginBottom: 16, padding: 4 }}>
+      <div style={{ marginBottom: 16, padding: "0 12px", display: "flex", justifyContent: "center" }}>
         <img src={orgLogo || LOGO_URL} alt={orgName || "P"} style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 50, border: `1px solid ${BORDER}` }} onError={e => { e.target.src = LOGO_URL; }} />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
@@ -508,7 +509,7 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit }) {
+function FRATForm({ onSubmit, onNavigate }) {
   const [fi, setFi] = useState({ pilot: "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: new Date().toISOString().slice(0, 10), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" });
   const [checked, setChecked] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -577,21 +578,9 @@ function FRATForm({ onSubmit }) {
     const eta = calcArrivalTime(fi.date, fi.etd, fi.ete);
     onSubmit({ id: generateId(), ...fi, eta: eta ? eta.toISOString() : "", score, riskLevel: getRiskLevel(score).label, factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
       wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "" });
-    setSubmitted(true);
+    if (onNavigate) onNavigate("flights");
   };
   const reset = () => { setFi({ pilot: "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: new Date().toISOString().slice(0, 10), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); };
-
-  if (submitted) { const l = getRiskLevel(score); return (
-    <div style={{ maxWidth: 460, margin: "40px auto", textAlign: "center" }}>
-      <div style={{ ...card, padding: 36, border: `1px solid ${l.border}` }}>
-        <div style={{ fontSize: 32, marginBottom: 14, color: GREEN }}>✓</div>
-        <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", marginBottom: 8, fontSize: 20 }}>FRAT Submitted</h2>
-        <div style={{ display: "inline-block", padding: "5px 18px", borderRadius: 20, background: l.bg, border: `1px solid ${l.border}`, marginBottom: 14 }}>
-          <span style={{ fontWeight: 700, color: l.color, fontSize: 15 }}>Score: {score} — {l.label}</span></div>
-        <p style={{ color: MUTED, fontSize: 13, marginBottom: 6 }}>{fi.departure} → {fi.destination}{fi.cruiseAlt ? ` @ ${fi.cruiseAlt}` : ""}{fi.tailNumber ? ` · ${fi.tailNumber}` : ""}</p>
-        <p style={{ color: SUBTLE, fontSize: 12, marginBottom: 22 }}>{l.action}</p>
-        <button onClick={reset} style={{ padding: "12px 28px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", letterSpacing: 0.5 }}>NEW ASSESSMENT</button>
-      </div></div>); }
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -1393,7 +1382,7 @@ export default function PVTAIRFrat() {
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} />
-      <div className="main-content" style={{ marginLeft: 60 }}>
+      <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Top bar with user info */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
@@ -1413,7 +1402,7 @@ export default function PVTAIRFrat() {
         </div>
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         <main style={{ padding: "20px 32px 50px" }}>
-        {cv === "submit" && <FRATForm onSubmit={onSubmit} />}
+        {cv === "submit" && <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} />}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} />}
         {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={onSubmitReport} reports={reports} onStatusChange={onReportStatusChange} />}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={onCreateHazard} hazards={hazards} />}
