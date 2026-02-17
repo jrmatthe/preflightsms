@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo } from "../lib/supabase";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
 const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), { ssr: false });
@@ -435,7 +435,7 @@ function AdminGate({ children, isAuthed, onAuth }) {
       </div></div>);
 }
 
-function NavBar({ currentView, setCurrentView, isAuthed }) {
+function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const tabs = [{ id: "submit", label: "FRAT", p: false }, { id: "flights", label: "Flights", p: false }, { id: "reports", label: "Reports", p: false }, { id: "hazards", label: "Hazards", p: false }, { id: "actions", label: "Actions", p: false }, { id: "policy", label: "Policy", p: false }, { id: "dashboard", label: "Dashboard", p: true }, { id: "admin", label: "Admin", p: true }];
   const navTab = (t) => (
@@ -454,7 +454,7 @@ function NavBar({ currentView, setCurrentView, isAuthed }) {
     <header style={{ background: BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, zIndex: 100 }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0" }}>
-          <div style={{ background: BLACK, borderRadius: 4, padding: "4px 8px", display: "flex", alignItems: "center" }}><img src={LOGO_URL} alt="PVTAIR" style={{ height: 22, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} /></div>
+          <div style={{ background: BLACK, borderRadius: 4, padding: "4px 8px", display: "flex", alignItems: "center" }}><img src={orgLogo || LOGO_URL} alt={orgName || "PreflightSMS"} style={{ height: 22, objectFit: "contain" }} onError={e => { e.target.src = LOGO_URL; }} /></div>
           <div style={{ width: 1, height: 24, background: BORDER }} />
           <div>
             <div style={{ color: WHITE, fontWeight: 600, fontSize: 13, letterSpacing: 0.5 }}>Safety Management System</div>
@@ -1241,12 +1241,13 @@ export default function PVTAIRFrat() {
   if (isOnline && !session) return <AuthScreen onAuth={setSession} />;
 
   const orgName = profile?.organizations?.name || COMPANY_NAME;
+  const orgLogo = profile?.organizations?.logo_url || LOGO_URL;
   const userName = profile?.full_name || "";
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} />
       {isOnline && session && (
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, padding: "4px 16px 0", maxWidth: 1200, margin: "0 auto" }}>
           <span style={{ fontSize: 10, color: MUTED }}>{userName} · {orgName}</span>
@@ -1263,7 +1264,17 @@ export default function PVTAIRFrat() {
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={onCreatePolicy} onAcknowledgePolicy={onAcknowledgePolicy} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={onCreateRequirement} onLogTraining={onLogTraining} orgProfiles={orgProfiles} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} onDelete={onDelete} />}
-        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} onUpdateRole={onUpdateRole} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} />}
+        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} onUpdateRole={onUpdateRole} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} onUploadLogo={async (file) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          const { url, error } = await uploadOrgLogo(orgId, file);
+          if (!error && url) {
+            // Refresh profile to pick up new logo
+            const { data: prof } = await getProfile();
+            if (prof) setProfile(prof);
+          }
+          return { url, error };
+        }} />}
       </main>
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
         {orgName} Safety Management System · PreflightSMS · 14 CFR Part 5 SMS · {new Date().getFullYear()}</footer>

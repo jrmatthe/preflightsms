@@ -15,9 +15,24 @@ const ROLES = [
   { id: "admin", label: "Admin", desc: "Full access including user management" },
 ];
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName, orgSlug }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName, orgSlug, orgLogo, onUploadLogo }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState("");
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setUploadMsg("Please select an image file"); return; }
+    if (file.size > 2 * 1024 * 1024) { setUploadMsg("File must be under 2MB"); return; }
+    setUploading(true);
+    setUploadMsg("");
+    const result = await onUploadLogo(file);
+    setUploading(false);
+    if (result?.error) { setUploadMsg("Upload failed: " + (result.error.message || result.error)); }
+    else { setUploadMsg("Logo updated"); setTimeout(() => setUploadMsg(""), 3000); }
+  };
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
@@ -40,6 +55,22 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName
           </div>
         </div>
         <div style={{ fontSize: 10, color: MUTED, marginTop: 8 }}>Share the join code with team members so they can create accounts and join your organization.</div>
+        
+        {/* Logo Upload */}
+        {canManage && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Organization Logo</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {orgLogo && <img src={orgLogo} alt="Org logo" style={{ height: 40, objectFit: "contain", borderRadius: 4, background: BLACK, padding: 4 }} />}
+              <label style={{ fontSize: 11, color: CYAN, cursor: "pointer", padding: "6px 14px", borderRadius: 6, border: `1px solid ${CYAN}44`, background: "rgba(34,211,238,0.08)" }}>
+                {uploading ? "Uploading..." : orgLogo ? "Change Logo" : "Upload Logo"}
+                <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: "none" }} disabled={uploading} />
+              </label>
+              {uploadMsg && <span style={{ fontSize: 10, color: uploadMsg.includes("failed") ? RED : GREEN }}>{uploadMsg}</span>}
+            </div>
+            <div style={{ fontSize: 9, color: MUTED, marginTop: 6 }}>PNG or JPG, max 2MB. This logo appears in the header for all team members.</div>
+          </div>
+        )}
       </div>
 
       {/* Users */}
