@@ -38,7 +38,7 @@ const RISK_LEVELS = {
 };
 const AIRCRAFT_TYPES = ["PC-12", "King Air"];
 const RISK_CATEGORIES = [
-  { id: "weather", name: "Weather", icon: "☁️", factors: [
+  { id: "weather", name: "Weather", icon: "", factors: [
     { id: "wx_ceiling", label: "Ceiling < 1000' AGL at departure or destination", score: 4 },
     { id: "wx_vis", label: "Visibility < 3 SM at departure or destination", score: 4 },
     { id: "wx_xwind", label: "Crosswind > 15 kts (or > 50% of max demonstrated)", score: 3 },
@@ -48,7 +48,7 @@ const RISK_CATEGORIES = [
     { id: "wx_wind_shear", label: "Wind shear advisories or PIREPs", score: 5 },
     { id: "wx_mountain", label: "Mountain obscuration or high DA affecting performance", score: 4 },
   ]},
-  { id: "pilot", name: "Pilot / Crew", icon: "👨‍✈️", factors: [
+  { id: "pilot", name: "Pilot / Crew", icon: "", factors: [
     { id: "plt_fatigue", label: "Crew rest < 10 hours or significant fatigue factors", score: 5 },
     { id: "plt_recency", label: "PIC < 3 flights in aircraft type in last 30 days", score: 3 },
     { id: "plt_new_crew", label: "First time flying together as a crew pairing", score: 2 },
@@ -56,7 +56,7 @@ const RISK_CATEGORIES = [
     { id: "plt_duty", label: "Approaching max duty time limitations", score: 3 },
     { id: "plt_unfam_apt", label: "PIC unfamiliar with departure or destination airport", score: 3 },
   ]},
-  { id: "aircraft", name: "Aircraft", icon: "✈️", factors: [
+  { id: "aircraft", name: "Aircraft", icon: "", factors: [
     { id: "ac_mel", label: "Operating with MEL items", score: 3 },
     { id: "ac_mx_defer", label: "Deferred maintenance items", score: 3 },
     { id: "ac_recent_mx", label: "Aircraft recently out of major maintenance", score: 2 },
@@ -71,7 +71,7 @@ const RISK_CATEGORIES = [
     { id: "env_remote", label: "Limited alternate airports available", score: 3 },
     { id: "env_notams", label: "Significant NOTAMs affecting operation", score: 2 },
   ]},
-  { id: "operational", name: "Operational", icon: "📋", factors: [
+  { id: "operational", name: "Operational", icon: "", factors: [
     { id: "ops_pax_pressure", label: "Significant schedule pressure from passengers/client", score: 3 },
     { id: "ops_time_pressure", label: "Tight schedule with minimal buffer", score: 3 },
     { id: "ops_vip", label: "High-profile passengers or sensitive mission", score: 2 },
@@ -584,7 +584,7 @@ function FRATForm({ onSubmit }) {
   if (submitted) { const l = getRiskLevel(score); return (
     <div style={{ maxWidth: 460, margin: "40px auto", textAlign: "center" }}>
       <div style={{ ...card, padding: 36, border: `1px solid ${l.border}` }}>
-        <div style={{ fontSize: 48, marginBottom: 14 }}>✅</div>
+        <div style={{ fontSize: 32, marginBottom: 14, color: GREEN }}>✓</div>
         <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", marginBottom: 8, fontSize: 20 }}>FRAT Submitted</h2>
         <div style={{ display: "inline-block", padding: "5px 18px", borderRadius: 20, background: l.bg, border: `1px solid ${l.border}`, marginBottom: 14 }}>
           <span style={{ fontWeight: 700, color: l.color, fontSize: 15 }}>Score: {score} — {l.label}</span></div>
@@ -643,13 +643,13 @@ function FRATForm({ onSubmit }) {
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     {ic && <span style={{ color: BLACK, fontSize: 12, fontWeight: 700 }}>✓</span>}</div>
                   <span style={{ flex: 1, fontSize: 12, color: OFF_WHITE, lineHeight: 1.3 }}>
-                    {isAuto && <span title="Auto-detected from weather data" style={{ marginRight: 4 }}>🌐</span>}
+                    {isAuto && <span title="Auto-detected from weather data" style={{ marginRight: 4, color: CYAN, fontSize: 10 }}>AUTO</span>}
                     {f.label}
                   </span>
                   <span style={{ fontWeight: 700, fontSize: 10, color: ic ? (isAuto ? CYAN : rl.color) : SUBTLE, minWidth: 22, textAlign: "right" }}>+{f.score}</span>
                 </div>); })}</div>); })}
           <div style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10 }}>
-            <h3 style={{ margin: "0 0 10px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>📝 Remarks / Mitigations</h3>
+            <h3 style={{ margin: "0 0 10px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Remarks / Mitigations</h3>
             <textarea placeholder="Note any mitigations applied..." value={fi.remarks} onChange={e => setFi(p => ({ ...p, remarks: e.target.value }))}
               style={{ width: "100%", minHeight: 60, padding: 10, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", color: OFF_WHITE, background: NEAR_BLACK }} /></div>
         </div>
@@ -700,7 +700,7 @@ function HistoryView({ records, onDelete }) {
         {["ALL", ...Object.values(RISK_LEVELS).map(l => l.label)].map(l => (
           <button key={l} onClick={() => setFilter(l)} style={{ padding: "6px 11px", borderRadius: 16, border: `1px solid ${filter === l ? WHITE : BORDER}`, background: filter === l ? WHITE : CARD, color: filter === l ? BLACK : MUTED, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
             {l === "ALL" ? "All" : l.split(" ")[0]}</button>))}</div>
-      {filtered.length === 0 ? (<div style={{ textAlign: "center", padding: 60, color: MUTED }}><div style={{ fontSize: 42, marginBottom: 12 }}>📋</div><div style={{ fontSize: 14 }}>No FRAT records found</div></div>)
+      {filtered.length === 0 ? (<div style={{ textAlign: "center", padding: 60, color: MUTED }}><div style={{ fontSize: 14 }}>No FRAT records found</div></div>)
         : filtered.map(r => { const l = getRiskLevel(r.score); return (
           <div key={r.id} style={{ ...card, padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 44, height: 44, borderRadius: 8, background: l.bg, border: `1px solid ${l.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -718,82 +718,194 @@ function HistoryView({ records, onDelete }) {
 
 function FlightBoard({ flights, onUpdateFlight }) {
   const STATUSES = {
-    ACTIVE: { label: "ACTIVE", color: CYAN, bg: "rgba(34,211,238,0.08)", border: "rgba(34,211,238,0.25)", icon: "✈️" },
-    ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", icon: "✅" },
+    ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
+    ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
   };
   const [filter, setFilter] = useState("ACTIVE");
+  const [tick, setTick] = useState(0);
+  const [airportCoords, setAirportCoords] = useState({});
+  const [selectedFlight, setSelectedFlight] = useState(null);
+
+  // Tick every 30s to update estimated positions
+  useEffect(() => { const iv = setInterval(() => setTick(t => t + 1), 30000); return () => clearInterval(iv); }, []);
+
+  // Fetch airport coordinates for all flights
+  useEffect(() => {
+    const ids = new Set();
+    flights.forEach(f => { if (f.departure) ids.add(f.departure); if (f.destination) ids.add(f.destination); });
+    if (ids.size === 0) return;
+    const toFetch = [...ids].filter(id => !airportCoords[id]);
+    if (toFetch.length === 0) return;
+    fetch(`/api/airports?ids=${toFetch.join(",")}`).then(r => r.json()).then(data => {
+      setAirportCoords(prev => ({ ...prev, ...data }));
+    }).catch(() => {});
+  }, [flights]);
+
   const now = Date.now();
   const recent = flights.filter(f => f.status !== "ARRIVED" || (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000);
   const displayed = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
-  const activeCount = flights.filter(f => f.status === "ACTIVE").length;
-  const arrivedCount = flights.filter(f => f.status === "ARRIVED" && (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000).length;
+  const activeFlights = flights.filter(f => f.status === "ACTIVE");
 
-  // Check if a flight is overdue (past ETA + 30 min buffer)
-  const isOverdue = (f) => {
-    if (!f.eta || f.status !== "ACTIVE") return false;
-    return now > new Date(f.eta).getTime() + 30 * 60000;
+  const isOverdue = (f) => { if (!f.eta || f.status !== "ACTIVE") return false; return now > new Date(f.eta).getTime() + 30 * 60000; };
+
+  // Calculate progress percentage for a flight
+  const getProgress = (f) => {
+    if (f.status === "ARRIVED") return 100;
+    if (!f.eta || !f.timestamp) return 0;
+    const start = new Date(f.timestamp).getTime();
+    const end = new Date(f.eta).getTime();
+    if (end <= start) return 0;
+    const pct = ((now - start) / (end - start)) * 100;
+    return Math.max(0, Math.min(pct, 95));
+  };
+
+  // Estimate current position along great circle route
+  const getEstimatedPos = (f) => {
+    const dep = airportCoords[f.departure];
+    const dest = airportCoords[f.destination];
+    if (!dep || !dest) return null;
+    const pct = getProgress(f) / 100;
+    return {
+      lat: dep.lat + (dest.lat - dep.lat) * pct,
+      lon: dep.lon + (dest.lon - dep.lon) * pct,
+    };
+  };
+
+  // Simple SVG map of active flights
+  const MapView = () => {
+    if (activeFlights.length === 0) return null;
+    // Gather all coordinates
+    const allCoords = [];
+    activeFlights.forEach(f => {
+      const dep = airportCoords[f.departure]; const dest = airportCoords[f.destination];
+      if (dep) allCoords.push(dep); if (dest) allCoords.push(dest);
+    });
+    if (allCoords.length === 0) return <div style={{ ...card, height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: MUTED, fontSize: 12 }}>Loading map...</div>;
+
+    // Calculate bounds with padding
+    let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+    allCoords.forEach(c => { minLat = Math.min(minLat, c.lat); maxLat = Math.max(maxLat, c.lat); minLon = Math.min(minLon, c.lon); maxLon = Math.max(maxLon, c.lon); });
+    const padLat = Math.max((maxLat - minLat) * 0.3, 1); const padLon = Math.max((maxLon - minLon) * 0.3, 1.5);
+    minLat -= padLat; maxLat += padLat; minLon -= padLon; maxLon += padLon;
+    const W = 800, H = 400;
+    const toX = (lon) => ((lon - minLon) / (maxLon - minLon)) * W;
+    const toY = (lat) => H - ((lat - minLat) / (maxLat - minLat)) * H;
+
+    return (
+      <div style={{ ...card, padding: 0, marginBottom: 18, overflow: "hidden", borderRadius: 10 }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", background: BLACK }}>
+          {/* Grid lines */}
+          {[0.25, 0.5, 0.75].map(f => (<g key={f}>
+            <line x1={0} y1={H * f} x2={W} y2={H * f} stroke={BORDER} strokeWidth="0.5" />
+            <line x1={W * f} y1={0} x2={W * f} y2={H} stroke={BORDER} strokeWidth="0.5" />
+          </g>))}
+          <rect x={0} y={0} width={W} height={H} fill="none" stroke={BORDER} strokeWidth="1" />
+
+          {activeFlights.map(f => {
+            const dep = airportCoords[f.departure]; const dest = airportCoords[f.destination];
+            if (!dep || !dest) return null;
+            const pos = getEstimatedPos(f);
+            const dx = toX(dep.lon), dy = toY(dep.lat);
+            const ex = toX(dest.lon), ey = toY(dest.lat);
+            // Flight direction angle for plane rotation
+            const angle = Math.atan2(ex - dx, -(ey - dy)) * (180 / Math.PI);
+            return (
+              <g key={f.id}>
+                {/* Route line */}
+                <line x1={dx} y1={dy} x2={ex} y2={ey} stroke={BORDER} strokeWidth="1" strokeDasharray="4,4" />
+                {/* Departure label */}
+                <text x={dx} y={dy + 16} textAnchor="middle" fill={MUTED} fontSize="11" fontFamily="monospace">{f.departure}</text>
+                {/* Destination label */}
+                <text x={ex} y={ey + 16} textAnchor="middle" fill={MUTED} fontSize="11" fontFamily="monospace">{f.destination}</text>
+                {/* Airport dots */}
+                <circle cx={dx} cy={dy} r="3" fill={MUTED} />
+                <circle cx={ex} cy={ey} r="3" fill={MUTED} />
+                {/* Estimated position - plane icon */}
+                {pos && (
+                  <g transform={`translate(${toX(pos.lon)},${toY(pos.lat)}) rotate(${angle})`}>
+                    <text textAnchor="middle" dominantBaseline="central" fill={WHITE} fontSize="16" fontFamily="sans-serif">&#9992;</text>
+                  </g>
+                )}
+              </g>);
+          })}
+        </svg>
+      </div>);
   };
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, marginBottom: 18 }}>
-        {[{ label: "Active Flights", value: activeCount, color: CYAN, icon: "✈️" },
-          { label: "Arrived (24h)", value: arrivedCount, color: GREEN, icon: "✅" }].map((s, i) => (
-          <div key={i} style={{ ...card, padding: 14, textAlign: "center" }}>
-            <div style={{ fontSize: 20, marginBottom: 2 }}>{s.icon}</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: s.color, fontFamily: "Georgia,serif" }}>{s.value}</div>
-            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{s.label}</div></div>))}</div>
+    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <span style={{ fontSize: 13, color: GREEN, fontWeight: 600 }}>&#x25CF; {activeFlights.length} Active</span>
+      </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-        {["ACTIVE", "ALL", "ARRIVED"].map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{ padding: "5px 12px", borderRadius: 14, border: `1px solid ${filter === f ? WHITE : BORDER}`,
-            background: filter === f ? WHITE : CARD, color: filter === f ? BLACK : MUTED, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-            {f === "ALL" ? "All (24h)" : f.charAt(0) + f.slice(1).toLowerCase()}</button>))}</div>
+      <div style={{ display: "grid", gridTemplateColumns: activeFlights.length > 0 ? "1fr 1fr" : "1fr", gap: 20 }}>
+        {/* Map */}
+        {activeFlights.length > 0 && <MapView />}
 
-      {displayed.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
-          <div style={{ fontSize: 42, marginBottom: 12 }}>{"✈️"}</div>
-          <div style={{ fontSize: 14, marginBottom: 6 }}>No {filter === "ACTIVE" ? "active" : ""} flights</div>
-          <div style={{ fontSize: 11 }}>Submit a FRAT to create a flight</div></div>
-      ) : displayed.sort((a, b) => {
-        if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
-        return new Date(b.timestamp) - new Date(a.timestamp);
-      }).map(f => {
-        const st = STATUSES[f.status] || STATUSES.ACTIVE;
-        const rl = getRiskLevel(f.score);
-        const overdue = isOverdue(f);
-        return (
-          <div key={f.id} style={{ ...card, padding: "14px 16px", marginBottom: 8, border: `1px solid ${overdue ? RED + "66" : st.border}` }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ textAlign: "center", minWidth: 44 }}>
-                <div style={{ fontSize: 22 }}>{overdue ? "⚠️" : st.icon}</div>
-                {overdue && <div style={{ fontSize: 8, color: RED, fontWeight: 700, marginTop: 2 }}>OVERDUE</div>}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 800, color: WHITE, fontSize: 15, fontFamily: "Georgia,serif" }}>{f.departure} → {f.destination}</span>
-                  {f.tailNumber && <span style={{ fontSize: 10, fontWeight: 700, color: OFF_WHITE }}>{f.tailNumber}</span>}
-                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 10,
-                    background: overdue ? "rgba(239,68,68,0.12)" : st.bg, color: overdue ? RED : st.color, border: `1px solid ${overdue ? RED + "44" : st.border}` }}>{overdue ? "OVERDUE" : st.label}</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 10,
-                    background: rl.bg, color: rl.color, border: `1px solid ${rl.border}` }}>{f.score} {rl.label.split(" ")[0]}</span></div>
-                <div style={{ color: OFF_WHITE, fontSize: 12, marginBottom: 2 }}>
-                  <strong>{f.pilot}</strong> · {f.aircraft}{f.cruiseAlt ? ` · ${f.cruiseAlt}` : ""}{f.numCrew ? ` · Crew: ${f.numCrew}` : ""}{f.numPax ? ` · Pax: ${f.numPax}` : ""}</div>
-                <div style={{ color: MUTED, fontSize: 10, lineHeight: 1.5 }}>
-                  {f.etd && <span>ETD {f.etd}L</span>}{f.ete && <span> · ETE {f.ete}</span>}{f.eta && <span> · ETA {formatLocal(new Date(f.eta))}L / {formatZulu(new Date(f.eta))}</span>}{f.fuelLbs && <span> · Fuel {f.fuelLbs} lbs</span>}
-                  {" · "}{f.id} · Filed {formatDateTime(f.timestamp)}
-                  {f.arrivedAt && <span> · Arrived {formatDateTime(f.arrivedAt)}</span>}</div></div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
-                {f.status === "ACTIVE" && (
-                  <button onClick={() => onUpdateFlight(f.id, "ARRIVED")}
-                    style={{ padding: "8px 14px", background: GREEN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>ARRIVED</button>)}
-                {f.status === "ACTIVE" && (
-                  <button onClick={() => onUpdateFlight(f.id, "CANCEL")}
-                    style={{ padding: "6px 14px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 10, cursor: "pointer" }}>Cancel</button>)}</div>
-            </div></div>); })}
-
-      <div style={{ ...card, padding: 14, marginTop: 14, background: NEAR_BLACK }}>
-        <div style={{ fontSize: 10, color: MUTED, lineHeight: 1.5 }}>
-          <strong style={{ color: OFF_WHITE }}>Flight Following:</strong> Submit a FRAT to create an active flight. Tap Arrived when on the ground at your destination. Flights that exceed their ETA by 30 minutes are flagged overdue. Completed flights auto-archive after 24 hours.</div></div></div>);
+        {/* Flight cards */}
+        <div>
+          {displayed.length === 0 ? (
+            <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
+              <div style={{ fontSize: 14, marginBottom: 6 }}>No {filter === "ACTIVE" ? "active" : ""} flights</div>
+              <div style={{ fontSize: 11 }}>Submit a FRAT to create a flight</div></div>
+          ) : displayed.sort((a, b) => {
+            if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
+            return new Date(b.timestamp) - new Date(a.timestamp);
+          }).map(f => {
+            const st = STATUSES[f.status] || STATUSES.ACTIVE;
+            const overdue = isOverdue(f);
+            const progress = getProgress(f);
+            const statusLabel = overdue ? "OVERDUE" : f.status === "ACTIVE" ? "ENROUTE" : "ARRIVED";
+            const statusColor = overdue ? RED : st.color;
+            return (
+              <div key={f.id} style={{ ...card, padding: "18px 22px", marginBottom: 12, borderRadius: 10, border: `1px solid ${overdue ? RED + "44" : BORDER}`, cursor: "pointer" }}
+                onClick={() => setSelectedFlight(selectedFlight === f.id ? null : f.id)}>
+                {/* Header: tail number + status badge */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>{f.tailNumber || f.aircraft}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
+                </div>
+                {/* Route progress bar */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42 }}>{f.departure}</span>
+                  <div style={{ flex: 1, position: "relative", height: 4, background: BORDER, borderRadius: 2 }}>
+                    <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${progress}%`, background: GREEN, borderRadius: 2, transition: "width 1s ease" }} />
+                    {f.status === "ACTIVE" && <div style={{ position: "absolute", top: -4, left: `${progress}%`, width: 12, height: 12, borderRadius: "50%", background: WHITE, border: `2px solid ${GREEN}`, transform: "translateX(-6px)", transition: "left 1s ease" }} />}
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42, textAlign: "right" }}>{f.destination}</span>
+                </div>
+                {/* Flight details */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <div style={{ color: MUTED, fontSize: 11 }}>
+                    <span>PIC</span>{" "}<span style={{ color: OFF_WHITE }}>{f.pilot}</span>
+                    {f.cruiseAlt && <><span style={{ margin: "0 6px" }}>Alt</span><span style={{ color: OFF_WHITE }}>{f.cruiseAlt}</span></>}
+                  </div>
+                  <div style={{ color: MUTED, fontSize: 11 }}>
+                    <span>ETD/ETA</span>{" "}
+                    <span style={{ color: OFF_WHITE }}>{f.etd || "—"} / {f.eta ? formatLocal(new Date(f.eta)) : "—"}</span>
+                  </div>
+                </div>
+                {/* Expanded details */}
+                {selectedFlight === f.id && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+                    <div style={{ color: MUTED, fontSize: 10, lineHeight: 1.8 }}>
+                      {f.numCrew && <span>Crew: {f.numCrew} </span>}{f.numPax && <span>Pax: {f.numPax} </span>}{f.fuelLbs && <span>Fuel: {f.fuelLbs} lbs </span>}
+                      <br />ID: {f.id} &middot; Filed {formatDateTime(f.timestamp)}
+                      {f.arrivedAt && <span> &middot; Arrived {formatDateTime(f.arrivedAt)}</span>}
+                    </div>
+                    {f.status === "ACTIVE" && (
+                      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                        <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "ARRIVED"); }}
+                          style={{ flex: 1, padding: "10px 0", background: "transparent", color: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>VIEW FRAT</button>
+                        <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "ARRIVED"); }}
+                          style={{ flex: 1, padding: "10px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
+                      </div>)}
+                  </div>
+                )}
+              </div>); })}
+        </div>
+      </div>
+    </div>);
 }
 
 function ExportView({ records }) {
