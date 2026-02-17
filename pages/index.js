@@ -299,13 +299,17 @@ function analyzeWeather(wx) {
 
   const isNearRoute = (item) => {
     if (aptCoords.length === 0) return true;
+    // Check direct lat/lon
     if (item.lat && item.lon) return aptCoords.some(a => haversineNm(a.lat, a.lon, item.lat, item.lon) < 200);
-    const coords = item.coords || (item.geometry && item.geometry.coordinates);
-    if (coords && Array.isArray(coords)) { const flat = flattenCoords(coords); return flat.some(([lon, lat]) => aptCoords.some(a => haversineNm(a.lat, a.lon, lat, lon) < 200)); }
+    // Check various coordinate field names used by AWC
+    const coords = item.coords || (item.geometry && item.geometry.coordinates) || item.geom?.coordinates;
+    if (coords && Array.isArray(coords)) { const flat = flattenCoords(coords); if (flat.length > 0) return flat.some(([lon, lat]) => aptCoords.some(a => haversineNm(a.lat, a.lon, lat, lon) < 200)); }
+    // If no coordinates found at all, include it (better to show extra than miss something)
     return true;
   };
 
   const altFt = wx.altFt || 0;
+  console.log("[WX] SIGMETs received:", (wx.sigmets || []).length, "G-AIRMETs received:", (wx.gairmets || []).length);
   for (const s of (Array.isArray(wx.sigmets) ? wx.sigmets : [])) {
     if (!isNearRoute(s)) continue;
     const haz = (s.hazard || "").toUpperCase(); const raw = s.rawAirSigmet || s.rawText || "";
@@ -329,34 +333,6 @@ function analyzeWeather(wx) {
     if (haz.includes("ICE") && !flags.wx_ice) { const lo = (g.altitudeLow||0)*100; const hi = (g.altitudeHi||999)*100; if (!altFt||(altFt>=lo&&altFt<=hi)) { flags.wx_ice = true; reasons.wx_ice = `G-AIRMET icing FL${lo/100}-FL${hi/100}.`; } }
     if (haz.includes("MT_OBSC") && !flags.wx_mountain) { flags.wx_mountain = true; reasons.wx_mountain = "G-AIRMET mountain obscuration."; }
     if (haz.includes("IFR") && !flags.wx_ceiling) { flags.wx_ceiling = true; reasons.wx_ceiling = (reasons.wx_ceiling||"") + " G-AIRMET IFR."; }
-  }
-
-  // Process PIREPs
-  for (const p of (Array.isArray(wx.pireps) ? wx.pireps : [])) {
-    if (!isNearRoute(p)) continue;
-    const raw = p.rawOb || "";
-    const station = p.icaoId || "PIREP";
-    const isUrgent = (p.reportType || "").toUpperCase() === "UA" ? false : true; // UUA = urgent
-    briefItems.push({ station, type: isUrgent ? "PIREP (URGENT)" : "PIREP", raw });
-    const altStr = p.flvl ? `FL${p.flvl}` : "";
-    const tbStr = p.tbInt ? `Turb: ${["","Light","Moderate","Severe","Extreme"][p.tbInt] || p.tbInt}` : "";
-    const icStr = p.icInt ? `Ice: ${["","Trace","Light","Moderate","Severe"][p.icInt] || p.icInt}` : "";
-    const parts = [altStr, tbStr, icStr].filter(Boolean).join(" | ");
-    if (parts) stationSummaries.push({ station, type: isUrgent ? "UUA PIREP" : "PIREP", summary: parts, flight_rules: (p.tbInt >= 3 || p.icInt >= 3) ? "IFR" : "MVFR" });
-    // Flag turbulence from PIREPs
-    if (p.tbInt && p.tbInt >= 2 && !flags.wx_turb) {
-      flags.wx_turb = true;
-      reasons.wx_turb = `PIREP ${["","light","moderate","severe","extreme"][p.tbInt] || ""} turbulence ${altStr} near ${station}.`;
-    }
-    // Flag icing from PIREPs
-    if (p.icInt && p.icInt >= 2 && !flags.wx_ice) {
-      flags.wx_ice = true;
-      reasons.wx_ice = `PIREP ${["","trace","light","moderate","severe"][p.icInt] || ""} icing ${altStr} near ${station}.`;
-    }
-    // Flag wind shear from PIREPs
-    if (raw.toUpperCase().includes("WIND SHEAR") || raw.toUpperCase().includes("/WS")) {
-      if (!flags.wx_wind_shear) { flags.wx_wind_shear = true; reasons.wx_wind_shear = `PIREP wind shear near ${station}.`; }
-    }
   }
 
   return { flags, reasons, briefing: briefItems, stationSummaries };
@@ -620,7 +596,8 @@ function FRATForm({ onSubmit }) {
                 <select value={fi[f.key]} onChange={e => setFi(p => ({ ...p, [f.key]: e.target.value }))} style={inp}>
                   {AIRCRAFT_TYPES.map(a => <option key={a}>{a}</option>)}</select>
               ) : (<input type={f.type === "date" ? "date" : "text"} placeholder={f.placeholder} value={fi[f.key]}
-                onChange={e => setFi(p => ({ ...p, [f.key]: f.upper ? e.target.value.toUpperCase() : e.target.value }))} style={inp} />)}
+                onChange={e => { let v = f.upper ? e.target.value.toUpperCase() : e.target.value; setFi(p => ({ ...p, [f.key]: v })); }}
+                onBlur={e => { if (f.key === "tailNumber" && fi.tailNumber && !fi.tailNumber.startsWith("N")) { setFi(p => ({ ...p, tailNumber: "N" + p.tailNumber })); } }} style={inp} />)}
             </div>))}
         </div>
       </div>
@@ -881,8 +858,7 @@ function AuthScreen({ onAuth }) {
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ ...card, padding: "32px 28px", maxWidth: 400, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 100, objectFit: "contain", marginBottom: 8 }} onError={e => { e.target.style.display = "none"; }} />
-          <div style={{ fontSize: 11, color: MUTED }}>Safety Management System</div></div>
+          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 100, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} /></div>
 
         <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
           {[["login", "Log In"], ["signup", "New Org"], ["join", "Join Org"]].map(([m, label]) => (
@@ -1268,7 +1244,7 @@ export default function PVTAIRFrat() {
   const userName = profile?.full_name || "";
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
   return (
-    <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
+    <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} />
       {isOnline && session && (
