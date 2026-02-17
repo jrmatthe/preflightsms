@@ -687,142 +687,17 @@ function FlightBoard({ flights, onUpdateFlight }) {
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
   };
   const [filter, setFilter] = useState("ACTIVE");
-  const [tick, setTick] = useState(0);
-  const [airportCoords, setAirportCoords] = useState({});
   const [selectedFlight, setSelectedFlight] = useState(null);
 
-  // Force re-render every 15s to update estimated positions
-  useEffect(() => { const iv = setInterval(() => setTick(t => t + 1), 15000); return () => clearInterval(iv); }, []);
-
-  // Fetch airport coordinates for all flights
-  useEffect(() => {
-    const ids = new Set();
-    flights.forEach(f => { if (f.departure) ids.add(f.departure); if (f.destination) ids.add(f.destination); });
-    if (ids.size === 0) return;
-    const toFetch = [...ids].filter(id => !airportCoords[id]);
-    if (toFetch.length === 0) return;
-    fetch(`/api/airports?ids=${toFetch.join(",")}`).then(r => r.json()).then(data => {
-      setAirportCoords(prev => ({ ...prev, ...data }));
-    }).catch(() => {});
-  }, [flights]);
-
-  // Use tick to ensure fresh time on each render cycle
-  const now = Date.now(); void tick;
+  const now = Date.now();
   const recent = flights.filter(f => f.status !== "ARRIVED" || (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000);
   const displayed = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
   const activeFlights = flights.filter(f => f.status === "ACTIVE");
 
   const isOverdue = (f) => { if (!f.eta || f.status !== "ACTIVE") return false; return now > new Date(f.eta).getTime() + 30 * 60000; };
 
-  // Calculate progress percentage for a flight
-  const getProgress = (f) => {
-    if (f.status === "ARRIVED") return 100;
-    if (!f.eta) return -1;
-    const end = new Date(f.eta).getTime();
-    const start = new Date(f.timestamp).getTime();
-    const n = Date.now();
-    if (isNaN(end) || isNaN(start) || end <= start) return 0;
-    const pct = ((n - start) / (end - start)) * 100;
-    return Math.max(0, Math.min(pct, 95));
-  };
-
-  // For CSS animation: calculate where it will be in 60s
-  const getProgressIn60s = (f) => {
-    if (f.status === "ARRIVED") return 100;
-    if (!f.eta) return -1;
-    const end = new Date(f.eta).getTime();
-    const start = new Date(f.timestamp).getTime();
-    const n = Date.now() + 60000;
-    if (isNaN(end) || isNaN(start) || end <= start) return 0;
-    const pct = ((n - start) / (end - start)) * 100;
-    return Math.max(0, Math.min(pct, 95));
-  };
-
-  // Estimate current position along great circle route
-  const getEstimatedPos = (f) => {
-    const dep = airportCoords[f.departure];
-    const dest = airportCoords[f.destination];
-    if (!dep || !dest) return null;
-    const pct = getProgress(f) / 100;
-    if (pct <= 0) return { lat: dep.lat, lon: dep.lon };
-    return {
-      lat: dep.lat + (dest.lat - dep.lat) * pct,
-      lon: dep.lon + (dest.lon - dep.lon) * pct,
-    };
-  };
-
-  // Compute map data (recomputes each render triggered by tick)
-  const mapData = (() => {
-    if (activeFlights.length === 0) return null;
-    const allCoords = [];
-    activeFlights.forEach(f => {
-      const dep = airportCoords[f.departure]; const dest = airportCoords[f.destination];
-      if (dep) allCoords.push(dep); if (dest) allCoords.push(dest);
-    });
-    if (allCoords.length === 0) return null;
-    let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-    allCoords.forEach(c => { minLat = Math.min(minLat, c.lat); maxLat = Math.max(maxLat, c.lat); minLon = Math.min(minLon, c.lon); maxLon = Math.max(maxLon, c.lon); });
-    const padLat = Math.max((maxLat - minLat) * 0.3, 1); const padLon = Math.max((maxLon - minLon) * 0.3, 1.5);
-    minLat -= padLat; maxLat += padLat; minLon -= padLon; maxLon += padLon;
-    const W = 800, H = 400;
-    const toX = (lon) => ((lon - minLon) / (maxLon - minLon)) * W;
-    const toY = (lat) => H - ((lat - minLat) / (maxLat - minLat)) * H;
-    return { W, H, toX, toY };
-  })();
-
-  const renderMap = () => {
-    if (!mapData) return <div style={{ ...card, height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: MUTED, fontSize: 12 }}>Loading map...</div>;
-    const { W, H, toX, toY } = mapData;
-    return (
-      <div style={{ ...card, padding: 0, marginBottom: 18, overflow: "hidden", borderRadius: 10 }}>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", background: BLACK }}>
-          {[0.25, 0.5, 0.75].map(f => (<g key={f}>
-            <line x1={0} y1={H * f} x2={W} y2={H * f} stroke={BORDER} strokeWidth="0.5" />
-            <line x1={W * f} y1={0} x2={W * f} y2={H} stroke={BORDER} strokeWidth="0.5" />
-          </g>))}
-          <rect x={0} y={0} width={W} height={H} fill="none" stroke={BORDER} strokeWidth="1" />
-          {activeFlights.map(f => {
-            const dep = airportCoords[f.departure]; const dest = airportCoords[f.destination];
-            if (!dep || !dest) return null;
-            const pos = getEstimatedPos(f);
-            const dx = toX(dep.lon), dy = toY(dep.lat);
-            const ex = toX(dest.lon), ey = toY(dest.lat);
-            const angle = Math.atan2(ex - dx, -(ey - dy)) * (180 / Math.PI);
-            // Calculate position 60s from now for animation end point
-            const pctNow = getProgress(f) / 100;
-            const pctFuture = getProgressIn60s(f) / 100;
-            const futurePos = {
-              lat: dep.lat + (dest.lat - dep.lat) * Math.max(pctFuture, 0),
-              lon: dep.lon + (dest.lon - dep.lon) * Math.max(pctFuture, 0),
-            };
-            const curX = pos ? toX(pos.lon) : dx;
-            const curY = pos ? toY(pos.lat) : dy;
-            const futX = toX(futurePos.lon);
-            const futY = toY(futurePos.lat);
-            return (
-              <g key={f.id}>
-                <line x1={dx} y1={dy} x2={ex} y2={ey} stroke={BORDER} strokeWidth="1" strokeDasharray="4,4" />
-                <text x={dx} y={dy + 16} textAnchor="middle" fill={MUTED} fontSize="11" fontFamily="monospace">{f.departure}</text>
-                <text x={ex} y={ey + 16} textAnchor="middle" fill={MUTED} fontSize="11" fontFamily="monospace">{f.destination}</text>
-                <circle cx={dx} cy={dy} r="3" fill={MUTED} />
-                <circle cx={ex} cy={ey} r="3" fill={MUTED} />
-                {pos && (
-                  <g>
-                    <animateTransform attributeName="transform" type="translate" from={`${curX} ${curY}`} to={`${futX} ${futY}`} dur="60s" fill="freeze" />
-                    <g transform={`rotate(${angle})`}>
-                      <text textAnchor="middle" dominantBaseline="central" fill={WHITE} fontSize="16" fontFamily="sans-serif">&#9992;</text>
-                    </g>
-                  </g>
-                )}
-              </g>);
-          })}
-        </svg>
-      </div>);
-  };
-
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-      <span style={{ display: "none" }}>{tick}</span>
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 6 }}>
           {["ACTIVE", "ARRIVED", "ALL"].map(f => (
@@ -833,84 +708,53 @@ function FlightBoard({ flights, onUpdateFlight }) {
         <span style={{ fontSize: 13, color: GREEN, fontWeight: 600 }}>&#x25CF; {activeFlights.length} Active</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: activeFlights.length > 0 ? "1fr 1fr" : "1fr", gap: 20 }}>
-        {/* Map */}
-        {activeFlights.length > 0 && renderMap()}
-
-        {/* Flight cards */}
-        <div>
-          {displayed.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
-              <div style={{ fontSize: 14, marginBottom: 6 }}>No {filter === "ACTIVE" ? "active" : ""} flights</div>
-              <div style={{ fontSize: 11 }}>Submit a FRAT to create a flight</div></div>
-          ) : displayed.sort((a, b) => {
-            if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
-            return new Date(b.timestamp) - new Date(a.timestamp);
-          }).map(f => {
-            const st = STATUSES[f.status] || STATUSES.ACTIVE;
-            const overdue = isOverdue(f);
-            const progress = getProgress(f);
-            const statusLabel = overdue ? "OVERDUE" : f.status === "ACTIVE" ? "ENROUTE" : "ARRIVED";
-            const statusColor = overdue ? RED : st.color;
-            return (
-              <div key={f.id} style={{ ...card, padding: "18px 22px", marginBottom: 12, borderRadius: 10, border: `1px solid ${overdue ? RED + "44" : BORDER}`, cursor: "pointer" }}
-                onClick={() => setSelectedFlight(selectedFlight === f.id ? null : f.id)}>
-                {/* Header: tail number + status badge */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>{f.tailNumber || f.aircraft}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
+      {displayed.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
+          <div style={{ fontSize: 14, marginBottom: 6 }}>No {filter === "ACTIVE" ? "active" : ""} flights</div>
+          <div style={{ fontSize: 11 }}>Submit a FRAT to create a flight</div></div>
+      ) : displayed.sort((a, b) => {
+        if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
+        return new Date(b.timestamp) - new Date(a.timestamp);
+      }).map(f => {
+        const st = STATUSES[f.status] || STATUSES.ACTIVE;
+        const overdue = isOverdue(f);
+        const statusLabel = overdue ? "OVERDUE" : f.status === "ACTIVE" ? "ENROUTE" : "ARRIVED";
+        const statusColor = overdue ? RED : st.color;
+        return (
+          <div key={f.id} style={{ ...card, padding: "18px 22px", marginBottom: 12, borderRadius: 10, border: `1px solid ${overdue ? RED + "44" : BORDER}`, cursor: "pointer" }}
+            onClick={() => setSelectedFlight(selectedFlight === f.id ? null : f.id)}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>{f.tailNumber || f.aircraft}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: WHITE, marginBottom: 8 }}>{f.departure} → {f.destination}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <div style={{ color: MUTED, fontSize: 11 }}>
+                <span>PIC</span>{" "}<span style={{ color: OFF_WHITE }}>{f.pilot}</span>
+                {f.cruiseAlt && <><span style={{ margin: "0 6px" }}>Alt</span><span style={{ color: OFF_WHITE }}>{f.cruiseAlt}</span></>}
+              </div>
+              <div style={{ color: MUTED, fontSize: 11 }}>
+                <span>ETD/ETA</span>{" "}
+                <span style={{ color: OFF_WHITE }}>{f.etd || "—"} / {f.eta ? formatLocal(new Date(f.eta)) : "—"}</span>
+              </div>
+            </div>
+            {selectedFlight === f.id && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+                <div style={{ color: MUTED, fontSize: 10, lineHeight: 1.8 }}>
+                  {f.numCrew && <span>Crew: {f.numCrew} </span>}{f.numPax && <span>Pax: {f.numPax} </span>}{f.fuelLbs && <span>Fuel: {f.fuelLbs} lbs </span>}
+                  <br />ID: {f.id} &middot; Score: {f.score} {f.riskLevel} &middot; Filed {formatDateTime(f.timestamp)}
+                  {f.arrivedAt && <span> &middot; Arrived {formatDateTime(f.arrivedAt)}</span>}
                 </div>
-                {/* Route progress bar */}
-                {(() => {
-                  const safeName = f.id.replace(/[^a-zA-Z0-9]/g, "");
-                  const p0 = Math.max(progress, 0);
-                  const p1 = Math.max(getProgressIn60s(f), 0);
-                  return (<>
-                  <style>{`
-                    @keyframes bar${safeName} { from{width:${p0}%} to{width:${p1}%} }
-                    @keyframes dot${safeName} { from{left:${p0}%} to{left:${p1}%} }
-                  `}</style>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42 }}>{f.departure}</span>
-                    <div style={{ flex: 1, position: "relative", height: 4, background: BORDER, borderRadius: 2 }}>
-                      <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${p0}%`, background: GREEN, borderRadius: 2, animation: `bar${safeName} 60s linear forwards` }} />
-                      {f.status === "ACTIVE" && progress >= 0 && <div style={{ position: "absolute", top: -4, left: `${p0}%`, width: 12, height: 12, borderRadius: "50%", background: WHITE, border: `2px solid ${GREEN}`, transform: "translateX(-6px)", animation: `dot${safeName} 60s linear forwards` }} />}
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42, textAlign: "right" }}>{f.destination}</span>
-                  </div>
-                  </>);
-                })()}
-                {/* Flight details */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <div style={{ color: MUTED, fontSize: 11 }}>
-                    <span>PIC</span>{" "}<span style={{ color: OFF_WHITE }}>{f.pilot}</span>
-                    {f.cruiseAlt && <><span style={{ margin: "0 6px" }}>Alt</span><span style={{ color: OFF_WHITE }}>{f.cruiseAlt}</span></>}
-                  </div>
-                  <div style={{ color: MUTED, fontSize: 11 }}>
-                    <span>ETD/ETA</span>{" "}
-                    <span style={{ color: OFF_WHITE }}>{f.etd || "—"} / {f.eta ? formatLocal(new Date(f.eta)) : "—"}</span>
-                  </div>
-                </div>
-                {/* Expanded details */}
-                {selectedFlight === f.id && (
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
-                    <div style={{ color: MUTED, fontSize: 10, lineHeight: 1.8 }}>
-                      {f.numCrew && <span>Crew: {f.numCrew} </span>}{f.numPax && <span>Pax: {f.numPax} </span>}{f.fuelLbs && <span>Fuel: {f.fuelLbs} lbs </span>}
-                      <br />ID: {f.id} &middot; Filed {formatDateTime(f.timestamp)}
-                      {f.arrivedAt && <span> &middot; Arrived {formatDateTime(f.arrivedAt)}</span>}
-                    </div>
-                    {f.status === "ACTIVE" && (
-                      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                        <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "ARRIVED"); }}
-                          style={{ flex: 1, padding: "10px 0", background: "transparent", color: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>VIEW FRAT</button>
-                        <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "ARRIVED"); }}
-                          style={{ flex: 1, padding: "10px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
-                      </div>)}
-                  </div>
-                )}
-              </div>); })}
-        </div>
-      </div>
+                {f.status === "ACTIVE" && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "ARRIVED"); }}
+                      style={{ flex: 1, padding: "10px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
+                    <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "CANCEL"); }}
+                      style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+                  </div>)}
+              </div>
+            )}
+          </div>); })}
     </div>);
 }
 
