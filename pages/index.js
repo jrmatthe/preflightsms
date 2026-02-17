@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment } from "../lib/supabase";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
 const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), { ssr: false });
@@ -497,12 +497,14 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes, orgId }) {
   const RISK_CATEGORIES = riskCategories || DEFAULT_RISK_CATEGORIES;
   const AIRCRAFT_TYPES = aircraftTypes || DEFAULT_AIRCRAFT_TYPES;
   const getRL = (s) => getRiskLevel(s, riskLevels);
   const getLocalDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
   const [fi, setFi] = useState({ pilot: "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" });
+  const [attachments, setAttachments] = useState([]); // { file, preview, uploading, url }
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [checked, setChecked] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [wxData, setWxData] = useState(null);
@@ -565,15 +567,44 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
     return () => { if (fetchTimer.current) clearTimeout(fetchTimer.current); };
   }, [fi.departure, fi.destination, fi.cruiseAlt, fi.etd, fi.ete, fi.date]);
 
-  const handleSubmit = () => {
+  // Photo attachment handlers
+  const handleAddPhoto = (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      if (!file.type.startsWith("image/")) return;
+      if (file.size > 10 * 1024 * 1024) { alert("Photo must be under 10MB"); return; }
+      const preview = URL.createObjectURL(file);
+      setAttachments(prev => [...prev, { file, preview, uploading: false, url: null }]);
+    });
+    e.target.value = "";
+  };
+
+  const removePhoto = (idx) => {
+    setAttachments(prev => { URL.revokeObjectURL(prev[idx]?.preview); return prev.filter((_, i) => i !== idx); });
+  };
+
+  const handleSubmit = async () => {
     if (!fi.pilot || !fi.departure || !fi.destination) { alert("Please fill in pilot name, departure, and destination."); return; }
     if (!fi.etd || !fi.ete) { alert("Please fill in estimated departure time (ETD) and estimated time enroute (ETE) for flight following."); return; }
+    
+    // Upload photos first
+    const fratId = generateId();
+    let uploadedUrls = [];
+    if (attachments.length > 0 && orgId) {
+      setUploadingPhotos(true);
+      for (const att of attachments) {
+        const { url, error } = await uploadFratAttachment(orgId, fratId, att.file);
+        if (url) uploadedUrls.push({ url, name: att.file.name, type: att.file.type, size: att.file.size });
+      }
+      setUploadingPhotos(false);
+    }
+
     const eta = calcArrivalTime(fi.date, fi.etd, fi.ete);
-    onSubmit({ id: generateId(), ...fi, eta: eta ? eta.toISOString() : "", score, riskLevel: getRL(score).label, factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
-      wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "" });
+    onSubmit({ id: fratId, ...fi, eta: eta ? eta.toISOString() : "", score, riskLevel: getRL(score).label, factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
+      wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls });
     if (onNavigate) onNavigate("flights");
   };
-  const reset = () => { setFi({ pilot: "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); };
+  const reset = () => { attachments.forEach(a => URL.revokeObjectURL(a.preview)); setAttachments([]); setUploadingPhotos(false); setFi({ pilot: "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); };
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -634,6 +665,42 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
             <h3 style={{ margin: "0 0 10px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Remarks / Mitigations</h3>
             <textarea placeholder="Note any mitigations applied..." value={fi.remarks} onChange={e => setFi(p => ({ ...p, remarks: e.target.value }))}
               style={{ width: "100%", minHeight: 60, padding: 10, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", color: OFF_WHITE, background: NEAR_BLACK }} /></div>
+
+          {/* Photo Attachments */}
+          <div style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10 }}>
+            <h3 style={{ margin: "0 0 10px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Attachments</h3>
+            <div style={{ color: MUTED, fontSize: 11, marginBottom: 12 }}>Attach photos of HAZMAT PIC notifications, NOTAMs, or other documents</div>
+            
+            {/* Photo grid */}
+            {attachments.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8, marginBottom: 12 }}>
+                {attachments.map((att, idx) => (
+                  <div key={idx} style={{ position: "relative", borderRadius: 8, overflow: "hidden", border: `1px solid ${BORDER}`, background: BLACK, aspectRatio: "1" }}>
+                    <img src={att.preview} alt={att.file.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <button onClick={() => removePhoto(idx)} style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,0.7)", border: `1px solid ${BORDER}`, color: WHITE, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>&times;</button>
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "4px 6px", background: "rgba(0,0,0,0.7)", fontSize: 9, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{att.file.name}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add photo buttons */}
+            <div style={{ display: "flex", gap: 8 }}>
+              {/* Camera capture (mobile) */}
+              <label style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 16px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: OFF_WHITE, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Take Photo
+                <input type="file" accept="image/*" capture="environment" onChange={handleAddPhoto} style={{ display: "none" }} />
+              </label>
+              {/* File picker */}
+              <label style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 16px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: OFF_WHITE, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                Choose File
+                <input type="file" accept="image/*" multiple onChange={handleAddPhoto} style={{ display: "none" }} />
+              </label>
+            </div>
+            {uploadingPhotos && <div style={{ color: CYAN, fontSize: 11, marginTop: 8, textAlign: "center" }}>Uploading photos...</div>}
+          </div>
         </div>
 
         <div className="score-panel-desktop" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
@@ -694,7 +761,16 @@ function HistoryView({ records, onDelete }) {
                 <span style={{ background: NEAR_BLACK, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 600 }}>{r.aircraft}</span>
                 {r.cruiseAlt && <span style={{ background: NEAR_BLACK, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 600 }}>{r.cruiseAlt}</span>}</div>
               <div style={{ color: MUTED, fontSize: 10 }}>{r.pilot} · {formatDateTime(r.timestamp)} · {r.id} · {r.factors.length} factor{r.factors.length !== 1 ? "s" : ""}</div>
-              {r.remarks && <div style={{ color: SUBTLE, fontSize: 10, marginTop: 2, fontStyle: "italic" }}>"{r.remarks}"</div>}</div>
+              {r.remarks && <div style={{ color: SUBTLE, fontSize: 10, marginTop: 2, fontStyle: "italic" }}>"{r.remarks}"</div>}
+              {r.attachments && r.attachments.length > 0 && (
+                <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                  {r.attachments.map((att, i) => (
+                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", width: 48, height: 48, borderRadius: 6, overflow: "hidden", border: `1px solid ${BORDER}` }}>
+                      <img src={att.url} alt={att.name || "Attachment"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </a>
+                  ))}
+                </div>
+              )}</div>
             <button onClick={() => onDelete(r.id)} style={{ background: "none", border: "none", color: LIGHT_BORDER, cursor: "pointer", fontSize: 16, padding: 4 }}>×</button></div>); })}</div>);
 }
 
@@ -1071,7 +1147,7 @@ export default function PVTAIRFrat() {
         departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt,
         date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs,
         numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
-        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, timestamp: r.created_at,
+        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at,
       })));
       setPendingSync(getQueueCount());
     };
@@ -1117,7 +1193,7 @@ export default function PVTAIRFrat() {
         departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt,
         date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs,
         numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
-        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks,
+        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [],
         timestamp: r.created_at,
       })));
     });
@@ -1185,7 +1261,7 @@ export default function PVTAIRFrat() {
         departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt,
         date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs,
         numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
-        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, timestamp: r.created_at,
+        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at,
       })));
       const { data: fl } = await fetchFlights(profile.org_id);
       setFlights(fl.map(f => ({
@@ -1266,7 +1342,7 @@ export default function PVTAIRFrat() {
         departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt,
         date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs,
         numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
-        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, timestamp: r.created_at,
+        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at,
       })));
     } else {
       saveLocal(records.filter(r => r.id !== id));
@@ -1403,7 +1479,7 @@ export default function PVTAIRFrat() {
         </div>
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         <main style={{ padding: "20px 32px 50px" }}>
-        {cv === "submit" && <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} />}
+        {cv === "submit" && <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} />}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} />}
         {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={onSubmitReport} reports={reports} onStatusChange={onReportStatusChange} />}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={onCreateHazard} hazards={hazards} />}
