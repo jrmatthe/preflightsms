@@ -167,7 +167,7 @@ function ReportForm({ onSubmit, onCancel }) {
   );
 }
 
-function ReportCard({ report, onStatusChange }) {
+function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard }) {
   const type = REPORT_TYPES.find(t => t.id === report.report_type) || REPORT_TYPES[0];
   const severity = SEVERITIES.find(s => s.id === report.severity) || SEVERITIES[1];
   const status = STATUSES.find(s => s.id === report.status) || STATUSES[0];
@@ -217,16 +217,42 @@ function ReportCard({ report, onStatusChange }) {
               ))}
             </div>
           )}
+
+          {/* Linked hazard or create button */}
+          <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${BORDER}` }}>
+            {linkedHazard ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
+                <span style={{ fontSize: 10, color: CYAN, fontWeight: 700 }}>△</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Linked to {linkedHazard.hazard_code}</div>
+                  <div style={{ fontSize: 10, color: MUTED }}>{linkedHazard.title}</div>
+                </div>
+                <span style={{ fontSize: 9, color: CYAN, background: `${CYAN}22`, padding: "2px 8px", borderRadius: 8 }}>{linkedHazard.status}</span>
+              </div>
+            ) : onCreateHazard && (
+              <button onClick={() => onCreateHazard(report)}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                <span style={{ fontSize: 14 }}>△</span> Create Hazard from Report
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange }) {
+export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport }) {
   const [view, setView] = useState("list"); // list | new
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+
+  // Build map of report_id -> linked hazard
+  const linkedHazards = useMemo(() => {
+    const map = {};
+    if (hazards) hazards.forEach(h => { if (h.related_report_id) map[h.related_report_id] = h; });
+    return map;
+  }, [hazards]);
 
   const filtered = useMemo(() => {
     return reports.filter(r => {
@@ -296,7 +322,9 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
           <div style={{ fontSize: 11, marginTop: 4 }}>Submit a report to start building your safety data.</div>
         </div>
       ) : filtered.map(r => (
-        <ReportCard key={r.id} report={r} onStatusChange={onStatusChange} />
+        <ReportCard key={r.id} report={r} onStatusChange={onStatusChange}
+          linkedHazard={linkedHazards[r.id]}
+          onCreateHazard={onCreateHazardFromReport ? (report) => onCreateHazardFromReport(report) : null} />
       ))}
     </div>
   );

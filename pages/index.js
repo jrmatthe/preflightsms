@@ -1127,6 +1127,7 @@ export default function PVTAIRFrat() {
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(!!supabase);
   const [fratTemplate, setFratTemplate] = useState(null);
+  const [hazardFromReport, setHazardFromReport] = useState(null);
   const isOnline = !!supabase;
 
   // Derived template config
@@ -1487,8 +1488,8 @@ export default function PVTAIRFrat() {
         <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} />}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} />}
-        {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={onSubmitReport} reports={reports} onStatusChange={onReportStatusChange} />}
-        {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={onCreateHazard} hazards={hazards} />}
+        {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={onSubmitReport} reports={reports} onStatusChange={onReportStatusChange} hazards={hazards} onCreateHazardFromReport={(report) => { setHazardFromReport(report); setCv("hazards"); }} />}
+        {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={onCreateHazard} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} />}
         {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={onCreateAction} onUpdateAction={onUpdateAction} />}
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={onCreatePolicy} onAcknowledgePolicy={onAcknowledgePolicy} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={onCreateRequirement} onLogTraining={onLogTraining} orgProfiles={orgProfiles} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}

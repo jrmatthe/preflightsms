@@ -83,13 +83,17 @@ function RiskMatrix({ likelihood, severity, onChange, label }) {
   );
 }
 
-function HazardForm({ onSubmit, onCancel, existingCount }) {
+function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
   const [form, setForm] = useState({
-    title: "", description: "", source: "", category: "other",
+    title: fromReport ? fromReport.title : "",
+    description: fromReport ? `Source report: ${fromReport.report_code}\n\n${fromReport.description}` : "",
+    source: fromReport ? "safety_report" : "",
+    category: fromReport ? fromReport.category : "other",
     initialLikelihood: 0, initialSeverity: 0,
     mitigations: "",
     residualLikelihood: 0, residualSeverity: 0,
     responsiblePerson: "", reviewDate: "", status: "identified",
+    relatedReportId: fromReport?.id || null,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -107,6 +111,16 @@ function HazardForm({ onSubmit, onCancel, existingCount }) {
         </div>
         {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
       </div>
+
+      {fromReport && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", marginBottom: 16, background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
+          <span style={{ color: CYAN, fontSize: 12 }}>⚠</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Creating from report {fromReport.report_code}</div>
+            <div style={{ fontSize: 10, color: MUTED }}>{fromReport.title}</div>
+          </div>
+        </div>
+      )}
 
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Hazard Title *</label>
@@ -197,7 +211,7 @@ function HazardForm({ onSubmit, onCancel, existingCount }) {
   );
 }
 
-function HazardCard({ hazard }) {
+function HazardCard({ hazard, linkedReport }) {
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
   const initScore = hazard.initial_risk_score || (hazard.initial_likelihood * hazard.initial_severity);
   const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
@@ -242,15 +256,31 @@ function HazardCard({ hazard }) {
           )}
           {hazard.source && <div style={{ fontSize: 10, color: MUTED }}>Source: {hazard.source.replace(/_/g, " ")}</div>}
           {hazard.review_date && <div style={{ fontSize: 10, color: MUTED }}>Next review: {hazard.review_date}</div>}
+          {linkedReport && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginTop: 8, background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
+              <span style={{ fontSize: 10, color: CYAN, fontWeight: 700 }}>⚠</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>From report {linkedReport.report_code}</div>
+                <div style={{ fontSize: 10, color: MUTED }}>{linkedReport.title}</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-export default function HazardRegister({ profile, session, onCreateHazard, hazards }) {
-  const [view, setView] = useState("list");
+export default function HazardRegister({ profile, session, onCreateHazard, hazards, fromReport, onClearFromReport, reports }) {
+  const [view, setView] = useState(fromReport ? "new" : "list");
   const [filter, setFilter] = useState("all");
+
+  // If fromReport changes (user clicked Create Hazard from a report), switch to new form
+  const [lastFromReport, setLastFromReport] = useState(fromReport?.id);
+  if (fromReport?.id && fromReport.id !== lastFromReport) {
+    setLastFromReport(fromReport.id);
+    setView("new");
+  }
 
   const filtered = useMemo(() => {
     return hazards.filter(h => {
@@ -272,7 +302,9 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
   }, [hazards]);
 
   if (view === "new") {
-    return <HazardForm existingCount={hazards.length} onSubmit={(h) => { onCreateHazard(h); setView("list"); }} onCancel={() => setView("list")} />;
+    return <HazardForm existingCount={hazards.length} fromReport={fromReport}
+      onSubmit={(h) => { onCreateHazard(h); setView("list"); if (onClearFromReport) onClearFromReport(); }}
+      onCancel={() => { setView("list"); if (onClearFromReport) onClearFromReport(); }} />;
   }
 
   return (
@@ -321,9 +353,10 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
           <div style={{ fontSize: 14 }}>No hazards registered</div>
           <div style={{ fontSize: 11, marginTop: 4 }}>Register identified hazards with risk assessments and mitigations.</div>
         </div>
-      ) : filtered.map(h => (
-        <HazardCard key={h.id} hazard={h} />
-      ))}
+      ) : filtered.map(h => {
+        const lr = h.related_report_id && reports ? reports.find(r => r.id === h.related_report_id) : null;
+        return <HazardCard key={h.id} hazard={h} linkedReport={lr} />;
+      })}
     </div>
   );
 }
