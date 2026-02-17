@@ -423,7 +423,7 @@ function AdminGate({ children, isAuthed, onAuth }) {
       </div></div>);
 }
 
-function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName }) {
+function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const tabs = [
     { id: "submit", label: "FRAT", icon: "✓", p: false },
@@ -476,6 +476,18 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName }) {
           style={{ background: currentView === t.id ? "rgba(255,255,255,0.08)" : "transparent", color: currentView === t.id ? WHITE : MUTED, border: "none", padding: "10px 12px", cursor: "pointer", fontWeight: currentView === t.id ? 700 : 500, fontSize: 13, textAlign: "left", borderRadius: 6, fontFamily: "inherit" }}>
           {t.icon} {t.label}
         </button>))}
+      {userName && (<>
+        <div style={{ borderTop: `1px solid ${BORDER}`, margin: "6px 0", paddingTop: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 15, background: BORDER, display: "flex", alignItems: "center", justifyContent: "center", color: WHITE, fontSize: 11, fontWeight: 700 }}>{(userName || "?").split(" ").map(n => n[0]).join("").slice(0, 2)}</div>
+              <span style={{ fontSize: 12, color: OFF_WHITE, fontWeight: 600 }}>{userName}</span>
+            </div>
+            <button onClick={() => { setMenuOpen(false); if (onSignOut) onSignOut(); }}
+              style={{ fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>Log out</button>
+          </div>
+        </div>
+      </>)}
     </div>)}
   </>);
 }
@@ -1451,7 +1463,7 @@ export default function PVTAIRFrat() {
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); }} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Top bar with user info */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
@@ -1460,7 +1472,7 @@ export default function PVTAIRFrat() {
               {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "HAZARD REGISTER" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY & TRAINING" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
             </h1>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {pendingSync > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: YELLOW, background: "rgba(250,204,21,0.15)", border: "1px solid rgba(250,204,21,0.3)", padding: "2px 8px", borderRadius: 10, cursor: "pointer" }} onClick={() => flushQueue()} title="Click to retry sync">{pendingSync} pending</span>}
             {isOnline && session && (<>
               <span style={{ fontSize: 11, color: MUTED }}>{userName}</span>
@@ -1518,6 +1530,7 @@ export default function PVTAIRFrat() {
 .nav-mobile-header{display:flex !important}
 .nav-mobile-menu{display:flex !important}
 .main-content{margin-left:0 !important}
+.user-info-desktop{display:none !important}
 .stat-grid{grid-template-columns:repeat(2,1fr) !important}
 .chart-grid-2{grid-template-columns:1fr !important}
 }
