@@ -720,8 +720,21 @@ function FlightBoard({ flights, onUpdateFlight }) {
     if (!f.eta) return -1;
     const end = new Date(f.eta).getTime();
     const start = new Date(f.timestamp).getTime();
+    const n = Date.now();
     if (isNaN(end) || isNaN(start) || end <= start) return 0;
-    const pct = ((now - start) / (end - start)) * 100;
+    const pct = ((n - start) / (end - start)) * 100;
+    return Math.max(0, Math.min(pct, 95));
+  };
+
+  // For CSS animation: calculate where it will be in 60s
+  const getProgressIn60s = (f) => {
+    if (f.status === "ARRIVED") return 100;
+    if (!f.eta) return -1;
+    const end = new Date(f.eta).getTime();
+    const start = new Date(f.timestamp).getTime();
+    const n = Date.now() + 60000;
+    if (isNaN(end) || isNaN(start) || end <= start) return 0;
+    const pct = ((n - start) / (end - start)) * 100;
     return Math.max(0, Math.min(pct, 95));
   };
 
@@ -731,6 +744,7 @@ function FlightBoard({ flights, onUpdateFlight }) {
     const dest = airportCoords[f.destination];
     if (!dep || !dest) return null;
     const pct = getProgress(f) / 100;
+    if (pct <= 0) return { lat: dep.lat, lon: dep.lon };
     return {
       lat: dep.lat + (dest.lat - dep.lat) * pct,
       lon: dep.lon + (dest.lon - dep.lon) * pct,
@@ -774,6 +788,17 @@ function FlightBoard({ flights, onUpdateFlight }) {
             const dx = toX(dep.lon), dy = toY(dep.lat);
             const ex = toX(dest.lon), ey = toY(dest.lat);
             const angle = Math.atan2(ex - dx, -(ey - dy)) * (180 / Math.PI);
+            // Calculate position 60s from now for animation end point
+            const pctNow = getProgress(f) / 100;
+            const pctFuture = getProgressIn60s(f) / 100;
+            const futurePos = {
+              lat: dep.lat + (dest.lat - dep.lat) * Math.max(pctFuture, 0),
+              lon: dep.lon + (dest.lon - dep.lon) * Math.max(pctFuture, 0),
+            };
+            const curX = pos ? toX(pos.lon) : dx;
+            const curY = pos ? toY(pos.lat) : dy;
+            const futX = toX(futurePos.lon);
+            const futY = toY(futurePos.lat);
             return (
               <g key={f.id}>
                 <line x1={dx} y1={dy} x2={ex} y2={ey} stroke={BORDER} strokeWidth="1" strokeDasharray="4,4" />
@@ -782,8 +807,11 @@ function FlightBoard({ flights, onUpdateFlight }) {
                 <circle cx={dx} cy={dy} r="3" fill={MUTED} />
                 <circle cx={ex} cy={ey} r="3" fill={MUTED} />
                 {pos && (
-                  <g transform={`translate(${toX(pos.lon)},${toY(pos.lat)}) rotate(${angle})`}>
-                    <text textAnchor="middle" dominantBaseline="central" fill={WHITE} fontSize="16" fontFamily="sans-serif">&#9992;</text>
+                  <g>
+                    <animateTransform attributeName="transform" type="translate" from={`${curX} ${curY}`} to={`${futX} ${futY}`} dur="60s" fill="freeze" />
+                    <g transform={`rotate(${angle})`}>
+                      <text textAnchor="middle" dominantBaseline="central" fill={WHITE} fontSize="16" fontFamily="sans-serif">&#9992;</text>
+                    </g>
                   </g>
                 )}
               </g>);
@@ -833,14 +861,25 @@ function FlightBoard({ flights, onUpdateFlight }) {
                   <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
                 </div>
                 {/* Route progress bar */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42 }}>{f.departure}</span>
-                  <div style={{ flex: 1, position: "relative", height: 4, background: BORDER, borderRadius: 2 }}>
-                    <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${Math.max(progress, 0)}%`, background: GREEN, borderRadius: 2, transition: "width 1s ease" }} />
-                    {f.status === "ACTIVE" && progress >= 0 && <div style={{ position: "absolute", top: -4, left: `${Math.max(progress, 0)}%`, width: 12, height: 12, borderRadius: "50%", background: WHITE, border: `2px solid ${GREEN}`, transform: "translateX(-6px)", transition: "left 1s ease" }} />}
+                {(() => {
+                  const safeName = f.id.replace(/[^a-zA-Z0-9]/g, "");
+                  const p0 = Math.max(progress, 0);
+                  const p1 = Math.max(getProgressIn60s(f), 0);
+                  return (<>
+                  <style>{`
+                    @keyframes bar${safeName} { from{width:${p0}%} to{width:${p1}%} }
+                    @keyframes dot${safeName} { from{left:${p0}%} to{left:${p1}%} }
+                  `}</style>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42 }}>{f.departure}</span>
+                    <div style={{ flex: 1, position: "relative", height: 4, background: BORDER, borderRadius: 2 }}>
+                      <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${p0}%`, background: GREEN, borderRadius: 2, animation: `bar${safeName} 60s linear forwards` }} />
+                      {f.status === "ACTIVE" && progress >= 0 && <div style={{ position: "absolute", top: -4, left: `${p0}%`, width: 12, height: 12, borderRadius: "50%", background: WHITE, border: `2px solid ${GREEN}`, transform: "translateX(-6px)", animation: `dot${safeName} 60s linear forwards` }} />}
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42, textAlign: "right" }}>{f.destination}</span>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42, textAlign: "right" }}>{f.destination}</span>
-                </div>
+                  </>);
+                })()}
                 {/* Flight details */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                   <div style={{ color: MUTED, fontSize: 11 }}>
