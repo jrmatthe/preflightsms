@@ -714,7 +714,13 @@ function FlightBoard({ flights, onUpdateFlight }) {
   const displayed = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
   const activeFlights = flights.filter(f => f.status === "ACTIVE");
 
-  const isOverdue = (f) => { if (!f.eta || f.status !== "ACTIVE") return false; return Date.now() > new Date(f.eta).getTime(); };
+  const isOverdue = (f) => {
+    if (f.status !== "ACTIVE") return false;
+    if (!f.eta) return false;
+    const etaMs = new Date(f.eta).getTime();
+    if (isNaN(etaMs)) return false;
+    return Date.now() > etaMs;
+  };
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -740,6 +746,7 @@ function FlightBoard({ flights, onUpdateFlight }) {
         const overdue = isOverdue(f);
         const statusLabel = overdue ? "OVERDUE" : f.status === "ACTIVE" ? "ENROUTE" : "ARRIVED";
         const statusColor = overdue ? RED : st.color;
+        const _dbg = f.status === "ACTIVE" ? `eta=${f.eta} | etaMs=${new Date(f.eta).getTime()} | now=${Date.now()} | past=${Date.now() > new Date(f.eta).getTime()}` : "";
         return (
           <div key={f.id} style={{ ...card, padding: "18px 22px", marginBottom: 12, borderRadius: 10, border: `1px solid ${overdue ? RED + "44" : BORDER}`, cursor: "pointer" }}
             onClick={() => setSelectedFlight(selectedFlight === f.id ? null : f.id)}>
@@ -748,6 +755,7 @@ function FlightBoard({ flights, onUpdateFlight }) {
               <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: WHITE, marginBottom: 8 }}>{f.departure} → {f.destination}</div>
+            {_dbg && <div style={{ fontSize: 9, color: SUBTLE, marginBottom: 6, fontFamily: "monospace" }}>{_dbg}</div>}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
               <div style={{ color: MUTED, fontSize: 11 }}>
                 <span>PIC</span>{" "}<span style={{ color: OFF_WHITE }}>{f.pilot}</span>
