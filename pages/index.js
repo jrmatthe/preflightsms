@@ -732,12 +732,12 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
           </div>
         </div></div>
 
-      <div className="score-panel-mobile" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 16px", background: BLACK, borderTop: `1px solid ${getRL(score).border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+      <div className="score-panel-mobile" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, paddingBottom: "env(safe-area-inset-bottom, 6px)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", margin: "0 8px 6px", background: BLACK, borderTop: `1px solid ${getRL(score).border}`, borderRadius: 10, border: `1px solid ${getRL(score).border}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
             <div style={{ width: 40, height: 40, borderRadius: 8, background: getRL(score).bg, border: `1px solid ${getRL(score).border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <span style={{ fontWeight: 800, color: getRL(score).color, fontSize: 16, fontFamily: "Georgia,serif" }}>{score}</span></div>
-            <div style={{ minWidth: 0 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontWeight: 700, color: getRL(score).color, fontSize: 11 }}>{getRL(score).label}</div>
               <div style={{ color: MUTED, fontSize: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getRL(score).action}</div></div></div>
           <button onClick={handleSubmit} style={{ padding: "10px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>SUBMIT</button></div></div>
@@ -968,6 +968,7 @@ function FlightBoard({ flights, onUpdateFlight }) {
               </div>); })}
         </div>
       </div>
+      {activeFlights.length > 0 && <div style={{ textAlign: "center", padding: "14px 0 4px", color: SUBTLE, fontSize: 10 }}>Flight positions on map and progress bars are estimates based on departure time and ETA — not live tracking.</div>}
     </div>);
 }
 
