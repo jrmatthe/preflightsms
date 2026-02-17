@@ -717,18 +717,10 @@ function FlightBoard({ flights, onUpdateFlight }) {
   // Calculate progress percentage for a flight
   const getProgress = (f) => {
     if (f.status === "ARRIVED") return 100;
-    if (!f.eta) return -1; // no ETA = can't calculate
+    if (!f.eta) return -1;
     const end = new Date(f.eta).getTime();
-    if (isNaN(end)) return -1;
-    // Use ETD-based start if available, otherwise use timestamp (when filed)
-    let start;
-    if (f.etd && f.date) {
-      // Parse ETD as local time on flight date
-      const t = f.etd.replace(/[^0-9]/g, "").padStart(4, "0");
-      start = new Date(`${f.date}T${t.slice(0,2)}:${t.slice(2,4)}:00`).getTime();
-    }
-    if (!start || isNaN(start)) start = new Date(f.timestamp).getTime();
-    if (end <= start) return 0;
+    const start = new Date(f.timestamp).getTime();
+    if (isNaN(end) || isNaN(start) || end <= start) return 0;
     const pct = ((now - start) / (end - start)) * 100;
     return Math.max(0, Math.min(pct, 95));
   };
@@ -841,7 +833,6 @@ function FlightBoard({ flights, onUpdateFlight }) {
                   <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
                 </div>
                 {/* Route progress bar */}
-                <div style={{ fontSize: 9, color: SUBTLE, marginBottom: 4 }}>Progress: {Math.round(progress)}% | now: {new Date(now).toISOString().slice(11,19)}Z | start: {new Date(f.timestamp).toISOString().slice(11,19)}Z | eta: {f.eta ? new Date(f.eta).toISOString().slice(11,19) + "Z" : "none"}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42 }}>{f.departure}</span>
                   <div style={{ flex: 1, position: "relative", height: 4, background: BORDER, borderRadius: 2 }}>
