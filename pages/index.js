@@ -881,8 +881,7 @@ function AuthScreen({ onAuth }) {
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ ...card, padding: "32px 28px", maxWidth: 400, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 80, objectFit: "contain", marginBottom: 12 }} onError={e => { e.target.style.display = "none"; }} />
-          <div style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif", marginBottom: 4 }}>PreflightSMS</div>
+          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 100, objectFit: "contain", marginBottom: 8 }} onError={e => { e.target.style.display = "none"; }} />
           <div style={{ fontSize: 11, color: MUTED }}>Safety Management System</div></div>
 
         <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
