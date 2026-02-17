@@ -309,31 +309,6 @@ function analyzeWeather(wx) {
   };
 
   const altFt = wx.altFt || 0;
-  console.log("[WX] SIGMETs received:", (wx.sigmets || []).length, "G-AIRMETs received:", (wx.gairmets || []).length);
-  for (const s of (Array.isArray(wx.sigmets) ? wx.sigmets : [])) {
-    if (!isNearRoute(s)) continue;
-    const haz = (s.hazard || "").toUpperCase(); const raw = s.rawAirSigmet || s.rawText || "";
-    const hazLabel = haz.includes("CONV") ? "Convective SIGMET" : "SIGMET";
-    if (raw) briefItems.push({ station: "AREA", type: hazLabel, raw });
-    stationSummaries.push({ station: hazLabel.toUpperCase(), type: hazLabel, summary: raw.slice(0, 120) + (raw.length > 120 ? "..." : ""), flight_rules: haz.includes("CONV") ? "IFR" : "MVFR" });
-    if ((haz.includes("TURB") || raw.includes("TURB")) && !flags.wx_turb) { const lo = (s.altitudeLow1||0)*100; const hi = (s.altitudeHi1||999)*100; if (!altFt||(altFt>=lo&&altFt<=hi)) { flags.wx_turb = true; reasons.wx_turb = `SIGMET turbulence FL${lo/100}-FL${hi/100}.`; } }
-    if ((haz.includes("ICE")||raw.includes("ICING")) && !flags.wx_ice) { const lo = (s.altitudeLow1||0)*100; const hi = (s.altitudeHi1||999)*100; if (!altFt||(altFt>=lo&&altFt<=hi)) { flags.wx_ice = true; reasons.wx_ice = `SIGMET icing FL${lo/100}-FL${hi/100}.`; } }
-    if (haz.includes("CONV") && !flags.wx_ts) { flags.wx_ts = true; reasons.wx_ts = (reasons.wx_ts||"") + " Convective SIGMET."; }
-    if (haz.includes("MT_OBSC") && !flags.wx_mountain) { flags.wx_mountain = true; reasons.wx_mountain = "SIGMET mountain obscuration."; }
-    if (haz.includes("IFR") && !flags.wx_ceiling) { flags.wx_ceiling = true; reasons.wx_ceiling = (reasons.wx_ceiling||"") + " IFR SIGMET."; }
-  }
-
-  for (const g of (Array.isArray(wx.gairmets) ? wx.gairmets : [])) {
-    if (!isNearRoute(g)) continue;
-    const haz = (g.hazard || "").toUpperCase();
-    const hazType = haz.includes("TURB") ? "Turbulence" : haz.includes("ICE") ? "Icing" : haz.includes("IFR") ? "IFR" : haz.includes("MT_OBSC") ? "Mtn Obscur" : haz;
-    stationSummaries.push({ station: "G-AIRMET", type: `G-AIRMET ${hazType}`, summary: `${hazType} FL${(g.altitudeLow||0)}-FL${(g.altitudeHi||999)}`, flight_rules: "MVFR" });
-    briefItems.push({ station: "AREA", type: `G-AIRMET (${hazType})`, raw: `${hazType} from FL${(g.altitudeLow||0)*100} to FL${(g.altitudeHi||999)*100}` });
-    if (haz.includes("TURB") && !flags.wx_turb) { const lo = (g.altitudeLow||0)*100; const hi = (g.altitudeHi||999)*100; if (!altFt||(altFt>=lo&&altFt<=hi)) { flags.wx_turb = true; reasons.wx_turb = `G-AIRMET turbulence FL${lo/100}-FL${hi/100}.`; } }
-    if (haz.includes("ICE") && !flags.wx_ice) { const lo = (g.altitudeLow||0)*100; const hi = (g.altitudeHi||999)*100; if (!altFt||(altFt>=lo&&altFt<=hi)) { flags.wx_ice = true; reasons.wx_ice = `G-AIRMET icing FL${lo/100}-FL${hi/100}.`; } }
-    if (haz.includes("MT_OBSC") && !flags.wx_mountain) { flags.wx_mountain = true; reasons.wx_mountain = "G-AIRMET mountain obscuration."; }
-    if (haz.includes("IFR") && !flags.wx_ceiling) { flags.wx_ceiling = true; reasons.wx_ceiling = (reasons.wx_ceiling||"") + " G-AIRMET IFR."; }
-  }
 
   return { flags, reasons, briefing: briefItems, stationSummaries };
 }
@@ -716,7 +691,7 @@ function FlightBoard({ flights, onUpdateFlight }) {
   const [selectedFlight, setSelectedFlight] = useState(null);
 
   // Tick every 30s to update estimated positions
-  useEffect(() => { const iv = setInterval(() => setTick(t => t + 1), 30000); return () => clearInterval(iv); }, []);
+  useEffect(() => { const iv = setInterval(() => setTick(t => t + 1), 15000); return () => clearInterval(iv); }, []);
 
   // Fetch airport coordinates for all flights
   useEffect(() => {
@@ -730,7 +705,8 @@ function FlightBoard({ flights, onUpdateFlight }) {
     }).catch(() => {});
   }, [flights]);
 
-  const now = Date.now();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const now = useMemo(() => Date.now(), [tick]);
   const recent = flights.filter(f => f.status !== "ARRIVED" || (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000);
   const displayed = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
   const activeFlights = flights.filter(f => f.status === "ACTIVE");
@@ -760,18 +736,15 @@ function FlightBoard({ flights, onUpdateFlight }) {
     };
   };
 
-  // Simple SVG map of active flights
-  const MapView = () => {
+  // Compute map data inline (recomputes on tick)
+  const mapData = useMemo(() => {
     if (activeFlights.length === 0) return null;
-    // Gather all coordinates
     const allCoords = [];
     activeFlights.forEach(f => {
       const dep = airportCoords[f.departure]; const dest = airportCoords[f.destination];
       if (dep) allCoords.push(dep); if (dest) allCoords.push(dest);
     });
-    if (allCoords.length === 0) return <div style={{ ...card, height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: MUTED, fontSize: 12 }}>Loading map...</div>;
-
-    // Calculate bounds with padding
+    if (allCoords.length === 0) return null;
     let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
     allCoords.forEach(c => { minLat = Math.min(minLat, c.lat); maxLat = Math.max(maxLat, c.lat); minLon = Math.min(minLon, c.lon); maxLon = Math.max(maxLon, c.lon); });
     const padLat = Math.max((maxLat - minLat) * 0.3, 1); const padLon = Math.max((maxLon - minLon) * 0.3, 1.5);
@@ -779,37 +752,34 @@ function FlightBoard({ flights, onUpdateFlight }) {
     const W = 800, H = 400;
     const toX = (lon) => ((lon - minLon) / (maxLon - minLon)) * W;
     const toY = (lat) => H - ((lat - minLat) / (maxLat - minLat)) * H;
+    return { W, H, toX, toY };
+  }, [activeFlights, airportCoords, tick]);
 
+  const renderMap = () => {
+    if (!mapData) return <div style={{ ...card, height: 300, display: "flex", alignItems: "center", justifyContent: "center", color: MUTED, fontSize: 12 }}>Loading map...</div>;
+    const { W, H, toX, toY } = mapData;
     return (
       <div style={{ ...card, padding: 0, marginBottom: 18, overflow: "hidden", borderRadius: 10 }}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", background: BLACK }}>
-          {/* Grid lines */}
           {[0.25, 0.5, 0.75].map(f => (<g key={f}>
             <line x1={0} y1={H * f} x2={W} y2={H * f} stroke={BORDER} strokeWidth="0.5" />
             <line x1={W * f} y1={0} x2={W * f} y2={H} stroke={BORDER} strokeWidth="0.5" />
           </g>))}
           <rect x={0} y={0} width={W} height={H} fill="none" stroke={BORDER} strokeWidth="1" />
-
           {activeFlights.map(f => {
             const dep = airportCoords[f.departure]; const dest = airportCoords[f.destination];
             if (!dep || !dest) return null;
             const pos = getEstimatedPos(f);
             const dx = toX(dep.lon), dy = toY(dep.lat);
             const ex = toX(dest.lon), ey = toY(dest.lat);
-            // Flight direction angle for plane rotation
             const angle = Math.atan2(ex - dx, -(ey - dy)) * (180 / Math.PI);
             return (
               <g key={f.id}>
-                {/* Route line */}
                 <line x1={dx} y1={dy} x2={ex} y2={ey} stroke={BORDER} strokeWidth="1" strokeDasharray="4,4" />
-                {/* Departure label */}
                 <text x={dx} y={dy + 16} textAnchor="middle" fill={MUTED} fontSize="11" fontFamily="monospace">{f.departure}</text>
-                {/* Destination label */}
                 <text x={ex} y={ey + 16} textAnchor="middle" fill={MUTED} fontSize="11" fontFamily="monospace">{f.destination}</text>
-                {/* Airport dots */}
                 <circle cx={dx} cy={dy} r="3" fill={MUTED} />
                 <circle cx={ex} cy={ey} r="3" fill={MUTED} />
-                {/* Estimated position - plane icon */}
                 {pos && (
                   <g transform={`translate(${toX(pos.lon)},${toY(pos.lat)}) rotate(${angle})`}>
                     <text textAnchor="middle" dominantBaseline="central" fill={WHITE} fontSize="16" fontFamily="sans-serif">&#9992;</text>
@@ -835,7 +805,7 @@ function FlightBoard({ flights, onUpdateFlight }) {
 
       <div style={{ display: "grid", gridTemplateColumns: activeFlights.length > 0 ? "1fr 1fr" : "1fr", gap: 20 }}>
         {/* Map */}
-        {activeFlights.length > 0 && <MapView />}
+        {activeFlights.length > 0 && renderMap()}
 
         {/* Flight cards */}
         <div>
