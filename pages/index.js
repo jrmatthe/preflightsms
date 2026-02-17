@@ -704,13 +704,17 @@ function FlightBoard({ flights, onUpdateFlight }) {
   };
   const [filter, setFilter] = useState("ACTIVE");
   const [selectedFlight, setSelectedFlight] = useState(null);
+  const [, refresh] = useState(0);
+
+  // Re-render every 60s to catch overdue flights
+  useEffect(() => { const iv = setInterval(() => refresh(n => n + 1), 60000); return () => clearInterval(iv); }, []);
 
   const now = Date.now();
   const recent = flights.filter(f => f.status !== "ARRIVED" || (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000);
   const displayed = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
   const activeFlights = flights.filter(f => f.status === "ACTIVE");
 
-  const isOverdue = (f) => { if (!f.eta || f.status !== "ACTIVE") return false; return now > new Date(f.eta).getTime() + 30 * 60000; };
+  const isOverdue = (f) => { if (!f.eta || f.status !== "ACTIVE") return false; return Date.now() > new Date(f.eta).getTime(); };
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
