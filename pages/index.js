@@ -15,15 +15,15 @@ const ADMIN_PASSWORD = "pvtair2026";
 const LOGO_URL = "/logo.png";
 
 const BLACK = "#000000";
-const NEAR_BLACK = "#111111";
-const DARK = "#1A1A1A";
-const CARD = "#222222";
-const BORDER = "#2E2E2E";
-const LIGHT_BORDER = "#3A3A3A";
+const NEAR_BLACK = "#0A0A0A";
+const DARK = "#111111";
+const CARD = "#161616";
+const BORDER = "#232323";
+const LIGHT_BORDER = "#2E2E2E";
 const WHITE = "#FFFFFF";
-const OFF_WHITE = "#E0E0E0";
-const MUTED = "#777777";
-const SUBTLE = "#555555";
+const OFF_WHITE = "#D4D4D4";
+const MUTED = "#666666";
+const SUBTLE = "#444444";
 const GREEN = "#4ADE80";
 const YELLOW = "#FACC15";
 const AMBER = "#F59E0B";
@@ -86,7 +86,7 @@ function formatDateTime(d) { return new Date(d).toLocaleString("en-US", { month:
 function generateId() { return `FRAT-${Date.now().toString(36).toUpperCase()}`; }
 function downloadBlob(c, t, f) { const b = new Blob([c], { type: t }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = f; a.click(); URL.revokeObjectURL(u); }
 
-const inp = { width: "100%", maxWidth: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 14, background: NEAR_BLACK, color: OFF_WHITE, boxSizing: "border-box" };
+const inp = { width: "100%", maxWidth: "100%", padding: "12px 14px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 14, background: BLACK, color: OFF_WHITE, boxSizing: "border-box" };
 const card = { background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` };
 
 // ── TIME UTILITIES ──────────────────────────────────────────────
@@ -437,37 +437,58 @@ function AdminGate({ children, isAuthed, onAuth }) {
 
 function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const tabs = [{ id: "submit", label: "FRAT", p: false }, { id: "flights", label: "Flights", p: false }, { id: "reports", label: "Reports", p: false }, { id: "hazards", label: "Hazards", p: false }, { id: "actions", label: "Actions", p: false }, { id: "policy", label: "Policy", p: false }, { id: "dashboard", label: "Dashboard", p: true }, { id: "admin", label: "Admin", p: true }];
-  const navTab = (t) => (
+  const tabs = [
+    { id: "submit", label: "FRAT", icon: "✓", p: false },
+    { id: "flights", label: "Flights", icon: "◎", p: false },
+    { id: "reports", label: "Reports", icon: "⚠", p: false },
+    { id: "hazards", label: "Hazards", icon: "△", p: false },
+    { id: "actions", label: "Actions", icon: "⊘", p: false },
+    { id: "policy", label: "Policy", icon: "◈", p: false },
+    { id: "dashboard", label: "Dashboard", icon: "▣", p: true },
+    { id: "admin", label: "Admin", icon: "⚙", p: true },
+  ];
+  const sideTab = (t) => (
     <button key={t.id} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
+      title={t.label}
       style={{
-        background: currentView === t.id ? WHITE : "transparent",
-        color: currentView === t.id ? BLACK : MUTED,
-        border: "none", padding: "10px 16px", cursor: "pointer",
-        fontWeight: currentView === t.id ? 700 : 500, fontSize: 12,
-        letterSpacing: 0.3, borderRadius: "5px 5px 0 0", transition: "all 0.15s",
-        display: "flex", alignItems: "center", gap: 5, fontFamily: "inherit", width: "auto",
+        width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center",
+        background: currentView === t.id ? "rgba(255,255,255,0.08)" : "transparent",
+        color: currentView === t.id ? WHITE : MUTED,
+        border: "none", borderLeft: currentView === t.id ? `2px solid ${WHITE}` : "2px solid transparent",
+        cursor: "pointer", fontSize: 18, transition: "all 0.15s", borderRadius: 0,
+        fontFamily: "inherit",
       }}>
-      {t.label}{t.p && !isAuthed && <span style={{ fontSize: 9, opacity: 0.5 }}>🔒</span>}
+      {t.icon}
     </button>);
-  return (
-    <header style={{ background: BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, zIndex: 100 }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0" }}>
-          <div style={{ background: BLACK, borderRadius: 4, padding: "4px 8px", display: "flex", alignItems: "center" }}><img src={orgLogo || LOGO_URL} alt={orgName || "PreflightSMS"} style={{ height: 22, objectFit: "contain" }} onError={e => { e.target.src = LOGO_URL; }} /></div>
-          <div style={{ width: 1, height: 24, background: BORDER }} />
-          <div>
-            <div style={{ color: WHITE, fontWeight: 600, fontSize: 13, letterSpacing: 0.5 }}>Safety Management System</div>
-            <div style={{ color: MUTED, fontSize: 9, letterSpacing: 0.5 }}>14 CFR Part 5 SMS</div>
-          </div>
-        </div>
-        <nav className="nav-tabs" style={{ display: "flex", gap: 1 }}>{tabs.map(t => navTab(t))}</nav>
-        <button className="nav-hamburger" onClick={() => setMenuOpen(!menuOpen)}
-          style={{ display: "none", background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: WHITE, fontSize: 18, alignItems: "center", justifyContent: "center" }}>
-          {menuOpen ? "\u2715" : "\u2630"}</button>
+  return (<>
+    {/* Desktop sidebar */}
+    <aside className="nav-sidebar" style={{
+      position: "fixed", left: 0, top: 0, bottom: 0, width: 60, zIndex: 100,
+      background: NEAR_BLACK, borderRight: `1px solid ${BORDER}`,
+      display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12,
+    }}>
+      <div style={{ marginBottom: 16, padding: 4 }}>
+        <img src={orgLogo || LOGO_URL} alt={orgName || "P"} style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 50, border: `1px solid ${BORDER}` }} onError={e => { e.target.src = LOGO_URL; }} />
       </div>
-      {menuOpen && (<div className="nav-mobile-menu" style={{ display: "none", flexDirection: "column", padding: "0 20px 12px", gap: 2, borderTop: `1px solid ${BORDER}` }}>{tabs.map(t => navTab(t))}</div>)}
-    </header>);
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
+        {tabs.map(t => sideTab(t))}
+      </div>
+    </aside>
+    {/* Mobile top bar */}
+    <header className="nav-mobile-header" style={{ display: "none", background: BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, zIndex: 100, padding: "0 16px", alignItems: "center", justifyContent: "space-between" }}>
+      <img src={orgLogo || LOGO_URL} alt={orgName || "P"} style={{ height: 28, objectFit: "contain" }} onError={e => { e.target.src = LOGO_URL; }} />
+      <button className="nav-hamburger" onClick={() => setMenuOpen(!menuOpen)}
+        style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: WHITE, fontSize: 18 }}>
+        {menuOpen ? "\u2715" : "\u2630"}</button>
+    </header>
+    {menuOpen && (<div className="nav-mobile-menu" style={{ display: "none", flexDirection: "column", padding: "8px 16px", gap: 2, background: NEAR_BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 48, zIndex: 99 }}>
+      {tabs.map(t => (
+        <button key={t.id} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
+          style={{ background: currentView === t.id ? "rgba(255,255,255,0.08)" : "transparent", color: currentView === t.id ? WHITE : MUTED, border: "none", padding: "10px 12px", cursor: "pointer", fontWeight: currentView === t.id ? 700 : 500, fontSize: 13, textAlign: "left", borderRadius: 6, fontFamily: "inherit" }}>
+          {t.icon} {t.label}
+        </button>))}
+    </div>)}
+  </>);
 }
 
 function RiskScoreGauge({ score }) {
@@ -574,8 +595,8 @@ function FRATForm({ onSubmit }) {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <div style={{ ...card, padding: "20px 22px 24px", marginBottom: 18 }}>
-        <h2 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 16 }}>Flight Risk Assessment Tool</h2>
+      <div style={{ ...card, padding: "24px 28px 28px", marginBottom: 18 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 16 }}>Flight Information</div>
         <div className="flight-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, minWidth: 0 }}>
           {[{ key: "pilot", label: "Pilot in Command", placeholder: "Full name", type: "text" },
             { key: "aircraft", label: "Aircraft Type", type: "select" },
@@ -604,12 +625,15 @@ function FRATForm({ onSubmit }) {
 
       <WeatherBriefing briefing={wxAnalysis.briefing} reasons={wxAnalysis.reasons} flags={wxAnalysis.flags} stationSummaries={wxAnalysis.stationSummaries} wxLoading={wxLoading} wxError={wxError} />
 
-      <div className="frat-grid" style={{ display: "grid", gridTemplateColumns: "1fr 260px", gap: 18 }}>
+      <div className="frat-grid" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 24 }}>
         <div>
-          {RISK_CATEGORIES.map(cat => (
-            <div key={cat.id} style={{ ...card, padding: "16px 18px", marginBottom: 12 }}>
-              <h3 style={{ margin: "0 0 12px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>
-                <span style={{ marginRight: 8 }}>{cat.icon}</span>{cat.name}</h3>
+          <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${BORDER}` }}>Risk Categories</div>
+          {RISK_CATEGORIES.map(cat => { const catScore = cat.factors.reduce((s, f) => s + (checked[f.id] ? f.score : 0), 0); return (
+            <div key={cat.id} style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <h3 style={{ margin: 0, color: WHITE, fontSize: 15, fontWeight: 700 }}>{cat.name}</h3>
+                {catScore > 0 && <span style={{ fontWeight: 700, fontSize: 14, color: GREEN }}>+{catScore}</span>}
+              </div>
               {cat.factors.map(f => { const ic = !!checked[f.id]; const isAuto = !!autoSuggested[f.id]; const rl = getRiskLevel(f.score > 4 ? 46 : f.score > 3 ? 31 : 16); return (
                 <div key={f.id} onClick={() => toggle(f.id)} style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", marginBottom: 4, borderRadius: 6, cursor: "pointer",
@@ -623,26 +647,35 @@ function FRATForm({ onSubmit }) {
                     {f.label}
                   </span>
                   <span style={{ fontWeight: 700, fontSize: 10, color: ic ? (isAuto ? CYAN : rl.color) : SUBTLE, minWidth: 22, textAlign: "right" }}>+{f.score}</span>
-                </div>); })}</div>))}
-          <div style={{ ...card, padding: "16px 18px", marginBottom: 12 }}>
+                </div>); })}</div>); })}
+          <div style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10 }}>
             <h3 style={{ margin: "0 0 10px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>📝 Remarks / Mitigations</h3>
             <textarea placeholder="Note any mitigations applied..." value={fi.remarks} onChange={e => setFi(p => ({ ...p, remarks: e.target.value }))}
               style={{ width: "100%", minHeight: 60, padding: 10, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", color: OFF_WHITE, background: NEAR_BLACK }} /></div>
         </div>
 
-        <div className="score-panel-desktop" style={{ position: "sticky", top: 70, alignSelf: "start" }}>
-          <div style={{ ...card, padding: 18, border: `1px solid ${getRiskLevel(score).border}` }}>
-            <h3 style={{ margin: "0 0 2px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14, textAlign: "center" }}>Risk Score</h3>
-            <RiskScoreGauge score={score} />
-            <button onClick={handleSubmit} style={{ width: "100%", padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", marginTop: 10, letterSpacing: 0.5 }}>SUBMIT FRAT</button>
+        <div className="score-panel-desktop" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
+          <div style={{ ...card, padding: 24, border: `1px solid ${getRiskLevel(score).border}`, borderRadius: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, textAlign: "center", marginBottom: 8 }}>Risk Score</div>
+            <div style={{ fontSize: 56, fontWeight: 800, color: getRiskLevel(score).color, textAlign: "center", lineHeight: 1, marginBottom: 12 }}>{score}</div>
+            {/* Progress bar */}
+            <div style={{ position: "relative", height: 6, background: BORDER, borderRadius: 3, marginBottom: 4 }}>
+              <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${Math.min((score / 40) * 100, 100)}%`, background: getRiskLevel(score).color, borderRadius: 3, transition: "width 0.3s" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: SUBTLE, marginBottom: 14 }}>
+              <span>0</span><span>15</span><span>25</span><span>40</span>
+            </div>
+            <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: getRiskLevel(score).color, marginBottom: 16 }}>✓ {getRiskLevel(score).label.replace(" RISK", "")} — {getRiskLevel(score).label.includes("LOW") ? "Low Risk" : getRiskLevel(score).label.includes("MODERATE") ? "Moderate Risk" : getRiskLevel(score).label.includes("HIGH") ? "High Risk" : "Critical Risk"}</div>
+            {/* Category breakdown */}
+            <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 12, marginBottom: 16 }}>
+              {RISK_CATEGORIES.map(cat => { const catScore = cat.factors.reduce((s, f) => s + (checked[f.id] ? f.score : 0), 0); return (
+                <div key={cat.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+                  <span style={{ fontSize: 12, color: OFF_WHITE }}>{cat.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: catScore > 0 ? GREEN : SUBTLE }}>+{catScore}</span>
+                </div>); })}
+            </div>
+            <button onClick={handleSubmit} style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", letterSpacing: 0.5, textTransform: "uppercase" }}>Submit FRAT</button>
           </div>
-          <div style={{ ...card, padding: 14, marginTop: 12, background: NEAR_BLACK }}>
-            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Risk Thresholds</div>
-            {Object.values(RISK_LEVELS).map(l => (
-              <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
-                <div style={{ width: 7, height: 7, borderRadius: "50%", background: l.color }} />
-                <span style={{ color: OFF_WHITE, fontSize: 10, flex: 1 }}>{l.label}</span>
-                <span style={{ color: MUTED, fontSize: 9 }}>{l.min}–{l.max === 100 ? "+" : l.max}</span></div>))}</div>
         </div></div>
 
       <div className="score-panel-mobile" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50 }}>
@@ -1248,14 +1281,26 @@ export default function PVTAIRFrat() {
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} />
-      {isOnline && session && (
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, padding: "4px 16px 0", maxWidth: 1200, margin: "0 auto" }}>
-          <span style={{ fontSize: 10, color: MUTED }}>{userName} · {orgName}</span>
-          {pendingSync > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: "#FACC15", background: "rgba(250,204,21,0.15)", border: "1px solid rgba(250,204,21,0.3)", padding: "2px 8px", borderRadius: 10, cursor: "pointer" }} onClick={() => flushQueue()} title="Click to retry sync">{pendingSync} pending sync{pendingSync > 1 ? "s" : ""}</span>}
-          <button onClick={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); }}
-            style={{ fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "2px 8px", cursor: "pointer" }}>Log out</button></div>)}
-      {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
-      <main style={{ padding: "20px 20px 50px" }}>
+      <div className="main-content" style={{ marginLeft: 60 }}>
+        {/* Top bar with user info */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
+          <div>
+            <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
+              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "HAZARD REGISTER" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY & TRAINING" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
+            </h1>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {pendingSync > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: YELLOW, background: "rgba(250,204,21,0.15)", border: "1px solid rgba(250,204,21,0.3)", padding: "2px 8px", borderRadius: 10, cursor: "pointer" }} onClick={() => flushQueue()} title="Click to retry sync">{pendingSync} pending</span>}
+            {isOnline && session && (<>
+              <span style={{ fontSize: 11, color: MUTED }}>{userName}</span>
+              <div style={{ width: 32, height: 32, borderRadius: 50, background: BORDER, display: "flex", alignItems: "center", justifyContent: "center", color: WHITE, fontSize: 12, fontWeight: 700 }}>{(userName || "?").split(" ").map(n => n[0]).join("").slice(0, 2)}</div>
+              <button onClick={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); }}
+                style={{ fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 10px", cursor: "pointer" }}>Log out</button>
+            </>)}
+          </div>
+        </div>
+        {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
+        <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && <FRATForm onSubmit={onSubmit} />}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} />}
         {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={onSubmitReport} reports={reports} onStatusChange={onReportStatusChange} />}
@@ -1278,6 +1323,7 @@ export default function PVTAIRFrat() {
       </main>
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
         {orgName} Safety Management System · PreflightSMS · 14 CFR Part 5 SMS · {new Date().getFullYear()}</footer>
+      </div>{/* end main-content */}
       <style>{`*{box-sizing:border-box}input:focus,select:focus,textarea:focus{outline:none;border-color:${WHITE} !important;box-shadow:0 0 0 2px rgba(255,255,255,0.15) !important}select option{background:${NEAR_BLACK};color:${OFF_WHITE}}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @media(max-width:768px){
@@ -1285,9 +1331,10 @@ export default function PVTAIRFrat() {
 .flight-info-grid{grid-template-columns:1fr 1fr !important}
 .score-panel-desktop{display:none !important}
 .score-panel-mobile{display:flex !important}
-.nav-tabs{display:none !important}
-.nav-hamburger{display:flex !important}
+.nav-sidebar{display:none !important}
+.nav-mobile-header{display:flex !important}
 .nav-mobile-menu{display:flex !important}
+.main-content{margin-left:0 !important}
 .stat-grid{grid-template-columns:repeat(2,1fr) !important}
 .chart-grid-2{grid-template-columns:1fr !important}
 }

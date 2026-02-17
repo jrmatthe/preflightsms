@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 
-const CARD = "#141414", NEAR_BLACK = "#111111";
+const CARD = "#161616", NEAR_BLACK = "#111111";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
-const BORDER = "#222222";
+const BORDER = "#232323";
 const GREEN = "#4ADE80", RED = "#EF4444", CYAN = "#22D3EE";
 
 const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
