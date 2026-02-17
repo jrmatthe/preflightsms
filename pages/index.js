@@ -823,7 +823,13 @@ function FlightBoard({ flights, onUpdateFlight }) {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 6 }}>
+          {["ACTIVE", "ARRIVED", "ALL"].map(f => (
+            <button key={f} onClick={() => setFilter(f)} style={{ padding: "5px 14px", borderRadius: 6, border: `1px solid ${filter === f ? WHITE : BORDER}`,
+              background: filter === f ? WHITE : "transparent", color: filter === f ? BLACK : MUTED, fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: 0.3 }}>
+              {f === "ALL" ? "All (24h)" : f === "ACTIVE" ? "Active" : "Arrived"}</button>))}
+        </div>
         <span style={{ fontSize: 13, color: GREEN, fontWeight: 600 }}>&#x25CF; {activeFlights.length} Active</span>
       </div>
 
