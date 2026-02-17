@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate } from "../lib/supabase";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
 const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), { ssr: false });
@@ -30,14 +30,14 @@ const AMBER = "#F59E0B";
 const RED = "#EF4444";
 const CYAN = "#22D3EE";
 
-const RISK_LEVELS = {
+const DEFAULT_RISK_LEVELS = {
   LOW: { label: "LOW RISK", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", min: 0, max: 15, action: "Flight authorized — standard procedures" },
   MODERATE: { label: "MODERATE RISK", color: YELLOW, bg: "rgba(250,204,21,0.08)", border: "rgba(250,204,21,0.25)", min: 16, max: 30, action: "Enhanced awareness — brief crew on elevated risk factors" },
   HIGH: { label: "HIGH RISK", color: AMBER, bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.25)", min: 31, max: 45, action: "Requires management approval before departure" },
   CRITICAL: { label: "CRITICAL RISK", color: RED, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", min: 46, max: 100, action: "Flight should not depart without risk mitigation and executive approval" },
 };
-const AIRCRAFT_TYPES = ["PC-12", "King Air"];
-const RISK_CATEGORIES = [
+const DEFAULT_AIRCRAFT_TYPES = ["PC-12", "King Air"];
+const DEFAULT_RISK_CATEGORIES = [
   { id: "weather", name: "Weather", icon: "", factors: [
     { id: "wx_ceiling", label: "Ceiling < 1000' AGL at departure or destination", score: 4 },
     { id: "wx_vis", label: "Visibility < 3 SM at departure or destination", score: 4 },
@@ -63,7 +63,7 @@ const RISK_CATEGORIES = [
     { id: "ac_perf_limit", label: "Operating near weight/performance limits", score: 4 },
     { id: "ac_known_issue", label: "Known recurring squawk or system anomaly", score: 3 },
   ]},
-  { id: "environment", name: "Environment", icon: "🌍", factors: [
+  { id: "environment", name: "Environment", icon: "", factors: [
     { id: "env_night", label: "Night operations", score: 2 },
     { id: "env_terrain", label: "Mountainous terrain along route", score: 3 },
     { id: "env_unfam_airspace", label: "Complex or unfamiliar airspace", score: 2 },
@@ -81,7 +81,20 @@ const RISK_CATEGORIES = [
   ]},
 ];
 
-function getRiskLevel(s) { if (s <= 15) return RISK_LEVELS.LOW; if (s <= 30) return RISK_LEVELS.MODERATE; if (s <= 45) return RISK_LEVELS.HIGH; return RISK_LEVELS.CRITICAL; }
+// Convert DB template thresholds to runtime risk levels
+function buildRiskLevels(thresholds) {
+  if (!thresholds || !Array.isArray(thresholds)) return DEFAULT_RISK_LEVELS;
+  const colorMap = { green: GREEN, yellow: YELLOW, amber: AMBER, red: RED };
+  const bgMap = { green: "rgba(74,222,128,0.08)", yellow: "rgba(250,204,21,0.08)", amber: "rgba(245,158,11,0.08)", red: "rgba(239,68,68,0.08)" };
+  const borderMap = { green: "rgba(74,222,128,0.25)", yellow: "rgba(250,204,21,0.25)", amber: "rgba(245,158,11,0.25)", red: "rgba(239,68,68,0.25)" };
+  const result = {};
+  thresholds.forEach(t => {
+    result[t.level] = { label: t.label, color: colorMap[t.color] || GREEN, bg: bgMap[t.color] || bgMap.green, border: borderMap[t.color] || borderMap.green, min: t.min, max: t.max, action: t.action };
+  });
+  return result;
+}
+
+function getRiskLevel(s, riskLevels) { const rl = riskLevels || DEFAULT_RISK_LEVELS; const sorted = Object.values(rl).sort((a, b) => a.min - b.min); for (const l of sorted) { if (s >= l.min && s <= l.max) return l; } return sorted[sorted.length - 1] || Object.values(DEFAULT_RISK_LEVELS)[3]; }
 function formatDateTime(d) { return new Date(d).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
 function generateId() { return `FRAT-${Date.now().toString(36).toUpperCase()}`; }
 function downloadBlob(c, t, f) { const b = new Blob([c], { type: t }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = f; a.click(); URL.revokeObjectURL(u); }
@@ -484,7 +497,10 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes }) {
+  const RISK_CATEGORIES = riskCategories || DEFAULT_RISK_CATEGORIES;
+  const AIRCRAFT_TYPES = aircraftTypes || DEFAULT_AIRCRAFT_TYPES;
+  const getRL = (s) => getRiskLevel(s, riskLevels);
   const [fi, setFi] = useState({ pilot: "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: new Date().toISOString().slice(0, 10), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" });
   const [checked, setChecked] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -552,7 +568,7 @@ function FRATForm({ onSubmit, onNavigate }) {
     if (!fi.pilot || !fi.departure || !fi.destination) { alert("Please fill in pilot name, departure, and destination."); return; }
     if (!fi.etd || !fi.ete) { alert("Please fill in estimated departure time (ETD) and estimated time enroute (ETE) for flight following."); return; }
     const eta = calcArrivalTime(fi.date, fi.etd, fi.ete);
-    onSubmit({ id: generateId(), ...fi, eta: eta ? eta.toISOString() : "", score, riskLevel: getRiskLevel(score).label, factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
+    onSubmit({ id: generateId(), ...fi, eta: eta ? eta.toISOString() : "", score, riskLevel: getRL(score).label, factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
       wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "" });
     if (onNavigate) onNavigate("flights");
   };
@@ -599,7 +615,7 @@ function FRATForm({ onSubmit, onNavigate }) {
                 <h3 style={{ margin: 0, color: WHITE, fontSize: 15, fontWeight: 700 }}>{cat.name}</h3>
                 {catScore > 0 && <span style={{ fontWeight: 700, fontSize: 14, color: GREEN }}>+{catScore}</span>}
               </div>
-              {cat.factors.map(f => { const ic = !!checked[f.id]; const isAuto = !!autoSuggested[f.id]; const rl = getRiskLevel(f.score > 4 ? 46 : f.score > 3 ? 31 : 16); return (
+              {cat.factors.map(f => { const ic = !!checked[f.id]; const isAuto = !!autoSuggested[f.id]; const rl = getRL(f.score > 4 ? 46 : f.score > 3 ? 31 : 16); return (
                 <div key={f.id} onClick={() => toggle(f.id)} style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", marginBottom: 4, borderRadius: 6, cursor: "pointer",
                   background: ic ? (isAuto ? "rgba(34,211,238,0.06)" : rl.bg) : "rgba(255,255,255,0.02)",
@@ -620,17 +636,17 @@ function FRATForm({ onSubmit, onNavigate }) {
         </div>
 
         <div className="score-panel-desktop" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
-          <div style={{ ...card, padding: 24, border: `1px solid ${getRiskLevel(score).border}`, borderRadius: 10 }}>
+          <div style={{ ...card, padding: 24, border: `1px solid ${getRL(score).border}`, borderRadius: 10 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, textAlign: "center", marginBottom: 8 }}>Risk Score</div>
-            <div style={{ fontSize: 56, fontWeight: 800, color: getRiskLevel(score).color, textAlign: "center", lineHeight: 1, marginBottom: 12 }}>{score}</div>
+            <div style={{ fontSize: 56, fontWeight: 800, color: getRL(score).color, textAlign: "center", lineHeight: 1, marginBottom: 12 }}>{score}</div>
             {/* Progress bar */}
             <div style={{ position: "relative", height: 6, background: BORDER, borderRadius: 3, marginBottom: 4 }}>
-              <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${Math.min((score / 40) * 100, 100)}%`, background: getRiskLevel(score).color, borderRadius: 3, transition: "width 0.3s" }} />
+              <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${Math.min((score / 40) * 100, 100)}%`, background: getRL(score).color, borderRadius: 3, transition: "width 0.3s" }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: SUBTLE, marginBottom: 14 }}>
               <span>0</span><span>15</span><span>25</span><span>40</span>
             </div>
-            <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: getRiskLevel(score).color, marginBottom: 16 }}>✓ {getRiskLevel(score).label.replace(" RISK", "")} — {getRiskLevel(score).label.includes("LOW") ? "Low Risk" : getRiskLevel(score).label.includes("MODERATE") ? "Moderate Risk" : getRiskLevel(score).label.includes("HIGH") ? "High Risk" : "Critical Risk"}</div>
+            <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: getRL(score).color, marginBottom: 16 }}>✓ {getRL(score).label.replace(" RISK", "")} — {getRL(score).label.includes("LOW") ? "Low Risk" : getRL(score).label.includes("MODERATE") ? "Moderate Risk" : getRL(score).label.includes("HIGH") ? "High Risk" : "Critical Risk"}</div>
             {/* Category breakdown */}
             <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 12, marginBottom: 16 }}>
               {RISK_CATEGORIES.map(cat => { const catScore = cat.factors.reduce((s, f) => s + (checked[f.id] ? f.score : 0), 0); return (
@@ -644,13 +660,13 @@ function FRATForm({ onSubmit, onNavigate }) {
         </div></div>
 
       <div className="score-panel-mobile" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 16px", background: BLACK, borderTop: `1px solid ${getRiskLevel(score).border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 16px", background: BLACK, borderTop: `1px solid ${getRL(score).border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: getRiskLevel(score).bg, border: `1px solid ${getRiskLevel(score).border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ fontWeight: 800, color: getRiskLevel(score).color, fontSize: 16, fontFamily: "Georgia,serif" }}>{score}</span></div>
+            <div style={{ width: 40, height: 40, borderRadius: 8, background: getRL(score).bg, border: `1px solid ${getRL(score).border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontWeight: 800, color: getRL(score).color, fontSize: 16, fontFamily: "Georgia,serif" }}>{score}</span></div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 700, color: getRiskLevel(score).color, fontSize: 11 }}>{getRiskLevel(score).label}</div>
-              <div style={{ color: MUTED, fontSize: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getRiskLevel(score).action}</div></div></div>
+              <div style={{ fontWeight: 700, color: getRL(score).color, fontSize: 11 }}>{getRL(score).label}</div>
+              <div style={{ color: MUTED, fontSize: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getRL(score).action}</div></div></div>
           <button onClick={handleSubmit} style={{ padding: "10px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>SUBMIT</button></div></div>
     </div>);
 }
@@ -662,7 +678,7 @@ function HistoryView({ records, onDelete }) {
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="Search pilot, airport, ID..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...inp, flex: 1, minWidth: 180, fontSize: 13 }} />
-        {["ALL", ...Object.values(RISK_LEVELS).map(l => l.label)].map(l => (
+        {["ALL", ...Object.values(DEFAULT_RISK_LEVELS).map(l => l.label)].map(l => (
           <button key={l} onClick={() => setFilter(l)} style={{ padding: "6px 11px", borderRadius: 16, border: `1px solid ${filter === l ? WHITE : BORDER}`, background: filter === l ? WHITE : CARD, color: filter === l ? BLACK : MUTED, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
             {l === "ALL" ? "All" : l.split(" ")[0]}</button>))}</div>
       {filtered.length === 0 ? (<div style={{ textAlign: "center", padding: 60, color: MUTED }}><div style={{ fontSize: 14 }}>No FRAT records found</div></div>)
@@ -912,7 +928,13 @@ export default function PVTAIRFrat() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(!!supabase);
+  const [fratTemplate, setFratTemplate] = useState(null);
   const isOnline = !!supabase;
+
+  // Derived template config
+  const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
+  const riskLevels = fratTemplate?.risk_thresholds ? buildRiskLevels(fratTemplate.risk_thresholds) : DEFAULT_RISK_LEVELS;
+  const aircraftTypes = fratTemplate?.aircraft_types || DEFAULT_AIRCRAFT_TYPES;
 
   // Init offline queue
   useEffect(() => {
@@ -1006,6 +1028,8 @@ export default function PVTAIRFrat() {
         })));
       });
     });
+    // Load FRAT template
+    fetchFratTemplate(orgId).then(({ data }) => { if (data) setFratTemplate(data); });
     // Load reports, hazards, actions, policies, training
     fetchReports(orgId).then(({ data }) => setReports(data || []));
     fetchHazards(orgId).then(({ data }) => setHazards(data || []));
@@ -1060,7 +1084,7 @@ export default function PVTAIRFrat() {
       const flight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: "ACTIVE", timestamp: entry.timestamp, arrivedAt: null };
       const nf = [flight, ...flights]; saveFlightsLocal(nf);
     }
-    setToast({ message: `${entry.id} submitted — flight plan created`, level: getRiskLevel(entry.score) }); setTimeout(() => setToast(null), 4000);
+    setToast({ message: `${entry.id} submitted — flight plan created`, level: getRiskLevel(entry.score, riskLevels) }); setTimeout(() => setToast(null), 4000);
   }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline]);
 
   // ── Update flight status ──
@@ -1137,7 +1161,7 @@ export default function PVTAIRFrat() {
   const onSubmitReport = useCallback(async (report) => {
     if (isOnline && profile) {
       const { error } = await submitReport(profile.org_id, session.user.id, report);
-      if (error) { setToast({ message: `Error: ${error.message}`, level: RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
+      if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchReports(profile.org_id);
       setReports(data || []);
       setToast({ message: `${report.reportCode} submitted`, level: { bg: "rgba(34,211,238,0.15)", border: "rgba(34,211,238,0.4)", color: "#22D3EE" } }); setTimeout(() => setToast(null), 4000);
@@ -1157,7 +1181,7 @@ export default function PVTAIRFrat() {
   const onCreateHazard = useCallback(async (hazard) => {
     if (isOnline && profile) {
       const { error } = await createHazard(profile.org_id, session.user.id, hazard);
-      if (error) { setToast({ message: `Error: ${error.message}`, level: RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
+      if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchHazards(profile.org_id);
       setHazards(data || []);
       setToast({ message: `${hazard.hazardCode} registered`, level: { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" } }); setTimeout(() => setToast(null), 4000);
@@ -1168,7 +1192,7 @@ export default function PVTAIRFrat() {
   const onCreateAction = useCallback(async (action) => {
     if (isOnline && profile) {
       const { error } = await createAction(profile.org_id, action);
-      if (error) { setToast({ message: `Error: ${error.message}`, level: RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
+      if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchActions(profile.org_id);
       setActions(data || []);
       setToast({ message: `${action.actionCode} created`, level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: "#4ADE80" } }); setTimeout(() => setToast(null), 4000);
@@ -1196,7 +1220,7 @@ export default function PVTAIRFrat() {
   const onCreatePolicy = useCallback(async (policy) => {
     if (isOnline && profile) {
       const { error } = await createPolicy(profile.org_id, session.user.id, policy);
-      if (error) { setToast({ message: `Error: ${error.message}`, level: RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
+      if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchPolicies(profile.org_id);
       setPolicies(data || []);
       setToast({ message: "Document added", level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: "#4ADE80" } }); setTimeout(() => setToast(null), 3000);
@@ -1215,7 +1239,7 @@ export default function PVTAIRFrat() {
   const onCreateRequirement = useCallback(async (req) => {
     if (isOnline && profile) {
       const { error } = await createTrainingRequirement(profile.org_id, req);
-      if (error) { setToast({ message: `Error: ${error.message}`, level: RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
+      if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchTrainingRequirements(profile.org_id);
       setTrainingReqs(data || []);
     }
@@ -1224,7 +1248,7 @@ export default function PVTAIRFrat() {
   const onLogTraining = useCallback(async (record) => {
     if (isOnline && profile) {
       const { error } = await createTrainingRecord(profile.org_id, session.user.id, record);
-      if (error) { setToast({ message: `Error: ${error.message}`, level: RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
+      if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchTrainingRecords(profile.org_id);
       setTrainingRecs(data || []);
       setToast({ message: "Training logged", level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: "#4ADE80" } }); setTimeout(() => setToast(null), 3000);
@@ -1263,7 +1287,7 @@ export default function PVTAIRFrat() {
         </div>
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         <main style={{ padding: "20px 32px 50px" }}>
-        {cv === "submit" && <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} />}
+        {cv === "submit" && <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} />}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} />}
         {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={onSubmitReport} reports={reports} onStatusChange={onReportStatusChange} />}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={onCreateHazard} hazards={hazards} />}
@@ -1271,7 +1295,19 @@ export default function PVTAIRFrat() {
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={onCreatePolicy} onAcknowledgePolicy={onAcknowledgePolicy} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={onCreateRequirement} onLogTraining={onLogTraining} orgProfiles={orgProfiles} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} onDelete={onDelete} />}
-        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} onUpdateRole={onUpdateRole} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} onUploadLogo={async (file) => {
+        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} onUpdateRole={onUpdateRole} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} onSaveTemplate={async (templateData) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          const { data, error } = await upsertFratTemplate(orgId, templateData);
+          if (!error && data) {
+            setFratTemplate(data);
+            setToast({ message: "FRAT template saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+            setTimeout(() => setToast(null), 3000);
+          } else {
+            setToast({ message: "Failed to save template: " + (error?.message || "Unknown error"), level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
+            setTimeout(() => setToast(null), 5000);
+          }
+        }} onUploadLogo={async (file) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
           const { url, error } = await uploadOrgLogo(orgId, file);

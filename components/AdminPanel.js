@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
+const FRATTemplateEditor = dynamic(() => import("./FRATTemplateEditor"), { ssr: false });
 
 const CARD = "#161616", NEAR_BLACK = "#111111";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
@@ -15,11 +17,22 @@ const ROLES = [
   { id: "admin", label: "Admin", desc: "Full access including user management" },
 ];
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName, orgSlug, orgLogo, onUploadLogo }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, onSaveTemplate }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [activeTab, setActiveTab] = useState("org");
+
+  const handleSaveTemplate = async (templateData) => {
+    setSavingTemplate(true);
+    try {
+      await onSaveTemplate(templateData);
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -35,12 +48,24 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName
   };
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Admin</div>
-        <div style={{ fontSize: 11, color: MUTED }}>Organization settings and user management</div>
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      {/* Admin tabs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+        {[{ id: "org", label: "Organization" }, { id: "frat", label: "FRAT Template" }, { id: "users", label: "Users & Roles" }].map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            padding: "6px 16px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: 0.3,
+            background: activeTab === t.id ? WHITE : "transparent", color: activeTab === t.id ? BLACK : MUTED,
+            border: `1px solid ${activeTab === t.id ? WHITE : BORDER}`,
+          }}>{t.label}</button>
+        ))}
       </div>
 
+      {/* FRAT Template Editor */}
+      {activeTab === "frat" && canManage && (
+        <FRATTemplateEditor template={fratTemplate} onSave={handleSaveTemplate} saving={savingTemplate} />
+      )}
+
+      {activeTab === "org" && (<>
       {/* Org Info */}
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 8 }}>Organization</div>
@@ -72,8 +97,10 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName
           </div>
         )}
       </div>
+      </>)}
 
       {/* Users */}
+      {activeTab === "users" && (<>
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Team Members ({orgProfiles.length})</div>
@@ -121,6 +148,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName
           </div>
         ))}
       </div>
+      </>)}
     </div>
   );
 }
