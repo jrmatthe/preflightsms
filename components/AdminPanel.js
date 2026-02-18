@@ -6,7 +6,7 @@ const NotificationContacts = dynamic(() => import("./NotificationContacts"), { s
 const CARD = "#161616", NEAR_BLACK = "#111111";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
 const BORDER = "#232323";
-const GREEN = "#4ADE80", RED = "#EF4444", CYAN = "#22D3EE";
+const GREEN = "#4ADE80", RED = "#EF4444", CYAN = "#22D3EE", YELLOW = "#FACC15", AMBER = "#F59E0B";
 
 const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
 
