@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact } from "../lib/supabase";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
 const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), { ssr: false });
@@ -509,12 +509,12 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes, orgId }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes, orgId, userName }) {
   const RISK_CATEGORIES = riskCategories || DEFAULT_RISK_CATEGORIES;
   const AIRCRAFT_TYPES = aircraftTypes || DEFAULT_AIRCRAFT_TYPES;
   const getRL = (s) => getRiskLevel(s, riskLevels);
   const getLocalDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
-  const [fi, setFi] = useState({ pilot: "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" });
+  const [fi, setFi] = useState({ pilot: userName || "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" });
   const [attachments, setAttachments] = useState([]); // { file, preview, uploading, url }
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [checked, setChecked] = useState({});
@@ -630,7 +630,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
             { key: "destination", label: "Destination (ICAO)", placeholder: "e.g. KBOI", type: "text", upper: true },
             { key: "cruiseAlt", label: "Cruise Altitude", placeholder: "e.g. FL180 or 12000", type: "text" },
             { key: "date", label: "Flight Date", type: "date" },
-            { key: "etd", label: "Est. Departure (Local)", placeholder: "e.g. 1430", type: "text" },
+            { key: "etd", label: "Est. Departure (Spokane)", placeholder: "e.g. 1430", type: "text" },
             { key: "ete", label: "Est. Time Enroute", placeholder: "e.g. 1:30, 45, or 0:30", type: "text" },
             { key: "fuelLbs", label: "Fuel Onboard (lbs)", placeholder: "e.g. 2400", type: "text" },
             { key: "numCrew", label: "Number of Crew", placeholder: "e.g. 2", type: "text" },
@@ -1488,7 +1488,7 @@ export default function PVTAIRFrat() {
         </div>
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         <main style={{ padding: "20px 32px 50px" }}>
-        {cv === "submit" && <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} />}
+        {cv === "submit" && <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} userName={userName} />}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} />}
         {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={onSubmitReport} reports={reports} onStatusChange={onReportStatusChange} hazards={hazards} onCreateHazardFromReport={(report) => { setHazardFromReport(report); setCv("hazards"); }} />}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={onCreateHazard} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} />}
@@ -1496,7 +1496,7 @@ export default function PVTAIRFrat() {
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={onCreatePolicy} onAcknowledgePolicy={onAcknowledgePolicy} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={onCreateRequirement} onLogTraining={onLogTraining} orgProfiles={orgProfiles} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} onDelete={onDelete} />}
-        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} onUpdateRole={onUpdateRole} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} onSaveTemplate={async (templateData) => {
+        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
           const { data, error } = await upsertFratTemplate(orgId, templateData);

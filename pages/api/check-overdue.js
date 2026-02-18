@@ -64,7 +64,26 @@ export default async function handler(req, res) {
         .eq("notify_overdue", true)
         .eq("active", true);
 
-      if (!contacts || contacts.length === 0) {
+      // Also get users with flight_follower permission
+      const { data: followers } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, permissions")
+        .eq("org_id", flight.org_id)
+        .not("email", "is", null);
+
+      // Merge: notification_contacts + flight_follower profiles (dedupe by email)
+      const allContacts = [...(contacts || [])];
+      const existingEmails = new Set(allContacts.map(c => c.email?.toLowerCase()).filter(Boolean));
+      if (followers) {
+        for (const f of followers) {
+          if (f.permissions && f.permissions.includes("flight_follower") && f.email && !existingEmails.has(f.email.toLowerCase())) {
+            allContacts.push({ name: f.full_name, email: f.email, phone: "", role: "Flight Follower" });
+            existingEmails.add(f.email.toLowerCase());
+          }
+        }
+      }
+
+      if (allContacts.length === 0) {
         results.push({ flight: flight.frat_code, status: "no_contacts" });
         await supabase.from("flights").update({ overdue_notified_at: now }).eq("id", flight.id);
         continue;
@@ -96,7 +115,7 @@ export default async function handler(req, res) {
 
       const flightResults = { flight: flight.frat_code, emails: 0, sms: 0, errors: [] };
 
-      for (const contact of contacts) {
+      for (const contact of allContacts) {
         // Send email
         if (contact.email && resendKey) {
           try {

@@ -18,7 +18,14 @@ const ROLES = [
   { id: "admin", label: "Admin", desc: "Full access including user management" },
 ];
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, onSaveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact }) {
+const PERMISSIONS = [
+  { id: "flight_follower", label: "Flight Follower", desc: "Receives overdue flight email notifications" },
+  { id: "frat_reviewer", label: "FRAT Reviewer", desc: "Can review and comment on submitted FRATs" },
+  { id: "hazard_manager", label: "Hazard Manager", desc: "Can create and manage hazards" },
+  { id: "training_manager", label: "Training Manager", desc: "Can manage training requirements and records" },
+];
+
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, onSaveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -114,42 +121,87 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName
         {orgProfiles.map(user => {
           const role = ROLES.find(r => r.id === user.role) || ROLES[0];
           const isMe = user.id === profile?.id;
+          const userPerms = user.permissions || [];
+          const [expanded, setExpanded] = useState(false);
+
+          const togglePerm = (permId) => {
+            const current = user.permissions || [];
+            const updated = current.includes(permId) ? current.filter(p => p !== permId) : [...current, permId];
+            onUpdatePermissions(user.id, updated);
+          };
+
           return (
-            <div key={user.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${BORDER}` }}>
-              <div style={{ width: 36, height: 36, borderRadius: 18, background: NEAR_BLACK, border: `1px solid ${BORDER}`,
-                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: MUTED }}>{(user.full_name || "?")[0].toUpperCase()}</span>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13, color: WHITE }}>{user.full_name}</span>
-                  {isMe && <span style={{ fontSize: 9, color: CYAN, background: `${CYAN}22`, padding: "1px 6px", borderRadius: 8 }}>You</span>}
+            <div key={user.id} style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", cursor: canManage ? "pointer" : "default" }} onClick={() => canManage && setExpanded(!expanded)}>
+                <div style={{ width: 36, height: 36, borderRadius: 18, background: NEAR_BLACK, border: `1px solid ${BORDER}`,
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: MUTED }}>{(user.full_name || "?")[0].toUpperCase()}</span>
                 </div>
-                <div style={{ fontSize: 10, color: MUTED }}>{user.email || "No email"} · Joined {new Date(user.created_at).toLocaleDateString()}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontWeight: 600, fontSize: 13, color: WHITE }}>{user.full_name}</span>
+                    {isMe && <span style={{ fontSize: 9, color: CYAN, background: `${CYAN}22`, padding: "1px 6px", borderRadius: 8 }}>You</span>}
+                  </div>
+                  <div style={{ fontSize: 10, color: MUTED }}>
+                    {user.email || "No email"} · Joined {new Date(user.created_at).toLocaleDateString()}
+                    {userPerms.length > 0 && ` · ${userPerms.length} extra permission${userPerms.length > 1 ? "s" : ""}`}
+                  </div>
+                </div>
+                {canManage && !isMe ? (
+                  <select value={user.role} onChange={e => { e.stopPropagation(); onUpdateRole(user.id, e.target.value); }}
+                    onClick={e => e.stopPropagation()}
+                    style={{ padding: "4px 8px", borderRadius: 4, fontSize: 11, background: NEAR_BLACK, color: OFF_WHITE,
+                      border: `1px solid ${BORDER}`, cursor: "pointer" }}>
+                    {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                  </select>
+                ) : (
+                  <span style={{ fontSize: 11, color: role.id === "admin" ? CYAN : role.id === "safety_manager" ? GREEN : MUTED, fontWeight: 600 }}>
+                    {role.label}
+                  </span>
+                )}
+                {canManage && <span style={{ color: MUTED, fontSize: 12, flexShrink: 0 }}>{expanded ? "\u25B2" : "\u25BC"}</span>}
               </div>
-              {canManage && !isMe ? (
-                <select value={user.role} onChange={e => onUpdateRole(user.id, e.target.value)}
-                  style={{ padding: "4px 8px", borderRadius: 4, fontSize: 11, background: NEAR_BLACK, color: OFF_WHITE,
-                    border: `1px solid ${BORDER}`, cursor: "pointer" }}>
-                  {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                </select>
-              ) : (
-                <span style={{ fontSize: 11, color: role.id === "admin" ? CYAN : role.id === "safety_manager" ? GREEN : MUTED, fontWeight: 600 }}>
-                  {role.label}
-                </span>
+
+              {/* Expanded permissions */}
+              {expanded && canManage && (
+                <div style={{ padding: "8px 0 14px 48px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Additional Permissions</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {PERMISSIONS.map(p => {
+                      const has = userPerms.includes(p.id);
+                      return (
+                        <button key={p.id} onClick={() => togglePerm(p.id)}
+                          title={p.desc}
+                          style={{ padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                            background: has ? `${GREEN}22` : "transparent",
+                            color: has ? GREEN : MUTED,
+                            border: `1px solid ${has ? GREEN + "44" : BORDER}` }}>
+                          {has ? "✓ " : ""}{p.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           );
         })}
       </div>
 
-      {/* Role descriptions */}
+      {/* Role & permission descriptions */}
       <div style={{ ...card, padding: "16px 20px" }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 10 }}>Role Permissions</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 10 }}>Roles</div>
         {ROLES.map(r => (
           <div key={r.id} style={{ display: "flex", gap: 12, padding: "6px 0" }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: OFF_WHITE, width: 140, flexShrink: 0 }}>{r.label}</span>
             <span style={{ fontSize: 11, color: MUTED }}>{r.desc}</span>
+          </div>
+        ))}
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 10, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>Additional Permissions</div>
+        {PERMISSIONS.map(p => (
+          <div key={p.id} style={{ display: "flex", gap: 12, padding: "6px 0" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: OFF_WHITE, width: 140, flexShrink: 0 }}>{p.label}</span>
+            <span style={{ fontSize: 11, color: MUTED }}>{p.desc}</span>
           </div>
         ))}
       </div>
