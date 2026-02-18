@@ -1,4 +1,4 @@
-// /api/check-overdue
+// /api/check-overdue — v2
 // Called by cron every 5 minutes. Finds overdue flights, sends SMS to org contacts.
 // Requires env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, SUPABASE_URL, SUPABASE_SERVICE_KEY
 
