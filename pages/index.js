@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact } from "../lib/supabase";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
 const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), { ssr: false });
@@ -1128,6 +1128,7 @@ export default function PVTAIRFrat() {
   const [authLoading, setAuthLoading] = useState(!!supabase);
   const [fratTemplate, setFratTemplate] = useState(null);
   const [hazardFromReport, setHazardFromReport] = useState(null);
+  const [notifContacts, setNotifContacts] = useState([]);
   const isOnline = !!supabase;
 
   // Derived template config
@@ -1237,6 +1238,7 @@ export default function PVTAIRFrat() {
     fetchPolicies(orgId).then(({ data }) => setPolicies(data || []));
     fetchTrainingRequirements(orgId).then(({ data }) => setTrainingReqs(data || []));
     fetchTrainingRecords(orgId).then(({ data }) => setTrainingRecs(data || []));
+    fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [profile]);
 
@@ -1516,6 +1518,19 @@ export default function PVTAIRFrat() {
             if (prof) setProfile(prof);
           }
           return { url, error };
+        }} notificationContacts={notifContacts} onAddContact={async (contact) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          const { data, error } = await createNotificationContact(orgId, contact);
+          if (!error) fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
+        }} onUpdateContact={async (id, updates) => {
+          await updateNotificationContact(id, updates);
+          const orgId = profile?.org_id;
+          if (orgId) fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
+        }} onDeleteContact={async (id) => {
+          await deleteNotificationContact(id);
+          const orgId = profile?.org_id;
+          if (orgId) fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
         }} />}
       </main>
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 const FRATTemplateEditor = dynamic(() => import("./FRATTemplateEditor"), { ssr: false });
+const NotificationContacts = dynamic(() => import("./NotificationContacts"), { ssr: false });
 
 const CARD = "#161616", NEAR_BLACK = "#111111";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
@@ -17,7 +18,7 @@ const ROLES = [
   { id: "admin", label: "Admin", desc: "Full access including user management" },
 ];
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, onSaveTemplate }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, onSaveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -51,7 +52,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Admin tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-        {[{ id: "org", label: "Organization" }, { id: "frat", label: "FRAT Template" }, { id: "users", label: "Users & Roles" }].map(t => (
+        {[{ id: "org", label: "Organization" }, { id: "frat", label: "FRAT Template" }, { id: "notifications", label: "Notifications" }, { id: "users", label: "Users & Roles" }].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
             padding: "6px 16px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: 0.3,
             background: activeTab === t.id ? WHITE : "transparent", color: activeTab === t.id ? BLACK : MUTED,
@@ -63,6 +64,10 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, orgName
       {/* FRAT Template Editor */}
       {activeTab === "frat" && canManage && (
         <FRATTemplateEditor template={fratTemplate} onSave={handleSaveTemplate} saving={savingTemplate} />
+      )}
+
+      {activeTab === "notifications" && canManage && (
+        <NotificationContacts contacts={notificationContacts || []} onAdd={onAddContact} onUpdate={onUpdateContact} onDelete={onDeleteContact} />
       )}
 
       {activeTab === "org" && (<>
