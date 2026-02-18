@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg } from "../lib/supabase";
+import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
 const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), { ssr: false });
@@ -423,7 +424,7 @@ function AdminGate({ children, isAuthed, onAuth }) {
       </div></div>);
 }
 
-function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut }) {
+function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const tabs = [
     { id: "submit", label: "FRAT", icon: "✓", p: false },
@@ -434,7 +435,11 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     { id: "policy", label: "Policy", icon: "◈", p: false },
     { id: "dashboard", label: "Dashboard", icon: "▣", p: true },
     { id: "admin", label: "Admin", icon: "⚙", p: true },
-  ];
+  ].filter(t => {
+    const requiredFeature = NAV_FEATURE_MAP[t.id];
+    if (!requiredFeature) return true; // admin, etc. always shown
+    return hasFeature(org, requiredFeature);
+  });
   const sideTab = (t) => (
     <button key={t.id} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
       title={t.label}
@@ -1147,6 +1152,7 @@ export default function PVTAIRFrat() {
   const [hazardFromReport, setHazardFromReport] = useState(null);
   const [notifContacts, setNotifContacts] = useState([]);
   const isOnline = !!supabase;
+  const org = profile?.organizations || {};
 
   // Derived template config
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
@@ -1265,9 +1271,9 @@ export default function PVTAIRFrat() {
 
   // ── Submit FRAT ──
   const onSubmit = useCallback(async entry => {
-    // Determine if approval is required based on score threshold
+    // Determine if approval is required based on score threshold (only if feature enabled)
     const approvalThreshold = fratTemplate?.approval_threshold || 31;
-    const needsApproval = entry.score >= approvalThreshold;
+    const needsApproval = hasFeature(org, "approval_workflow") && entry.score >= approvalThreshold;
 
     if (isOnline && profile) {
       const { data: fratData, error: fratErr } = await submitFRAT(profile.org_id, session.user.id, {
@@ -1516,7 +1522,7 @@ export default function PVTAIRFrat() {
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); }} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); }} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Top bar with user info */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
@@ -1592,6 +1598,14 @@ export default function PVTAIRFrat() {
           await deleteNotificationContact(id);
           const orgId = profile?.org_id;
           if (orgId) fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
+        }} orgData={profile?.organizations || {}} onUpdateOrg={async (updates) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          await updateOrg(orgId, updates);
+          const { data: prof } = await getProfile();
+          if (prof) setProfile(prof);
+          setToast({ message: "Subscription updated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+          setTimeout(() => setToast(null), 3000);
         }} />}
       </main>
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
