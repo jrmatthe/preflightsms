@@ -30,6 +30,11 @@ export default async function handler(req, res) {
   try {
     const now = new Date().toISOString();
 
+    // Reset notified flights for testing (pass ?reset=true)
+    if (req.query.reset === "true") {
+      await supabase.from("flights").update({ overdue_notified_at: null }).eq("status", "ACTIVE");
+    }
+
     // Find active flights that are past ETA and haven't been notified yet
     const { data: overdueFlights, error: flightErr } = await supabase
       .from("flights")
@@ -110,12 +115,11 @@ export default async function handler(req, res) {
           const twilioData = await twilioRes.json();
           if (twilioRes.ok) {
             totalSent++;
-            console.log(`SMS sent to ${contact.name} (${contact.phone}) for ${flight.frat_code}`);
           } else {
-            console.error(`Twilio error for ${contact.phone}:`, twilioData.message);
+            results.push({ flight: flight.frat_code, sms_error: twilioData.message || twilioData.code || "Unknown Twilio error", to: contact.phone });
           }
         } catch (smsErr) {
-          console.error(`SMS failed for ${contact.phone}:`, smsErr.message);
+          results.push({ flight: flight.frat_code, sms_error: smsErr.message, to: contact.phone });
         }
       }
 
