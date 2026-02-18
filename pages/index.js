@@ -1008,25 +1008,27 @@ function ExportView({ records }) {
           <div style={{ fontSize: 11, color: MUTED }}><strong style={{ color: OFF_WHITE }}>§5.97 Recordkeeping:</strong> SRM records must be retained as long as controls remain relevant. Current records: <strong style={{ color: WHITE }}>{records.length}</strong></div></div></div></div>);
 }
 
-function DashboardWrapper({ records, onDelete }) {
+function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels }) {
   const [sub, setSub] = useState("analytics");
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Dashboard</div>
-          <div style={{ fontSize: 11, color: MUTED }}>FRAT analytics, history, and export</div>
+          <div style={{ fontSize: 11, color: MUTED }}>Safety analytics, trends, and compliance status</div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-        {[["analytics", "Analytics"], ["history", "FRAT History"], ["export", "Export"]].map(([id, label]) => (
+        {[["analytics", "Overview"], ["frat", "FRAT Analytics"], ["safety", "Safety Metrics"], ["history", "FRAT History"], ["export", "Export"]].map(([id, label]) => (
           <button key={id} onClick={() => setSub(id)}
             style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${sub === id ? WHITE : BORDER}`,
               background: sub === id ? WHITE : "transparent", color: sub === id ? BLACK : MUTED,
               fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{label}</button>
         ))}
       </div>
-      {sub === "analytics" && <DashboardCharts records={records} />}
+      {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" />}
+      {sub === "frat" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" />}
+      {sub === "safety" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" />}
       {sub === "history" && <HistoryView records={records} onDelete={onDelete} />}
       {sub === "export" && <ExportView records={records} />}
     </div>
@@ -1554,7 +1556,7 @@ export default function PVTAIRFrat() {
         {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={onCreateAction} onUpdateAction={onUpdateAction} />}
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={onCreatePolicy} onAcknowledgePolicy={onAcknowledgePolicy} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={onCreateRequirement} onLogTraining={onLogTraining} orgProfiles={orgProfiles} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
-        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} onDelete={onDelete} />}
+        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} />}
         {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
