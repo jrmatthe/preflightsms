@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
+import dynamic from "next/dynamic";
 import { supabase, getSession, getProfile, fetchAllOrgs, fetchOrgUsers, fetchOrgStats, updateOrg } from "../lib/supabase";
 import { TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
+
+// Force client-side rendering — no SSR for this page
+export const getServerSideProps = async () => ({ props: {} });
 
 const BLACK = "#000000";
 const DARK = "#111111";
