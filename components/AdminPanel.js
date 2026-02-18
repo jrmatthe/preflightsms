@@ -20,6 +20,7 @@ const ROLES = [
 
 const PERMISSIONS = [
   { id: "flight_follower", label: "Flight Follower", desc: "Receives overdue flight email notifications" },
+  { id: "approver", label: "FRAT Approver", desc: "Can approve/reject high-risk FRATs before departure" },
   { id: "frat_reviewer", label: "FRAT Reviewer", desc: "Can review and comment on submitted FRATs" },
   { id: "hazard_manager", label: "Hazard Manager", desc: "Can create and manage hazards" },
   { id: "training_manager", label: "Training Manager", desc: "Can manage training requirements and records" },
