@@ -26,6 +26,70 @@ const PERMISSIONS = [
   { id: "training_manager", label: "Training Manager", desc: "Can manage training requirements and records" },
 ];
 
+function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions }) {
+  const [expanded, setExpanded] = useState(false);
+  const role = ROLES.find(r => r.id === user.role) || ROLES[0];
+  const isMe = user.id === profile?.id;
+  const userPerms = user.permissions || [];
+
+  const togglePerm = (permId) => {
+    const updated = userPerms.includes(permId) ? userPerms.filter(p => p !== permId) : [...userPerms, permId];
+    onUpdatePermissions(user.id, updated);
+  };
+
+  return (
+    <div style={{ borderBottom: `1px solid ${BORDER}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", cursor: canManage ? "pointer" : "default" }} onClick={() => canManage && setExpanded(!expanded)}>
+        <div style={{ width: 36, height: 36, borderRadius: 18, background: NEAR_BLACK, border: `1px solid ${BORDER}`,
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: MUTED }}>{(user.full_name || "?")[0].toUpperCase()}</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontWeight: 600, fontSize: 13, color: WHITE }}>{user.full_name}</span>
+            {isMe && <span style={{ fontSize: 9, color: CYAN, background: `${CYAN}22`, padding: "1px 6px", borderRadius: 8 }}>You</span>}
+          </div>
+          <div style={{ fontSize: 10, color: MUTED }}>
+            {user.email || "No email"} · Joined {new Date(user.created_at).toLocaleDateString()}
+            {userPerms.length > 0 && ` · ${userPerms.length} extra permission${userPerms.length > 1 ? "s" : ""}`}
+          </div>
+        </div>
+        {canManage && !isMe ? (
+          <select value={user.role} onChange={e => { e.stopPropagation(); onUpdateRole(user.id, e.target.value); }}
+            onClick={e => e.stopPropagation()}
+            style={{ padding: "4px 8px", borderRadius: 4, fontSize: 11, background: NEAR_BLACK, color: OFF_WHITE,
+              border: `1px solid ${BORDER}`, cursor: "pointer" }}>
+            {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+          </select>
+        ) : (
+          <span style={{ fontSize: 11, color: role.id === "admin" ? CYAN : role.id === "safety_manager" ? GREEN : MUTED, fontWeight: 600 }}>
+            {role.label}
+          </span>
+        )}
+        {canManage && <span style={{ color: MUTED, fontSize: 12, flexShrink: 0 }}>{expanded ? "\u25B2" : "\u25BC"}</span>}
+      </div>
+      {expanded && canManage && (
+        <div style={{ padding: "8px 0 14px 48px" }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Additional Permissions</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {PERMISSIONS.map(p => {
+              const has = userPerms.includes(p.id);
+              return (
+                <button key={p.id} onClick={() => togglePerm(p.id)} title={p.desc}
+                  style={{ padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                    background: has ? `${GREEN}22` : "transparent", color: has ? GREEN : MUTED,
+                    border: `1px solid ${has ? GREEN + "44" : BORDER}` }}>
+                  {has ? "✓ " : ""}{p.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, onSaveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
@@ -119,74 +183,9 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Team Members ({orgProfiles.length})</div>
         </div>
 
-        {orgProfiles.map(user => {
-          const role = ROLES.find(r => r.id === user.role) || ROLES[0];
-          const isMe = user.id === profile?.id;
-          const userPerms = user.permissions || [];
-          const [expanded, setExpanded] = useState(false);
-
-          const togglePerm = (permId) => {
-            const current = user.permissions || [];
-            const updated = current.includes(permId) ? current.filter(p => p !== permId) : [...current, permId];
-            onUpdatePermissions(user.id, updated);
-          };
-
-          return (
-            <div key={user.id} style={{ borderBottom: `1px solid ${BORDER}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", cursor: canManage ? "pointer" : "default" }} onClick={() => canManage && setExpanded(!expanded)}>
-                <div style={{ width: 36, height: 36, borderRadius: 18, background: NEAR_BLACK, border: `1px solid ${BORDER}`,
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: MUTED }}>{(user.full_name || "?")[0].toUpperCase()}</span>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontWeight: 600, fontSize: 13, color: WHITE }}>{user.full_name}</span>
-                    {isMe && <span style={{ fontSize: 9, color: CYAN, background: `${CYAN}22`, padding: "1px 6px", borderRadius: 8 }}>You</span>}
-                  </div>
-                  <div style={{ fontSize: 10, color: MUTED }}>
-                    {user.email || "No email"} · Joined {new Date(user.created_at).toLocaleDateString()}
-                    {userPerms.length > 0 && ` · ${userPerms.length} extra permission${userPerms.length > 1 ? "s" : ""}`}
-                  </div>
-                </div>
-                {canManage && !isMe ? (
-                  <select value={user.role} onChange={e => { e.stopPropagation(); onUpdateRole(user.id, e.target.value); }}
-                    onClick={e => e.stopPropagation()}
-                    style={{ padding: "4px 8px", borderRadius: 4, fontSize: 11, background: NEAR_BLACK, color: OFF_WHITE,
-                      border: `1px solid ${BORDER}`, cursor: "pointer" }}>
-                    {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                  </select>
-                ) : (
-                  <span style={{ fontSize: 11, color: role.id === "admin" ? CYAN : role.id === "safety_manager" ? GREEN : MUTED, fontWeight: 600 }}>
-                    {role.label}
-                  </span>
-                )}
-                {canManage && <span style={{ color: MUTED, fontSize: 12, flexShrink: 0 }}>{expanded ? "\u25B2" : "\u25BC"}</span>}
-              </div>
-
-              {/* Expanded permissions */}
-              {expanded && canManage && (
-                <div style={{ padding: "8px 0 14px 48px" }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Additional Permissions</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {PERMISSIONS.map(p => {
-                      const has = userPerms.includes(p.id);
-                      return (
-                        <button key={p.id} onClick={() => togglePerm(p.id)}
-                          title={p.desc}
-                          style={{ padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600, cursor: "pointer",
-                            background: has ? `${GREEN}22` : "transparent",
-                            color: has ? GREEN : MUTED,
-                            border: `1px solid ${has ? GREEN + "44" : BORDER}` }}>
-                          {has ? "✓ " : ""}{p.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {orgProfiles.map(user => (
+          <UserRow key={user.id} user={user} profile={profile} canManage={canManage} onUpdateRole={onUpdateRole} onUpdatePermissions={onUpdatePermissions} />
+        ))}
       </div>
 
       {/* Role & permission descriptions */}
