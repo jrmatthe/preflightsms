@@ -27,21 +27,23 @@ function toE164(val) {
 export default function NotificationContacts({ contacts, onAdd, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleAdd = async () => {
-    if (!name.trim() || phone.replace(/\D/g, "").length < 10) return;
+    if (!name.trim() || !email.trim()) return;
     setSaving(true);
     await onAdd({
       name: name.trim(),
-      phone: toE164(phone),
+      email: email.trim(),
+      phone: phone ? toE164(phone) : "",
       role: role.trim(),
       notify_overdue: true,
       active: true,
     });
-    setName(""); setPhone(""); setRole(""); setShowForm(false);
+    setName(""); setEmail(""); setPhone(""); setRole(""); setShowForm(false);
     setSaving(false);
   };
 
@@ -60,13 +62,19 @@ export default function NotificationContacts({ contacts, onAdd, onUpdate, onDele
       {/* Add form */}
       {showForm && (
         <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <div>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Name *</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. John Smith" style={inp} />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Phone *</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email *</label>
+              <input value={email} onChange={e => setEmail(e.target.value)} placeholder="john@pvtair.com" type="email" style={inp} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Phone <span style={{ color: SUBTLE, fontWeight: 400 }}>(optional — for future SMS)</span></label>
               <input value={phone} onChange={e => setPhone(formatPhone(e.target.value))} placeholder="(509) 555-1234" style={inp} maxLength={14} />
             </div>
             <div>
@@ -74,8 +82,8 @@ export default function NotificationContacts({ contacts, onAdd, onUpdate, onDele
               <input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Chief Pilot" style={inp} />
             </div>
           </div>
-          <button onClick={handleAdd} disabled={saving || !name.trim() || phone.replace(/\D/g, "").length < 10}
-            style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer", opacity: (saving || !name.trim() || phone.replace(/\D/g, "").length < 10) ? 0.4 : 1 }}>
+          <button onClick={handleAdd} disabled={saving || !name.trim() || !email.trim()}
+            style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer", opacity: (saving || !name.trim() || !email.trim()) ? 0.4 : 1 }}>
             {saving ? "Saving..." : "Add Contact"}
           </button>
         </div>
@@ -100,7 +108,7 @@ export default function NotificationContacts({ contacts, onAdd, onUpdate, onDele
                   {c.role && <span style={{ fontSize: 9, color: CYAN, background: `${CYAN}22`, padding: "1px 6px", borderRadius: 8 }}>{c.role}</span>}
                   {!c.active && <span style={{ fontSize: 9, color: MUTED, background: `${MUTED}22`, padding: "1px 6px", borderRadius: 8 }}>Paused</span>}
                 </div>
-                <div style={{ fontSize: 11, color: MUTED }}>{c.phone}</div>
+                <div style={{ fontSize: 11, color: MUTED }}>{c.email}{c.phone ? ` · ${c.phone}` : ""}</div>
               </div>
               <div style={{ display: "flex", gap: 4 }}>
                 <button onClick={() => onUpdate(c.id, { active: !c.active })}
