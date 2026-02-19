@@ -139,15 +139,27 @@ export default function PlatformAdmin() {
     </div>
   );
 
-  if (!authorized) return (
-    <div style={{ minHeight: "100vh", background: BLACK, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ ...card, padding: 40, textAlign: "center", maxWidth: 360 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: RED, marginBottom: 8 }}>Access Denied</div>
-        <div style={{ fontSize: 12, color: MUTED, marginBottom: 20 }}>You don't have platform admin access.</div>
-        <a href="/" style={{ color: CYAN, fontSize: 12 }}>← Back to app</a>
+  if (!authorized && !loading) {
+    const debugInfo = {
+      hasSession: !!session,
+      email: session?.user?.email || "none",
+      profileRole: profile?.role || "none",
+      profileName: profile?.full_name || "none",
+      adminEmailList: PLATFORM_ADMIN_EMAILS.length === 0 ? "empty (all admins allowed)" : PLATFORM_ADMIN_EMAILS.join(", "),
+    };
+    return (
+      <div style={{ minHeight: "100vh", background: BLACK, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ ...card, padding: 40, textAlign: "center", maxWidth: 420 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: RED, marginBottom: 8 }}>Access Denied</div>
+          <div style={{ fontSize: 12, color: MUTED, marginBottom: 20 }}>You don't have platform admin access.</div>
+          <div style={{ textAlign: "left", fontSize: 10, color: MUTED, background: NEAR_BLACK, padding: 12, borderRadius: 6, fontFamily: "monospace", lineHeight: 1.8 }}>
+            {Object.entries(debugInfo).map(([k, v]) => <div key={k}>{k}: {String(v)}</div>)}
+          </div>
+          <a href="/" style={{ color: CYAN, fontSize: 12, display: "block", marginTop: 16 }}>← Back to app</a>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <>
