@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -9,6 +9,7 @@ const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), {
 const HazardRegister = dynamic(() => import("../components/HazardRegister"), { ssr: false });
 const CorrectiveActions = dynamic(() => import("../components/CorrectiveActions"), { ssr: false });
 const AdminPanel = dynamic(() => import("../components/AdminPanel"), { ssr: false });
+const CrewRoster = dynamic(() => import("../components/CrewRoster"), { ssr: false });
 const PolicyTraining = dynamic(() => import("../components/PolicyTraining"), { ssr: false });
 
 const COMPANY_NAME = "PVTAIR";
@@ -429,6 +430,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   const tabs = [
     { id: "submit", label: "FRAT", icon: "✓", p: false },
     { id: "flights", label: "Flights", icon: "◎", p: false },
+    { id: "crew", label: "Crew", icon: "👤", p: false },
     { id: "reports", label: "Reports", icon: "⚠", p: false },
     { id: "hazards", label: "Hazards", icon: "△", p: false },
     { id: "actions", label: "Actions", icon: "⊘", p: false },
@@ -1143,6 +1145,7 @@ export default function PVTAIRFrat() {
   const [reports, setReports] = useState([]);
   const [hazards, setHazards] = useState([]);
   const [actions, setActions] = useState([]);
+  const [crewRecords, setCrewRecords] = useState([]);
   const [orgProfiles, setOrgProfiles] = useState([]);
   const [policies, setPolicies] = useState([]);
   const [trainingReqs, setTrainingReqs] = useState([]);
@@ -1263,6 +1266,7 @@ export default function PVTAIRFrat() {
     fetchReports(orgId).then(({ data }) => setReports(data || []));
     fetchHazards(orgId).then(({ data }) => setHazards(data || []));
     fetchActions(orgId).then(({ data }) => setActions(data || []));
+    fetchCrewRecords(orgId).then(({ data }) => setCrewRecords(data || []));
     fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || []));
     fetchPolicies(orgId).then(({ data }) => setPolicies(data || []));
     fetchTrainingRequirements(orgId).then(({ data }) => setTrainingReqs(data || []));
@@ -1534,7 +1538,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "HAZARD REGISTER" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY & TRAINING" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
+              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "crew" ? "CREW ROSTER" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "HAZARD REGISTER" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY & TRAINING" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1562,6 +1566,21 @@ export default function PVTAIRFrat() {
           const { data: fl } = await fetchFlights(profile.org_id);
           setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id })));
           setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
+        }} />}
+        {cv === "crew" && <CrewRoster crewRecords={crewRecords} canManage={["admin", "safety_manager", "accountable_exec"].includes(profile?.role)} onAdd={async (record) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          await createCrewRecord(orgId, record);
+          const { data } = await fetchCrewRecords(orgId);
+          setCrewRecords(data || []);
+        }} onUpdate={async (id, updates) => {
+          await updateCrewRecord(id, updates);
+          const { data } = await fetchCrewRecords(profile?.org_id);
+          setCrewRecords(data || []);
+        }} onDelete={async (id) => {
+          await deleteCrewRecord(id);
+          const { data } = await fetchCrewRecords(profile?.org_id);
+          setCrewRecords(data || []);
         }} />}
         {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={onSubmitReport} reports={reports} onStatusChange={onReportStatusChange} hazards={hazards} onCreateHazardFromReport={(report) => { setHazardFromReport(report); setCv("hazards"); }} />}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={onCreateHazard} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} />}
