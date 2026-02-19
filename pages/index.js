@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -1445,10 +1445,11 @@ function SignupFlow({ onAuth }) {
 }
 
 function AuthScreen({ onAuth, initialMode }) {
-  const [mode, setMode] = useState(initialMode || "login"); // login | signup | join
+  const [mode, setMode] = useState(initialMode || "login"); // login | signup | join | forgot | reset_password
   const [step, setStep] = useState(1); // signup steps: 1=account, 2=org, 3=plan
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [orgName, setOrgName] = useState("");
   const [certType, setCertType] = useState("Part 135");
@@ -1456,6 +1457,19 @@ function AuthScreen({ onAuth, initialMode }) {
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
+
+  // Check for recovery token in URL hash on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+    // Supabase appends #access_token=...&type=recovery to the redirect URL
+    if (hash.includes("type=recovery") || params.has("reset")) {
+      setMode("reset_password");
+    }
+  }, []);
 
   const handleLogin = async () => {
     setError(""); setLoading(true);
@@ -1463,6 +1477,29 @@ function AuthScreen({ onAuth, initialMode }) {
     if (err) { setError(err.message); setLoading(false); return; }
     onAuth(data.session);
     setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) { setError("Enter your email address"); return; }
+    setError(""); setLoading(true);
+    const { error: err } = await resetPasswordForEmail(email.trim());
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    setResetSent(true);
+  };
+
+  const handleSetNewPassword = async () => {
+    if (!password || password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (password !== confirmPassword) { setError("Passwords don't match"); return; }
+    setError(""); setLoading(true);
+    const { error: err } = await updateUserPassword(password);
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    setPasswordUpdated(true);
+    // Clear hash from URL
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
   };
 
   const handleSignup = async () => {
@@ -1516,8 +1553,8 @@ function AuthScreen({ onAuth, initialMode }) {
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 100, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} /></div>
 
-        {/* Mode tabs - only show on step 1 */}
-        {(mode !== "signup" || step === 1) && <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
+        {/* Mode tabs - only show on login/signup/join step 1 */}
+        {(mode !== "signup" || step === 1) && mode !== "forgot" && mode !== "reset_password" && <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
           {[["login", "Log In"], ["signup", "New Org"], ["join", "Join Org"]].map(([m, label]) => (
             <button key={m} onClick={() => { setMode(m); setStep(1); setError(""); }}
               style={{ flex: 1, padding: "8px 0", borderRadius: 6, border: `1px solid ${mode === m ? WHITE : BORDER}`,
@@ -1545,10 +1582,56 @@ function AuthScreen({ onAuth, initialMode }) {
           <div style={{ marginBottom: 10 }}>
             <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="pilot@company.com" style={inp} /></div>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 8 }}>
             <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password"
               style={inp} onKeyDown={e => { if (e.key === "Enter") handleLogin(); }} /></div>
+          <div style={{ textAlign: "right", marginBottom: 16 }}>
+            <button onClick={() => { setMode("forgot"); setError(""); setResetSent(false); }} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 11 }}>Forgot password?</button>
+          </div>
+        </>)}
+
+        {/* Forgot password */}
+        {mode === "forgot" && (<>
+          {!resetSent ? (<>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Reset Password</div>
+              <div style={{ fontSize: 11, color: MUTED, marginBottom: 16 }}>Enter your email and we'll send you a reset link.</div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="pilot@company.com"
+                style={inp} onKeyDown={e => { if (e.key === "Enter") handleForgotPassword(); }} /></div>
+          </>) : (
+            <div style={{ textAlign: "center", padding: "16px 0" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>✉️</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Check Your Email</div>
+              <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5 }}>We sent a password reset link to <strong style={{ color: OFF_WHITE }}>{email}</strong>. Click the link in the email to set a new password.</div>
+            </div>
+          )}
+        </>)}
+
+        {/* Set new password (after clicking reset link) */}
+        {mode === "reset_password" && (<>
+          {!passwordUpdated ? (<>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Set New Password</div>
+              <div style={{ fontSize: 11, color: MUTED, marginBottom: 16 }}>Enter your new password below.</div>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>New Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" style={inp} /></div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Confirm Password</label>
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm password"
+                style={inp} onKeyDown={e => { if (e.key === "Enter") handleSetNewPassword(); }} /></div>
+          </>) : (
+            <div style={{ textAlign: "center", padding: "16px 0" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>✓</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: GREEN, marginBottom: 4 }}>Password Updated</div>
+              <div style={{ fontSize: 12, color: MUTED }}>You can now log in with your new password.</div>
+            </div>
+          )}
         </>)}
 
         {/* Signup Step 1: Account info */}
@@ -1634,10 +1717,24 @@ function AuthScreen({ onAuth, initialMode }) {
             <button onClick={() => { setStep(step - 1); setError(""); }}
               style={{ padding: "12px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Back</button>
           )}
-          <button onClick={mode === "login" ? handleLogin : handleSignup} disabled={loading}
-            style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1 }}>
-            {loading ? "..." : mode === "login" ? "Log In" : mode === "signup" && step === 1 ? "Next \u2192" : mode === "signup" && step === 2 ? "Next \u2192" : mode === "signup" && step === 3 ? "Start Free Trial" : "Join Organization"}</button>
+          {mode === "forgot" && resetSent ? (
+            <button onClick={() => { setMode("login"); setError(""); setResetSent(false); }}
+              style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Back to Login</button>
+          ) : mode === "reset_password" && passwordUpdated ? (
+            <button onClick={() => { setMode("login"); setError(""); setPasswordUpdated(false); setPassword(""); setConfirmPassword(""); if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }}
+              style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Log In</button>
+          ) : (
+            <button onClick={mode === "login" ? handleLogin : mode === "forgot" ? handleForgotPassword : mode === "reset_password" ? handleSetNewPassword : handleSignup} disabled={loading}
+              style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1 }}>
+              {loading ? "..." : mode === "login" ? "Log In" : mode === "forgot" ? "Send Reset Link" : mode === "reset_password" ? "Update Password" : mode === "signup" && step === 1 ? "Next \u2192" : mode === "signup" && step === 2 ? "Next \u2192" : mode === "signup" && step === 3 ? "Start Free Trial" : "Join Organization"}</button>
+          )}
         </div>
+
+        {mode === "forgot" && !resetSent && (
+          <div style={{ textAlign: "center", marginTop: 12 }}>
+            <button onClick={() => { setMode("login"); setError(""); }} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 11 }}>← Back to login</button>
+          </div>
+        )}
 
         {mode === "login" && (
           <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: MUTED }}>
@@ -2097,7 +2194,24 @@ export default function PVTAIRFrat() {
     if (!isOnline || !profile) return;
     await upsertCbtEnrollment(profile.org_id, courseId, session.user.id, enrollment);
   }, [profile, session, isOnline]);
+  // Detect password recovery redirect (Supabase sets session + hash contains type=recovery)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    const params = new URLSearchParams(window.location.search);
+    if (hash.includes("type=recovery") || params.has("reset")) {
+      setIsPasswordRecovery(true);
+    }
+  }, []);
+
   if (authLoading) return <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: MUTED, fontSize: 14 }}>Loading...</div></div>;
+
+  // Show reset password form even if session exists (recovery flow)
+  if (isPasswordRecovery) {
+    return <AuthScreen onAuth={(s) => { setIsPasswordRecovery(false); setSession(s); if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }} initialMode="reset_password" />;
+  }
+
   if (isOnline && !session) {
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
     if (params?.has("signup")) return <SignupFlow onAuth={setSession} />;
