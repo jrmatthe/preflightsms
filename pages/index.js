@@ -1226,43 +1226,56 @@ function SignupFlow({ onAuth }) {
     setLoading(false);
   };
 
-  const tagStyle = { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, color: MUTED, padding: "5px 10px", borderRadius: 4, background: NEAR_BLACK, border: `1px solid ${BORDER}` };
-  const stepHints = [
+  // One-liner marketing messages per step — short, punchy
+  const banners = [
     null,
-    ["14-day free trial", "No credit card", "Cancel anytime"],
-    ["Pre-configured for Part 135", "Live in days, not months"],
-    [`${daysLeft} days to SMS deadline`, "Full features during trial"],
+    { icon: "\u2713", text: "14 CFR Part 5 compliant SMS \u2014 FRAT, flight following, crew tracking, safety reporting, and CBT in one platform.", accent: null },
+    { icon: "\u26A1", text: "Pre-configured for Part 135. Default risk categories, FRAT templates, and compliance workflows are ready to go.", accent: null },
+    { icon: "\u23F1", text: `The FAA SMS deadline is May 28, 2027 \u2014 ${daysLeft} days away. Most implementations take 6\u201312 months.`, accent: AMBER },
   ];
+  const banner = banners[step];
 
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      {/* Top bar */}
+      {/* Top bar — logo only */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 32px", borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, background: DARK, zIndex: 100 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 30, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>PreflightSMS</span>
-        </div>
+        <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 32, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
         <button onClick={() => { window.location.search = "login"; }} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "6px 14px", cursor: "pointer" }}>Log in</button>
       </div>
 
-      <div style={{ maxWidth: 440, margin: "0 auto", padding: "48px 24px 60px" }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "40px 24px 60px" }}>
 
-        {/* Progress dots */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 36 }}>
-          {[1, 2, 3].map(i => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: step > i ? 8 : step === i ? 24 : 8, height: 8, borderRadius: 4,
-                background: step > i ? GREEN : step === i ? WHITE : BORDER,
-                transition: "all 0.3s ease" }} />
-              {i < 3 && <div style={{ width: 20, height: 1, background: step > i ? GREEN : BORDER, transition: "all 0.3s" }} />}
+        {/* Progress */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: 32 }}>
+          {["Account", "Operation", "Plan"].map((s, i) => (
+            <div key={s} style={{ display: "flex", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700,
+                  background: step > i + 1 ? GREEN : step === i + 1 ? WHITE : NEAR_BLACK,
+                  color: step > i + 1 ? BLACK : step === i + 1 ? BLACK : MUTED,
+                  border: `2px solid ${step > i + 1 ? GREEN : step === i + 1 ? WHITE : BORDER}`,
+                  transition: "all 0.3s" }}>
+                  {step > i + 1 ? "\u2713" : i + 1}
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 600, color: step >= i + 1 ? WHITE : MUTED }}>{s}</span>
+              </div>
+              {i < 2 && <div style={{ width: 32, height: 1, background: step > i + 1 ? GREEN : BORDER, margin: "0 10px", transition: "all 0.3s" }} />}
             </div>
           ))}
         </div>
 
+        {/* Marketing banner — one-liner with icon */}
+        {banner && (
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px", background: banner.accent ? "rgba(245,158,11,0.05)" : "rgba(255,255,255,0.02)", border: `1px solid ${banner.accent ? "rgba(245,158,11,0.15)" : BORDER}`, borderRadius: 6, marginBottom: 28 }}>
+            <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{banner.icon}</span>
+            <span style={{ fontSize: 12, color: banner.accent || OFF_WHITE, lineHeight: 1.55 }}>{banner.text}</span>
+          </div>
+        )}
+
         {/* Step 1: Account */}
         {step === 1 && (<>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif", textAlign: "center" }}>Start your free trial</h1>
-          <p style={{ fontSize: 13, color: MUTED, margin: "0 0 32px", textAlign: "center" }}>Full access for 14 days. No credit card.</p>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Start your free trial</h1>
+          <p style={{ fontSize: 13, color: MUTED, margin: "0 0 28px" }}>Full Professional access for 14 days. No credit card required.</p>
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: OFF_WHITE, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>Full Name</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="James Mitchell" autoFocus
@@ -1282,8 +1295,8 @@ function SignupFlow({ onAuth }) {
 
         {/* Step 2: Organization */}
         {step === 2 && (<>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif", textAlign: "center" }}>Your operation</h1>
-          <p style={{ fontSize: 13, color: MUTED, margin: "0 0 32px", textAlign: "center" }}>We&apos;ll set up your workspace. Change anything later.</p>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Your operation</h1>
+          <p style={{ fontSize: 13, color: MUTED, margin: "0 0 28px" }}>We&apos;ll configure your workspace. Change anything later.</p>
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: OFF_WHITE, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>Company Name</label>
             <input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="SkyCharter Aviation" autoFocus
@@ -1320,29 +1333,29 @@ function SignupFlow({ onAuth }) {
 
         {/* Step 3: Plan */}
         {step === 3 && (<>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif", textAlign: "center" }}>Pick your plan</h1>
-          <p style={{ fontSize: 13, color: MUTED, margin: "0 0 28px", textAlign: "center" }}>Both include a 14-day trial with all Professional features.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Pick your plan</h1>
+          <p style={{ fontSize: 13, color: MUTED, margin: "0 0 24px" }}>Both include a full 14-day trial. Upgrade or downgrade anytime.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
             {[
-              { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew & Safety Reporting", "Hazard Register", "Policy Library"] },
-              { id: "professional", name: "Professional", price: "$299", desc: "Up to 25 aircraft", badge: true, features: ["Everything in Starter", "Analytics & Audit Log", "CBT Modules", "Approval Workflows"] },
+              { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster & Currency", "Safety Reporting", "Hazard Register", "Policy Library"] },
+              { id: "professional", name: "Professional", price: "$299", desc: "Up to 25 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
             ].map(p => (
               <div key={p.id} onClick={() => setSelectedPlan(p.id)}
-                style={{ ...card, padding: "18px 16px", cursor: "pointer", position: "relative", transition: "all 0.2s",
+                style={{ ...card, padding: "20px 16px", cursor: "pointer", position: "relative", transition: "all 0.2s",
                   border: `2px solid ${selectedPlan === p.id ? (p.badge ? GREEN : WHITE) : BORDER}`,
                   background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD }}>
                 {p.badge && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3, letterSpacing: 0.3 }}>RECOMMENDED</div>}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>{p.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{p.name}</div>
                     <div style={{ fontSize: 10, color: MUTED }}>{p.desc}</div>
                   </div>
                   <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${selectedPlan === p.id ? GREEN : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
                     {selectedPlan === p.id && <div style={{ width: 10, height: 10, borderRadius: "50%", background: GREEN }} />}
                   </div>
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                  <span style={{ fontSize: 24, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{p.price}</span>
+                <div style={{ marginBottom: 12 }}>
+                  <span style={{ fontSize: 26, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{p.price}</span>
                   <span style={{ fontSize: 11, color: MUTED }}>/mo after trial</span>
                 </div>
                 {p.features.map((f, i) => (
@@ -1352,6 +1365,9 @@ function SignupFlow({ onAuth }) {
                 ))}
               </div>
             ))}
+          </div>
+          <div style={{ fontSize: 11, color: MUTED, textAlign: "center", marginBottom: 4 }}>
+            No charge during your trial. Cancel anytime.
           </div>
         </>)}
 
@@ -1369,24 +1385,11 @@ function SignupFlow({ onAuth }) {
             {loading ? "Setting up..." : step === 3 ? "Start Free Trial \u2192" : "Continue \u2192"}</button>
         </div>
 
-        {/* Contextual hints — small tags below the button */}
-        <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginTop: 20 }}>
-          {(stepHints[step] || []).map(t => (
-            <span key={t} style={tagStyle}><span style={{ color: GREEN, fontSize: 10 }}>{"\u2713"}</span> {t}</span>
-          ))}
+        {/* Footer links */}
+        <div style={{ textAlign: "center", marginTop: 20, fontSize: 11, color: MUTED }}>
+          {step === 1 && <>Already have an account? <button onClick={() => { window.location.search = "login"; }} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Log in</button></>}
+          {step === 3 && <>25+ aircraft? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Contact us for Enterprise</button></>}
         </div>
-
-        {step === 1 && (
-          <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: MUTED }}>
-            Already have an account? <button onClick={() => { window.location.search = "login"; }} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Log in</button>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div style={{ textAlign: "center", marginTop: 12, fontSize: 11, color: MUTED }}>
-            25+ aircraft? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Contact us</button>
-          </div>
-        )}
       </div>
     </div>
   );
