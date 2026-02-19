@@ -11,6 +11,16 @@ const btn = { padding: "8px 14px", borderRadius: 6, fontWeight: 700, fontSize: 1
 const btnPrimary = { ...btn, background: WHITE, color: BLACK };
 const btnGhost = { ...btn, background: "transparent", color: MUTED, border: `1px solid ${BORDER}` };
 
+// Parse YouTube/Vimeo URLs into embeddable iframe src
+function getEmbedUrl(url) {
+  if (!url) return null;
+  let m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  if (m) return `https://www.youtube.com/embed/${m[1]}`;
+  m = url.match(/vimeo\.com\/(\d+)/);
+  if (m) return `https://player.vimeo.com/video/${m[1]}`;
+  return null;
+}
+
 const CATEGORIES = [
   { id: "sms", label: "SMS" }, { id: "initial", label: "Initial" }, { id: "recurrent", label: "Recurrent" },
   { id: "aircraft_specific", label: "Aircraft" }, { id: "emergency", label: "Emergency" }, { id: "hazmat", label: "Hazmat" },
@@ -112,13 +122,13 @@ function LessonEditor({ lesson, onSave, onCancel }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <label style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Content</label>
           <div style={{ display: "flex", gap: 4 }}>
-            {[["heading", "H"], ["text", "¶"], ["callout", "!"]].map(([type, label]) => (
+            {[["heading", "H"], ["text", "¶"], ["callout", "!"], ["video", "▶"]].map(([type, label]) => (
               <button key={type} onClick={() => addBlock(type)}
                 style={{ ...btnGhost, padding: "3px 8px", fontSize: 10 }}>+ {label}</button>
             ))}
           </div>
         </div>
-        {blocks.length === 0 && <div style={{ padding: 24, textAlign: "center", color: MUTED, fontSize: 12, ...card }}>No content yet. Add a heading, paragraph, or callout.</div>}
+        {blocks.length === 0 && <div style={{ padding: 24, textAlign: "center", color: MUTED, fontSize: 12, ...card }}>No content yet. Add a heading, paragraph, callout, or video.</div>}
         {blocks.map((bl, i) => (
           <div key={i} style={{ marginBottom: 8, position: "relative" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
@@ -127,6 +137,11 @@ function LessonEditor({ lesson, onSave, onCancel }) {
             </div>
             {bl.type === "heading" ? (
               <input value={bl.content} onChange={e => updateBlock(i, e.target.value)} placeholder="Section heading" style={inp} />
+            ) : bl.type === "video" ? (
+              <div>
+                <input value={bl.content} onChange={e => updateBlock(i, e.target.value)} placeholder="Paste YouTube or Vimeo URL..." style={{ ...inp, marginBottom: 4 }} />
+                {bl.content && <div style={{ fontSize: 10, color: MUTED }}>Preview will appear in lesson viewer</div>}
+              </div>
             ) : (
               <textarea value={bl.content} onChange={e => updateBlock(i, e.target.value)} rows={bl.type === "callout" ? 2 : 4}
                 placeholder={bl.type === "callout" ? "Key takeaway or important note..." : "Lesson content..."} style={{ ...inp, resize: "vertical" }} />
@@ -227,6 +242,19 @@ function LessonViewer({ lesson, course, progress, onComplete, onBack }) {
                 <div style={{ fontSize: 13, color: OFF_WHITE, lineHeight: 1.6 }}>{bl.content}</div>
               </div>
             );
+            if (bl.type === "video") {
+              const embedUrl = getEmbedUrl(bl.content);
+              return embedUrl ? (
+                <div key={i} style={{ position: "relative", paddingBottom: "56.25%", height: 0, marginBottom: 16, borderRadius: 8, overflow: "hidden", border: `1px solid ${BORDER}` }}>
+                  <iframe src={embedUrl} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                </div>
+              ) : (
+                <div key={i} style={{ padding: "16px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, marginBottom: 12, textAlign: "center" }}>
+                  <div style={{ fontSize: 11, color: MUTED }}>Invalid video URL. Supports YouTube and Vimeo links.</div>
+                </div>
+              );
+            }
             return <p key={i} style={{ fontSize: 13, color: OFF_WHITE, lineHeight: 1.7, marginBottom: 12 }}>{bl.content}</p>;
           })}
 
