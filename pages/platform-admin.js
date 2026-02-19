@@ -131,7 +131,8 @@ export default function PlatformAdmin() {
 
   const saveChanges = async () => {
     if (!selectedOrg) return; setSaving(true);
-    await api({ action: "update_org", org_id: selectedOrg.id, updates: { tier: editTier, feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft } });
+    const res = await api({ action: "update_org", org_id: selectedOrg.id, updates: { tier: editTier, feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft } });
+    if (res.error) { showToast("Error: " + res.error); setSaving(false); return; }
     await loadOrgs();
     setSelectedOrg(p => ({ ...p, tier: editTier, feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft }));
     setSaving(false); showToast("Changes saved");

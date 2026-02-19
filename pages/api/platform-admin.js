@@ -164,7 +164,14 @@ export default async function handler(req, res) {
     const claims = verifyToken(token);
     if (!claims) return res.status(401).json({ error: 'Unauthorized' });
     const { org_id, updates } = req.body;
-    const { error } = await sb.from('organizations').update(updates).eq('id', org_id);
+    if (!org_id) return res.status(400).json({ error: 'org_id required' });
+    // Only send columns that exist — filter out nulls/undefined
+    const cleanUpdates = {};
+    if (updates.tier !== undefined) cleanUpdates.tier = updates.tier;
+    if (updates.feature_flags !== undefined) cleanUpdates.feature_flags = updates.feature_flags;
+    if (updates.subscription_status !== undefined) cleanUpdates.subscription_status = updates.subscription_status;
+    if (updates.max_aircraft !== undefined) cleanUpdates.max_aircraft = updates.max_aircraft;
+    const { error } = await sb.from('organizations').update(cleanUpdates).eq('id', org_id);
     if (error) return res.status(400).json({ error: error.message });
     return res.status(200).json({ success: true });
   }
