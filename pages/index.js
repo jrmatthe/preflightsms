@@ -1984,9 +1984,7 @@ export default function PVTAIRFrat() {
   if (isOnline && !session) {
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
     if (params?.has("signup")) return <SignupFlow onAuth={setSession} />;
-    const hasAuthParam = params?.has("login") || params?.has("join");
     const initialMode = params?.has("join") ? "join" : "login";
-    if (!hasAuthParam) return <LandingPage />;
     return <AuthScreen onAuth={setSession} initialMode={initialMode} />;
   }
 
