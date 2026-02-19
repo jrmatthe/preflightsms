@@ -179,7 +179,7 @@ export default function PlatformAdmin() {
       <div style={{ minHeight: "100vh", background: BLACK, color: WHITE, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
         <div style={{ background: DARK, borderBottom: `1px solid ${BORDER}`, padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: 1 }}>PREFLIGHT<span style={{ color: CYAN }}>SMS</span></span>
+            <img src="/logo.png" alt="PreflightSMS" style={{ height: 28, objectFit: "contain" }} />
             <span style={{ fontSize: 10, color: MUTED, padding: "2px 8px", background: `${RED}22`, border: `1px solid ${RED}44`, borderRadius: 4, fontWeight: 700, textTransform: "uppercase" }}>Platform Admin</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
