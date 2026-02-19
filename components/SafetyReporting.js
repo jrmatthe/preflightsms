@@ -289,13 +289,13 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
-          { label: "Total Reports", value: counts.total, color: WHITE },
-          { label: "Open", value: counts.open, color: CYAN },
-          { label: "Under Review", value: counts.under_review + counts.investigation, color: YELLOW },
-          { label: "Closed", value: counts.closed, color: GREEN },
+          { label: "Total Reports", value: counts.total },
+          { label: "Open", value: counts.open },
+          { label: "Under Review", value: counts.under_review + counts.investigation },
+          { label: "Closed", value: counts.closed },
         ].map(s => (
           <div key={s.label} style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: "Georgia,serif" }}>{s.value}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{s.value}</div>
             <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>{s.label}</div>
           </div>
         ))}

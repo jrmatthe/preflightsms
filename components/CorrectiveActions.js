@@ -115,13 +115,13 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
-          { label: "Open", value: counts.open, color: CYAN },
-          { label: "In Progress", value: counts.in_progress, color: YELLOW },
-          { label: "Overdue", value: counts.overdue, color: RED },
-          { label: "Completed", value: counts.completed, color: GREEN },
+          { label: "Open", value: counts.open },
+          { label: "In Progress", value: counts.in_progress },
+          { label: "Overdue", value: counts.overdue },
+          { label: "Completed", value: counts.completed },
         ].map(s => (
           <div key={s.label} style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: "Georgia,serif" }}>{s.value}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{s.value}</div>
             <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>{s.label}</div>
           </div>
         ))}

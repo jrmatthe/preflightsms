@@ -323,14 +323,17 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
       {/* Risk summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
-          { label: "Critical", value: riskSummary.critical, color: RED },
-          { label: "High", value: riskSummary.high, color: "#F97316" },
-          { label: "Medium", value: riskSummary.medium, color: YELLOW },
-          { label: "Low", value: riskSummary.low, color: GREEN },
+          { label: "Critical", value: riskSummary.critical, dot: RED },
+          { label: "High", value: riskSummary.high, dot: "#F97316" },
+          { label: "Medium", value: riskSummary.medium, dot: YELLOW },
+          { label: "Low", value: riskSummary.low, dot: GREEN },
         ].map(s => (
           <div key={s.label} style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: "Georgia,serif" }}>{s.value}</div>
-            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>{s.label} Risk</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{s.value}</div>
+            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, display: "inline-block" }} />
+              {s.label} Risk
+            </div>
           </div>
         ))}
       </div>
