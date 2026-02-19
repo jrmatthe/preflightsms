@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -12,6 +12,7 @@ const AdminPanel = dynamic(() => import("../components/AdminPanel"), { ssr: fals
 const CrewRoster = dynamic(() => import("../components/CrewRoster"), { ssr: false });
 const PolicyTraining = dynamic(() => import("../components/PolicyTraining"), { ssr: false });
 const FaaAuditLog = dynamic(() => import("../components/FaaAuditLog"), { ssr: false });
+const CbtModules = dynamic(() => import("../components/CbtModules"), { ssr: false });
 
 const COMPANY_NAME = "PreflightSMS";
 const ADMIN_PASSWORD = "admin2026";
@@ -436,6 +437,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     { id: "hazards", label: "Hazards", icon: "△", p: false },
     { id: "actions", label: "Actions", icon: "⊘", p: false },
     { id: "policy", label: "Policy", icon: "◈", p: false },
+    { id: "cbt", label: "CBT", icon: "▶", p: false },
     { id: "audit", label: "Audit", icon: "◇", p: false },
     { id: "dashboard", label: "Dashboard", icon: "▣", p: true },
     { id: "admin", label: "Admin", icon: "⚙", p: true },
@@ -1608,6 +1610,10 @@ export default function PVTAIRFrat() {
   const [policies, setPolicies] = useState([]);
   const [trainingReqs, setTrainingReqs] = useState([]);
   const [trainingRecs, setTrainingRecs] = useState([]);
+  const [cbtCourses, setCbtCourses] = useState([]);
+  const [cbtLessonsMap, setCbtLessonsMap] = useState({}); // { courseId: [lessons] }
+  const [cbtProgress, setCbtProgress] = useState([]);
+  const [cbtEnrollments, setCbtEnrollments] = useState([]);
   const [isAuthed, setIsAuthed] = useState(false);
   const [toast, setToast] = useState(null);
   const [pendingSync, setPendingSync] = useState(0);
@@ -1729,6 +1735,18 @@ export default function PVTAIRFrat() {
     fetchPolicies(orgId).then(({ data }) => setPolicies(data || []));
     fetchTrainingRequirements(orgId).then(({ data }) => setTrainingReqs(data || []));
     fetchTrainingRecords(orgId).then(({ data }) => setTrainingRecs(data || []));
+    // CBT
+    fetchCbtCourses(orgId).then(({ data }) => {
+      setCbtCourses(data || []);
+      // Fetch lessons for each course
+      (data || []).forEach(c => {
+        fetchCbtLessons(c.id).then(({ data: lessons }) => {
+          setCbtLessonsMap(prev => ({ ...prev, [c.id]: lessons || [] }));
+        });
+      });
+    });
+    fetchCbtProgress(orgId).then(({ data }) => setCbtProgress(data || []));
+    fetchCbtEnrollments(orgId).then(({ data }) => setCbtEnrollments(data || []));
     fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [profile]);
@@ -1979,7 +1997,55 @@ export default function PVTAIRFrat() {
     }
   }, [profile, session, isOnline]);
 
-  // ── Auth gate ──
+  // ── CBT ──
+  const refreshCbt = useCallback(async () => {
+    if (!profile) return;
+    const orgId = profile.org_id;
+    const { data: courses } = await fetchCbtCourses(orgId);
+    setCbtCourses(courses || []);
+    (courses || []).forEach(c => {
+      fetchCbtLessons(c.id).then(({ data: lessons }) => {
+        setCbtLessonsMap(prev => ({ ...prev, [c.id]: lessons || [] }));
+      });
+    });
+    const { data: prog } = await fetchCbtProgress(orgId);
+    setCbtProgress(prog || []);
+    const { data: enr } = await fetchCbtEnrollments(orgId);
+    setCbtEnrollments(enr || []);
+  }, [profile]);
+
+  const onCreateCbtCourse = useCallback(async (course) => {
+    if (!isOnline || !profile) return;
+    const { error } = await createCbtCourse(profile.org_id, session.user.id, course);
+    if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); }
+  }, [profile, session, isOnline]);
+
+  const onUpdateCbtCourse = useCallback(async (courseId, updates) => {
+    if (!isOnline) return;
+    const { error } = await updateCbtCourse(courseId, updates);
+    if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); }
+  }, [isOnline]);
+
+  const onSaveCbtLesson = useCallback(async (courseId, lesson) => {
+    if (!isOnline || !profile) return;
+    const { error } = await upsertCbtLesson(profile.org_id, courseId, lesson);
+    if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); }
+  }, [profile, isOnline]);
+
+  const onDeleteCbtLesson = useCallback(async (lessonId) => {
+    if (!isOnline) return;
+    await deleteCbtLesson(lessonId);
+  }, [isOnline]);
+
+  const onUpdateCbtProgress = useCallback(async (courseId, lessonId, prog) => {
+    if (!isOnline || !profile) return;
+    await upsertCbtProgress(profile.org_id, courseId, lessonId, session.user.id, prog);
+  }, [profile, session, isOnline]);
+
+  const onUpdateCbtEnrollment = useCallback(async (courseId, enrollment) => {
+    if (!isOnline || !profile) return;
+    await upsertCbtEnrollment(profile.org_id, courseId, session.user.id, enrollment);
+  }, [profile, session, isOnline]);
   if (authLoading) return <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: MUTED, fontSize: 14 }}>Loading...</div></div>;
   if (isOnline && !session) {
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
@@ -2017,13 +2083,13 @@ export default function PVTAIRFrat() {
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); }} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); }} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Top bar with user info */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "crew" ? "CREW ROSTER" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "HAZARD REGISTER" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY & TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
+              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "crew" ? "CREW ROSTER" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "HAZARD REGISTER" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY & TRAINING" : cv === "cbt" ? "CBT MODULES" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2031,7 +2097,7 @@ export default function PVTAIRFrat() {
             {isOnline && session && (<>
               <span style={{ fontSize: 11, color: MUTED }}>{userName}</span>
               <div style={{ width: 32, height: 32, borderRadius: 50, background: BORDER, display: "flex", alignItems: "center", justifyContent: "center", color: WHITE, fontSize: 12, fontWeight: 700 }}>{(userName || "?").split(" ").map(n => n[0]).join("").slice(0, 2)}</div>
-              <button onClick={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); }}
+              <button onClick={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); }}
                 style={{ fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 10px", cursor: "pointer" }}>Log out</button>
             </>)}
           </div>
@@ -2075,6 +2141,7 @@ export default function PVTAIRFrat() {
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} />}
         {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={roGuard(onCreateAction)} onUpdateAction={roGuard(onUpdateAction)} />}
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={roGuard(onCreatePolicy)} onAcknowledgePolicy={onAcknowledgePolicy} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} orgProfiles={orgProfiles} />}
+        {cv === "cbt" && <CbtModules profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} />}
         {cv === "audit" && <FaaAuditLog frats={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} profiles={orgProfiles} trainingRecords={trainingRecs} org={profile?.organizations} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} />}
