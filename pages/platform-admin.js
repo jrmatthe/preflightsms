@@ -51,26 +51,33 @@ export default function PlatformAdmin() {
 
   // Auth check
   useEffect(() => {
-    (async () => {
-      try {
-        if (!supabase) { setLoading(false); return; }
-        const { data } = await getSession();
-        const sess = data?.session || null;
+    if (!supabase) { setLoading(false); return; }
+    
+    const init = async () => {
+      const { data: { session: sess } } = await supabase.auth.getSession();
+      if (sess) {
         setSession(sess);
-        if (sess) {
-          const prof = await getProfile();
+        try {
+          // Fetch profile directly
+          const { data: prof, error: profErr } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', sess.user.id)
+            .single();
+          if (profErr) console.error("Profile error:", profErr);
           setProfile(prof);
-          // Authorize: must be admin role. If PLATFORM_ADMIN_EMAILS has entries, also check email.
           const email = sess.user?.email || "";
           const isAdmin = prof?.role === "admin";
           const emailOk = PLATFORM_ADMIN_EMAILS.length === 0 || PLATFORM_ADMIN_EMAILS.includes(email);
           setAuthorized(isAdmin && emailOk);
+        } catch (err) {
+          console.error("Profile fetch error:", err);
         }
-      } catch (err) {
-        console.error("Platform admin auth error:", err);
       }
       setLoading(false);
-    })();
+    };
+
+    init();
   }, []);
 
   // Fetch all orgs
