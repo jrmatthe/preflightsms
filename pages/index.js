@@ -430,7 +430,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   const tabs = [
     { id: "submit", label: "FRAT", icon: "✓", p: false },
     { id: "flights", label: "Flights", icon: "◎", p: false },
-    { id: "crew", label: "Crew", icon: "👤", p: false },
+    { id: "crew", label: "Crew", icon: "◉", p: false },
     { id: "reports", label: "Reports", icon: "⚠", p: false },
     { id: "hazards", label: "Hazards", icon: "△", p: false },
     { id: "actions", label: "Actions", icon: "⊘", p: false },
@@ -464,7 +464,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
       display: "flex", flexDirection: "column", paddingTop: 12,
     }}>
       <div style={{ marginBottom: 16, padding: "0 12px", display: "flex", justifyContent: "center" }}>
-        <img src={orgLogo || LOGO_URL} alt={orgName || "P"} style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 50, border: `1px solid ${BORDER}` }} onError={e => { e.target.src = LOGO_URL; }} />
+        <img src={orgLogo || LOGO_URL} alt={orgName || "P"} style={{ width: 52, height: 52, objectFit: "contain", borderRadius: 50, border: `1px solid ${BORDER}` }} onError={e => { e.target.src = LOGO_URL; }} />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
         {tabs.map(t => sideTab(t))}
