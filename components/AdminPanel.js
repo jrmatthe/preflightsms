@@ -271,7 +271,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Admin tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-        {[{ id: "org", label: "Organization" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "notifications", label: "Notifications" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
+        {[{ id: "org", label: "Organization" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "notifications", label: "Notifications", feat: "approval_workflow" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
           if (!t.feat) return true;
           const flags = orgData?.feature_flags || {};
           return flags[t.feat] !== false; // Show if true or undefined
