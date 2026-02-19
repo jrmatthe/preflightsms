@@ -1051,9 +1051,353 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
   );
 }
 
+// ── LANDING PAGE ─────────────────────────────────────────────
+function LandingPage() {
+  const nav = (path) => { window.location.search = path; };
+  const FEATURES = [
+    { icon: "\u2713", title: "Flight Risk Assessment", desc: "Configurable FRAT with weighted scoring, risk thresholds, and approval workflows." },
+    { icon: "\u25CE", title: "Flight Following", desc: "Real-time flight tracking with status updates, ETA monitoring, and arrival confirmation." },
+    { icon: "\u26A0", title: "Safety Reporting", desc: "Confidential hazard, incident, and near-miss reporting with status tracking." },
+    { icon: "\u25B3", title: "Hazard Register", desc: "Structured hazard identification with severity/likelihood risk matrix scoring." },
+    { icon: "\u2298", title: "Corrective Actions", desc: "Track risk controls from identification through completion with due dates." },
+    { icon: "\u25C9", title: "Crew Currency", desc: "Auto-calculated medical, flight review, IPC, and checkride expirations per FARs." },
+    { icon: "\u25C7", title: "FAA Part 5 Audit Log", desc: "42-point compliance checklist mapped to every Part 5 requirement with evidence tracking." },
+    { icon: "\u25C8", title: "Policy & Training", desc: "Document library with acknowledgment tracking and training record management." },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: DARK, color: WHITE, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
+      <Head><title>PreflightSMS — Safety Management System for Part 135 Operators</title><meta name="description" content="FAA Part 5 compliant SMS for Part 135 operators. FRAT, flight following, hazard reporting, crew currency tracking, and audit compliance." /></Head>
+
+      {/* Nav */}
+      <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, background: DARK, zIndex: 100 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 36, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
+          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: 0.5 }}>PreflightSMS</span>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => nav("login")} style={{ padding: "8px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Log In</button>
+          <button onClick={() => nav("signup")} style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Start Free Trial</button>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section style={{ padding: "80px 32px 60px", textAlign: "center", maxWidth: 800, margin: "0 auto" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 2, marginBottom: 16 }}>FAA Part 5 Compliant SMS</div>
+        <h1 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.15, margin: "0 0 16px", fontFamily: "Georgia, serif" }}>Safety Management<br />Built for Part 135</h1>
+        <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.6, maxWidth: 560, margin: "0 auto 32px" }}>
+          FRAT submissions, flight following, hazard reporting, crew currency tracking, and full Part 5 audit compliance — in one platform your pilots will actually use.
+        </p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <button onClick={() => nav("signup")} style={{ padding: "14px 36px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: 0.3 }}>Start 14-Day Free Trial</button>
+          <button onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })} style={{ padding: "14px 36px", background: "transparent", color: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>See Features</button>
+        </div>
+        <div style={{ fontSize: 11, color: MUTED, marginTop: 12 }}>No credit card required</div>
+      </section>
+
+      {/* Compliance banner */}
+      <section style={{ padding: "24px 32px", maxWidth: 800, margin: "0 auto" }}>
+        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "20px 24px", display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+          <div style={{ fontSize: 11, color: AMBER, fontWeight: 700 }}>{"\u26A0"} Part 135 SMS Deadline</div>
+          <div style={{ fontSize: 12, color: OFF_WHITE }}>All Part 135 operators must have a compliant SMS by <strong>May 28, 2027</strong> per 14 CFR Part 5.</div>
+        </div>
+      </section>
+
+      {/* Features grid */}
+      <section id="features" style={{ padding: "60px 32px", maxWidth: 900, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 8px", fontFamily: "Georgia, serif" }}>Everything You Need</h2>
+          <p style={{ fontSize: 14, color: MUTED }}>All four SMS pillars — policy, risk management, assurance, and promotion — in one system.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+          {FEATURES.map(f => (
+            <div key={f.title} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "20px 18px" }}>
+              <div style={{ fontSize: 18, marginBottom: 8, color: CYAN }}>{f.icon}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 4 }}>{f.title}</div>
+              <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section style={{ padding: "60px 32px", maxWidth: 800, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 8px", fontFamily: "Georgia, serif" }}>Simple Pricing</h2>
+          <p style={{ fontSize: 14, color: MUTED }}>14-day free trial on all plans. No credit card required.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          {[
+            { name: "Starter", price: "$149", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Hazards", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
+            { name: "Professional", price: "$299", desc: "Full SMS with analytics & compliance", badge: "MOST POPULAR", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 25 aircraft"] },
+          ].map(p => (
+            <div key={p.name} style={{ background: CARD, border: `1px solid ${p.badge ? WHITE+"44" : BORDER}`, borderRadius: 12, padding: "28px 24px", position: "relative" }}>
+              {p.badge && <div style={{ position: "absolute", top: -10, right: 16, fontSize: 9, fontWeight: 700, color: BLACK, background: GREEN, padding: "3px 10px", borderRadius: 4 }}>{p.badge}</div>}
+              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 2 }}>{p.name}</div>
+              <div style={{ marginBottom: 12 }}><span style={{ fontSize: 32, fontWeight: 800, fontFamily: "Georgia, serif" }}>{p.price}</span><span style={{ fontSize: 13, color: MUTED }}>/mo</span></div>
+              <div style={{ fontSize: 11, color: MUTED, marginBottom: 16 }}>{p.desc}</div>
+              {p.features.map((f, i) => (
+                <div key={i} style={{ fontSize: 11, color: f.startsWith("Everything") ? CYAN : OFF_WHITE, padding: "3px 0", display: "flex", gap: 6 }}>
+                  <span style={{ color: GREEN, flexShrink: 0 }}>{f.startsWith("Everything") ? "\u2605" : "\u2713"}</span>{f}
+                </div>
+              ))}
+              <button onClick={() => nav("signup")} style={{ width: "100%", marginTop: 16, padding: "12px 0", background: p.badge ? WHITE : "transparent", color: p.badge ? BLACK : WHITE, border: p.badge ? "none" : `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Start Free Trial</button>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: MUTED }}>Need more than 25 aircraft or custom integrations? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Contact us for Enterprise pricing</button></div>
+      </section>
+
+      {/* CTA */}
+      <section style={{ padding: "60px 32px 80px", textAlign: "center" }}>
+        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "40px 32px", maxWidth: 600, margin: "0 auto" }}>
+          <h2 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 8px", fontFamily: "Georgia, serif" }}>Ready to Get Compliant?</h2>
+          <p style={{ fontSize: 13, color: MUTED, marginBottom: 24 }}>Set up your SMS in minutes. Your team can be submitting FRATs today.</p>
+          <button onClick={() => nav("signup")} style={{ padding: "14px 40px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Start Free Trial</button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ borderTop: `1px solid ${BORDER}`, padding: "24px 32px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ fontSize: 11, color: MUTED }}>{"\u00A9"} {new Date().getFullYear()} PreflightSMS. Built for aviation safety.</div>
+        <div style={{ display: "flex", gap: 16 }}>
+          <button onClick={() => nav("login")} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer" }}>Log In</button>
+          <button onClick={() => nav("signup")} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer" }}>Sign Up</button>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
 // ── AUTH SCREEN ───────────────────────────────────────────────
-function AuthScreen({ onAuth }) {
-  const [mode, setMode] = useState("login"); // login | signup | join
+function SignupFlow({ onAuth }) {
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [orgName, setOrgName] = useState("");
+  const [certType, setCertType] = useState("Part 135");
+  const [fleetSize, setFleetSize] = useState("1-5");
+  const [selectedPlan, setSelectedPlan] = useState("professional");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const next = () => {
+    setError("");
+    if (step === 1) {
+      if (!name.trim()) { setError("What\u2019s your name?"); return; }
+      if (!email || !email.includes("@")) { setError("We need a valid email"); return; }
+      if (!password || password.length < 6) { setError("Password needs at least 6 characters"); return; }
+      setStep(2); return;
+    }
+    if (step === 2) {
+      if (!orgName.trim()) { setError("What\u2019s your organization called?"); return; }
+      setStep(3); return;
+    }
+    // Step 3 = submit
+    submit();
+  };
+
+  const submit = async () => {
+    setError(""); setLoading(true);
+    try {
+      const slug = orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const tier = selectedPlan;
+      const features = getTierFeatures(tier);
+      const { data: orgData, error: orgErr } = await supabase.from("organizations").insert({
+        name: orgName.trim(), slug, tier, feature_flags: features,
+        subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 25 : 5,
+      }).select().single();
+      if (orgErr) { setError(orgErr.message); setLoading(false); return; }
+      const { error: signupErr } = await signUp(email, password, name.trim(), orgData.id);
+      if (signupErr) { setError(signupErr.message); setLoading(false); return; }
+      const { data: session } = await signIn(email, password);
+      if (session?.session) {
+        await supabase.from("profiles").update({ role: "admin" }).eq("id", session.session.user.id);
+        onAuth(session.session);
+      } else {
+        setError("Account created! Check your email to confirm, then log in.");
+      }
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  const steps = ["Your Account", "Your Organization", "Choose Plan"];
+
+  return (
+    <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
+      {/* Top bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", borderBottom: `1px solid ${BORDER}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 30, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>PreflightSMS</span>
+        </div>
+        <button onClick={() => { window.location.search = "login"; }} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "6px 14px", cursor: "pointer" }}>Already have an account? Log in</button>
+      </div>
+
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 24px" }}>
+        {/* Progress bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 48 }}>
+          {steps.map((s, i) => (
+            <div key={s} style={{ flex: 1, display: "flex", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700,
+                  background: step > i + 1 ? GREEN : step === i + 1 ? WHITE : NEAR_BLACK,
+                  color: step > i + 1 ? BLACK : step === i + 1 ? BLACK : MUTED,
+                  border: `2px solid ${step > i + 1 ? GREEN : step === i + 1 ? WHITE : BORDER}`,
+                  transition: "all 0.3s" }}>
+                  {step > i + 1 ? "\u2713" : i + 1}
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: step >= i + 1 ? WHITE : MUTED, whiteSpace: "nowrap" }}>{s}</span>
+              </div>
+              {i < 2 && <div style={{ flex: 1, height: 2, background: step > i + 1 ? GREEN : BORDER, margin: "0 12px", borderRadius: 1, transition: "all 0.3s" }} />}
+            </div>
+          ))}
+        </div>
+
+        {/* Step 1: Account */}
+        {step === 1 && (
+          <div style={{ maxWidth: 420, margin: "0 auto" }}>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Let&apos;s get you set up</h1>
+            <p style={{ fontSize: 13, color: MUTED, margin: "0 0 32px" }}>Create your account to start your 14-day free trial. No credit card required.</p>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>Your name</label>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. James Mitchell" autoFocus
+                style={{ ...inp, padding: "12px 14px", fontSize: 14 }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>Work email</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@yourcompany.com"
+                style={{ ...inp, padding: "12px 14px", fontSize: 14 }} />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters"
+                style={{ ...inp, padding: "12px 14px", fontSize: 14 }} onKeyDown={e => { if (e.key === "Enter") next(); }} />
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Organization */}
+        {step === 2 && (
+          <div style={{ maxWidth: 420, margin: "0 auto" }}>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>About your operation</h1>
+            <p style={{ fontSize: 13, color: MUTED, margin: "0 0 32px" }}>We&apos;ll set up your organization and invite link.</p>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>Organization name</label>
+              <input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="e.g. SkyCharter Aviation" autoFocus
+                style={{ ...inp, padding: "12px 14px", fontSize: 14 }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>Certificate type</label>
+              <select value={certType} onChange={e => setCertType(e.target.value)} style={{ ...inp, padding: "12px 14px", fontSize: 14, appearance: "auto" }}>
+                <option value="Part 135">Part 135 — Commuter & On-Demand</option>
+                <option value="Part 121">Part 121 — Scheduled Carriers</option>
+                <option value="Part 91">Part 91 — General Aviation</option>
+                <option value="Part 91K">Part 91K — Fractional Ownership</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>Fleet size</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {["1-5", "6-15", "16-25", "25+"].map(s => (
+                  <button key={s} onClick={() => setFleetSize(s)}
+                    style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                      background: fleetSize === s ? WHITE : "transparent",
+                      color: fleetSize === s ? BLACK : MUTED,
+                      border: `1px solid ${fleetSize === s ? WHITE : BORDER}` }}>{s} aircraft</button>
+                ))}
+              </div>
+            </div>
+            {orgName.trim() && (
+              <div style={{ padding: "12px 14px", borderRadius: 8, background: NEAR_BLACK, border: `1px solid ${BORDER}`, marginBottom: 8 }}>
+                <div style={{ fontSize: 10, color: MUTED, marginBottom: 2 }}>Your team&apos;s join code</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: CYAN, fontFamily: "monospace" }}>{orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}</div>
+                <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Share this with your pilots so they can join your organization</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 3: Plan */}
+        {step === 3 && (
+          <div>
+            <div style={{ textAlign: "center", marginBottom: 32 }}>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Pick your plan</h1>
+              <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Both plans include a full 14-day trial. Upgrade or downgrade anytime.</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, maxWidth: 640, margin: "0 auto" }}>
+              {[
+                { id: "starter", name: "Starter", price: "$149", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Hazards", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
+                { id: "professional", name: "Professional", price: "$299", desc: "Full SMS with analytics & compliance", badge: true, features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 25 aircraft"] },
+              ].map(p => (
+                <div key={p.id} onClick={() => setSelectedPlan(p.id)}
+                  style={{ ...card, padding: "24px 20px", cursor: "pointer", position: "relative", transition: "all 0.2s",
+                    border: `2px solid ${selectedPlan === p.id ? (p.badge ? GREEN : WHITE) : BORDER}`,
+                    background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD }}>
+                  {p.badge && <div style={{ position: "absolute", top: -10, right: 14, fontSize: 9, fontWeight: 700, color: BLACK, background: GREEN, padding: "3px 10px", borderRadius: 4 }}>RECOMMENDED</div>}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>{p.name}</div>
+                      <div style={{ fontSize: 10, color: MUTED }}>{p.desc}</div>
+                    </div>
+                    <div style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${selectedPlan === p.id ? GREEN : BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {selectedPlan === p.id && <div style={{ width: 12, height: 12, borderRadius: "50%", background: GREEN }} />}
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia, serif" }}>{p.price}</span>
+                    <span style={{ fontSize: 12, color: MUTED }}>/mo after trial</span>
+                  </div>
+                  {p.features.map((f, i) => (
+                    <div key={i} style={{ fontSize: 11, color: f.startsWith("Everything") ? CYAN : OFF_WHITE, padding: "2px 0", display: "flex", alignItems: "flex-start", gap: 6 }}>
+                      <span style={{ color: GREEN, flexShrink: 0, marginTop: 1 }}>{f.startsWith("Everything") ? "\u2605" : "\u2713"}</span>{f}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && <div style={{ maxWidth: 420, margin: "16px auto 0", color: error.includes("Check your email") || error.includes("created") ? GREEN : RED, fontSize: 12, padding: "10px 14px", borderRadius: 8, background: error.includes("created") ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)" }}>{error}</div>}
+
+        {/* Buttons */}
+        <div style={{ maxWidth: step === 3 ? 640 : 420, margin: "32px auto 0", display: "flex", gap: 10 }}>
+          {step > 1 && (
+            <button onClick={() => { setStep(step - 1); setError(""); }}
+              style={{ padding: "14px 24px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Back</button>
+          )}
+          <button onClick={next} disabled={loading}
+            style={{ flex: 1, padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1, letterSpacing: 0.3 }}>
+            {loading ? "Setting up your account..." : step === 3 ? "Start My Free Trial \u2192" : "Continue \u2192"}</button>
+        </div>
+
+        {/* Trust badges */}
+        {step === 1 && (
+          <div style={{ maxWidth: 420, margin: "32px auto 0", display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+            {["14-day free trial", "No credit card required", "Cancel anytime"].map(t => (
+              <div key={t} style={{ fontSize: 10, color: MUTED, display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ color: GREEN }}>{"\u2713"}</span>{t}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {step === 3 && (
+          <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: MUTED }}>
+            Need more than 25 aircraft? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Contact us for Enterprise</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AuthScreen({ onAuth, initialMode }) {
+  const [mode, setMode] = useState(initialMode || "login"); // login | signup | join
   const [step, setStep] = useState(1); // signup steps: 1=account, 2=org, 3=plan
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -1640,7 +1984,14 @@ export default function PVTAIRFrat() {
 
   // ── Auth gate ──
   if (authLoading) return <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: MUTED, fontSize: 14 }}>Loading...</div></div>;
-  if (isOnline && !session) return <AuthScreen onAuth={setSession} />;
+  if (isOnline && !session) {
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    if (params?.has("signup")) return <SignupFlow onAuth={setSession} />;
+    const hasAuthParam = params?.has("login") || params?.has("join");
+    const initialMode = params?.has("join") ? "join" : "login";
+    if (!hasAuthParam) return <LandingPage />;
+    return <AuthScreen onAuth={setSession} initialMode={initialMode} />;
+  }
 
   const subStatus = profile?.organizations?.subscription_status || "active";
   const isSuspended = subStatus === "suspended";
