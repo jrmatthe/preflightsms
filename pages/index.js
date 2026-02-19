@@ -100,7 +100,7 @@ function buildRiskLevels(thresholds) {
 function getRiskLevel(s, riskLevels) { const rl = riskLevels || DEFAULT_RISK_LEVELS; const sorted = Object.values(rl).sort((a, b) => a.min - b.min); for (const l of sorted) { if (s >= l.min && s <= l.max) return l; } return sorted[sorted.length - 1] || Object.values(DEFAULT_RISK_LEVELS)[3]; }
 function formatDateTime(d) { return new Date(d).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
 function generateId() { return `FRAT-${Date.now().toString(36).toUpperCase()}`; }
-function downloadBlob(c, t, f) { const b = new Blob([c], { type: t }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = f; a.click(); URL.revokeObjectURL(u); }
+function downloadBlob(c, t, f) { const b = new Blob([c], { type: t }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = f; a.style.display = "none"; document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(u); }, 200); }
 
 const inp = { width: "100%", maxWidth: "100%", padding: "12px 14px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 14, background: BLACK, color: OFF_WHITE, boxSizing: "border-box" };
 const card = { background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` };
@@ -1528,10 +1528,32 @@ export default function PVTAIRFrat() {
   if (authLoading) return <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: MUTED, fontSize: 14 }}>Loading...</div></div>;
   if (isOnline && !session) return <AuthScreen onAuth={setSession} />;
 
+  const subStatus = profile?.organizations?.subscription_status || "active";
+  const isSuspended = subStatus === "suspended";
+  const isCanceled = subStatus === "canceled";
+  const isPastDue = subStatus === "past_due";
+  const isReadOnly = isCanceled || isSuspended;
+
+  // Fully blocked
+  if (isSuspended) return (
+    <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ ...card, padding: 48, maxWidth: 440, textAlign: "center" }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${RED}44`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+          <span style={{ fontSize: 28 }}>{"\u26D4"}</span></div>
+        <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>Account Suspended</h2>
+        <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>This organization&apos;s subscription has been suspended. Please contact your administrator or support to restore access.</p>
+        <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
+      </div>
+    </div>
+  );
+
   const orgName = profile?.organizations?.name || COMPANY_NAME;
   const orgLogo = profile?.organizations?.logo_url || LOGO_URL;
   const userName = profile?.full_name || "";
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
+
+  // Read-only guard for canceled subscriptions
+  const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
@@ -1555,8 +1577,12 @@ export default function PVTAIRFrat() {
           </div>
         </div>
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
+        {isPastDue && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>{"\u26A0"} Your subscription payment is past due. Please update your billing information to avoid service interruption.</div>}
+        {isCanceled && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: RED, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>{"\u26D4"} Subscription canceled — this account is in read-only mode. Contact your administrator to restore full access.</div>}
         <main style={{ padding: "20px 32px 50px" }}>
-        {cv === "submit" && <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} userName={userName} />}
+        {cv === "submit" && (isReadOnly
+          ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>New FRAT submissions are disabled while your subscription is {subStatus}.</div></div>
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} userName={userName} />)}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} onApproveFlight={async (flightDbId, fratDbId) => {
           await approveFlight(flightDbId, session.user.id);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", "");
@@ -1570,25 +1596,25 @@ export default function PVTAIRFrat() {
           setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id })));
           setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
         }} />}
-        {cv === "crew" && <CrewRoster crewRecords={crewRecords} canManage={["admin", "safety_manager", "accountable_exec"].includes(profile?.role)} onAdd={async (record) => {
+        {cv === "crew" && <CrewRoster crewRecords={crewRecords} canManage={!isReadOnly && ["admin", "safety_manager", "accountable_exec"].includes(profile?.role)} onAdd={roGuard(async (record) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
           await createCrewRecord(orgId, record);
           const { data } = await fetchCrewRecords(orgId);
           setCrewRecords(data || []);
-        }} onUpdate={async (id, updates) => {
+        })} onUpdate={roGuard(async (id, updates) => {
           await updateCrewRecord(id, updates);
           const { data } = await fetchCrewRecords(profile?.org_id);
           setCrewRecords(data || []);
-        }} onDelete={async (id) => {
+        })} onDelete={roGuard(async (id) => {
           await deleteCrewRecord(id);
           const { data } = await fetchCrewRecords(profile?.org_id);
           setCrewRecords(data || []);
-        }} />}
-        {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={onSubmitReport} reports={reports} onStatusChange={onReportStatusChange} hazards={hazards} onCreateHazardFromReport={(report) => { setHazardFromReport(report); setCv("hazards"); }} />}
-        {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={onCreateHazard} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} />}
-        {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={onCreateAction} onUpdateAction={onUpdateAction} />}
-        {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={onCreatePolicy} onAcknowledgePolicy={onAcknowledgePolicy} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={onCreateRequirement} onLogTraining={onLogTraining} orgProfiles={orgProfiles} />}
+        })} />}
+        {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={reports} onStatusChange={roGuard(onReportStatusChange)} hazards={hazards} onCreateHazardFromReport={(report) => { setHazardFromReport(report); setCv("hazards"); }} />}
+        {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} />}
+        {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={roGuard(onCreateAction)} onUpdateAction={roGuard(onUpdateAction)} />}
+        {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={roGuard(onCreatePolicy)} onAcknowledgePolicy={onAcknowledgePolicy} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} orgProfiles={orgProfiles} />}
         {cv === "audit" && <FaaAuditLog frats={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} profiles={orgProfiles} trainingRecords={trainingRecs} org={profile?.organizations} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} />}
