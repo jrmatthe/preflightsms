@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -535,10 +535,19 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes, orgId, userName }) {
-  const RISK_CATEGORIES = riskCategories || DEFAULT_RISK_CATEGORIES;
-  const AIRCRAFT_TYPES = aircraftTypes || DEFAULT_AIRCRAFT_TYPES;
-  const getRL = (s) => getRiskLevel(s, riskLevels);
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes, orgId, userName, allTemplates }) {
+  // Template switching: find template assigned to selected aircraft
+  const [activeTemplateId, setActiveTemplateId] = useState(null);
+  const resolveTemplate = useCallback((aircraft) => {
+    if (!allTemplates || allTemplates.length <= 1) return null;
+    return allTemplates.find(t => (t.assigned_aircraft || []).includes(aircraft)) || allTemplates.find(t => t.is_active) || null;
+  }, [allTemplates]);
+
+  const currentTemplate = activeTemplateId ? allTemplates?.find(t => t.id === activeTemplateId) : null;
+  const RISK_CATEGORIES = currentTemplate?.categories || riskCategories || DEFAULT_RISK_CATEGORIES;
+  const AIRCRAFT_TYPES = currentTemplate?.aircraft_types || aircraftTypes || DEFAULT_AIRCRAFT_TYPES;
+  const currentRiskLevels = currentTemplate?.risk_thresholds ? buildRiskLevels(currentTemplate.risk_thresholds) : riskLevels;
+  const getRL = (s) => getRiskLevel(s, currentRiskLevels);
   const getLocalDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
   const [fi, setFi] = useState({ pilot: userName || "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" });
   const [attachments, setAttachments] = useState([]); // { file, preview, uploading, url }
@@ -665,7 +674,14 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
             <div key={f.key} style={{ minWidth: 0, overflow: "hidden" }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{f.label}</label>
               {f.type === "select" ? (
-                <select value={fi[f.key]} onChange={e => setFi(p => ({ ...p, [f.key]: e.target.value }))} style={inp}>
+                <select value={fi[f.key]} onChange={e => {
+                  const val = e.target.value;
+                  setFi(p => ({ ...p, [f.key]: val }));
+                  if (f.key === "aircraft" && allTemplates && allTemplates.length > 1) {
+                    const matched = resolveTemplate(val);
+                    if (matched) { setActiveTemplateId(matched.id); setChecked({}); setAutoSuggested({}); }
+                  }
+                }} style={inp}>
                   {AIRCRAFT_TYPES.map(a => <option key={a}>{a}</option>)}</select>
               ) : (<input type={f.type === "date" ? "date" : "text"} placeholder={f.placeholder} value={fi[f.key]}
                 onChange={e => { let v = f.upper ? e.target.value.toUpperCase() : e.target.value; setFi(p => ({ ...p, [f.key]: v })); }}
@@ -673,6 +689,24 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
             </div>))}
         </div>
       </div>
+
+      {/* Template indicator (multi-template mode) */}
+      {allTemplates && allTemplates.length > 1 && (
+        <div style={{ ...card, padding: "12px 18px", marginBottom: 18, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.5 }}>Template:</span>
+            <select value={activeTemplateId || ""} onChange={e => { setActiveTemplateId(e.target.value || null); setChecked({}); setAutoSuggested({}); }}
+              style={{ ...inp, width: "auto", padding: "6px 10px", fontSize: 12, background: "transparent" }}>
+              {allTemplates.filter(t => t.categories && t.categories.length > 0).map(t => (
+                <option key={t.id} value={t.id}>{t.name}{t.is_active ? " (default)" : ""}</option>
+              ))}
+            </select>
+          </div>
+          {currentTemplate?.assigned_aircraft?.length > 0 && (
+            <span style={{ fontSize: 10, color: SUBTLE }}>Assigned: {currentTemplate.assigned_aircraft.join(", ")}</span>
+          )}
+        </div>
+      )}
 
       {/* Photo Attachments */}
       <div style={{ ...card, padding: "18px 22px", marginBottom: 18, borderRadius: 10 }}>
@@ -1637,6 +1671,7 @@ export default function PVTAIRFrat() {
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(!!supabase);
   const [fratTemplate, setFratTemplate] = useState(null);
+  const [fratTemplates, setFratTemplates] = useState([]);
   const [hazardFromReport, setHazardFromReport] = useState(null);
   const [notifContacts, setNotifContacts] = useState([]);
   const isOnline = !!supabase;
@@ -1741,6 +1776,7 @@ export default function PVTAIRFrat() {
     });
     // Load FRAT template
     fetchFratTemplate(orgId).then(({ data }) => { if (data) setFratTemplate(data); });
+    fetchAllFratTemplates(orgId).then(({ data }) => { setFratTemplates(data || []); });
     // Load reports, hazards, actions, policies, training
     fetchReports(orgId).then(({ data }) => setReports(data || []));
     fetchHazards(orgId).then(({ data }) => setHazards(data || []));
@@ -2123,7 +2159,7 @@ export default function PVTAIRFrat() {
         <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>New FRAT submissions are disabled while your subscription is {subStatus}.</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} userName={userName} />)}
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} />)}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} onApproveFlight={async (flightDbId, fratDbId) => {
           await approveFlight(flightDbId, session.user.id);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", "");
@@ -2160,18 +2196,40 @@ export default function PVTAIRFrat() {
         {cv === "audit" && <FaaAuditLog frats={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} profiles={orgProfiles} trainingRecords={trainingRecs} org={profile?.organizations} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} />}
-        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} onSaveTemplate={async (templateData) => {
+        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
           const { data, error } = await upsertFratTemplate(orgId, templateData);
           if (!error && data) {
             setFratTemplate(data);
+            fetchAllFratTemplates(orgId).then(({ data: all }) => setFratTemplates(all || []));
             setToast({ message: "FRAT template saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
             setTimeout(() => setToast(null), 3000);
           } else {
             setToast({ message: "Failed to save template: " + (error?.message || "Unknown error"), level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
             setTimeout(() => setToast(null), 5000);
           }
+        }} onCreateTemplate={async (templateData) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          const { data, error } = await createFratTemplate(orgId, templateData);
+          if (!error) {
+            fetchAllFratTemplates(orgId).then(({ data: all }) => setFratTemplates(all || []));
+            setToast({ message: "Template created", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+            setTimeout(() => setToast(null), 3000);
+          }
+        }} onDeleteTemplate={async (templateId) => {
+          const orgId = profile?.org_id;
+          await deleteFratTemplate(templateId);
+          if (orgId) fetchAllFratTemplates(orgId).then(({ data: all }) => setFratTemplates(all || []));
+        }} onSetActiveTemplate={async (templateId) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          await setActiveFratTemplate(orgId, templateId);
+          fetchFratTemplate(orgId).then(({ data }) => { if (data) setFratTemplate(data); });
+          fetchAllFratTemplates(orgId).then(({ data: all }) => setFratTemplates(all || []));
+          setToast({ message: "Active template updated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+          setTimeout(() => setToast(null), 3000);
         }} onUploadLogo={async (file) => {
           const orgId = profile?.org_id;
           if (!orgId) return;

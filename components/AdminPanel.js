@@ -237,7 +237,7 @@ function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions }
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, onSaveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -286,7 +286,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
 
       {/* FRAT Template Editor */}
       {activeTab === "frat" && canManage && (
-        <FRATTemplateEditor template={fratTemplate} onSave={handleSaveTemplate} saving={savingTemplate} />
+        <FRATTemplateEditor template={fratTemplate} templates={fratTemplates} onSave={handleSaveTemplate} onCreateTemplate={onCreateTemplate} onDeleteTemplate={onDeleteTemplate} onSetActive={onSetActiveTemplate} saving={savingTemplate} />
       )}
 
       {activeTab === "notifications" && canManage && (
