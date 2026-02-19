@@ -13,8 +13,8 @@ const CrewRoster = dynamic(() => import("../components/CrewRoster"), { ssr: fals
 const PolicyTraining = dynamic(() => import("../components/PolicyTraining"), { ssr: false });
 const FaaAuditLog = dynamic(() => import("../components/FaaAuditLog"), { ssr: false });
 
-const COMPANY_NAME = "PVTAIR";
-const ADMIN_PASSWORD = "pvtair2026";
+const COMPANY_NAME = "PreflightSMS";
+const ADMIN_PASSWORD = "admin2026";
 const LOGO_URL = "/logo.png";
 
 const BLACK = "#000000";
@@ -996,10 +996,11 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
     </div>);
 }
 
-function ExportView({ records }) {
-  const genCSV = useCallback(() => { if (!records.length) return; const h = ["FRAT_ID", "Date", "Pilot", "Aircraft", "Departure", "Destination", "CruiseAlt", "Score", "Risk_Level", "Factors_Count", "Remarks"]; const rows = records.map(r => [r.id, new Date(r.timestamp).toISOString(), r.pilot, r.aircraft, r.departure, r.destination, r.cruiseAlt || "", r.score, r.riskLevel, r.factors.length, `"${(r.remarks || "").replace(/"/g, '""')}"`]); downloadBlob([h.join(","), ...rows.map(r => r.join(","))].join("\n"), "text/csv", `PVTAIR_FRAT_Export_${new Date().toISOString().slice(0, 10)}.csv`); }, [records]);
-  const genDetailed = useCallback(() => { if (!records.length) return; const ids = []; const labels = []; RISK_CATEGORIES.forEach(c => c.factors.forEach(f => { ids.push(f.id); labels.push(`${c.name}: ${f.label}`); })); const h = ["FRAT_ID", "Date", "Pilot", "Aircraft", "Departure", "Destination", "CruiseAlt", "Score", "Risk_Level", ...labels]; const rows = records.map(r => [r.id, new Date(r.timestamp).toISOString(), r.pilot, r.aircraft, r.departure, r.destination, r.cruiseAlt || "", r.score, r.riskLevel, ...ids.map(fid => r.factors.includes(fid) ? "YES" : "")]); downloadBlob([h.join(","), ...rows.map(r => r.join(","))].join("\n"), "text/csv", `PVTAIR_FRAT_Detailed_${new Date().toISOString().slice(0, 10)}.csv`); }, [records]);
-  const genSummary = useCallback(() => { if (!records.length) return; const scores = records.map(r => r.score); const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1); const lc = { "LOW RISK": 0, "MODERATE RISK": 0, "HIGH RISK": 0, "CRITICAL RISK": 0 }; records.forEach(r => { lc[r.riskLevel] = (lc[r.riskLevel] || 0) + 1; }); const ff = {}; records.forEach(r => r.factors.forEach(f => { ff[f] = (ff[f] || 0) + 1; })); const tf = Object.entries(ff).sort((a, b) => b[1] - a[1]).slice(0, 10); let t = `PVTAIR FRAT SUMMARY REPORT\nGenerated: ${new Date().toLocaleString()}\n${"=".repeat(60)}\n\nTotal: ${records.length}\nAvg Score: ${avg}\nHighest: ${Math.max(...scores)}\n\nRISK DISTRIBUTION\n`; Object.entries(lc).forEach(([k, v]) => { t += `  ${k}: ${v} (${((v / records.length) * 100).toFixed(1)}%)\n`; }); t += `\nTOP RISK FACTORS\n`; tf.forEach(([id, count], i) => { let label = id; RISK_CATEGORIES.forEach(c => c.factors.forEach(f => { if (f.id === id) label = f.label; })); t += `  ${i + 1}. ${label} — ${count}x\n`; }); downloadBlob(t, "text/plain", `PVTAIR_FRAT_Summary_${new Date().toISOString().slice(0, 10)}.txt`); }, [records]);
+function ExportView({ records, orgName }) {
+  const prefix = (orgName || "FRAT").replace(/\s+/g, "_");
+  const genCSV = useCallback(() => { if (!records.length) return; const h = ["FRAT_ID", "Date", "Pilot", "Aircraft", "Departure", "Destination", "CruiseAlt", "Score", "Risk_Level", "Factors_Count", "Remarks"]; const rows = records.map(r => [r.id, new Date(r.timestamp).toISOString(), r.pilot, r.aircraft, r.departure, r.destination, r.cruiseAlt || "", r.score, r.riskLevel, r.factors.length, `"${(r.remarks || "").replace(/"/g, '""')}"`]); downloadBlob([h.join(","), ...rows.map(r => r.join(","))].join("\n"), "text/csv", `${prefix}_FRAT_Export_${new Date().toISOString().slice(0, 10)}.csv`); }, [records, prefix]);
+  const genDetailed = useCallback(() => { if (!records.length) return; const ids = []; const labels = []; RISK_CATEGORIES.forEach(c => c.factors.forEach(f => { ids.push(f.id); labels.push(`${c.name}: ${f.label}`); })); const h = ["FRAT_ID", "Date", "Pilot", "Aircraft", "Departure", "Destination", "CruiseAlt", "Score", "Risk_Level", ...labels]; const rows = records.map(r => [r.id, new Date(r.timestamp).toISOString(), r.pilot, r.aircraft, r.departure, r.destination, r.cruiseAlt || "", r.score, r.riskLevel, ...ids.map(fid => r.factors.includes(fid) ? "YES" : "")]); downloadBlob([h.join(","), ...rows.map(r => r.join(","))].join("\n"), "text/csv", `${prefix}_FRAT_Detailed_${new Date().toISOString().slice(0, 10)}.csv`); }, [records, prefix]);
+  const genSummary = useCallback(() => { if (!records.length) return; const scores = records.map(r => r.score); const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1); const lc = { "LOW RISK": 0, "MODERATE RISK": 0, "HIGH RISK": 0, "CRITICAL RISK": 0 }; records.forEach(r => { lc[r.riskLevel] = (lc[r.riskLevel] || 0) + 1; }); const ff = {}; records.forEach(r => r.factors.forEach(f => { ff[f] = (ff[f] || 0) + 1; })); const tf = Object.entries(ff).sort((a, b) => b[1] - a[1]).slice(0, 10); let t = `${orgName || "FRAT"} SUMMARY REPORT\nGenerated: ${new Date().toLocaleString()}\n${"=".repeat(60)}\n\nTotal: ${records.length}\nAvg Score: ${avg}\nHighest: ${Math.max(...scores)}\n\nRISK DISTRIBUTION\n`; Object.entries(lc).forEach(([k, v]) => { t += `  ${k}: ${v} (${((v / records.length) * 100).toFixed(1)}%)\n`; }); t += `\nTOP RISK FACTORS\n`; tf.forEach(([id, count], i) => { let label = id; RISK_CATEGORIES.forEach(c => c.factors.forEach(f => { if (f.id === id) label = f.label; })); t += `  ${i + 1}. ${label} — ${count}x\n`; }); downloadBlob(t, "text/plain", `${prefix}_FRAT_Summary_${new Date().toISOString().slice(0, 10)}.txt`); }, [records, prefix, orgName]);
   return (
     <div style={{ maxWidth: 700, margin: "0 auto" }}>
       <div style={{ ...card, padding: 26 }}>
@@ -1045,7 +1046,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
       {sub === "frat" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" />}
       {sub === "safety" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" />}
       {sub === "history" && <HistoryView records={records} onDelete={onDelete} />}
-      {sub === "export" && <ExportView records={records} />}
+      {sub === "export" && <ExportView records={records} orgName={org?.name} />}
     </div>
   );
 }
@@ -1652,6 +1653,7 @@ export default function PVTAIRFrat() {
 .main-content{margin-left:0 !important}
 .user-info-desktop{display:none !important}
 .stat-grid{grid-template-columns:repeat(2,1fr) !important}
+.crew-grid{grid-template-columns:1fr !important}
 .chart-grid-2{grid-template-columns:1fr !important}
 }
 @media(max-width:480px){.flight-info-grid{grid-template-columns:1fr !important}}`}</style>

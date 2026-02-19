@@ -284,8 +284,18 @@ const SUBPART_NAMES = {
 export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org }) {
   const [expandedSubpart, setExpandedSubpart] = useState("B");
   const [expandedReq, setExpandedReq] = useState(null);
-  const [manualOverrides, setManualOverrides] = useState({});
+  const [manualOverrides, setManualOverrides] = useState(() => {
+    try { const s = typeof window !== "undefined" && localStorage.getItem("audit_overrides"); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  });
   const [filterStatus, setFilterStatus] = useState("all");
+
+  const updateOverrides = (fn) => {
+    setManualOverrides(prev => {
+      const next = fn(prev);
+      try { localStorage.setItem("audit_overrides", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   // Build data context for auto-checks
   const dataCtx = useMemo(() => ({
@@ -334,7 +344,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
   }, [reqStatuses]);
 
   const toggleOverride = (id, val) => {
-    setManualOverrides(p => ({ ...p, [id]: val === p[id] ? undefined : val }));
+    updateOverrides(p => ({ ...p, [id]: val === p[id] ? undefined : val }));
   };
 
   const subpartGroups = useMemo(() => {
@@ -489,7 +499,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
         <div style={{ fontSize: 9, color: MUTED, lineHeight: 1.6 }}>
           This audit log maps PreflightSMS features to 14 CFR Part 5 requirements applicable to Part 135 operators.
           Auto-compliance checks verify system data exists; manual review items require documentation outside this system.
-          Override statuses are session-only and not persisted. Per § 5.9, Part 135 operators must be fully compliant by May 28, 2027.
+          Manual overrides are saved locally on this device. Per § 5.9, Part 135 operators must be fully compliant by May 28, 2027.
         </div>
       </div>
     </div>

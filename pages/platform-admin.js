@@ -138,7 +138,13 @@ export default function PlatformAdmin() {
     const freshOrgs = orgsRes.orgs || [];
     setOrgs(freshOrgs);
     const updated = freshOrgs.find(o => o.id === selectedOrg.id);
-    if (updated) setSelectedOrg(updated);
+    if (updated) {
+      setSelectedOrg(updated);
+      setEditTier(updated.tier || "starter");
+      setEditFlags(updated.feature_flags || getTierFeatures(updated.tier || "starter"));
+      setEditStatus(updated.subscription_status || "trial");
+      setEditMaxAircraft(updated.max_aircraft || 5);
+    }
     setSaving(false); showToast("Changes saved");
   };
 
