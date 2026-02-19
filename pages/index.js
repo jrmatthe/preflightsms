@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
 import { supabase, signIn, signUp, signOut, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, upsertFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord } from "../lib/supabase";
-import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS } from "../lib/tiers";
+import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
 const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), { ssr: false });
@@ -1054,10 +1054,13 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
 // ── AUTH SCREEN ───────────────────────────────────────────────
 function AuthScreen({ onAuth }) {
   const [mode, setMode] = useState("login"); // login | signup | join
+  const [step, setStep] = useState(1); // signup steps: 1=account, 2=org, 3=plan
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [orgName, setOrgName] = useState("");
+  const [certType, setCertType] = useState("Part 135");
+  const [selectedPlan, setSelectedPlan] = useState("starter");
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1072,72 +1075,183 @@ function AuthScreen({ onAuth }) {
 
   const handleSignup = async () => {
     if (!name.trim()) { setError("Name is required"); return; }
-    if (!orgName.trim() && mode === "signup") { setError("Organization name is required"); return; }
+    if (mode === "signup" && step === 1) { if (!email || !password || password.length < 6) { setError("Email and password (min 6 chars) required"); return; } setError(""); setStep(2); return; }
+    if (mode === "signup" && step === 2) { if (!orgName.trim()) { setError("Organization name is required"); return; } setError(""); setStep(3); return; }
     setError(""); setLoading(true);
     try {
       let orgId;
       if (mode === "signup") {
-        // Create new org
         const slug = orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-        const { data: orgData, error: orgErr } = await supabase.from("organizations").insert({ name: orgName.trim(), slug }).select().single();
+        const tier = selectedPlan;
+        const features = getTierFeatures(tier);
+        const { data: orgData, error: orgErr } = await supabase.from("organizations").insert({
+          name: orgName.trim(), slug, tier, feature_flags: features,
+          subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 25 : 5,
+        }).select().single();
         if (orgErr) { setError(orgErr.message); setLoading(false); return; }
         orgId = orgData.id;
       } else {
-        // Join existing org by slug
         const { data: orgData, error: orgErr } = await supabase.from("organizations").select("id").eq("slug", joinCode.trim().toLowerCase()).single();
         if (orgErr || !orgData) { setError("Organization not found. Check your join code."); setLoading(false); return; }
         orgId = orgData.id;
       }
       const { error: signupErr } = await signUp(email, password, name.trim(), orgId);
       if (signupErr) { setError(signupErr.message); setLoading(false); return; }
+      // Set creator as admin
+      if (mode === "signup") {
+        const { data: session } = await signIn(email, password);
+        if (session?.session) {
+          await supabase.from("profiles").update({ role: "admin" }).eq("id", session.session.user.id);
+          onAuth(session.session);
+          setLoading(false);
+          return;
+        }
+      }
       setError("Check your email to confirm your account, then log in.");
       setMode("login");
     } catch (e) { setError(e.message); }
     setLoading(false);
   };
 
+  const plans = [
+    { id: "starter", name: "Starter", price: "$149", period: "/mo", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Hazards", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
+    { id: "professional", name: "Professional", price: "$299", period: "/mo", desc: "Full SMS with analytics & compliance", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 25 aircraft"] },
+  ];
+
   return (
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ ...card, padding: "32px 28px", maxWidth: 400, width: "100%" }}>
+      <div style={{ ...card, padding: "32px 28px", maxWidth: mode === "signup" && step === 3 ? 680 : 400, width: "100%", transition: "max-width 0.3s" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 100, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} /></div>
 
-        <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
+        {/* Mode tabs - only show on step 1 */}
+        {(mode !== "signup" || step === 1) && <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
           {[["login", "Log In"], ["signup", "New Org"], ["join", "Join Org"]].map(([m, label]) => (
-            <button key={m} onClick={() => { setMode(m); setError(""); }}
+            <button key={m} onClick={() => { setMode(m); setStep(1); setError(""); }}
               style={{ flex: 1, padding: "8px 0", borderRadius: 6, border: `1px solid ${mode === m ? WHITE : BORDER}`,
                 background: mode === m ? WHITE : "transparent", color: mode === m ? BLACK : MUTED,
-                fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{label}</button>))}</div>
+                fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{label}</button>))}</div>}
 
-        {mode !== "login" && (
+        {/* Signup step indicator */}
+        {mode === "signup" && step > 1 && (
+          <div style={{ display: "flex", gap: 8, marginBottom: 20, justifyContent: "center" }}>
+            {["Account", "Organization", "Plan"].map((s, i) => (
+              <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700,
+                  background: step > i + 1 ? GREEN : step === i + 1 ? WHITE : NEAR_BLACK,
+                  color: step > i + 1 ? BLACK : step === i + 1 ? BLACK : MUTED,
+                  border: `1px solid ${step >= i + 1 ? "transparent" : BORDER}` }}>{step > i + 1 ? "\u2713" : i + 1}</div>
+                <span style={{ fontSize: 10, color: step === i + 1 ? WHITE : MUTED, fontWeight: 600 }}>{s}</span>
+                {i < 2 && <span style={{ color: BORDER, fontSize: 10 }}>{"\u2014"}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Login form */}
+        {mode === "login" && (<>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="pilot@company.com" style={inp} /></div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password"
+              style={inp} onKeyDown={e => { if (e.key === "Enter") handleLogin(); }} /></div>
+        </>)}
+
+        {/* Signup Step 1: Account info */}
+        {mode === "signup" && step === 1 && (<>
           <div style={{ marginBottom: 10 }}>
             <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Full Name</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inp} /></div>)}
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inp} /></div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="pilot@company.com" style={inp} /></div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters"
+              style={inp} onKeyDown={e => { if (e.key === "Enter") handleSignup(); }} /></div>
+        </>)}
 
-        {mode === "signup" && (
+        {/* Signup Step 2: Organization info */}
+        {mode === "signup" && step === 2 && (<>
           <div style={{ marginBottom: 10 }}>
             <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Organization Name</label>
-            <input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="e.g. PVTAIR" style={inp} /></div>)}
+            <input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="e.g. SkyCharter Aviation" style={inp} /></div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Certificate Type</label>
+            <select value={certType} onChange={e => setCertType(e.target.value)} style={{ ...inp, appearance: "auto" }}>
+              <option value="Part 135">Part 135 — Commuter & On-Demand</option>
+              <option value="Part 121">Part 121 — Scheduled Carriers</option>
+              <option value="Part 91">Part 91 — General Aviation</option>
+              <option value="Part 91K">Part 91K — Fractional Ownership</option>
+              <option value="Other">Other</option>
+            </select></div>
+          <div style={{ fontSize: 10, color: MUTED, marginBottom: 16, padding: "8px 10px", borderRadius: 6, background: NEAR_BLACK }}>
+            Your join code will be: <strong style={{ color: CYAN }}>{orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "..."}</strong>
+            <br />Share this with your team so they can join your organization.</div>
+        </>)}
 
-        {mode === "join" && (
+        {/* Signup Step 3: Plan selection */}
+        {mode === "signup" && step === 3 && (<>
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Choose Your Plan</div>
+            <div style={{ fontSize: 11, color: MUTED }}>All plans include a 14-day free trial. No credit card required.</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            {plans.map(p => (
+              <div key={p.id} onClick={() => setSelectedPlan(p.id)}
+                style={{ ...card, padding: "20px 16px", cursor: "pointer", position: "relative",
+                  border: `2px solid ${selectedPlan === p.id ? WHITE : BORDER}`,
+                  background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD }}>
+                {p.id === "professional" && <div style={{ position: "absolute", top: -8, right: 12, fontSize: 9, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>RECOMMENDED</div>}
+                <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 2 }}>{p.name}</div>
+                <div style={{ marginBottom: 8 }}><span style={{ fontSize: 24, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{p.price}</span><span style={{ fontSize: 11, color: MUTED }}>{p.period}</span></div>
+                <div style={{ fontSize: 10, color: MUTED, marginBottom: 12 }}>{p.desc}</div>
+                {p.features.map((f, i) => (
+                  <div key={i} style={{ fontSize: 10, color: f.startsWith("Everything") ? CYAN : OFF_WHITE, padding: "2px 0", display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <span style={{ color: GREEN, flexShrink: 0, marginTop: 1 }}>{f.startsWith("Everything") ? "\u2605" : "\u2713"}</span>{f}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>)}
+
+        {/* Join Org form */}
+        {mode === "join" && (<>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Full Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inp} /></div>
           <div style={{ marginBottom: 10 }}>
             <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Organization Code</label>
-            <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="e.g. pvtair" style={inp} /></div>)}
-
-        <div style={{ marginBottom: 10 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="pilot@company.com" style={inp} /></div>
-
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters"
-            style={inp} onKeyDown={e => { if (e.key === "Enter") { mode === "login" ? handleLogin() : handleSignup(); } }} /></div>
+            <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="e.g. pvtair" style={inp} /></div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="pilot@company.com" style={inp} /></div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters"
+              style={inp} onKeyDown={e => { if (e.key === "Enter") handleSignup(); }} /></div>
+        </>)}
 
         {error && <div style={{ color: error.includes("Check your email") ? GREEN : RED, fontSize: 11, marginBottom: 12, padding: "8px 10px", borderRadius: 6, background: error.includes("Check your email") ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)" }}>{error}</div>}
 
-        <button onClick={mode === "login" ? handleLogin : handleSignup} disabled={loading}
-          style={{ width: "100%", padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1 }}>
-          {loading ? "..." : mode === "login" ? "Log In" : mode === "signup" ? "Create Organization" : "Join Organization"}</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {mode === "signup" && step > 1 && (
+            <button onClick={() => { setStep(step - 1); setError(""); }}
+              style={{ padding: "12px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Back</button>
+          )}
+          <button onClick={mode === "login" ? handleLogin : handleSignup} disabled={loading}
+            style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            {loading ? "..." : mode === "login" ? "Log In" : mode === "signup" && step === 1 ? "Next \u2192" : mode === "signup" && step === 2 ? "Next \u2192" : mode === "signup" && step === 3 ? "Start Free Trial" : "Join Organization"}</button>
+        </div>
+
+        {mode === "login" && (
+          <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: MUTED }}>
+            New to PreflightSMS? <button onClick={() => { setMode("signup"); setStep(1); setError(""); }} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Create an account</button>
+          </div>
+        )}
       </div></div>);
 }
 
