@@ -133,8 +133,12 @@ export default function PlatformAdmin() {
     if (!selectedOrg) return; setSaving(true);
     const res = await api({ action: "update_org", org_id: selectedOrg.id, updates: { tier: editTier, feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft } });
     if (res.error) { showToast("Error: " + res.error); setSaving(false); return; }
-    await loadOrgs();
-    setSelectedOrg(p => ({ ...p, tier: editTier, feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft }));
+    // Refresh orgs list and update selected org from fresh data
+    const orgsRes = await api({ action: "fetch_orgs" });
+    const freshOrgs = orgsRes.orgs || [];
+    setOrgs(freshOrgs);
+    const updated = freshOrgs.find(o => o.id === selectedOrg.id);
+    if (updated) setSelectedOrg(updated);
     setSaving(false); showToast("Changes saved");
   };
 
@@ -235,7 +239,10 @@ function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, o
         {orgs.map(o => (
           <div key={o.id} onClick={() => selectOrg(o)} style={{ padding: "12px 14px", borderRadius: 8, marginBottom: 4, cursor: "pointer", background: selectedOrg?.id === o.id ? "rgba(255,255,255,0.06)" : "transparent", border: `1px solid ${selectedOrg?.id === o.id ? LIGHT_BORDER : "transparent"}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: WHITE }}>{o.name || o.slug || "Unnamed"}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {o.logo_url && <img src={o.logo_url} alt="" style={{ width: 20, height: 20, objectFit: "contain", borderRadius: 3 }} />}
+                <div style={{ fontSize: 13, fontWeight: 600, color: WHITE }}>{o.name || o.slug || "Unnamed"}</div>
+              </div>
               <span style={{ fontSize: 9, fontWeight: 700, color: TIER_COLORS[o.tier] || MUTED, textTransform: "uppercase" }}>{o.tier || "starter"}</span>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
@@ -262,9 +269,12 @@ function OrgDetail({ org, orgUsers, orgStats, editTier, editStatus, editFlags, e
   return (
     <div style={{ maxWidth: 800 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-        <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: WHITE }}>{org.name || "Unnamed"}</div>
-          <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{org.slug} · Created {new Date(org.created_at).toLocaleDateString()}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {org.logo_url && <img src={org.logo_url} alt="" style={{ width: 44, height: 44, objectFit: "contain", borderRadius: 6, background: NEAR_BLACK, padding: 4 }} />}
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE }}>{org.name || "Unnamed"}</div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{org.slug} · Created {new Date(org.created_at).toLocaleDateString()}</div>
+          </div>
         </div>
         <button onClick={saveChanges} disabled={saving} style={{ padding: "8px 24px", background: GREEN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
       </div>
