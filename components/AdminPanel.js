@@ -139,7 +139,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {[
               { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster", "Safety Reporting", "Hazard Register", "Policy Library"] },
-              { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 25 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
+              { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
             ].map(p => {
               const price = billingInterval === "annual" ? p.annual : p.monthly;
               const perMonth = billingInterval === "annual" ? Math.round(p.annual / 12) : p.monthly;

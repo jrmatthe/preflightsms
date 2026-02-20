@@ -114,18 +114,20 @@ const templates = {
         <tr>
           <td style="background:#0A0A0A;border:1px solid #232323;border-radius:8px;padding:16px;width:48%;vertical-align:top;">
             <p style="margin:0 0 4px;font-size:16px;font-weight:800;color:#FFFFFF;">Starter</p>
-            <p style="margin:0 0 8px;font-size:20px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">$149<span style="font-size:12px;color:#888888;font-weight:400;">/mo</span></p>
+            <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">$149<span style="font-size:12px;color:#888888;font-weight:400;">/mo</span></p>
+            <p style="margin:0 0 8px;font-size:12px;color:#4ADE80;">or $1,490/year (save 17%)</p>
             <p style="margin:0;font-size:11px;color:#888888;">Up to 5 aircraft</p>
           </td>
           <td style="width:4%;"></td>
           <td style="background:#0A0A0A;border:1px solid #22D3EE44;border-radius:8px;padding:16px;width:48%;vertical-align:top;">
             <p style="margin:0 0 4px;font-size:16px;font-weight:800;color:#FFFFFF;">Professional</p>
-            <p style="margin:0 0 8px;font-size:20px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">$299<span style="font-size:12px;color:#888888;font-weight:400;">/mo</span></p>
-            <p style="margin:0;font-size:11px;color:#888888;">Up to 25 aircraft + analytics</p>
+            <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">$299<span style="font-size:12px;color:#888888;font-weight:400;">/mo</span></p>
+            <p style="margin:0 0 8px;font-size:12px;color:#4ADE80;">or $2,990/year (save 17%)</p>
+            <p style="margin:0;font-size:11px;color:#888888;">Up to 15 aircraft + analytics</p>
           </td>
         </tr>
       </table>
-      ${ctaButton("Subscribe Now", APP_URL)}
+      ${ctaButton("Subscribe Now", APP_URL + "?tab=admin")}
       <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">All your data will be preserved when you subscribe. No re-setup required.</p>
     `),
   },
@@ -138,7 +140,7 @@ const templates = {
       </div>
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">Your Data Is Safe</h1>
       <p style="margin:0 0 24px;font-size:14px;color:#888888;line-height:1.6;">The trial for ${orgName} has expired, but nothing has been deleted. Your FRATs, crew records, policies, training data, and safety reports are all preserved. Subscribe anytime to pick up right where you left off.</p>
-      ${ctaButton("Reactivate Account", APP_URL)}
+      ${ctaButton("Reactivate Account", APP_URL + "?tab=admin")}
       <div style="border-top:1px solid #232323;margin:20px 0;"></div>
       <p style="margin:0 0 8px;font-size:12px;color:#555555;line-height:1.5;">Part 5 compliance deadline: <strong style="color:#F59E0B;">May 28, 2027</strong></p>
       <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">If you have questions or need a custom plan for your operation, reply to this email.</p>
