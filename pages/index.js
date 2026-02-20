@@ -2538,7 +2538,7 @@ export default function PVTAIRFrat() {
           try {
             const resp = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invite`, {
               method: "POST",
-              headers: { "Authorization": `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+              headers: { "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({ email, orgName, role, token: data.token }),
             });
             if (!resp.ok) { const err = await resp.json(); console.error("Invite email error:", err); }
@@ -2555,7 +2555,7 @@ export default function PVTAIRFrat() {
             try {
               await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invite`, {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+                headers: { "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`, "Content-Type": "application/json" },
                 body: JSON.stringify({ email: data.email, orgName, role: data.role, token: data.token }),
               });
             } catch (e) { console.error("Failed to resend invite:", e); }
