@@ -13,6 +13,7 @@ export default function TermsOfService() {
             <a href="/"><img src={LOGO_URL} alt="PreflightSMS" style={{ height: 60, objectFit: "contain" }} /></a>
           </div>
           <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "40px 36px" }}>
+            <style>{`@media(max-width:480px){.tos-card{padding:24px 18px !important}}`}</style>
             <h1 style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia, serif", margin: "0 0 4px" }}>Terms of Service</h1>
             <p style={{ fontSize: 12, color: MUTED, margin: "0 0 32px" }}>Last updated: February 19, 2026</p>
 

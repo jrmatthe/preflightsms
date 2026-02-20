@@ -276,7 +276,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
 
       {showForm && (
         <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 16, marginBottom: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, marginBottom: 10 }}>
+          <div className="invite-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, marginBottom: 10 }}>
             <div>
               <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Email Address</label>
               <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(""); }}
@@ -385,7 +385,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Admin tabs */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+      <div className="admin-tabs" style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
         {[{ id: "org", label: "Organization" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "notifications", label: "Notifications", feat: "approval_workflow" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
           if (!t.feat) return true;
           const flags = orgData?.feature_flags || {};
@@ -412,7 +412,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
       {/* Org Info */}
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 8 }}>Organization</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div className="admin-org-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Name</div>
             <div style={{ fontSize: 14, color: WHITE, fontWeight: 600 }}>{orgName}</div>
