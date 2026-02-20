@@ -1187,7 +1187,7 @@ function LandingPage() {
         <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {[
             { name: "Starter", price: "$149", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Hazards", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
-            { name: "Professional", price: "$299", desc: "Full SMS with analytics & compliance", badge: "MOST POPULAR", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 25 aircraft"] },
+            { name: "Professional", price: "$299", desc: "Full SMS with analytics & compliance", badge: "MOST POPULAR", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"] },
           ].map(p => (
             <div key={p.name} style={{ background: CARD, border: `1px solid ${p.badge ? WHITE+"44" : BORDER}`, borderRadius: 12, padding: "28px 24px", position: "relative" }}>
               {p.badge && <div style={{ position: "absolute", top: -10, right: 16, fontSize: 9, fontWeight: 700, color: BLACK, background: GREEN, padding: "3px 10px", borderRadius: 4 }}>{p.badge}</div>}
@@ -1203,7 +1203,7 @@ function LandingPage() {
             </div>
           ))}
         </div>
-        <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: MUTED }}>Need more than 25 aircraft or custom integrations? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Contact us for Enterprise pricing</button></div>
+        <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: MUTED }}>Need more than 15 aircraft or custom integrations? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Contact us for Enterprise pricing</button></div>
       </section>
 
       {/* CTA */}
@@ -1410,7 +1410,7 @@ function SignupFlow({ onAuth }) {
                 <div>
                   <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: OFF_WHITE, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>Fleet Size</label>
                   <select value={fleetSize} onChange={e => setFleetSize(e.target.value)} style={{ ...inp, padding: "12px 14px", fontSize: 13, appearance: "auto" }}>
-                    <option value="1-5">1–5 aircraft</option><option value="6-15">6–15 aircraft</option><option value="16-25">16–25 aircraft</option><option value="25+">25+ aircraft</option>
+                    <option value="1-5">1–5 aircraft</option><option value="6-15">6–15 aircraft</option><option value="16+">16+ aircraft</option>
                   </select>
                 </div>
               </div>
@@ -1427,7 +1427,7 @@ function SignupFlow({ onAuth }) {
               <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
                 {[
                   { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster & Currency", "Safety Reporting", "Hazard Register", "Policy Library"] },
-                  { id: "professional", name: "Professional", price: "$299", desc: "Up to 25 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
+                  { id: "professional", name: "Professional", price: "$299", desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
                 ].map(p => (
                   <div key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ ...card, padding: "18px 16px", cursor: "pointer", position: "relative", transition: "all 0.2s", border: `2px solid ${selectedPlan === p.id ? (p.badge ? GREEN : WHITE) : BORDER}`, background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD }}>
                     {p.badge && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>RECOMMENDED</div>}
@@ -1454,7 +1454,7 @@ function SignupFlow({ onAuth }) {
             </div>
             <div style={{ textAlign: "center", marginTop: 20, fontSize: 11, color: MUTED }}>
               {step === 1 && <>Already have an account? <button onClick={() => { window.location.search = "login"; }} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Log in</button></>}
-              {step === 3 && <>25+ aircraft? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Contact us for Enterprise</button></>}
+              {step === 3 && <>16+ aircraft? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Contact us for Enterprise</button></>}
             </div>
           </div>
         </div>
@@ -1681,7 +1681,7 @@ function AuthScreen({ onAuth, initialMode }) {
 
   const plans = [
     { id: "starter", name: "Starter", price: "$149", period: "/mo", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Hazards", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
-    { id: "professional", name: "Professional", price: "$299", period: "/mo", desc: "Full SMS with analytics & compliance", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 25 aircraft"] },
+    { id: "professional", name: "Professional", price: "$299", period: "/mo", desc: "Full SMS with analytics & compliance", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"] },
   ];
 
   return (
@@ -1891,7 +1891,13 @@ function AuthScreen({ onAuth, initialMode }) {
 }
 
 export default function PVTAIRFrat() {
-  const [cv, setCv] = useState("submit");
+  const [cv, setCv] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      if (p.has("tab")) { const t = p.get("tab"); window.history.replaceState(null, "", window.location.pathname); return t; }
+    }
+    return "submit";
+  });
   const [records, setRecords] = useState([]);
   const [flights, setFlights] = useState([]);
   const [reports, setReports] = useState([]);
