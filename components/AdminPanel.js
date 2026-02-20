@@ -9,6 +9,7 @@ const BORDER = "#232323";
 const GREEN = "#4ADE80", RED = "#EF4444", CYAN = "#22D3EE", YELLOW = "#FACC15", AMBER = "#F59E0B";
 
 const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
+const inp = { width: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, background: BLACK, color: OFF_WHITE, boxSizing: "border-box" };
 
 const ROLES = [
   { id: "pilot", label: "Pilot", desc: "Submit FRATs, reports, view flights" },
