@@ -1981,6 +1981,24 @@ export default function PVTAIRFrat() {
     }
   }, []);
 
+  // Handle payment return from Stripe
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("payment")) {
+      const status = params.get("payment");
+      if (status === "success") {
+        setToast({ message: "Payment successful! Your subscription is now active.", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+        // Refresh profile to get updated subscription status
+        setTimeout(() => { getProfile().then(p => { if (p) setProfile(p); }); }, 2000);
+      } else if (status === "canceled") {
+        setToast({ message: "Checkout canceled", level: { bg: "rgba(250,204,21,0.08)", border: "rgba(250,204,21,0.25)", color: YELLOW } });
+      }
+      setTimeout(() => setToast(null), 5000);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
   // ── Load data from Supabase when profile is available ──
   useEffect(() => {
     if (!profile) return;
@@ -2413,37 +2431,23 @@ export default function PVTAIRFrat() {
     </div>
   );
 
-  // Trial expired — read-only with upgrade prompt
-  if (isTrialExpired) return (
-    <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ ...card, padding: 48, maxWidth: 480, textAlign: "center" }}>
-        <div style={{ width: 56, height: 56, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${AMBER}44`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-          <span style={{ fontSize: 28 }}>{"\u23F0"}</span></div>
-        <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>Your Trial Has Ended</h2>
-        <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>Your 14-day free trial for {orgName} has expired. All your data is safely preserved — subscribe to pick up right where you left off.</p>
-        <div className="trial-expired-plans" style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 24 }}>
-          <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "16px 20px", flex: 1, maxWidth: 180 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: WHITE, marginBottom: 2 }}>Starter</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$149<span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>/mo</span></div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Up to 5 aircraft</div>
-          </div>
-          <div style={{ background: NEAR_BLACK, border: `1px solid ${CYAN}44`, borderRadius: 8, padding: "16px 20px", flex: 1, maxWidth: 180 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: WHITE, marginBottom: 2 }}>Professional</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$299<span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>/mo</span></div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Up to 25 aircraft</div>
-          </div>
-        </div>
-        <button onClick={() => { /* TODO: Stripe checkout */ setToast({ message: "Payment integration coming soon — contact support@preflightsms.com", level: { bg: "rgba(34,211,238,0.08)", border: "rgba(34,211,238,0.25)", color: CYAN } }); setTimeout(() => setToast(null), 5000); }}
-          style={{ padding: "14px 40px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 12, width: "100%" }}>Subscribe Now</button>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-          <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ fontSize: 11, color: MUTED, background: "none", border: "none", cursor: "pointer" }}>Sign Out</button>
-          <span style={{ color: BORDER }}>·</span>
-          <a href="mailto:support@preflightsms.com" style={{ fontSize: 11, color: MUTED, textDecoration: "none" }}>Contact Support</a>
+  // Trial expired — force admin users to subscription tab, block non-admins
+  if (isTrialExpired) {
+    const isAdmin = ["admin", "safety_manager", "accountable_exec"].includes(profile?.role);
+    if (!isAdmin) return (
+      <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ ...card, padding: 48, maxWidth: 440, textAlign: "center" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${AMBER}44`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+            <span style={{ fontSize: 28 }}>{"\u23F0"}</span></div>
+          <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>Trial Expired</h2>
+          <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>Your organization&apos;s free trial has ended. Contact your administrator to subscribe and restore access.</p>
+          <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
         </div>
       </div>
-      {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
-    </div>
-  );
+    );
+    // Admin — force to subscription tab
+    if (cv !== "admin") setCv("admin");
+  }
 
   const orgName = profile?.organizations?.name || COMPANY_NAME;
   const orgLogo = profile?.organizations?.logo_url || LOGO_URL;
@@ -2583,6 +2587,23 @@ export default function PVTAIRFrat() {
           if (prof) setProfile(prof);
           setToast({ message: "Subscription updated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
           setTimeout(() => setToast(null), 3000);
+        }} onCheckout={async (plan, interval) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          try {
+            const { data, error } = await supabase.functions.invoke('stripe-checkout', {
+              body: {
+                plan,
+                interval,
+                orgId,
+                orgName,
+                email: profile?.email || session?.user?.email,
+                returnUrl: window.location.origin,
+              },
+            });
+            if (error) { setToast({ message: "Checkout error: " + error.message, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return; }
+            if (data?.url) window.location.href = data.url;
+          } catch (e) { console.error("Checkout error:", e); }
         }} invitations={invitations_list} onInviteUser={async (email, role) => {
           const orgId = profile?.org_id;
           if (!orgId) return { error: "No org" };
