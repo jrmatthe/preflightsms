@@ -55,7 +55,7 @@ const FEATURE_LABELS_MAP = {
   priority_support: "Priority Support",
 };
 
-function SubscriptionTab({ orgData, onUpdateOrg, canManage }) {
+function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout }) {
   const tier = orgData?.tier || "starter";
   const tierDef = TIER_DEFS[tier] || TIER_DEFS.starter;
   const flags = orgData?.feature_flags || {};
@@ -64,6 +64,8 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage }) {
   const [editingFlags, setEditingFlags] = useState(false);
   const [localFlags, setLocalFlags] = useState(flags);
   const [selectedTier, setSelectedTier] = useState(tier);
+  const [billingInterval, setBillingInterval] = useState("monthly");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const handleSaveFlags = () => {
     if (onUpdateOrg) onUpdateOrg({ feature_flags: localFlags, tier: selectedTier });
@@ -72,7 +74,6 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage }) {
 
   const handleTierChange = (newTier) => {
     setSelectedTier(newTier);
-    // Auto-set features based on tier
     const tierFeatures = {
       starter: { frat: true, flight_following: true, crew_roster: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: false, cbt_modules: false, role_permissions: false, approval_workflow: false, document_library: false, api_access: false, multi_base: false, custom_integrations: false, priority_support: false },
       professional: { frat: true, flight_following: true, crew_roster: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: true, cbt_modules: true, role_permissions: true, approval_workflow: true, document_library: true, api_access: false, multi_base: false, custom_integrations: false, priority_support: true },
@@ -80,6 +81,18 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage }) {
     };
     setLocalFlags(tierFeatures[newTier] || tierFeatures.starter);
   };
+
+  const handleCheckout = async (plan) => {
+    setCheckoutLoading(true);
+    try {
+      await onCheckout(plan, billingInterval);
+    } catch (e) { console.error(e); }
+    setCheckoutLoading(false);
+  };
+
+  const isActive = status === "active";
+  const isTrial = status === "trial";
+  const hasStripe = !!orgData?.stripe_subscription_id;
 
   return (
     <div>
@@ -104,6 +117,70 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage }) {
         </div>
       </div>
 
+      {/* Subscribe / Change Plan */}
+      {canManage && (isTrial || !hasStripe) && (
+        <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 14 }}>
+            {isTrial ? "Subscribe to Continue After Trial" : "Subscribe"}
+          </div>
+
+          {/* Billing toggle */}
+          <div style={{ display: "flex", gap: 4, marginBottom: 16, background: NEAR_BLACK, borderRadius: 8, padding: 3, width: "fit-content" }}>
+            {[["monthly", "Monthly"], ["annual", "Annual (save 17%)"]].map(([id, label]) => (
+              <button key={id} onClick={() => setBillingInterval(id)}
+                style={{ padding: "7px 16px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  background: billingInterval === id ? WHITE : "transparent",
+                  color: billingInterval === id ? BLACK : MUTED,
+                  border: "none" }}>{label}</button>
+            ))}
+          </div>
+
+          {/* Plan cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {[
+              { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster", "Safety Reporting", "Hazard Register", "Policy Library"] },
+              { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 25 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
+            ].map(p => {
+              const price = billingInterval === "annual" ? p.annual : p.monthly;
+              const perMonth = billingInterval === "annual" ? Math.round(p.annual / 12) : p.monthly;
+              const isCurrent = isActive && tier === p.id;
+              return (
+                <div key={p.id} style={{ ...card, padding: "18px 16px", position: "relative", border: `1px solid ${isCurrent ? GREEN + "44" : BORDER}` }}>
+                  {p.badge && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>RECOMMENDED</div>}
+                  <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 2 }}>{p.name}</div>
+                  <div style={{ fontSize: 10, color: MUTED, marginBottom: 8 }}>{p.desc}</div>
+                  <div style={{ marginBottom: 12 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>${perMonth}</span>
+                    <span style={{ fontSize: 11, color: MUTED }}>/mo</span>
+                    {billingInterval === "annual" && <div style={{ fontSize: 10, color: GREEN, marginTop: 2 }}>Billed ${price}/year</div>}
+                  </div>
+                  {p.features.map((f, i) => (
+                    <div key={i} style={{ fontSize: 10, color: f.startsWith("Everything") ? CYAN : OFF_WHITE, padding: "2px 0", display: "flex", gap: 5 }}>
+                      <span style={{ color: GREEN, flexShrink: 0 }}>{f.startsWith("Everything") ? "\u2605" : "\u2713"}</span>{f}
+                    </div>
+                  ))}
+                  <button onClick={() => handleCheckout(p.id)} disabled={checkoutLoading || isCurrent}
+                    style={{ width: "100%", marginTop: 14, padding: "10px 0", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: isCurrent ? "default" : checkoutLoading ? "wait" : "pointer",
+                      background: isCurrent ? `${GREEN}22` : WHITE, color: isCurrent ? GREEN : BLACK,
+                      border: isCurrent ? `1px solid ${GREEN}44` : "none",
+                      opacity: checkoutLoading ? 0.6 : 1 }}>
+                    {isCurrent ? "\u2713 Current Plan" : checkoutLoading ? "Redirecting..." : "Subscribe"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Manage subscription (active with Stripe) */}
+      {canManage && isActive && hasStripe && (
+        <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 8 }}>Manage Subscription</div>
+          <div style={{ fontSize: 11, color: MUTED, marginBottom: 14 }}>Your subscription is active and managed through Stripe. To change plans, update payment method, or cancel, contact <a href="mailto:support@preflightsms.com" style={{ color: CYAN }}>support@preflightsms.com</a>.</div>
+        </div>
+      )}
+
       {/* Feature flags */}
       <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -118,7 +195,6 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage }) {
           )}
         </div>
 
-        {/* Tier selector (only in edit mode) */}
         {editingFlags && (
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
             {Object.entries(TIER_DEFS).map(([id, def]) => (
@@ -134,7 +210,6 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage }) {
           </div>
         )}
 
-        {/* Feature toggles */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {Object.entries(FEATURE_LABELS_MAP).map(([key, label]) => {
             const enabled = editingFlags ? localFlags[key] : flags[key];
@@ -370,7 +445,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, invitations, onInviteUser, onRevokeInvitation, onResendInvitation }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, invitations, onInviteUser, onRevokeInvitation, onResendInvitation }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -495,7 +570,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
 
       {/* Subscription */}
       {activeTab === "subscription" && (<>
-        <SubscriptionTab orgData={orgData} onUpdateOrg={onUpdateOrg} canManage={canManage} />
+        <SubscriptionTab orgData={orgData} onUpdateOrg={onUpdateOrg} canManage={canManage} onCheckout={onCheckout} />
       </>)}
     </div>
   );
