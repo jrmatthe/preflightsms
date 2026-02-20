@@ -13,6 +13,7 @@ const inp = { width: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`
 
 const ROLES = [
   { id: "pilot", label: "Pilot", desc: "Submit FRATs, reports, view flights" },
+  { id: "dispatcher", label: "Dispatcher", desc: "Create flights, view FRATs, monitor flight following" },
   { id: "safety_manager", label: "Safety Manager", desc: "Full SMS access, investigate reports, manage hazards" },
   { id: "chief_pilot", label: "Chief Pilot", desc: "View all data, assign actions" },
   { id: "accountable_exec", label: "Accountable Executive", desc: "Dashboard summaries, approve closures" },
@@ -174,8 +175,9 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage }) {
   );
 }
 
-function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions }) {
+function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, onRemoveUser }) {
   const [expanded, setExpanded] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const role = ROLES.find(r => r.id === user.role) || ROLES[0];
   const isMe = user.id === profile?.id;
   const userPerms = user.permissions || [];
@@ -232,6 +234,22 @@ function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions }
               );
             })}
           </div>
+          {!isMe && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+              {!confirmRemove ? (
+                <button onClick={() => setConfirmRemove(true)}
+                  style={{ fontSize: 10, color: RED, background: "none", border: `1px solid ${RED}44`, borderRadius: 4, padding: "5px 12px", cursor: "pointer" }}>Remove User</button>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11, color: RED, fontWeight: 600 }}>Remove {user.full_name}?</span>
+                  <button onClick={() => { onRemoveUser(user.id); setConfirmRemove(false); }}
+                    style={{ fontSize: 10, color: WHITE, background: RED, border: "none", borderRadius: 4, padding: "5px 12px", cursor: "pointer", fontWeight: 700 }}>Yes, Remove</button>
+                  <button onClick={() => setConfirmRemove(false)}
+                    style={{ fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "5px 12px", cursor: "pointer" }}>Cancel</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -352,7 +370,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, invitations, onInviteUser, onRevokeInvitation, onResendInvitation }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, invitations, onInviteUser, onRevokeInvitation, onResendInvitation }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -452,7 +470,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
         </div>
 
         {orgProfiles.map(user => (
-          <UserRow key={user.id} user={user} profile={profile} canManage={canManage} onUpdateRole={onUpdateRole} onUpdatePermissions={onUpdatePermissions} />
+          <UserRow key={user.id} user={user} profile={profile} canManage={canManage} onUpdateRole={onUpdateRole} onUpdatePermissions={onUpdatePermissions} onRemoveUser={onRemoveUser} />
         ))}
       </div>
 
