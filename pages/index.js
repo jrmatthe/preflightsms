@@ -1230,6 +1230,7 @@ function SignupFlow({ onAuth }) {
   const [certType, setCertType] = useState("Part 135");
   const [fleetSize, setFleetSize] = useState("1-5");
   const [selectedPlan, setSelectedPlan] = useState("professional");
+  const [agreedTos, setAgreedTos] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -1254,6 +1255,7 @@ function SignupFlow({ onAuth }) {
   };
 
   const submit = async () => {
+    if (!agreedTos) { setError("Please agree to the Terms of Service and Privacy Policy"); return; }
     setError(""); setLoading(true);
     try {
       const slug = orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -1426,6 +1428,10 @@ function SignupFlow({ onAuth }) {
                 ))}
               </div>
               <div style={{ fontSize: 11, color: MUTED, textAlign: "center" }}>No charge during your trial. Cancel anytime.</div>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, cursor: "pointer" }}>
+                <input type="checkbox" checked={agreedTos} onChange={e => setAgreedTos(e.target.checked)} style={{ marginTop: 2, accentColor: CYAN }} />
+                <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>I agree to the <a href="/terms" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Terms of Service</a> and <a href="/privacy" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Privacy Policy</a></span>
+              </label>
             </>)}
             {error && <div style={{ color: error.includes("Check your email") || error.includes("created") ? GREEN : RED, fontSize: 12, padding: "10px 14px", borderRadius: 8, background: error.includes("created") ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)", marginTop: 12 }}>{error}</div>}
             <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
@@ -1454,6 +1460,7 @@ function InviteAcceptScreen({ token, onAuth }) {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState("loading"); // loading | form | expired | error
+  const [agreedTos, setAgreedTos] = useState(false);
 
   useEffect(() => {
     if (!token) { setStep("error"); setError("No invitation token"); setLoading(false); return; }
@@ -1470,6 +1477,7 @@ function InviteAcceptScreen({ token, onAuth }) {
   const handleAccept = async () => {
     if (!name.trim()) { setError("Enter your name"); return; }
     if (!password || password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (!agreedTos) { setError("Please agree to the Terms of Service and Privacy Policy"); return; }
     setError(""); setSubmitting(true);
     try {
       // Sign up with the invited email
@@ -1537,6 +1545,11 @@ function InviteAcceptScreen({ token, onAuth }) {
                 style={inp} onKeyDown={e => { if (e.key === "Enter") handleAccept(); }} />
             </div>
 
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", marginBottom: 12 }}>
+              <input type="checkbox" checked={agreedTos} onChange={e => setAgreedTos(e.target.checked)} style={{ marginTop: 2, accentColor: CYAN }} />
+              <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>I agree to the <a href="/terms" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Terms of Service</a> and <a href="/privacy" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Privacy Policy</a></span>
+            </label>
+
             {error && <div style={{ color: error.includes("Check your email") ? GREEN : RED, fontSize: 11, marginBottom: 12, padding: "8px 10px", borderRadius: 6, background: error.includes("Check your email") ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)" }}>{error}</div>}
 
             <button onClick={handleAccept} disabled={submitting}
@@ -1568,6 +1581,7 @@ function AuthScreen({ onAuth, initialMode }) {
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
+  const [agreedTos, setAgreedTos] = useState(false);
 
   // Check for recovery token in URL hash on mount
   useEffect(() => {
@@ -1615,6 +1629,7 @@ function AuthScreen({ onAuth, initialMode }) {
     if (!name.trim()) { setError("Name is required"); return; }
     if (mode === "signup" && step === 1) { if (!email || !password || password.length < 6) { setError("Email and password (min 6 chars) required"); return; } setError(""); setStep(2); return; }
     if (mode === "signup" && step === 2) { if (!orgName.trim()) { setError("Organization name is required"); return; } setError(""); setStep(3); return; }
+    if (!agreedTos) { setError("Please agree to the Terms of Service and Privacy Policy"); return; }
     setError(""); setLoading(true);
     try {
       let orgId;
@@ -1800,6 +1815,10 @@ function AuthScreen({ onAuth, initialMode }) {
               </div>
             ))}
           </div>
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 4, cursor: "pointer" }}>
+            <input type="checkbox" checked={agreedTos} onChange={e => setAgreedTos(e.target.checked)} style={{ marginTop: 2, accentColor: CYAN }} />
+            <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>I agree to the <a href="/terms" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Terms of Service</a> and <a href="/privacy" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Privacy Policy</a></span>
+          </label>
         </>)}
 
         {/* Join Org form */}
@@ -1817,6 +1836,10 @@ function AuthScreen({ onAuth, initialMode }) {
             <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters"
               style={inp} onKeyDown={e => { if (e.key === "Enter") handleSignup(); }} /></div>
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", marginBottom: 8 }}>
+            <input type="checkbox" checked={agreedTos} onChange={e => setAgreedTos(e.target.checked)} style={{ marginTop: 2, accentColor: CYAN }} />
+            <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>I agree to the <a href="/terms" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Terms of Service</a> and <a href="/privacy" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Privacy Policy</a></span>
+          </label>
         </>)}
 
         {error && <div style={{ color: error.includes("Check your email") ? GREEN : RED, fontSize: 11, marginBottom: 12, padding: "8px 10px", borderRadius: 6, background: error.includes("Check your email") ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)" }}>{error}</div>}
