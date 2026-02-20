@@ -2536,12 +2536,10 @@ export default function PVTAIRFrat() {
           if (error) return { error: error.message };
           // Send the email via edge function
           try {
-            const resp = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invite`, {
-              method: "POST",
-              headers: { "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ email, orgName, role, token: data.token }),
+            const { error: invokeErr } = await supabase.functions.invoke('send-invite', {
+              body: { email, orgName, role, token: data.token },
             });
-            if (!resp.ok) { const err = await resp.json(); console.error("Invite email error:", err); }
+            if (invokeErr) console.error("Invite email error:", invokeErr);
           } catch (e) { console.error("Failed to send invite email:", e); }
           fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
           return { success: true };
@@ -2553,10 +2551,8 @@ export default function PVTAIRFrat() {
           const { data } = await resendInvitation(invId);
           if (data) {
             try {
-              await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invite`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ email: data.email, orgName, role: data.role, token: data.token }),
+              await supabase.functions.invoke('send-invite', {
+                body: { email: data.email, orgName, role: data.role, token: data.token },
               });
             } catch (e) { console.error("Failed to resend invite:", e); }
           }
