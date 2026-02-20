@@ -1891,21 +1891,14 @@ function AuthScreen({ onAuth, initialMode }) {
 }
 
 export default function PVTAIRFrat() {
+  const _initTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
   const [cv, setCv] = useState(() => {
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search);
-      if (p.get("tab") === "subscription") { window.history.replaceState(null, "", window.location.pathname); return "admin"; }
-      if (p.has("tab")) { const t = p.get("tab"); window.history.replaceState(null, "", window.location.pathname); return t; }
-    }
+    if (_initTab === "subscription") return "admin";
+    if (_initTab) return _initTab;
     return "submit";
   });
-  const [initialAdminTab] = useState(() => {
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search);
-      if (p.get("tab") === "subscription") return "subscription";
-    }
-    return null;
-  });
+  const [initialAdminTab] = useState(_initTab === "subscription" ? "subscription" : null);
+  useEffect(() => { if (_initTab && typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }, []);
   const [records, setRecords] = useState([]);
   const [flights, setFlights] = useState([]);
   const [reports, setReports] = useState([]);
