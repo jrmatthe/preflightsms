@@ -1,7 +1,7 @@
 import Head from "next/head";
 
 const DARK = "#000000", CARD = "#161616", WHITE = "#FFFFFF", MUTED = "#888888", OFF_WHITE = "#E5E5E5", BORDER = "#232323", CYAN = "#22D3EE";
-const LOGO_URL = "https://idzkmulxfyvjuzrtssde.supabase.co/storage/v1/object/public/org-logos/preflightsms-logo-clean.png";
+const LOGO_URL = "/logo.png";
 
 export default function PrivacyPolicy() {
   return (
