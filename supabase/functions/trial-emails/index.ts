@@ -127,7 +127,7 @@ const templates = {
           </td>
         </tr>
       </table>
-      ${ctaButton("Subscribe Now", APP_URL + "?tab=admin")}
+      ${ctaButton("Subscribe Now", APP_URL + "?tab=subscription")}
       <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">All your data will be preserved when you subscribe. No re-setup required.</p>
     `),
   },
@@ -140,7 +140,7 @@ const templates = {
       </div>
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">Your Data Is Safe</h1>
       <p style="margin:0 0 24px;font-size:14px;color:#888888;line-height:1.6;">The trial for ${orgName} has expired, but nothing has been deleted. Your FRATs, crew records, policies, training data, and safety reports are all preserved. Subscribe anytime to pick up right where you left off.</p>
-      ${ctaButton("Reactivate Account", APP_URL + "?tab=admin")}
+      ${ctaButton("Reactivate Account", APP_URL + "?tab=subscription")}
       <div style="border-top:1px solid #232323;margin:20px 0;"></div>
       <p style="margin:0 0 8px;font-size:12px;color:#555555;line-height:1.5;">Part 5 compliance deadline: <strong style="color:#F59E0B;">May 28, 2027</strong></p>
       <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">If you have questions or need a custom plan for your operation, reply to this email.</p>
