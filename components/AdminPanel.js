@@ -237,7 +237,121 @@ function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions }
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg }) {
+// ── INVITE SECTION ─────────────────────────────────────────
+function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend }) {
+  const [showForm, setShowForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("pilot");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleInvite = async () => {
+    if (!email.trim()) { setError("Enter an email address"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError("Invalid email address"); return; }
+    setError(""); setSending(true);
+    try {
+      const result = await onInvite(email.trim(), role);
+      if (result?.error) { setError(result.error); setSending(false); return; }
+      setSuccess(`Invitation sent to ${email.trim()}`);
+      setEmail(""); setRole("pilot");
+      setTimeout(() => { setSuccess(""); setShowForm(false); }, 3000);
+    } catch (e) { setError(e.message); }
+    setSending(false);
+  };
+
+  const pending = invitations.filter(i => i.status === "pending");
+  const accepted = invitations.filter(i => i.status === "accepted");
+  const expired = invitations.filter(i => i.status === "expired" || (i.status === "pending" && new Date(i.expires_at) < new Date()));
+
+  if (!canManage) return null;
+
+  return (
+    <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Invite Team Members</div>
+        {!showForm && <button onClick={() => setShowForm(true)} style={{ padding: "6px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Invite User</button>}
+      </div>
+
+      {showForm && (
+        <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 16, marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, marginBottom: 10 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Email Address</label>
+              <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(""); }}
+                placeholder="pilot@company.com" style={{ ...inp, padding: "10px 12px" }}
+                onKeyDown={e => { if (e.key === "Enter") handleInvite(); }} />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Role</label>
+              <select value={role} onChange={e => setRole(e.target.value)} style={{ ...inp, padding: "10px 12px" }}>
+                <option value="pilot">Pilot</option>
+                <option value="dispatcher">Dispatcher</option>
+                <option value="safety_manager">Safety Manager</option>
+                <option value="chief_pilot">Chief Pilot</option>
+                <option value="accountable_exec">Accountable Exec</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          {error && <div style={{ fontSize: 11, color: RED, marginBottom: 8 }}>{error}</div>}
+          {success && <div style={{ fontSize: 11, color: GREEN, marginBottom: 8 }}>{success}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={handleInvite} disabled={sending}
+              style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: sending ? "wait" : "pointer", opacity: sending ? 0.6 : 1 }}>
+              {sending ? "Sending..." : "Send Invitation"}</button>
+            <button onClick={() => { setShowForm(false); setError(""); setSuccess(""); }}
+              style={{ padding: "8px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Pending invitations */}
+      {pending.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Pending ({pending.length})</div>
+          {pending.map(inv => {
+            const isExpired = new Date(inv.expires_at) < new Date();
+            return (
+              <div key={inv.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, marginBottom: 4 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: isExpired ? MUTED : OFF_WHITE, fontWeight: 600 }}>{inv.email}</div>
+                  <div style={{ fontSize: 10, color: MUTED }}>
+                    {ROLES.find(r => r.id === inv.role)?.label || inv.role} · Sent {new Date(inv.created_at).toLocaleDateString()}
+                    {isExpired && <span style={{ color: AMBER }}> · Expired</span>}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => onResend(inv.id)} style={{ fontSize: 10, color: CYAN, background: "none", border: `1px solid ${CYAN}44`, borderRadius: 4, padding: "3px 8px", cursor: "pointer" }}>Resend</button>
+                  <button onClick={() => onRevoke(inv.id)} style={{ fontSize: 10, color: RED, background: "none", border: `1px solid ${RED}44`, borderRadius: 4, padding: "3px 8px", cursor: "pointer" }}>Revoke</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Recently accepted */}
+      {accepted.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Accepted ({accepted.length})</div>
+          {accepted.slice(0, 5).map(inv => (
+            <div key={inv.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 12px", marginBottom: 2 }}>
+              <span style={{ fontSize: 11, color: OFF_WHITE }}>{inv.email}</span>
+              <span style={{ fontSize: 10, color: GREEN }}>✓ Joined {new Date(inv.accepted_at).toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {invitations.length === 0 && !showForm && (
+        <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No invitations sent yet. Click "Invite User" to add team members.</div>
+      )}
+    </div>
+  );
+}
+
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, invitations, onInviteUser, onRevokeInvitation, onResendInvitation }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -327,8 +441,10 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
       </div>
       </>)}
 
-      {/* Users */}
+      {/* Users & Invitations */}
       {activeTab === "users" && (<>
+      <InviteSection canManage={canManage} onInvite={onInviteUser} invitations={invitations || []} onRevoke={onRevokeInvitation} onResend={onResendInvitation} />
+
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Team Members ({orgProfiles.length})</div>

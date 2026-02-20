@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -1444,6 +1444,115 @@ function SignupFlow({ onAuth }) {
   );
 }
 
+// ── INVITE ACCEPT SCREEN ─────────────────────────────────────
+function InviteAcceptScreen({ token, onAuth }) {
+  const [invite, setInvite] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState("loading"); // loading | form | expired | error
+
+  useEffect(() => {
+    if (!token) { setStep("error"); setError("No invitation token"); setLoading(false); return; }
+    getInvitationByToken(token).then(({ data, error: err }) => {
+      setLoading(false);
+      if (err || !data) { setStep("expired"); return; }
+      if (new Date(data.expires_at) < new Date()) { setStep("expired"); return; }
+      setInvite(data);
+      setEmail(data.email);
+      setStep("form");
+    });
+  }, [token]);
+
+  const handleAccept = async () => {
+    if (!name.trim()) { setError("Enter your name"); return; }
+    if (!password || password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    setError(""); setSubmitting(true);
+    try {
+      // Sign up with the invited email
+      const { error: signupErr } = await signUp(email, password, name.trim(), invite.org_id);
+      if (signupErr) { setError(signupErr.message); setSubmitting(false); return; }
+      // Sign in
+      const { data: session, error: loginErr } = await signIn(email, password);
+      if (loginErr) { setError("Account created. Check your email to confirm, then log in."); setSubmitting(false); return; }
+      // Set the invited role
+      if (session?.session) {
+        await supabase.from("profiles").update({ role: invite.role }).eq("id", session.session.user.id);
+        // Mark invitation as accepted
+        await acceptInvitation(token, session.session.user.id);
+        // Clear URL and auth
+        if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname);
+        onAuth(session.session);
+      }
+    } catch (e) { setError(e.message); }
+    setSubmitting(false);
+  };
+
+  const roleLabel = invite?.role === "admin" ? "Administrator" :
+    invite?.role === "safety_manager" ? "Safety Manager" :
+    invite?.role === "chief_pilot" ? "Chief Pilot" :
+    invite?.role === "dispatcher" ? "Dispatcher" :
+    invite?.role === "accountable_exec" ? "Accountable Executive" : "Pilot";
+
+  return (
+    <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ ...card, padding: "32px 28px", maxWidth: 400, width: "100%" }}>
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 100, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
+        </div>
+
+        {step === "loading" && <div style={{ textAlign: "center", padding: 24, color: MUTED, fontSize: 13 }}>Loading invitation...</div>}
+
+        {step === "expired" && (
+          <div style={{ textAlign: "center", padding: 16 }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>⏰</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Invitation Expired</div>
+            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 20 }}>This invitation link has expired or is no longer valid. Ask your organization admin to send a new one.</div>
+            <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/"; }}
+              style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Login</button>
+          </div>
+        )}
+
+        {step === "form" && invite && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Join {invite.organizations?.name || "Organization"}</div>
+              <div style={{ fontSize: 12, color: MUTED }}>You've been invited as a <span style={{ color: CYAN, fontWeight: 600 }}>{roleLabel}</span></div>
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email</label>
+              <input type="email" value={email} disabled style={{ ...inp, opacity: 0.6, cursor: "not-allowed" }} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Full Name</label>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inp} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters"
+                style={inp} onKeyDown={e => { if (e.key === "Enter") handleAccept(); }} />
+            </div>
+
+            {error && <div style={{ color: error.includes("Check your email") ? GREEN : RED, fontSize: 11, marginBottom: 12, padding: "8px 10px", borderRadius: 6, background: error.includes("Check your email") ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)" }}>{error}</div>}
+
+            <button onClick={handleAccept} disabled={submitting}
+              style={{ width: "100%", padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: submitting ? "wait" : "pointer", opacity: submitting ? 0.7 : 1 }}>
+              {submitting ? "Creating account..." : "Accept & Join"}</button>
+
+            <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: MUTED }}>
+              Already have an account? <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/"; }} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Log in</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AuthScreen({ onAuth, initialMode }) {
   const [mode, setMode] = useState(initialMode || "login"); // login | signup | join | forgot | reset_password
   const [step, setStep] = useState(1); // signup steps: 1=account, 2=org, 3=plan
@@ -1771,6 +1880,7 @@ export default function PVTAIRFrat() {
   const [fratTemplates, setFratTemplates] = useState([]);
   const [hazardFromReport, setHazardFromReport] = useState(null);
   const [notifContacts, setNotifContacts] = useState([]);
+  const [invitations_list, setInvitationsList] = useState([]);
   const isOnline = !!supabase;
   const org = profile?.organizations || {};
 
@@ -1896,6 +2006,7 @@ export default function PVTAIRFrat() {
     fetchCbtProgress(orgId).then(({ data }) => setCbtProgress(data || []));
     fetchCbtEnrollments(orgId).then(({ data }) => setCbtEnrollments(data || []));
     fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
+    fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [profile]);
 
@@ -2215,6 +2326,7 @@ export default function PVTAIRFrat() {
   if (isOnline && !session) {
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
     if (params?.has("signup")) return <SignupFlow onAuth={setSession} />;
+    if (params?.has("invite")) return <InviteAcceptScreen token={params.get("invite")} onAuth={setSession} />;
     const initialMode = params?.has("join") ? "join" : "login";
     return <AuthScreen onAuth={setSession} initialMode={initialMode} />;
   }
@@ -2223,9 +2335,18 @@ export default function PVTAIRFrat() {
   const isSuspended = subStatus === "suspended";
   const isCanceled = subStatus === "canceled";
   const isPastDue = subStatus === "past_due";
-  const isReadOnly = isCanceled || isSuspended;
+  const isTrial = subStatus === "trial";
 
-  // Fully blocked
+  // Trial expiration check
+  const trialCreatedAt = profile?.organizations?.created_at ? new Date(profile.organizations.created_at) : null;
+  const trialDaysElapsed = trialCreatedAt ? Math.floor((Date.now() - trialCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+  const trialDaysRemaining = Math.max(0, 14 - trialDaysElapsed);
+  const isTrialExpired = isTrial && trialDaysElapsed >= 14;
+  const isTrialActive = isTrial && !isTrialExpired;
+
+  const isReadOnly = isCanceled || isSuspended || isTrialExpired;
+
+  // Fully blocked — suspended
   if (isSuspended) return (
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ ...card, padding: 48, maxWidth: 440, textAlign: "center" }}>
@@ -2238,13 +2359,45 @@ export default function PVTAIRFrat() {
     </div>
   );
 
+  // Trial expired — read-only with upgrade prompt
+  if (isTrialExpired) return (
+    <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ ...card, padding: 48, maxWidth: 480, textAlign: "center" }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${AMBER}44`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+          <span style={{ fontSize: 28 }}>{"\u23F0"}</span></div>
+        <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>Your Trial Has Ended</h2>
+        <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>Your 14-day free trial for {orgName} has expired. All your data is safely preserved — subscribe to pick up right where you left off.</p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 24 }}>
+          <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "16px 20px", flex: 1, maxWidth: 180 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: WHITE, marginBottom: 2 }}>Starter</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$149<span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>/mo</span></div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Up to 5 aircraft</div>
+          </div>
+          <div style={{ background: NEAR_BLACK, border: `1px solid ${CYAN}44`, borderRadius: 8, padding: "16px 20px", flex: 1, maxWidth: 180 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: WHITE, marginBottom: 2 }}>Professional</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$299<span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>/mo</span></div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Up to 25 aircraft</div>
+          </div>
+        </div>
+        <button onClick={() => { /* TODO: Stripe checkout */ setToast({ message: "Payment integration coming soon — contact support@preflightsms.com", level: { bg: "rgba(34,211,238,0.08)", border: "rgba(34,211,238,0.25)", color: CYAN } }); setTimeout(() => setToast(null), 5000); }}
+          style={{ padding: "14px 40px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 12, width: "100%" }}>Subscribe Now</button>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+          <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ fontSize: 11, color: MUTED, background: "none", border: "none", cursor: "pointer" }}>Sign Out</button>
+          <span style={{ color: BORDER }}>·</span>
+          <a href="mailto:support@preflightsms.com" style={{ fontSize: 11, color: MUTED, textDecoration: "none" }}>Contact Support</a>
+        </div>
+      </div>
+      {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
+    </div>
+  );
+
   const orgName = profile?.organizations?.name || COMPANY_NAME;
   const orgLogo = profile?.organizations?.logo_url || LOGO_URL;
   const userName = profile?.full_name || "";
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
 
   // Read-only guard for canceled subscriptions
-  const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
+  const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: isTrialExpired ? "Your trial has expired — subscribe to continue" : "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
@@ -2270,9 +2423,10 @@ export default function PVTAIRFrat() {
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         {isPastDue && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>{"\u26A0"} Your subscription payment is past due. Please update your billing information to avoid service interruption.</div>}
         {isCanceled && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: RED, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>{"\u26D4"} Subscription canceled — this account is in read-only mode. Contact your administrator to restore full access.</div>}
+        {isTrialActive && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: trialDaysRemaining <= 3 ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)", border: `1px solid ${trialDaysRemaining <= 3 ? "rgba(245,158,11,0.25)" : "rgba(34,211,238,0.25)"}`, color: trialDaysRemaining <= 3 ? AMBER : CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{trialDaysRemaining <= 3 ? "\u26A0" : "\u2139\uFE0F"} Free trial — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining</span><button onClick={() => { setCv("admin"); }} style={{ background: "none", border: `1px solid currentColor`, borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Subscribe</button></div>}
         <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && (isReadOnly
-          ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>New FRAT submissions are disabled while your subscription is {subStatus}.</div></div>
+          ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} />)}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} onApproveFlight={async (flightDbId, fratDbId) => {
           await approveFlight(flightDbId, session.user.id);
@@ -2375,6 +2529,39 @@ export default function PVTAIRFrat() {
           if (prof) setProfile(prof);
           setToast({ message: "Subscription updated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
           setTimeout(() => setToast(null), 3000);
+        }} invitations={invitations_list} onInviteUser={async (email, role) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return { error: "No org" };
+          const { data, error } = await createInvitation(orgId, email, role, session.user.id);
+          if (error) return { error: error.message };
+          // Send the email via edge function
+          try {
+            const resp = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invite`, {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ email, orgName, role, token: data.token }),
+            });
+            if (!resp.ok) { const err = await resp.json(); console.error("Invite email error:", err); }
+          } catch (e) { console.error("Failed to send invite email:", e); }
+          fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
+          return { success: true };
+        }} onRevokeInvitation={async (invId) => {
+          await revokeInvitation(invId);
+          const orgId = profile?.org_id;
+          if (orgId) fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
+        }} onResendInvitation={async (invId) => {
+          const { data } = await resendInvitation(invId);
+          if (data) {
+            try {
+              await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invite`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ email: data.email, orgName, role: data.role, token: data.token }),
+              });
+            } catch (e) { console.error("Failed to resend invite:", e); }
+          }
+          const orgId = profile?.org_id;
+          if (orgId) fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || []));
         }} />}
       </main>
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
