@@ -1309,6 +1309,12 @@ function SignupFlow({ onAuth }) {
 
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
+      <style>{`@media(max-width:768px){
+.signup-split{grid-template-columns:1fr !important;min-height:auto !important}
+.signup-left-panel{display:none !important}
+.signup-right-panel{padding:24px 20px !important}
+.signup-plan-grid{grid-template-columns:1fr !important}
+}`}</style>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 32px", borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, background: DARK, zIndex: 100 }}>
         <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 32, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
         <button onClick={() => { window.location.search = "login"; }} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "6px 14px", cursor: "pointer" }}>Log in</button>
@@ -1680,6 +1686,7 @@ function AuthScreen({ onAuth, initialMode }) {
 
   return (
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <style>{`@media(max-width:768px){.auth-plan-grid{grid-template-columns:1fr !important}}`}</style>
       <div style={{ ...card, padding: "32px 28px", maxWidth: mode === "signup" && step === 3 ? 680 : 400, width: "100%", transition: "max-width 0.3s" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 100, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} /></div>
