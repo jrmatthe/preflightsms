@@ -427,7 +427,7 @@ function AdminGate({ children, isAuthed, onAuth }) {
       </div></div>);
 }
 
-function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org }) {
+function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole }) {
   const [menuOpen, setMenuOpen] = useState(false);
   // SVG icons — monochrome, inherit color from parent
   const I = (d, s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
@@ -458,8 +458,15 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     { id: "admin", label: "Admin", icon: icons.admin, p: true },
   ].filter(t => {
     const requiredFeature = NAV_FEATURE_MAP[t.id];
-    if (!requiredFeature) return true; // admin, etc. always shown
-    return hasFeature(org, requiredFeature);
+    if (requiredFeature && !hasFeature(org, requiredFeature)) return false;
+    // Role-based visibility
+    const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(userRole);
+    if (t.id === "admin" && !isAdmin) return false;
+    if (t.id === "dashboard" && !isAdmin) return false;
+    if (t.id === "audit" && !isAdmin) return false;
+    if (t.id === "actions" && !isAdmin) return false;
+    if (t.id === "hazards" && !isAdmin) return false;
+    return true;
   });
   const sideTab = (t) => (
     <button key={t.id} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
@@ -962,7 +969,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
         <span style={{ fontSize: 13, color: GREEN, fontWeight: 600 }}>&#x25CF; {activeFlights.length} Active</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: activeFlights.length > 0 ? "1fr 1fr" : "1fr", gap: 20 }}>
+      <div className="flight-board-grid" style={{ display: "grid", gridTemplateColumns: activeFlights.length > 0 ? "1fr 1fr" : "1fr", gap: 20 }}>
         {/* Map */}
         {activeFlights.length > 0 && renderMap()}
 
@@ -1177,7 +1184,7 @@ function LandingPage() {
           <h2 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 8px", fontFamily: "Georgia, serif" }}>Simple Pricing</h2>
           <p style={{ fontSize: 14, color: MUTED }}>14-day free trial on all plans. No credit card required.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {[
             { name: "Starter", price: "$149", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Hazards", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
             { name: "Professional", price: "$299", desc: "Full SMS with analytics & compliance", badge: "MOST POPULAR", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 25 aircraft"] },
@@ -1306,9 +1313,9 @@ function SignupFlow({ onAuth }) {
         <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 32, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
         <button onClick={() => { window.location.search = "login"; }} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "6px 14px", cursor: "pointer" }}>Log in</button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", minHeight: "calc(100vh - 53px)" }}>
+      <div className="signup-split" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", minHeight: "calc(100vh - 53px)" }}>
         {/* LEFT: Marketing */}
-        <div style={{ borderRight: `1px solid ${BORDER}`, background: NEAR_BLACK, display: "flex", flexDirection: "column" }}>
+        <div className="signup-left-panel" style={{ borderRight: `1px solid ${BORDER}`, background: NEAR_BLACK, display: "flex", flexDirection: "column" }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "48px 40px", position: "relative", overflow: "hidden" }}>
             {[15, 38, 62, 85].map(top => (
               <div key={top} style={{ position: "absolute", top: `${top}%`, left: "-10%", width: "120%", height: 1, background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.025), transparent)", transform: "rotate(-6deg)", pointerEvents: "none" }} />
@@ -1349,7 +1356,7 @@ function SignupFlow({ onAuth }) {
           </div>
         </div>
         {/* RIGHT: Form */}
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "48px 44px" }}>
+        <div className="signup-right-panel" style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "48px 44px" }}>
           <div style={{ maxWidth: 440, margin: "0 auto", width: "100%" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 36 }}>
               {["Account", "Operation", "Plan"].map((s, i) => (
@@ -1411,7 +1418,7 @@ function SignupFlow({ onAuth }) {
             {step === 3 && (<>
               <h1 style={{ fontSize: 24, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Pick your plan</h1>
               <p style={{ fontSize: 13, color: MUTED, margin: "0 0 24px" }}>Both include a full 14-day trial. Upgrade or downgrade anytime.</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
                 {[
                   { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster & Currency", "Safety Reporting", "Hazard Register", "Policy Library"] },
                   { id: "professional", name: "Professional", price: "$299", desc: "Up to 25 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
@@ -1797,7 +1804,7 @@ function AuthScreen({ onAuth, initialMode }) {
             <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Choose Your Plan</div>
             <div style={{ fontSize: 11, color: MUTED }}>All plans include a 14-day free trial. No credit card required.</div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div className="auth-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
             {plans.map(p => (
               <div key={p.id} onClick={() => setSelectedPlan(p.id)}
                 style={{ ...card, padding: "20px 16px", cursor: "pointer", position: "relative",
@@ -2390,7 +2397,7 @@ export default function PVTAIRFrat() {
           <span style={{ fontSize: 28 }}>{"\u23F0"}</span></div>
         <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>Your Trial Has Ended</h2>
         <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>Your 14-day free trial for {orgName} has expired. All your data is safely preserved — subscribe to pick up right where you left off.</p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 24 }}>
+        <div className="trial-expired-plans" style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 24 }}>
           <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "16px 20px", flex: 1, maxWidth: 180 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: WHITE, marginBottom: 2 }}>Starter</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$149<span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>/mo</span></div>
@@ -2424,7 +2431,7 @@ export default function PVTAIRFrat() {
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); }} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); }} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Top bar with user info */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
@@ -2446,7 +2453,7 @@ export default function PVTAIRFrat() {
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         {isPastDue && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>{"\u26A0"} Your subscription payment is past due. Please update your billing information to avoid service interruption.</div>}
         {isCanceled && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: RED, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>{"\u26D4"} Subscription canceled — this account is in read-only mode. Contact your administrator to restore full access.</div>}
-        {isTrialActive && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: trialDaysRemaining <= 3 ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)", border: `1px solid ${trialDaysRemaining <= 3 ? "rgba(245,158,11,0.25)" : "rgba(34,211,238,0.25)"}`, color: trialDaysRemaining <= 3 ? AMBER : CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{trialDaysRemaining <= 3 ? "\u26A0" : "\u2139\uFE0F"} Free trial — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining</span><button onClick={() => { setCv("admin"); }} style={{ background: "none", border: `1px solid currentColor`, borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Subscribe</button></div>}
+        {isTrialActive && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: trialDaysRemaining <= 3 ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)", border: `1px solid ${trialDaysRemaining <= 3 ? "rgba(245,158,11,0.25)" : "rgba(34,211,238,0.25)"}`, color: trialDaysRemaining <= 3 ? AMBER : CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{trialDaysRemaining <= 3 ? "\u26A0" : "\u2139\uFE0F"} Free trial — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining</span><button onClick={() => { setCv("admin"); }} style={{ background: "none", border: `1px solid currentColor`, borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Subscribe</button></div>}
         <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
@@ -2596,12 +2603,28 @@ export default function PVTAIRFrat() {
 .nav-sidebar{display:none !important}
 .nav-mobile-header{display:flex !important}
 .nav-mobile-menu{display:flex !important}
-.main-content{margin-left:0 !important}
+.main-content{margin-left:0 !important;padding:0 !important}
+.main-content main{padding:12px 16px 50px !important}
+.main-content h1{font-size:16px !important}
 .user-info-desktop{display:none !important}
 .stat-grid{grid-template-columns:repeat(2,1fr) !important}
 .crew-grid{grid-template-columns:1fr !important}
 .chart-grid-2{grid-template-columns:1fr !important}
+.signup-split{grid-template-columns:1fr !important;min-height:auto !important}
+.signup-left-panel{display:none !important}
+.signup-right-panel{padding:24px 20px !important}
+.signup-plan-grid{grid-template-columns:1fr !important}
+.admin-org-grid{grid-template-columns:1fr !important}
+.admin-tabs{overflow-x:auto !important;flex-wrap:nowrap !important;-webkit-overflow-scrolling:touch}
+.invite-form-grid{grid-template-columns:1fr !important}
+.trial-expired-plans{flex-direction:column !important}
+.trial-banner{flex-direction:column !important;gap:8px !important;text-align:center}
+.flight-board-grid{grid-template-columns:1fr !important}
 }
-@media(max-width:480px){.flight-info-grid{grid-template-columns:1fr !important}}`}</style>
+@media(max-width:480px){
+.flight-info-grid{grid-template-columns:1fr !important}
+.stat-grid{grid-template-columns:1fr !important}
+.auth-plan-grid{grid-template-columns:1fr !important}
+}`}</style>
     </div></>);
 }
