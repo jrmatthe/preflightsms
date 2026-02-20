@@ -34,8 +34,8 @@ const PART5_REQUIREMENTS = [
 
   { id: "5.17", subpart: "A", title: "Organizational System Description", section: "§ 5.17",
     requirement: "Must maintain summary of: (a) operational processes, (b) products/services, (c) organizational structure, (d) interfaces with other organizations, (e) regulatory requirements.",
-    evidence: "policy", autoCheck: (d) => d.policies?.some(p => (p.title||"").toLowerCase().includes("system description") || (p.title||"").toLowerCase().includes("organization")),
-    evidenceDesc: "Should be documented in Policy library as 'Organizational System Description' or equivalent." },
+    evidence: "policy", autoCheck: (d) => d.manualComplete("org_system_description") || d.policies?.some(p => (p.title||"").toLowerCase().includes("system description") || (p.title||"").toLowerCase().includes("organization")),
+    evidenceDesc: "Documented in SMS Manuals (Organizational System Description) or Policy library." },
 
   { id: "5.19", subpart: "A", title: "Implementation Plan", section: "§ 5.19",
     requirement: "Must develop implementation plan describing how each Part 5 requirement will be met, with target dates.",
@@ -55,8 +55,8 @@ const PART5_REQUIREMENTS = [
 
   { id: "5.21a3", subpart: "B", title: "Resource Provision", section: "§ 5.21(a)(3)",
     requirement: "Safety policy must include a clear statement about provision of necessary resources for SMS implementation.",
-    evidence: "policy", autoCheck: null,
-    evidenceDesc: "Safety Policy document must contain resource commitment statement." },
+    evidence: "policy", autoCheck: (d) => d.manualComplete("safety_policy"),
+    evidenceDesc: "Documented in SMS Manuals (Safety Policy — Provision of Resources section) or Policy library." },
 
   { id: "5.21a4", subpart: "B", title: "Safety Reporting Policy", section: "§ 5.21(a)(4)",
     requirement: "Safety policy must define requirements for employee reporting of safety hazards or issues.",
@@ -65,18 +65,18 @@ const PART5_REQUIREMENTS = [
 
   { id: "5.21a5", subpart: "B", title: "Unacceptable Behavior Policy", section: "§ 5.21(a)(5)",
     requirement: "Safety policy must define unacceptable behavior and conditions for disciplinary action.",
-    evidence: "policy", autoCheck: (d) => d.policies?.some(p => (p.title||"").toLowerCase().includes("disciplin") || (p.content||"").toLowerCase().includes("unacceptable")),
-    evidenceDesc: "Must be documented in Safety Policy — defines behaviors subject to discipline." },
+    evidence: "policy", autoCheck: (d) => d.manualComplete("safety_policy") || d.policies?.some(p => (p.title||"").toLowerCase().includes("disciplin") || (p.content||"").toLowerCase().includes("unacceptable")),
+    evidenceDesc: "Documented in SMS Manuals (Safety Policy) or Policy library." },
 
   { id: "5.21a6", subpart: "B", title: "Emergency Response Plan", section: "§ 5.21(a)(6)",
     requirement: "Safety policy must include an emergency response plan per § 5.27.",
-    evidence: "policy", autoCheck: (d) => d.policies?.some(p => (p.title||"").toLowerCase().includes("emergency")),
-    evidenceDesc: "Emergency Response Plan document in Policy library." },
+    evidence: "policy", autoCheck: (d) => d.manualComplete("erp") || d.policies?.some(p => (p.title||"").toLowerCase().includes("emergency")),
+    evidenceDesc: "Documented in SMS Manuals (Emergency Response Plan) or Policy library." },
 
   { id: "5.21a7", subpart: "B", title: "Code of Ethics", section: "§ 5.21(a)(7)",
     requirement: "Safety policy must include a code of ethics applicable to all employees clarifying safety as highest priority.",
-    evidence: "policy", autoCheck: (d) => d.policies?.some(p => (p.title||"").toLowerCase().includes("ethic") || (p.title||"").toLowerCase().includes("code of")),
-    evidenceDesc: "Code of Ethics document in Policy library." },
+    evidence: "policy", autoCheck: (d) => d.manualComplete("safety_policy") || d.policies?.some(p => (p.title||"").toLowerCase().includes("ethic") || (p.title||"").toLowerCase().includes("code of")),
+    evidenceDesc: "Documented in SMS Manuals (Safety Policy — Code of Ethics section) or Policy library." },
 
   { id: "5.21b", subpart: "B", title: "Accountable Executive Signature", section: "§ 5.21(b)",
     requirement: "Safety policy must be signed by the accountable executive.",
@@ -120,8 +120,8 @@ const PART5_REQUIREMENTS = [
 
   { id: "5.27", subpart: "B", title: "Emergency Response Planning", section: "§ 5.27",
     requirement: "Must coordinate emergency response planning with other organizations as appropriate.",
-    evidence: "policy", autoCheck: (d) => d.policies?.some(p => (p.title||"").toLowerCase().includes("emergency")),
-    evidenceDesc: "Emergency Response Plan in Policy library, including coordination procedures with interfacing organizations." },
+    evidence: "policy", autoCheck: (d) => d.manualComplete("erp") || d.policies?.some(p => (p.title||"").toLowerCase().includes("emergency")),
+    evidenceDesc: "Documented in SMS Manuals (Emergency Response Plan) or Policy library." },
 
   // ── SUBPART C: SAFETY RISK MANAGEMENT ──
   { id: "5.51", subpart: "C", title: "SRM Applicability", section: "§ 5.51",
@@ -239,13 +239,13 @@ const PART5_REQUIREMENTS = [
   // ── SUBPART F: DOCUMENTATION AND RECORDKEEPING ──
   { id: "5.95a", subpart: "F", title: "Safety Policy Documentation", section: "§ 5.95(a)",
     requirement: "Must develop and maintain documentation describing the safety policy.",
-    evidence: "system", autoCheck: (d) => d.policies?.some(p => (p.title||"").toLowerCase().includes("safety policy")),
-    evidenceDesc: "Safety Policy document maintained in Policy library with version history." },
+    evidence: "system", autoCheck: (d) => d.manualComplete("safety_policy") || d.policies?.some(p => (p.title||"").toLowerCase().includes("safety policy")),
+    evidenceDesc: "Documented in SMS Manuals (Safety Policy) or Policy library." },
 
   { id: "5.95b", subpart: "F", title: "SMS Process Documentation", section: "§ 5.95(b)",
     requirement: "Must develop and maintain documentation describing SMS processes and procedures.",
-    evidence: "policy", autoCheck: (d) => d.policies?.length > 1,
-    evidenceDesc: "SMS processes documented in Policy library. PreflightSMS itself serves as the documented process implementation." },
+    evidence: "policy", autoCheck: (d) => d.hasManuals || d.policies?.length > 1,
+    evidenceDesc: "Documented in SMS Manuals or Policy library. PreflightSMS itself serves as the documented process implementation." },
 
   { id: "5.97a", subpart: "F", title: "SRM Records", section: "§ 5.97(a)",
     requirement: "Must maintain records of SRM process outputs. Retain as long as control remains relevant to operation.",
@@ -281,7 +281,7 @@ const SUBPART_NAMES = {
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org }) {
+export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals }) {
   const [expandedSubpart, setExpandedSubpart] = useState("B");
   const [expandedReq, setExpandedReq] = useState(null);
   const [manualOverrides, setManualOverrides] = useState(() => {
@@ -315,7 +315,15 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
     hasDashboard: true,
     hasNotifications: true,
     hasRoles: (profiles||[]).some(p => p.role === "admin" || p.role === "safety_manager"),
-  }), [frats, flights, reports, hazards, actions, policies, profiles, trainingRecords]);
+    smsManuals: smsManuals || [],
+    hasManuals: (smsManuals || []).length > 0,
+    manualComplete: (key) => {
+      const m = (smsManuals || []).find(x => x.manual_key === key);
+      if (!m) return false;
+      const secs = m.sections || [];
+      return secs.length > 0 && secs.every(s => s.completed);
+    },
+  }), [frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, smsManuals]);
 
   // Calculate compliance status for each requirement
   const reqStatuses = useMemo(() => {
