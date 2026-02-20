@@ -2361,6 +2361,23 @@ export default function PVTAIRFrat() {
     return <AuthScreen onAuth={setSession} initialMode={initialMode} />;
   }
 
+  // Session exists but no profile — user was removed from org
+  if (isOnline && session && !authLoading && !profile) {
+    return (
+      <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ ...card, padding: 48, maxWidth: 440, textAlign: "center" }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${AMBER}44`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+            <span style={{ fontSize: 28 }}>{"\u26A0"}</span></div>
+          <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>No Organization Found</h2>
+          <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>Your account is not associated with any organization. You may have been removed, or your organization no longer exists. Contact your administrator or join a new organization.</p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+            <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const subStatus = profile?.organizations?.subscription_status || "active";
   const isSuspended = subStatus === "suspended";
   const isCanceled = subStatus === "canceled";
