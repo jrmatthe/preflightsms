@@ -73,16 +73,7 @@ const TEMPLATE_VARIABLES = [
     { key: "Alternate Hospital", label: "Alternate Hospital" },
     { key: "Alternate Hospital Phone", label: "Alternate Hospital Phone" },
   ]},
-  { group: "Aircraft", vars: [
-    { key: "Aircraft Type 1", label: "Aircraft Type 1" },
-    { key: "Aircraft Reg 1", label: "Registration(s) 1" },
-    { key: "Aircraft Pax 1", label: "Passenger Capacity 1" },
-    { key: "Aircraft Range 1", label: "Range 1" },
-    { key: "Aircraft Type 2", label: "Aircraft Type 2" },
-    { key: "Aircraft Reg 2", label: "Registration(s) 2" },
-    { key: "Aircraft Pax 2", label: "Passenger Capacity 2" },
-    { key: "Aircraft Range 2", label: "Range 2" },
-  ]},
+  // Aircraft is handled as a dynamic list, not fixed variables (see TemplateVariablesForm)
   { group: "Operations", vars: [
     { key: "Primary Operating Area", label: "Primary Operating Area" },
     { key: "Approved Areas", label: "Approved Operating Areas" },
@@ -100,7 +91,16 @@ function replaceVariables(content, variables) {
   if (!content || !variables) return content;
   let result = content;
   for (const [key, value] of Object.entries(variables)) {
+    if (key === "_aircraft") continue; // handled separately
     if (value) result = result.replaceAll(`[${key}]`, value);
+  }
+  // Build aircraft fleet list from dynamic array
+  const aircraft = variables._aircraft;
+  if (aircraft && aircraft.length > 0) {
+    const fleetLines = aircraft.map(a =>
+      `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`
+    ).join("\n");
+    result = result.replaceAll("[Aircraft Fleet List]", fleetLines);
   }
   return result;
 }
@@ -122,19 +122,30 @@ function TemplateVariablesForm({ variables, onSave }) {
   const [expanded, setExpanded] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [aircraft, setAircraft] = useState(variables?._aircraft || [{ type: "", reg: "", pax: "", range: "" }]);
 
-  useEffect(() => { setValues(variables || {}); }, [variables]);
+  useEffect(() => {
+    setValues(variables || {});
+    setAircraft(variables?._aircraft || [{ type: "", reg: "", pax: "", range: "" }]);
+  }, [variables]);
 
   const allVars = TEMPLATE_VARIABLES.flatMap(g => g.vars);
   const filledCount = allVars.filter(v => values[v.key]?.trim()).length;
+  const aircraftFilled = aircraft.filter(a => a.type?.trim()).length;
 
   const handleChange = (key, value) => {
     setValues(prev => ({ ...prev, [key]: value }));
   };
 
+  const updateAircraft = (idx, field, value) => {
+    setAircraft(prev => prev.map((a, i) => i === idx ? { ...a, [field]: value } : a));
+  };
+  const addAircraft = () => setAircraft(prev => [...prev, { type: "", reg: "", pax: "", range: "" }]);
+  const removeAircraft = (idx) => setAircraft(prev => prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev);
+
   const handleSave = async () => {
     setSaving(true);
-    await onSave(values);
+    await onSave({ ...values, _aircraft: aircraft });
     setSaving(false);
   };
 
@@ -188,6 +199,52 @@ function TemplateVariablesForm({ variables, onSave }) {
               </div>
             );
           })}
+
+          {/* Dynamic Aircraft Fleet */}
+          {(() => {
+            const isGroupOpen = expandedGroup === "Aircraft";
+            return (
+              <div style={{ marginBottom: 4 }}>
+                <div onClick={() => setExpandedGroup(isGroupOpen ? null : "Aircraft")}
+                  style={{ padding: "8px 12px", background: NEAR_BLACK, borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: OFF_WHITE }}>Aircraft Fleet</span>
+                  <span style={{ fontSize: 9, color: aircraftFilled === aircraft.length && aircraftFilled > 0 ? GREEN : MUTED }}>{aircraftFilled} aircraft {isGroupOpen ? "\u25B4" : "\u25BE"}</span>
+                </div>
+                {isGroupOpen && (
+                  <div style={{ padding: "10px 4px" }}>
+                    {aircraft.map((a, idx) => (
+                      <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 6, marginBottom: 6, alignItems: "end" }}>
+                        <div>
+                          {idx === 0 && <label style={{ display: "block", fontSize: 9, fontWeight: 600, color: MUTED, marginBottom: 3, textTransform: "uppercase" }}>Type</label>}
+                          <input value={a.type} onChange={e => updateAircraft(idx, "type", e.target.value)} placeholder="e.g. Cessna Citation CJ3" style={{ ...inp, padding: "7px 10px", fontSize: 12 }} />
+                        </div>
+                        <div>
+                          {idx === 0 && <label style={{ display: "block", fontSize: 9, fontWeight: 600, color: MUTED, marginBottom: 3, textTransform: "uppercase" }}>Registration</label>}
+                          <input value={a.reg} onChange={e => updateAircraft(idx, "reg", e.target.value)} placeholder="N12345" style={{ ...inp, padding: "7px 10px", fontSize: 12 }} />
+                        </div>
+                        <div>
+                          {idx === 0 && <label style={{ display: "block", fontSize: 9, fontWeight: 600, color: MUTED, marginBottom: 3, textTransform: "uppercase" }}>Pax</label>}
+                          <input value={a.pax} onChange={e => updateAircraft(idx, "pax", e.target.value)} placeholder="7" style={{ ...inp, padding: "7px 10px", fontSize: 12 }} />
+                        </div>
+                        <div>
+                          {idx === 0 && <label style={{ display: "block", fontSize: 9, fontWeight: 600, color: MUTED, marginBottom: 3, textTransform: "uppercase" }}>Range</label>}
+                          <input value={a.range} onChange={e => updateAircraft(idx, "range", e.target.value)} placeholder="1900nm" style={{ ...inp, padding: "7px 10px", fontSize: 12 }} />
+                        </div>
+                        <button onClick={() => removeAircraft(idx)} title="Remove"
+                          style={{ padding: "7px 10px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 4, color: MUTED, fontSize: 12, cursor: "pointer", marginTop: idx === 0 ? 17 : 0 }}>
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                    <button onClick={addAircraft}
+                      style={{ padding: "6px 14px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 4, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>
+                      + Add Aircraft
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           <button onClick={handleSave} disabled={saving}
             style={{ marginTop: 12, padding: "10px 24px", background: CYAN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: saving ? "default" : "pointer", opacity: saving ? 0.5 : 1 }}>
@@ -534,7 +591,7 @@ const SMS_MANUAL_TEMPLATES = [
         content: "[Company Name] conducts the following operational processes:\n\nFlight Operations:\n- Pre-flight: FRAT completion in PreflightSMS, weather briefing, flight planning, aircraft preflight inspection, crew briefing.\n- Dispatch/Release: Flight release per Part 135 operational control procedures. High-risk FRAT scores require management approval before release.\n- In-Flight: Operations conducted per SOPs, aircraft flight manual, and ATC instructions. Flight following monitored through PreflightSMS.\n- Post-Flight: Aircraft arrival logged in PreflightSMS. Squawks documented. Post-flight debrief for notable events.\n\nGround Operations:\n- Passenger handling: Boarding, safety briefing, baggage loading, and deplaning procedures.\n- Ramp operations: Aircraft marshaling, fueling, de-icing, and ground power procedures.\n- Hangar operations: Aircraft movement, storage, and security.\n\nMaintenance:\n- Scheduled maintenance per manufacturer-approved maintenance program.\n- Unscheduled maintenance and squawk resolution.\n- MEL management and deferral tracking.\n- Airworthiness directive compliance.\n- Parts inventory and procurement.\n\nDispatch / Scheduling:\n- Flight scheduling and crew assignment.\n- Crew duty time and rest tracking per Part 135 requirements.\n- Customer coordination and trip planning.\n- Weather monitoring and flight watch.\n\nTraining:\n- Initial and recurrent pilot training per Part 135.\n- SMS training for all personnel.\n- Emergency procedures training.\n- CBT course management through PreflightSMS.\n\nSafety Management:\n- FRAT administration and review.\n- Safety reporting and investigation.\n- Hazard identification and risk management.\n- Corrective action tracking.\n- Safety performance monitoring and assessment.", completed: false },
       { id: "osd_products", title: "Products and Services", cfr_ref: "\u00A7 5.17(b)",
         guidance: "Describe the products and services offered: types of operations (charter, air ambulance, cargo, etc.), aircraft types operated, geographic areas of operation, and any specialized services provided.",
-        content: "[Company Name] provides the following products and services under 14 CFR Part 135:\n\nTypes of Operations:\n- On-demand air charter (passenger)\n- [Air ambulance / air cargo / other - customize as applicable]\n- Part 91 ferry, positioning, and maintenance flights\n\nAircraft Fleet:\n- [Aircraft Type 1] - [Aircraft Reg 1] - [Aircraft Pax 1] - [Aircraft Range 1]\n- [Aircraft Type 2] - [Aircraft Reg 2] - [Aircraft Pax 2] - [Aircraft Range 2]\n(Update with actual aircraft types and registrations)\n\nGeographic Area of Operations:\n- Primary operating area: [Primary Operating Area]\n- Approved areas: [Approved Areas]\n- Home base: [Home Airport]\n- Secondary base(s): As applicable\n- Common destinations: [List frequently served airports/regions]\n\nSpecialized Services:\n- [e.g., Mountain flying operations, overwater operations, night operations]\n- [e.g., VIP/executive transport, medical transport]\n- [e.g., Hazardous materials transport if applicable]\n\nOperations Specifications:\n- Certificate Number: [Certificate Number]\n- Operations Specifications authorizations: [List key OpSpec authorizations such as IFR, day/night, known icing, etc.]\n\nThis section is updated whenever aircraft are added or removed from the fleet, new services are offered, or the geographic area of operations changes.", completed: false },
+        content: "[Company Name] provides the following products and services under 14 CFR Part 135:\n\nTypes of Operations:\n- On-demand air charter (passenger)\n- [Air ambulance / air cargo / other - customize as applicable]\n- Part 91 ferry, positioning, and maintenance flights\n\nAircraft Fleet:\n[Aircraft Fleet List]\n(Update via Template Variables above)\n\nGeographic Area of Operations:\n- Primary operating area: [Primary Operating Area]\n- Approved areas: [Approved Areas]\n- Home base: [Home Airport]\n- Secondary base(s): As applicable\n- Common destinations: [List frequently served airports/regions]\n\nSpecialized Services:\n- [e.g., Mountain flying operations, overwater operations, night operations]\n- [e.g., VIP/executive transport, medical transport]\n- [e.g., Hazardous materials transport if applicable]\n\nOperations Specifications:\n- Certificate Number: [Certificate Number]\n- Operations Specifications authorizations: [List key OpSpec authorizations such as IFR, day/night, known icing, etc.]\n\nThis section is updated whenever aircraft are added or removed from the fleet, new services are offered, or the geographic area of operations changes.", completed: false },
       { id: "osd_structure", title: "Organizational Structure", cfr_ref: "\u00A7 5.17(c)",
         guidance: "Describe the organizational structure including departments, reporting relationships, number of employees by function, and locations/bases of operation. Reference the organizational chart in the Safety Accountability manual.",
         content: "[Company Name] Organizational Structure:\n\nDepartments:\n- Executive Management: Accountable executive, administrative support.\n- Flight Operations: Chief Pilot, line pilots, first officers.\n- Dispatch / Scheduling: Dispatchers, flight coordinators.\n- Maintenance: Director of Maintenance, maintenance technicians, inspectors.\n- Safety: Safety Manager.\n- Administration: Finance, HR, customer service.\n\nPersonnel Count (update with actual numbers):\n- Total employees: [Total Employees]\n- Pilots: [Number of Pilots]\n- Maintenance: [Number of Maintenance]\n- Dispatch/Operations: [Number of Dispatch]\n- Management/Admin: [Number of Admin]\n\nLocations:\n- Primary base of operations: [Home Airport Code] - [City State] - [Facility Address]\n- Secondary base(s): [Airport code(s)] if applicable\n- Maintenance facility: [Location]\n- Administrative office: [Address if different from ops base]\n\nReporting Relationships:\n- The organizational chart and detailed reporting relationships are documented in the Safety Accountability & Authority manual.\n- The Safety Manager reports directly to the accountable executive on safety matters, independent of the operational chain of command.\n- All department heads report to the accountable executive.\n\nThis section is updated whenever there are significant changes to the organizational structure, personnel count, or base locations.", completed: false },
