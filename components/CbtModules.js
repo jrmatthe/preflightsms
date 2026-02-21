@@ -1083,31 +1083,31 @@ export default function CbtModules({
           </div>
         </div>
 
-        {publishedCourses.length === 0 ? (
-          courses.length === 0 && (trainingRequirements || []).length === 0 && isAdmin && onInitTraining ? (
-            <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
-              <div style={{ ...card, padding: 40 }}>
-                <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.6 }}>🎓</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Part 5 Training Program</div>
-                <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.6, marginBottom: 24, maxWidth: 420, margin: "0 auto 24px" }}>
-                  Set up a complete 14 CFR Part 5 compliant training program with pre-built requirements and courses covering all SMS competency areas.
-                </div>
-                <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 20 }}>
-                  10 training requirements (initial + recurrent) and 4 CBT courses with 12 lessons covering SMS Awareness, Hazard Identification, Safety Assurance, and Emergency Response will be created.
-                </div>
-                <button onClick={handleInitTraining} disabled={initializing}
-                  style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
-                  {initializing ? "Initializing..." : "Initialize Part 5 Training Program"}
-                </button>
+        {(trainingRequirements || []).length === 0 && isAdmin && onInitTraining && (
+          <div style={{ maxWidth: 600, margin: "0 auto 20px", textAlign: "center" }}>
+            <div style={{ ...card, padding: 40 }}>
+              <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.6 }}>🎓</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Part 5 Training Program</div>
+              <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.6, marginBottom: 24, maxWidth: 420, margin: "0 auto 24px" }}>
+                Set up a complete 14 CFR Part 5 compliant training program with pre-built requirements and courses covering all SMS competency areas.
               </div>
+              <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 20 }}>
+                10 training requirements (initial + recurrent) and 4 CBT courses with 12 lessons covering SMS Awareness, Hazard Identification, Safety Assurance, and Emergency Response will be created.
+              </div>
+              <button onClick={handleInitTraining} disabled={initializing}
+                style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
+                {initializing ? "Initializing..." : "Initialize Part 5 Training Program"}
+              </button>
             </div>
-          ) : (
-            <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
-              <div style={{ fontSize: 42, marginBottom: 12 }}>📚</div>
-              <div style={{ fontSize: 14 }}>No courses available yet.</div>
-              {isAdmin && <div style={{ fontSize: 12, marginTop: 4 }}>Create one to get started.</div>}
-            </div>
-          )
+          </div>
+        )}
+
+        {publishedCourses.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
+            <div style={{ fontSize: 42, marginBottom: 12 }}>📚</div>
+            <div style={{ fontSize: 14 }}>No courses available yet.</div>
+            {isAdmin && <div style={{ fontSize: 12, marginTop: 4 }}>Create one to get started.</div>}
+          </div>
         ) : publishedCourses.map(c => {
           const courseLessons = c.lessons || [];
           const myEnrollment = enrollments.find(e => e.course_id === c.id && e.user_id === profile?.id);
