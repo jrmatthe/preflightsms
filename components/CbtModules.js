@@ -866,6 +866,7 @@ export default function CbtModules({
   onUpdateProgress, onUpdateEnrollment,
   onPublishCourse, onRefresh,
   trainingRequirements, trainingRecords, onCreateRequirement, onLogTraining,
+  onDeleteTrainingRecord, onDeleteRequirement,
   onInitTraining,
 }) {
   const [topTab, setTopTab] = useState("cbt"); // cbt | records | requirements
@@ -1008,6 +1009,10 @@ export default function CbtModules({
                 <span style={{ fontSize: 10, fontWeight: 600, color: statusColor }}>
                   {isExpired ? "EXPIRED" : isExpiring ? "EXPIRING" : "CURRENT"}
                 </span>
+                {isAdmin && onDeleteTrainingRecord && (
+                  <button onClick={() => { if (confirm("Delete this training record?")) onDeleteTrainingRecord(r.id); }}
+                    style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+                )}
               </div>
             </div>
           );
@@ -1041,6 +1046,10 @@ export default function CbtModules({
                 {r.frequency_months > 0 ? `Every ${r.frequency_months} months` : "One-time"} · {r.required_for?.join(", ")}
               </span>
             </div>
+            {isAdmin && onDeleteRequirement && (
+              <button onClick={() => { if (confirm("Delete this requirement?")) onDeleteRequirement(r.id); }}
+                style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+            )}
           </div>
         ))}
       </div>
@@ -1140,6 +1149,10 @@ export default function CbtModules({
                   </div>
                 )}
               </div>
+              {isAdmin && (
+                <button onClick={e => { e.stopPropagation(); if (confirm(`Delete "${c.title}"?`)) { onDeleteCourse(c.id); } }}
+                  style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "4px 6px", flexShrink: 0 }}>✕</button>
+              )}
               <span style={{ fontSize: 16, color: MUTED }}>→</span>
             </div>
           );
