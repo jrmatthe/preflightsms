@@ -1010,6 +1010,50 @@ export default function CbtModules({
     return { current, expiring, expired };
   }, [trainingRecords]);
 
+  // Current user's training status (for expiry banner in CBT view)
+  const myTrainingStatus = useMemo(() => {
+    const now = new Date();
+    let expiring = 0, expired = 0;
+    (trainingRecords || []).forEach(r => {
+      if (r.user_id !== profile?.id || !r.expiry_date) return;
+      const exp = new Date(r.expiry_date);
+      if (exp < now) expired++;
+      else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) expiring++;
+    });
+    return { expiring, expired };
+  }, [trainingRecords, profile]);
+
+  // Compliance matrix: users × requirements (admin only)
+  const complianceMatrix = useMemo(() => {
+    if (!isAdmin || !orgProfiles?.length || !trainingRequirements?.length) return { users: [], requirements: [], matrix: {}, compliantCount: 0, totalUsers: 0 };
+    const now = new Date();
+    const reqs = trainingRequirements;
+    const users = orgProfiles.filter(p => p.full_name);
+    const matrix = {};
+    let compliantCount = 0;
+    for (const user of users) {
+      matrix[user.id] = {};
+      let allCurrent = true;
+      for (const req of reqs) {
+        // Find most recent matching record for this user + requirement
+        const matching = (trainingRecords || [])
+          .filter(r => r.user_id === user.id && r.requirement_id === req.id)
+          .sort((a, b) => (b.completed_date || "").localeCompare(a.completed_date || ""));
+        const rec = matching[0];
+        if (!rec) { matrix[user.id][req.id] = "not_completed"; allCurrent = false; }
+        else if (!rec.expiry_date) { matrix[user.id][req.id] = "current"; }
+        else {
+          const exp = new Date(rec.expiry_date);
+          if (exp < now) { matrix[user.id][req.id] = "expired"; allCurrent = false; }
+          else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) { matrix[user.id][req.id] = "expiring"; }
+          else { matrix[user.id][req.id] = "current"; }
+        }
+      }
+      if (allCurrent) compliantCount++;
+    }
+    return { users, requirements: reqs, matrix, compliantCount, totalUsers: users.length };
+  }, [isAdmin, orgProfiles, trainingRequirements, trainingRecords]);
+
   // Count courses by category
   const courseCategoryCounts = useMemo(() => {
     const c = { all: 0 };
@@ -1124,14 +1168,30 @@ export default function CbtModules({
     if (allDone) {
       const certNum = `CBT-${Date.now().toString(36).toUpperCase()}`;
       await onUpdateEnrollment(selectedCourse.id, { status: "completed", completedAt: new Date().toISOString(), certificateNumber: certNum });
-      // Auto-log as training record
+      // Auto-log as training record — link to matching requirement and set expiry
       if (onLogTraining) {
-        await onLogTraining({
-          title: `CBT: ${selectedCourse.title}`,
-          completedDate: new Date().toISOString().slice(0, 10),
-          instructor: "Computer-Based Training",
-          notes: `Certificate: ${certNum}`,
-        });
+        const matchingReq = (trainingRequirements || []).find(r => r.title === selectedCourse.title);
+        const completedDate = new Date().toISOString().slice(0, 10);
+        // Skip duplicate if same user + requirement + date already exists
+        const isDuplicate = matchingReq && (trainingRecords || []).some(r =>
+          r.user_id === profile.id && r.requirement_id === matchingReq.id && r.completed_date === completedDate
+        );
+        if (!isDuplicate) {
+          let expiryDate = null;
+          if (matchingReq && matchingReq.frequency_months > 0) {
+            const exp = new Date();
+            exp.setMonth(exp.getMonth() + matchingReq.frequency_months);
+            expiryDate = exp.toISOString().slice(0, 10);
+          }
+          await onLogTraining({
+            title: selectedCourse.title,
+            completedDate,
+            requirementId: matchingReq?.id || null,
+            expiryDate,
+            instructor: "Computer-Based Training",
+            notes: `Certificate: ${certNum}`,
+          });
+        }
       }
     } else {
       await onUpdateEnrollment(selectedCourse.id, { status: "in_progress" });
@@ -1151,10 +1211,12 @@ export default function CbtModules({
     </div>
   );
 
-  // Top-level tab bar (CBT Courses | Training Records | Requirements)
+  // Top-level tab bar (CBT Courses | Training Records | Requirements | Compliance)
+  const tabs = [["cbt", "CBT Courses"], ["records", "Training Records"], ["requirements", "Requirements"]];
+  if (isAdmin) tabs.push(["compliance", "Compliance"]);
   const renderTopTabs = () => (
     <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-      {[["cbt", "CBT Courses"], ["records", "Training Records"], ["requirements", "Requirements"]].map(([id, label]) => (
+      {tabs.map(([id, label]) => (
         <button key={id} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); setSortBy(id === "cbt" ? "title_az" : id === "records" ? "newest" : "title_az"); setShowCount(25); }}
           style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,
             background: topTab === id ? WHITE : "transparent", color: topTab === id ? BLACK : MUTED,
@@ -1306,6 +1368,73 @@ export default function CbtModules({
     );
   }
 
+  // ── Compliance tab (admin-only) ──
+  if (topTab === "compliance" && isAdmin) {
+    const { users, requirements, matrix, compliantCount, totalUsers } = complianceMatrix;
+    const statusDot = (status) => {
+      const colors = { current: GREEN, expiring: YELLOW, expired: RED, not_completed: SUBTLE };
+      const labels = { current: "Current", expiring: "Expiring", expired: "Expired", not_completed: "Not completed" };
+      return <span title={labels[status] || status} style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: colors[status] || SUBTLE }} />;
+    };
+    return (
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Training Compliance</div>
+            <div style={{ fontSize: 11, color: MUTED }}>Per-user compliance status across all training requirements</div>
+          </div>
+        </div>
+        {renderTopTabs()}
+        <div style={{ ...card, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: compliantCount === totalUsers ? GREEN : YELLOW }}>
+            {compliantCount} of {totalUsers}
+          </div>
+          <div style={{ fontSize: 12, color: MUTED }}>users fully compliant</div>
+          <div style={{ flex: 1 }} />
+          <div style={{ display: "flex", gap: 12, fontSize: 10, color: MUTED }}>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: GREEN, marginRight: 4 }} />Current</span>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: YELLOW, marginRight: 4 }} />Expiring</span>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: RED, marginRight: 4 }} />Expired</span>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: SUBTLE, marginRight: 4 }} />Not completed</span>
+          </div>
+        </div>
+        {requirements.length === 0 || users.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
+            <div style={{ fontSize: 42, marginBottom: 12 }}>📊</div>
+            <div style={{ fontSize: 14 }}>No training requirements or users found</div>
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111", minWidth: 140 }}>User</th>
+                  {requirements.map(r => (
+                    <th key={r.id} style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, fontSize: 10, maxWidth: 100, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={r.title}>
+                      {r.title.length > 16 ? r.title.slice(0, 15) + "…" : r.title}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(user => (
+                  <tr key={user.id}>
+                    <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111" }}>{user.full_name}</td>
+                    {requirements.map(r => (
+                      <td key={r.id} style={{ textAlign: "center", padding: "6px", borderBottom: `1px solid ${BORDER}` }}>
+                        {statusDot(matrix[user.id]?.[r.id] || "not_completed")}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ── CBT Courses tab (default) ──
 
   // Catalog view
@@ -1326,6 +1455,19 @@ export default function CbtModules({
         </div>
 
         {renderTopTabs()}
+
+        {myTrainingStatus.expired > 0 && (
+          <div style={{ padding: "10px 14px", marginBottom: 12, borderRadius: 8, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: RED, fontWeight: 600 }}>You have {myTrainingStatus.expired} expired training record{myTrainingStatus.expired !== 1 ? "s" : ""}</span>
+            <button onClick={() => { setTopTab("records"); setTrainingView("list"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(239,68,68,0.2)", color: RED, fontSize: 10, padding: "4px 10px" }}>View</button>
+          </div>
+        )}
+        {myTrainingStatus.expiring > 0 && myTrainingStatus.expired === 0 && (
+          <div style={{ padding: "10px 14px", marginBottom: 12, borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: YELLOW, fontWeight: 600 }}>You have {myTrainingStatus.expiring} training record{myTrainingStatus.expiring !== 1 ? "s" : ""} expiring within 30 days</span>
+            <button onClick={() => { setTopTab("records"); setTrainingView("list"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(250,204,21,0.1)", color: YELLOW, fontSize: 10, padding: "4px 10px" }}>View</button>
+          </div>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 20 }} className="stat-grid">
           <div style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
