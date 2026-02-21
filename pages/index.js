@@ -1283,6 +1283,10 @@ function SignupFlow({ onAuth }) {
     if (!agreedTos) { setError("Please agree to the Terms of Service and Privacy Policy"); return; }
     setError(""); setLoading(true);
     try {
+      // 1. Sign up user first (this authenticates them so RLS works)
+      const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
+      if (authErr) { setError(authErr.message); setLoading(false); return; }
+      // 2. Now authenticated — create org (RLS requires auth.uid())
       const slug = orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       const tier = selectedPlan;
       const features = getTierFeatures(tier);
@@ -1291,11 +1295,15 @@ function SignupFlow({ onAuth }) {
         subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 25 : 5,
       }).select().single();
       if (orgErr) { setError(orgErr.message); setLoading(false); return; }
-      const { error: signupErr } = await signUp(email, password, name.trim(), orgData.id);
-      if (signupErr) { setError(signupErr.message); setLoading(false); return; }
+      // 3. Create profile with org_id and set as admin
+      if (authData.user) {
+        await supabase.from("profiles").insert({
+          id: authData.user.id, org_id: orgData.id, full_name: name.trim(), email, role: "admin",
+        });
+      }
+      // 4. Sign in and proceed
       const { data: session } = await signIn(email, password);
       if (session?.session) {
-        await supabase.from("profiles").update({ role: "admin" }).eq("id", session.session.user.id);
         onAuth(session.session);
       } else {
         setError("Account created! Check your email to confirm, then log in.");
@@ -1441,7 +1449,8 @@ function SignupFlow({ onAuth }) {
             </>)}
             {step === 3 && (<>
               <h1 style={{ fontSize: 24, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Pick your plan</h1>
-              <p style={{ fontSize: 13, color: MUTED, margin: "0 0 24px" }}>Both include a full 14-day trial. Upgrade or downgrade anytime.</p>
+              <p style={{ fontSize: 13, color: MUTED, margin: "0 0 4px" }}>No credit card required.</p>
+              <p style={{ fontSize: 12, color: MUTED, margin: "0 0 24px" }}>Both include a full 14-day trial. Upgrade or downgrade anytime.</p>
               <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
                 {[
                   { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster & Currency", "Safety Reporting", "Hazard Register", "Policy Library"] },
@@ -1663,8 +1672,11 @@ function AuthScreen({ onAuth, initialMode }) {
     if (!agreedTos) { setError("Please agree to the Terms of Service and Privacy Policy"); return; }
     setError(""); setLoading(true);
     try {
-      let orgId;
       if (mode === "signup") {
+        // 1. Sign up user first (authenticates them so RLS works)
+        const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
+        if (authErr) { setError(authErr.message); setLoading(false); return; }
+        // 2. Now authenticated — create org
         const slug = orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
         const tier = selectedPlan;
         const features = getTierFeatures(tier);
@@ -1673,23 +1685,24 @@ function AuthScreen({ onAuth, initialMode }) {
           subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 25 : 5,
         }).select().single();
         if (orgErr) { setError(orgErr.message); setLoading(false); return; }
-        orgId = orgData.id;
-      } else {
-        const { data: orgData, error: orgErr } = await supabase.from("organizations").select("id").eq("slug", joinCode.trim().toLowerCase()).single();
-        if (orgErr || !orgData) { setError("Organization not found. Check your join code."); setLoading(false); return; }
-        orgId = orgData.id;
-      }
-      const { error: signupErr } = await signUp(email, password, name.trim(), orgId);
-      if (signupErr) { setError(signupErr.message); setLoading(false); return; }
-      // Set creator as admin
-      if (mode === "signup") {
+        // 3. Create profile with org_id and set as admin
+        if (authData.user) {
+          await supabase.from("profiles").insert({
+            id: authData.user.id, org_id: orgData.id, full_name: name.trim(), email, role: "admin",
+          });
+        }
+        // 4. Sign in and proceed
         const { data: session } = await signIn(email, password);
         if (session?.session) {
-          await supabase.from("profiles").update({ role: "admin" }).eq("id", session.session.user.id);
           onAuth(session.session);
           setLoading(false);
           return;
         }
+      } else {
+        const { data: orgData, error: orgErr } = await supabase.from("organizations").select("id").eq("slug", joinCode.trim().toLowerCase()).single();
+        if (orgErr || !orgData) { setError("Organization not found. Check your join code."); setLoading(false); return; }
+        const { error: signupErr } = await signUp(email, password, name.trim(), orgData.id);
+        if (signupErr) { setError(signupErr.message); setLoading(false); return; }
       }
       setError("Check your email to confirm your account, then log in.");
       setMode("login");
