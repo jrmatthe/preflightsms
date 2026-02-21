@@ -982,6 +982,26 @@ export default function CbtModules({
 
   useEffect(() => { setShowCount(25); }, [listFilter, search, sortBy]);
 
+  // Auto-reset expired course enrollments so user must retake
+  useEffect(() => {
+    if (!profile?.id || !onUpdateEnrollment) return;
+    const now = new Date();
+    for (const course of courses) {
+      const req = (trainingRequirements || []).find(r => r.title === course.title);
+      if (!req) continue;
+      const myRecord = (trainingRecords || [])
+        .filter(r => r.user_id === profile.id && r.requirement_id === req.id)
+        .sort((a, b) => (b.completed_date || "").localeCompare(a.completed_date || ""))[0];
+      if (!myRecord?.expiry_date) continue;
+      if (new Date(myRecord.expiry_date) >= now) continue;
+      // Record is expired — reset enrollment if it's marked completed
+      const myEnrollment = enrollments.find(e => e.course_id === course.id && e.user_id === profile.id && e.status === "completed");
+      if (myEnrollment) {
+        onUpdateEnrollment(course.id, { status: "expired", completedAt: null, certificateNumber: null });
+      }
+    }
+  }, [profile, courses, trainingRequirements, trainingRecords, enrollments, onUpdateEnrollment]);
+
   const handleInitTraining = async () => {
     setInitializing(true);
     await onInitTraining(PART5_TRAINING_REQUIREMENTS, PART5_CBT_COURSES);
@@ -1061,6 +1081,25 @@ export default function CbtModules({
     publishedCourses.forEach(course => { c.all++; if (c[course.category] !== undefined) c[course.category]++; });
     return c;
   }, [publishedCourses]);
+
+  // Per-course training status for current user (due/overdue indicators)
+  const courseTrainingStatus = useMemo(() => {
+    const now = new Date();
+    const map = {};
+    for (const course of publishedCourses) {
+      const req = (trainingRequirements || []).find(r => r.title === course.title);
+      if (!req) continue;
+      const myRecord = (trainingRecords || [])
+        .filter(r => r.user_id === profile?.id && r.requirement_id === req.id)
+        .sort((a, b) => (b.completed_date || "").localeCompare(a.completed_date || ""))[0];
+      if (!myRecord) { map[course.id] = "not_completed"; continue; }
+      if (!myRecord.expiry_date) continue; // no expiry = current, no badge needed
+      const exp = new Date(myRecord.expiry_date);
+      if (exp < now) map[course.id] = "expired";
+      else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) map[course.id] = "expiring";
+    }
+    return map;
+  }, [publishedCourses, trainingRequirements, trainingRecords, profile]);
 
   // Filtered lists for search + filter
   const filteredCourses = useMemo(() => {
@@ -1543,6 +1582,8 @@ export default function CbtModules({
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{c.title}</span>
                   {c.status === "draft" && <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: `${YELLOW}22`, color: YELLOW }}>DRAFT</span>}
+                  {courseTrainingStatus[c.id] === "expired" && <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: `${RED}22`, color: RED }}>OVERDUE</span>}
+                  {courseTrainingStatus[c.id] === "expiring" && <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: `${YELLOW}22`, color: YELLOW }}>DUE SOON</span>}
                 </div>
                 <div style={{ fontSize: 10, color: MUTED }}>
                   {cat?.label || c.category} · {courseLessons.length} lesson{courseLessons.length !== 1 ? "s" : ""} · {c.estimated_minutes} min
