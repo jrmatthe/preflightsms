@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 const CARD = "#161616", NEAR_BLACK = "#111111";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
@@ -120,8 +120,12 @@ function ActionCard({ a, onUpdateAction }) {
 
 export default function CorrectiveActions({ actions, onCreateAction, onUpdateAction }) {
   const [view, setView] = useState("list");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [showCount, setShowCount] = useState(25);
+
+  useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
 
   // Mark overdue
   const processed = useMemo(() => {
@@ -134,7 +138,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return processed.filter(a => {
+    let list = processed.filter(a => {
       if (filter !== "all" && a.status !== filter) return false;
       if (q) {
         const hay = `${a.title} ${a.description || ""} ${a.action_code || ""} ${a.assigned_to_name || ""}`.toLowerCase();
@@ -142,11 +146,21 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
       }
       return true;
     });
-  }, [processed, filter, search]);
+    list.sort((a, b) => {
+      if (sortBy === "oldest") return new Date(a.created_at) - new Date(b.created_at);
+      if (sortBy === "due_date") return (a.due_date || "9999") < (b.due_date || "9999") ? -1 : 1;
+      if (sortBy === "priority") {
+        const order = { critical: 0, high: 1, medium: 2, low: 3 };
+        return (order[a.priority] ?? 4) - (order[b.priority] ?? 4);
+      }
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+    return list;
+  }, [processed, filter, search, sortBy]);
 
   const counts = useMemo(() => {
-    const c = { open: 0, in_progress: 0, completed: 0, overdue: 0 };
-    processed.forEach(a => { if (c[a.status] !== undefined) c[a.status]++; });
+    const c = { all: 0, open: 0, in_progress: 0, completed: 0, overdue: 0, cancelled: 0 };
+    processed.forEach(a => { if (c[a.status] !== undefined) c[a.status]++; c.all++; });
     return c;
   }, [processed]);
 
@@ -180,6 +194,12 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
 
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search actions..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="due_date">Due date (soonest)</option>
+          <option value="priority">Priority (highest)</option>
+        </select>
       </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {["all", ...STATUSES.map(s => s.id)].map(f => (
@@ -187,7 +207,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
             style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${filter === f ? WHITE : BORDER}`,
               background: filter === f ? WHITE : CARD, color: filter === f ? BLACK : MUTED,
               fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-            {f === "all" ? `All (${actions.length})` : STATUSES.find(s => s.id === f)?.label}
+            {f === "all" ? `All (${counts.all})` : `${STATUSES.find(s => s.id === f)?.label} (${counts[f] || 0})`}
           </button>
         ))}
       </div>
@@ -197,9 +217,17 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
           <div style={{ fontSize: 42, marginBottom: 12 }}>✅</div>
           <div style={{ fontSize: 14 }}>No corrective actions</div>
         </div>
-      ) : filtered.map(a => (
-        <ActionCard key={a.id} a={a} onUpdateAction={onUpdateAction} />
-      ))}
+      ) : (<>
+        {filtered.slice(0, showCount).map(a => (
+          <ActionCard key={a.id} a={a} onUpdateAction={onUpdateAction} />
+        ))}
+        {filtered.length > showCount && (
+          <button onClick={() => setShowCount(c => c + 25)}
+            style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+            Showing {showCount} of {filtered.length} — Show 25 more
+          </button>
+        )}
+      </>)}
     </div>
   );
 }

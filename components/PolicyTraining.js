@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 const CARD = "#161616", NEAR_BLACK = "#111111";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
@@ -92,7 +92,11 @@ export default function PolicyTraining({
   const [view, setView] = useState("list");   // list | new_policy
   const [expandedPolicy, setExpandedPolicy] = useState(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("active");
+  const [sortBy, setSortBy] = useState("newest");
+  const [showCount, setShowCount] = useState(25);
+
+  useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
 
   const myAcks = useMemo(() => {
     const set = new Set();
@@ -104,9 +108,16 @@ export default function PolicyTraining({
 
   const manualPolicies = useMemo(() => policies.filter(p => p.source_manual_key), [policies]);
   const allUserPolicies = useMemo(() => policies.filter(p => !p.source_manual_key), [policies]);
+
+  const policyCounts = useMemo(() => {
+    const c = { all: 0, active: 0, draft: 0, under_review: 0, archived: 0 };
+    allUserPolicies.forEach(p => { if (c[p.status] !== undefined) c[p.status]++; c.all++; });
+    return c;
+  }, [allUserPolicies]);
+
   const userPolicies = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return allUserPolicies.filter(p => {
+    let list = allUserPolicies.filter(p => {
       if (filter !== "all" && p.status !== filter) return false;
       if (q) {
         const hay = `${p.title} ${p.description || ""} ${p.category || ""}`.toLowerCase();
@@ -114,7 +125,13 @@ export default function PolicyTraining({
       }
       return true;
     });
-  }, [allUserPolicies, filter, search]);
+    list.sort((a, b) => {
+      if (sortBy === "oldest") return new Date(a.created_at) - new Date(b.created_at);
+      if (sortBy === "title_az") return (a.title || "").localeCompare(b.title || "");
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+    return list;
+  }, [allUserPolicies, filter, search, sortBy]);
 
   // Forms
   if (view === "new_policy") return <PolicyForm onSubmit={p => { onCreatePolicy(p); setView("list"); }} onCancel={() => setView("list")} />;
@@ -210,10 +227,15 @@ export default function PolicyTraining({
       {manualPolicies.length > 0 && allUserPolicies.length > 0 && (
         <div style={{ fontSize: 12, fontWeight: 700, color: OFF_WHITE, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Other Documents</div>
       )}
-      {(allUserPolicies.length > 0 || search || filter !== "all") && (
+      {(allUserPolicies.length > 0 || search || filter !== "active") && (
         <>
           <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search documents..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="title_az">Title A-Z</option>
+            </select>
           </div>
           <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
             {["all", "active", "draft", "under_review", "archived"].map(f => (
@@ -221,7 +243,7 @@ export default function PolicyTraining({
                 style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${filter === f ? WHITE : BORDER}`,
                   background: filter === f ? WHITE : CARD, color: filter === f ? BLACK : MUTED,
                   fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-                {f === "all" ? `All (${allUserPolicies.length})` : f.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                {(f === "all" ? "All" : f.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())) + ` (${policyCounts[f] || 0})`}
               </button>
             ))}
           </div>
@@ -232,7 +254,7 @@ export default function PolicyTraining({
           <div style={{ fontSize: 42, marginBottom: 12 }}>📄</div>
           <div style={{ fontSize: 14 }}>No policy documents yet</div>
         </div>
-      ) : userPolicies.map(p => {
+      ) : userPolicies.slice(0, showCount).map(p => {
         const cat = POLICY_CATEGORIES.find(c => c.id === p.category);
         const acked = myAcks.has(p.id);
         const ackCount = p.acknowledgments?.length || 0;
@@ -285,6 +307,12 @@ export default function PolicyTraining({
           </div>
         );
       })}
+      {userPolicies.length > showCount && (
+        <button onClick={() => setShowCount(c => c + 25)}
+          style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+          Showing {showCount} of {userPolicies.length} — Show 25 more
+        </button>
+      )}
     </div>
   );
 }
