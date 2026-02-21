@@ -393,6 +393,14 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
     setInitializing(false);
   };
 
+  // Reset existing manuals to template defaults (preserves completed status for sections with user content)
+  const handleResetToDefaults = async () => {
+    if (!confirm("This will reload all sample content into your manuals. Any sections you have already edited will be updated with the template text. Continue?")) return;
+    setInitializing(true);
+    await onInitManuals(SMS_MANUAL_TEMPLATES);
+    setInitializing(false);
+  };
+
   // Editor view
   if (selectedManual) {
     const manual = smsManuals.find(m => m.id === selectedManual);
@@ -436,6 +444,10 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>SMS Manuals</div>
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR Part 5 SMS Documentation Templates</div>
         </div>
+        <button onClick={handleResetToDefaults} disabled={initializing}
+          style={{ padding: "8px 16px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
+          {initializing ? "Reloading..." : "Reload Template Defaults"}
+        </button>
       </div>
 
       {/* Summary stats */}
