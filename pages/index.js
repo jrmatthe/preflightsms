@@ -858,6 +858,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
     REJECTED: { label: "REJECTED", color: RED, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)" },
   };
   const [filter, setFilter] = useState("ACTIVE");
+  const [search, setSearch] = useState("");
   const [selectedFlight, setSelectedFlight] = useState(null);
   const [airportCoords, setAirportCoords] = useState({});
   const [now, setNow] = useState(Date.now());
@@ -881,7 +882,12 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
   }, [flights]);
 
   const recent = flights.filter(f => f.status !== "ARRIVED" || (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000);
-  const displayed = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
+  const displayed = (() => {
+    let list = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
+    const q = search.toLowerCase().trim();
+    if (q) list = list.filter(f => `${f.pilot || ""} ${f.departure || ""} ${f.destination || ""} ${f.aircraft || ""} ${f.id || ""}`.toLowerCase().includes(q));
+    return list;
+  })();
   const activeFlights = flights.filter(f => f.status === "ACTIVE" || f.status === "PENDING_APPROVAL");
 
   const isOverdue = (f) => {
@@ -963,6 +969,9 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search flights..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+      </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 6 }}>
           {["ACTIVE", "ARRIVED", "ALL"].map(f => (

@@ -274,6 +274,7 @@ function HazardCard({ hazard, linkedReport }) {
 export default function HazardRegister({ profile, session, onCreateHazard, hazards, fromReport, onClearFromReport, reports }) {
   const [view, setView] = useState(fromReport ? "new" : "list");
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   // If fromReport changes (user clicked Create Hazard from a report), switch to new form
   const [lastFromReport, setLastFromReport] = useState(fromReport?.id);
@@ -283,11 +284,16 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
   }
 
   const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
     return hazards.filter(h => {
-      if (filter === "all") return true;
-      return h.status === filter;
+      if (filter !== "all" && h.status !== filter) return false;
+      if (q) {
+        const hay = `${h.title} ${h.description} ${h.hazard_code} ${h.category} ${h.responsible_person || ""} ${h.source || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
     });
-  }, [hazards, filter]);
+  }, [hazards, filter, search]);
 
   const riskSummary = useMemo(() => {
     const s = { critical: 0, high: 0, medium: 0, low: 0 };
@@ -338,7 +344,10 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
         ))}
       </div>
 
-      {/* Filters */}
+      {/* Search & Filters */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search hazards..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+      </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {["all", ...HAZARD_STATUSES.map(s => s.id)].map(f => (
           <button key={f} onClick={() => setFilter(f)}

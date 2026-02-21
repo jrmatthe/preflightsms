@@ -78,6 +78,7 @@ function ActionForm({ onSubmit, onCancel, existingCount }) {
 export default function CorrectiveActions({ actions, onCreateAction, onUpdateAction }) {
   const [view, setView] = useState("list");
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   // Mark overdue
   const processed = useMemo(() => {
@@ -89,9 +90,16 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
   }, [actions]);
 
   const filtered = useMemo(() => {
-    if (filter === "all") return processed;
-    return processed.filter(a => a.status === filter);
-  }, [processed, filter]);
+    const q = search.toLowerCase().trim();
+    return processed.filter(a => {
+      if (filter !== "all" && a.status !== filter) return false;
+      if (q) {
+        const hay = `${a.title} ${a.description || ""} ${a.action_code || ""} ${a.assigned_to_name || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [processed, filter, search]);
 
   const counts = useMemo(() => {
     const c = { open: 0, in_progress: 0, completed: 0, overdue: 0 };
@@ -127,6 +135,9 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
         ))}
       </div>
 
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search actions..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+      </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {["all", ...STATUSES.map(s => s.id)].map(f => (
           <button key={f} onClick={() => setFilter(f)}
