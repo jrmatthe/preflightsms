@@ -234,6 +234,7 @@ export default function PolicyTraining({
 }) {
   const [tab, setTab] = useState("policies"); // policies | training
   const [view, setView] = useState("list");   // list | new_policy | new_training | new_requirement
+  const [expandedPolicy, setExpandedPolicy] = useState(null);
 
   const myAcks = useMemo(() => {
     const set = new Set();
@@ -320,30 +321,50 @@ export default function PolicyTraining({
                 const ackCount = p.acknowledgments?.length || 0;
                 const totalUsers = orgProfiles?.length || 0;
                 const statusColor = p.status === "active" ? GREEN : p.status === "draft" ? YELLOW : MUTED;
+                const isExpanded = expandedPolicy === p.id;
                 return (
-                  <div key={p.id} style={{ ...card, padding: "14px 18px", marginBottom: 8, borderLeft: `3px solid ${CYAN}` }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
-                          <span style={{ fontWeight: 700, color: WHITE, fontSize: 13 }}>{p.title}</span>
-                          <span style={{ background: `${CYAN}22`, color: CYAN, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>SMS Manual</span>
-                          <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{p.status}</span>
-                          <span style={{ background: BORDER, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{p.version}</span>
+                  <div key={p.id} style={{ ...card, marginBottom: 8, borderLeft: `3px solid ${CYAN}`, overflow: "hidden" }}>
+                    <div style={{ padding: "14px 18px", cursor: "pointer" }} onClick={() => setExpandedPolicy(isExpanded ? null : p.id)}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 700, color: WHITE, fontSize: 13 }}>{p.title}</span>
+                            <span style={{ background: `${CYAN}22`, color: CYAN, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>SMS Manual</span>
+                            <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{p.status}</span>
+                            <span style={{ background: BORDER, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{p.version}</span>
+                          </div>
+                          <div style={{ color: MUTED, fontSize: 10 }}>
+                            {ackCount}/{totalUsers} acknowledged{p.effective_date && ` \u00b7 Effective: ${p.effective_date}`}
+                            {!isExpanded && " \u00b7 Click to review"}
+                          </div>
                         </div>
-                        <div style={{ color: MUTED, fontSize: 10 }}>
-                          {ackCount}/{totalUsers} acknowledged{p.effective_date && ` · Effective: ${p.effective_date}`}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {!acked && (
+                            <button onClick={(e) => { e.stopPropagation(); onAcknowledgePolicy(p.id); }}
+                              style={{ padding: "6px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: "pointer",
+                                background: `${CYAN}22`, color: CYAN, border: `1px solid ${CYAN}44` }}>
+                              Acknowledge
+                            </button>
+                          )}
+                          {acked && <span style={{ fontSize: 10, color: GREEN }}>Acknowledged</span>}
+                          <span style={{ fontSize: 12, color: MUTED }}>{isExpanded ? "\u25B4" : "\u25BE"}</span>
                         </div>
-                        {p.description && <div style={{ color: "#666", fontSize: 11, marginTop: 2 }}>{p.description}</div>}
                       </div>
-                      {p.status === "active" && !acked && (
-                        <button onClick={() => onAcknowledgePolicy(p.id)}
-                          style={{ padding: "6px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: "pointer",
-                            background: `${CYAN}22`, color: CYAN, border: `1px solid ${CYAN}44` }}>
-                          Acknowledge
-                        </button>
-                      )}
-                      {acked && <span style={{ fontSize: 10, color: GREEN }}>Acknowledged</span>}
                     </div>
+                    {isExpanded && p.content && (
+                      <div style={{ padding: "0 18px 18px", borderTop: `1px solid ${BORDER}` }}>
+                        <div style={{ marginTop: 14, whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.7, color: OFF_WHITE, maxHeight: 500, overflowY: "auto", background: NEAR_BLACK, borderRadius: 6, padding: 16 }}>
+                          {p.content}
+                        </div>
+                        {!acked && (
+                          <button onClick={() => onAcknowledgePolicy(p.id)}
+                            style={{ marginTop: 12, padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                              background: WHITE, color: BLACK, border: "none" }}>
+                            I have reviewed this document — Acknowledge
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -364,31 +385,51 @@ export default function PolicyTraining({
             const acked = myAcks.has(p.id);
             const ackCount = p.acknowledgments?.length || 0;
             const statusColor = p.status === "active" ? GREEN : p.status === "draft" ? YELLOW : MUTED;
+            const isExpanded = expandedPolicy === p.id;
             return (
-              <div key={p.id} style={{ ...card, padding: "14px 18px", marginBottom: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
-                      <span style={{ fontWeight: 700, color: WHITE, fontSize: 13 }}>{p.title}</span>
-                      <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{p.status}</span>
-                      <span style={{ background: `${BORDER}`, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{p.version}</span>
+              <div key={p.id} style={{ ...card, marginBottom: 8, overflow: "hidden" }}>
+                <div style={{ padding: "14px 18px", cursor: "pointer" }} onClick={() => setExpandedPolicy(isExpanded ? null : p.id)}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 700, color: WHITE, fontSize: 13 }}>{p.title}</span>
+                        <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{p.status}</span>
+                        <span style={{ background: `${BORDER}`, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{p.version}</span>
+                      </div>
+                      <div style={{ color: MUTED, fontSize: 10 }}>
+                        {cat?.label || p.category} · {ackCount} acknowledgment{ackCount !== 1 ? "s" : ""}
+                        {p.effective_date && ` \u00b7 Effective: ${p.effective_date}`}
+                        {p.review_date && ` \u00b7 Review: ${p.review_date}`}
+                      </div>
+                      {p.description && <div style={{ color: "#666", fontSize: 11, marginTop: 2 }}>{p.description}</div>}
                     </div>
-                    <div style={{ color: MUTED, fontSize: 10 }}>
-                      {cat?.label || p.category} · {ackCount} acknowledgment{ackCount !== 1 ? "s" : ""}
-                      {p.effective_date && ` · Effective: ${p.effective_date}`}
-                      {p.review_date && ` · Review: ${p.review_date}`}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {!acked && (
+                        <button onClick={(e) => { e.stopPropagation(); onAcknowledgePolicy(p.id); }}
+                          style={{ padding: "6px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: "pointer",
+                            background: `${CYAN}22`, color: CYAN, border: `1px solid ${CYAN}44` }}>
+                          Acknowledge
+                        </button>
+                      )}
+                      {acked && <span style={{ fontSize: 10, color: GREEN }}>Acknowledged</span>}
+                      <span style={{ fontSize: 12, color: MUTED }}>{isExpanded ? "\u25B4" : "\u25BE"}</span>
                     </div>
-                    {p.description && <div style={{ color: "#666", fontSize: 11, marginTop: 2 }}>{p.description}</div>}
                   </div>
-                  {p.status === "active" && !acked && (
-                    <button onClick={() => onAcknowledgePolicy(p.id)}
-                      style={{ padding: "6px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: "pointer",
-                        background: `${CYAN}22`, color: CYAN, border: `1px solid ${CYAN}44` }}>
-                      Acknowledge
-                    </button>
-                  )}
-                  {acked && <span style={{ fontSize: 10, color: GREEN }}>✓ Acknowledged</span>}
                 </div>
+                {isExpanded && p.content && (
+                  <div style={{ padding: "0 18px 18px", borderTop: `1px solid ${BORDER}` }}>
+                    <div style={{ marginTop: 14, whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.7, color: OFF_WHITE, maxHeight: 500, overflowY: "auto", background: NEAR_BLACK, borderRadius: 6, padding: 16 }}>
+                      {p.content}
+                    </div>
+                    {!acked && (
+                      <button onClick={() => onAcknowledgePolicy(p.id)}
+                        style={{ marginTop: 12, padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                          background: WHITE, color: BLACK, border: "none" }}>
+                        I have reviewed this document — Acknowledge
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
