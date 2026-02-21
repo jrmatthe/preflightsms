@@ -42,27 +42,20 @@ const CATEGORIES = [
 
 // ── PART 5 TRAINING REQUIREMENTS (pre-seed) ─────────────────────
 const PART5_TRAINING_REQUIREMENTS = [
-  // Initial (one-time, frequencyMonths: 0)
-  { title: "SMS Awareness & Foundations", description: "Initial training covering SMS principles, the four pillars (Policy, SRM, SA, SP), and organizational safety objectives per §5.21 and §5.23.", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 0 },
-  { title: "Safety Reporting & Just Culture", description: "Training on safety reporting obligations, non-punitive reporting policy, unacceptable behavior boundaries, and confidentiality protections per §5.21(a)(4-5) and §5.71(a)(7).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 0 },
-  { title: "Hazard Identification & Risk Management", description: "Training on hazard identification methods, risk analysis using likelihood/severity matrices, and risk control strategies per §5.53 and §5.55.", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 0 },
-  { title: "Emergency Response Plan Training", description: "Initial training on the organization's Emergency Response Plan including activation procedures, notification chains, and post-event responsibilities per §5.27.", category: "emergency", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 0 },
-  { title: "Accountable Executive SMS Duties", description: "Role-specific training for the Accountable Executive covering SMS implementation accountability, resource provision, risk control oversight, and safety performance review per §5.25(a-b).", category: "sms", requiredFor: ["accountable_exec"], frequencyMonths: 0 },
-  { title: "Safety Manager Advanced SMS", description: "Advanced training for the designated Safety Manager covering SMS coordination, hazard analysis facilitation, risk control monitoring, safety promotion, and AE reporting per §5.25(c).", category: "sms", requiredFor: ["safety_manager"], frequencyMonths: 0 },
-  // Recurrent (annual, frequencyMonths: 12)
-  { title: "Annual SMS Recurrent Training", description: "Annual refresher covering SMS policy updates, recent safety events, lessons learned, and organizational changes affecting safety per §5.91.", category: "recurrent", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
-  { title: "Safety Risk Management Refresher", description: "Annual refresher on SRM processes including hazard identification techniques, risk matrix application, and risk control evaluation per §5.51–§5.55.", category: "recurrent", requiredFor: ["pilot", "safety_manager", "chief_pilot"], frequencyMonths: 12 },
-  { title: "Safety Assurance & Performance Review", description: "Annual training on safety performance monitoring, data-driven analysis, assessment processes, and continuous improvement per §5.71–§5.75.", category: "recurrent", requiredFor: ["safety_manager", "chief_pilot", "accountable_exec"], frequencyMonths: 12 },
-  { title: "Safety Promotion & Communication", description: "Annual training on safety communication methods, hazard information dissemination, safety action explanation, and procedure change communication per §5.93.", category: "recurrent", requiredFor: ["safety_manager", "chief_pilot"], frequencyMonths: 12 },
+  { title: "Safety Policy & SMS Foundations", description: "Training on SMS principles, the four pillars, safety policy, organizational roles and accountability, safety reporting, and just culture per Subpart B (§5.21, §5.23, §5.25).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Safety Risk Management", description: "Training on hazard identification, system analysis, risk assessment using likelihood/severity matrices, and risk control development per Subpart C (§5.51–§5.55).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Safety Assurance", description: "Training on safety performance monitoring, data analysis, safety performance assessment, and continuous improvement per Subpart D (§5.71–§5.75).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Emergency Response Planning", description: "Training on the organization's Emergency Response Plan including delegation of emergency authority, assignment of responsibilities, and coordination with interfacing organizations per §5.27.", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Safety Promotion", description: "Training on SMS competency requirements, safety communication methods, hazard information dissemination, and explanation of safety actions and procedure changes per Subpart E (§5.91, §5.93).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
 ];
 
 // ── PART 5 CBT COURSES (pre-seed) ──────────────────────────────
 const PART5_CBT_COURSES = [
   {
-    title: "SMS Awareness & Foundations",
-    description: "Comprehensive introduction to Safety Management Systems as required by 14 CFR Part 5. Covers the four pillars, safety policy, organizational responsibilities, and reporting culture.",
+    title: "Safety Policy & SMS Foundations",
+    description: "Comprehensive training on Safety Management Systems under 14 CFR Part 5 Subpart B. Covers the four pillars, safety policy, safety reporting, just culture, organizational roles and accountability (§5.21, §5.23, §5.25).",
     category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
-    passingScore: 80, estimatedMinutes: 20,
+    passingScore: 80, estimatedMinutes: 45,
     lessons: [
       {
         title: "Introduction to SMS & The Four Pillars",
@@ -115,11 +108,44 @@ const PART5_CBT_COURSES = [
           { question: "Which of the following is the BEST reason to report a near-miss event?", options: ["To place blame on the responsible party", "To comply with insurance requirements", "To identify hazards before they cause an accident", "To create a paper trail for legal defense"], correct: 2, explanation: "The primary purpose of reporting near-misses is to identify hazards and contributing factors so that risk controls can be implemented before an accident occurs. This is the proactive foundation of SMS." },
         ],
       },
+      {
+        title: "Accountable Executive Responsibilities",
+        sortOrder: 3,
+        contentBlocks: [
+          { type: "heading", content: "The Accountable Executive Role (§5.25(a-b))" },
+          { type: "text", content: "The Accountable Executive (AE) is the single person who bears ultimate accountability for SMS implementation. Under §5.25(a), the AE must have:\n\n• Control of the resources required for operations authorized under the certificate\n• Responsibility for the financial affairs of the organization\n• Final authority over operations conducted under the certificate\n\nThis is typically the CEO, President, or certificate holder. The AE cannot delegate this accountability — though specific tasks may be delegated, the accountability remains with the AE." },
+          { type: "heading", content: "Five Core AE Responsibilities (§5.25(b))" },
+          { type: "text", content: "Under §5.25(b), the Accountable Executive is specifically responsible for:\n\n1. Ensuring the SMS is properly implemented and performing in all areas of the organization\n2. Ensuring the SMS is implemented and functions as designed\n3. Ensuring the necessary resources for SMS are available\n4. Ensuring effective safety risk controls are in place\n5. Regularly reviewing the organization's safety performance\n\nThese are not passive responsibilities. The AE must actively engage with the SMS — reviewing safety performance data, approving high-level risk acceptances, ensuring corrective actions are completed, and visibly demonstrating commitment to safety." },
+          { type: "callout", content: "The AE's signature on the safety policy is not a formality. It represents personal accountability for every element of the SMS. FAA inspectors will verify that the AE is actively engaged, not just a figurehead." },
+          { type: "text", content: "Practical AE engagement includes:\n\n• Quarterly review of safety performance indicators with the Safety Manager\n• Personal approval of any risk assessment rated as 'High'\n• Annual review and signing of the safety policy\n• Allocation of budget for safety training, reporting tools, and corrective actions\n• Attendance at safety meetings (at minimum, quarterly safety review boards)\n• Follow-up on overdue corrective actions and open hazards" },
+        ],
+        quizQuestions: [
+          { question: "Under §5.25(a), which attribute must the Accountable Executive possess?", options: ["An airline transport pilot certificate", "Control of operational resources and financial responsibility", "A degree in safety management", "At least 10 years of industry experience"], correct: 1, explanation: "§5.25(a) requires the AE to have control of the resources required for operations and responsibility for the organization's financial affairs. These ensure the AE has the authority and means to fund and support SMS implementation." },
+          { question: "How many specific responsibilities does §5.25(b) assign to the Accountable Executive?", options: ["Three", "Five", "Seven", "Ten"], correct: 1, explanation: "§5.25(b) lists five specific responsibilities: (1) ensure SMS is properly implemented, (2) ensure SMS functions as designed, (3) ensure necessary resources, (4) ensure effective risk controls, and (5) regularly review safety performance." },
+          { question: "Can the Accountable Executive delegate their SMS accountability to the Safety Manager?", options: ["Yes, through a formal letter of delegation", "Yes, if the Safety Manager agrees", "No — accountability remains with the AE even if tasks are delegated", "Only during the AE's absence"], correct: 2, explanation: "The AE can delegate specific SMS tasks but cannot delegate the accountability itself. This is a fundamental principle of §5.25 — one person must be ultimately accountable for SMS performance." },
+        ],
+      },
+      {
+        title: "Safety Manager & Management Personnel Duties",
+        sortOrder: 4,
+        contentBlocks: [
+          { type: "heading", content: "Designated Management Personnel (§5.25(c))" },
+          { type: "text", content: "Under §5.25(c), the certificate holder must designate management personnel who, on behalf of the Accountable Executive, are responsible for:\n\n1. Coordinating the SMS throughout the organization\n2. Facilitating hazard identification and safety risk analysis\n3. Monitoring the effectiveness of safety risk controls\n4. Ensuring safety promotion activities are carried out\n5. Regularly reporting to the Accountable Executive on SMS performance\n\nThe Safety Manager typically fulfills most of these functions, but they may be distributed among multiple management positions depending on organizational size." },
+          { type: "heading", content: "Day-to-Day Safety Manager Functions" },
+          { type: "text", content: "The Safety Manager's daily responsibilities include:\n\n• Monitoring incoming safety reports and triaging by severity\n• Maintaining the hazard register and ensuring timely risk assessments\n• Tracking corrective action completion and verifying effectiveness\n• Preparing safety performance data for management review\n• Coordinating training requirements and tracking compliance\n• Managing the safety reporting system (PreflightSMS)\n• Serving as the primary point of contact for safety-related inquiries\n• Coordinating with the FAA and other regulatory bodies on safety matters\n• Facilitating safety meetings and documenting outcomes\n• Ensuring all SMS documentation is current and accessible" },
+          { type: "callout", content: "The Safety Manager is the engine of the SMS. While the AE provides direction and resources, the Safety Manager ensures the system runs day-to-day. Without active engagement from this role, the SMS becomes a paper program." },
+          { type: "text", content: "The Chief Pilot often shares SMS management responsibilities, particularly regarding:\n\n• Operational risk decisions (FRAT review, flight approval)\n• Pilot training and competency evaluation\n• Standard operating procedure development and updates\n• Line safety audits and operational observations\n• Crew resource management program oversight" },
+        ],
+        quizQuestions: [
+          { question: "Under §5.25(c), how many specific functions must designated management personnel fulfill?", options: ["Three", "Five", "Seven", "Nine"], correct: 1, explanation: "§5.25(c) lists five specific functions: coordinate SMS, facilitate hazard identification and risk analysis, monitor risk control effectiveness, ensure safety promotion, and report to the AE on SMS performance." },
+          { question: "What is the Safety Manager's role regarding the hazard register?", options: ["They only review it annually", "They maintain it and ensure timely risk assessments are completed", "They delegate it entirely to line employees", "They only use it during FAA audits"], correct: 1, explanation: "The Safety Manager actively maintains the hazard register as a core daily responsibility — ensuring new hazards are logged, risk assessments are completed in a timely manner, and controls are tracked through to implementation and verification." },
+        ],
+      },
     ],
   },
   {
-    title: "Hazard Identification & Risk Management",
-    description: "Learn to identify aviation hazards, assess risk using likelihood and severity matrices, and develop effective risk controls per 14 CFR Part 5 Subpart C.",
+    title: "Safety Risk Management",
+    description: "Training on hazard identification, system analysis, risk assessment using likelihood/severity matrices, and risk control development per 14 CFR Part 5 Subpart C (§5.51–§5.55).",
     category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
     passingScore: 80, estimatedMinutes: 25,
     lessons: [
@@ -176,10 +202,10 @@ const PART5_CBT_COURSES = [
     ],
   },
   {
-    title: "Safety Assurance Fundamentals",
-    description: "Understand how safety performance monitoring, data analysis, and continuous improvement processes keep your SMS effective per 14 CFR Part 5 Subpart D.",
-    category: "recurrent", requiredFor: ["safety_manager", "chief_pilot", "admin"],
-    passingScore: 80, estimatedMinutes: 20,
+    title: "Safety Assurance",
+    description: "Training on safety performance monitoring, data analysis, safety performance assessment, and continuous improvement per 14 CFR Part 5 Subpart D (§5.71–§5.75).",
+    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    passingScore: 80, estimatedMinutes: 30,
     lessons: [
       {
         title: "Safety Performance Monitoring",
@@ -230,12 +256,29 @@ const PART5_CBT_COURSES = [
           { question: "How often should safety performance assessments typically be conducted?", options: ["Only after an accident", "Daily by line employees", "At least quarterly, with an annual comprehensive review", "Every five years during certificate renewal"], correct: 2, explanation: "Best practice under §5.73 is to conduct safety performance reviews at least quarterly, with a comprehensive annual assessment for the Accountable Executive. Ad-hoc assessments may be needed after significant events." },
         ],
       },
+      {
+        title: "Safety Performance Review & Oversight",
+        sortOrder: 3,
+        contentBlocks: [
+          { type: "heading", content: "Management Review Process" },
+          { type: "text", content: "Effective SMS leadership requires regular, structured review of safety performance. This connects the AE's oversight responsibility (§5.25(b)(5)) with the Safety Assurance requirements (§5.73).\n\nA recommended review structure:\n\n• Weekly — Safety Manager reviews incoming reports, FRAT trends, and open actions\n• Monthly — Safety Manager briefs Chief Pilot and operations leadership on safety metrics\n• Quarterly — Safety Review Board meeting with AE, Safety Manager, Chief Pilot, and department heads\n• Annually — Comprehensive SMS performance assessment with formal report to the AE" },
+          { type: "heading", content: "What to Review" },
+          { type: "text", content: "Key metrics for management review:\n\n• Safety reports received (volume, types, trends)\n• FRAT score trends and distribution\n• Open hazards and average time to closure\n• Corrective action completion rate and overdue items\n• Training compliance rates across all requirements\n• Incident and event rates (normalized per flight hours or departures)\n• Audit findings — internal and external\n• Safety objectives — progress toward targets defined in safety policy\n\nLook for trends, not just individual data points. A single high FRAT score is normal. A steady increase in average FRAT scores over three months is a signal that requires investigation." },
+          { type: "callout", content: "If you review safety data but don't act on what it tells you, you don't have a safety management system — you have a safety data collection system. Review must lead to action." },
+          { type: "text", content: "After each review, document:\n\n• Key findings and trends identified\n• Decisions made and rationale\n• Action items with owners and deadlines\n• Resources approved or requested\n• Date of next review\n\nThis documentation serves as evidence of active SMS management during FAA audits and demonstrates the continuous improvement cycle required by §5.75. PreflightSMS's Audit Log and Dashboard provide ready-made data for these reviews." },
+        ],
+        quizQuestions: [
+          { question: "How often should the Accountable Executive formally review SMS safety performance?", options: ["Only when an accident occurs", "Daily, reviewing every safety report personally", "At least quarterly, with a comprehensive annual assessment", "Every five years during certificate renewal"], correct: 2, explanation: "Best practice is for the AE to participate in quarterly Safety Review Board meetings and receive a comprehensive annual SMS performance assessment. This fulfills the §5.25(b)(5) requirement to regularly review safety performance." },
+          { question: "What should happen after a management safety review identifies a negative trend?", options: ["Document the finding and wait to see if it resolves itself", "Take specific corrective action with assigned owners and deadlines", "Increase punishment for involved employees", "Reduce the frequency of future reviews"], correct: 1, explanation: "Review must lead to action per §5.75. When a negative trend is identified, specific corrective actions should be developed with clear owners, deadlines, and a plan to verify effectiveness. Passive documentation without action defeats the purpose of monitoring." },
+          { question: "Which combination of metrics provides the best picture of overall SMS health?", options: ["Revenue and customer satisfaction only", "Report volume, hazard closure time, training compliance, and FRAT trends", "Number of FAA inspections passed", "Total flight hours and fleet size"], correct: 1, explanation: "A comprehensive view of SMS health requires multiple indicators: reporting volume (culture health), hazard closure time (responsiveness), training compliance (competency), and FRAT trends (operational risk). No single metric tells the full story." },
+        ],
+      },
     ],
   },
   {
-    title: "Emergency Response Procedures",
-    description: "Training on your organization's Emergency Response Plan including emergency classification, notification procedures, command structure, and post-event recovery per §5.27.",
-    category: "emergency", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    title: "Emergency Response Planning",
+    description: "Training on the organization's Emergency Response Plan including delegation of emergency authority, assignment of responsibilities, and coordination with interfacing organizations per §5.27.",
+    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
     passingScore: 80, estimatedMinutes: 15,
     lessons: [
       {
@@ -290,9 +333,9 @@ const PART5_CBT_COURSES = [
     ],
   },
   {
-    title: "Safety Promotion & Communication",
-    description: "Learn how to effectively communicate safety information, promote a positive safety culture, and fulfill the safety promotion requirements of 14 CFR Part 5 Subpart E (§5.93).",
-    category: "sms", requiredFor: ["safety_manager", "chief_pilot", "admin"],
+    title: "Safety Promotion",
+    description: "Training on SMS competency requirements, safety communication methods, hazard information dissemination, and explanation of safety actions and procedure changes per Subpart E (§5.91, §5.93).",
+    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
     passingScore: 80, estimatedMinutes: 20,
     lessons: [
       {
@@ -342,64 +385,6 @@ const PART5_CBT_COURSES = [
         quizQuestions: [
           { question: "Which of the following best describes a positive safety culture?", options: ["Zero accident record over the past year", "Employees openly discuss concerns and trust that reporting is handled fairly", "Strict punishment for any deviation from standard procedures", "Management makes all safety decisions without employee input"], correct: 1, explanation: "A positive safety culture is characterized by trust, openness, and learning. A zero-accident record may reflect luck rather than culture, and punitive approaches actually discourage the reporting that makes SMS effective." },
           { question: "Under §5.91–§5.93, who is primarily responsible for safety promotion activities?", options: ["Only the FAA inspector", "Only line pilots", "Management, with the Accountable Executive setting the tone", "The insurance company"], correct: 2, explanation: "While everyone participates in safety culture, §5.25 makes the Accountable Executive responsible for ensuring safety promotion, and §5.25(c) designates management personnel to carry it out. Leadership sets the tone that everyone else follows." },
-        ],
-      },
-    ],
-  },
-  {
-    title: "SMS Leadership & Role-Specific Duties",
-    description: "Role-specific training for Accountable Executives, Safety Managers, and Chief Pilots covering their SMS responsibilities under §5.25, management oversight, and safety performance review.",
-    category: "sms", requiredFor: ["safety_manager", "chief_pilot", "accountable_exec"],
-    passingScore: 80, estimatedMinutes: 20,
-    lessons: [
-      {
-        title: "Accountable Executive Responsibilities",
-        sortOrder: 0,
-        contentBlocks: [
-          { type: "heading", content: "The Accountable Executive Role (§5.25(a-b))" },
-          { type: "text", content: "The Accountable Executive (AE) is the single person who bears ultimate accountability for SMS implementation. Under §5.25(a), the AE must have:\n\n• Control of the resources required for operations authorized under the certificate\n• Responsibility for the financial affairs of the organization\n• Final authority over operations conducted under the certificate\n\nThis is typically the CEO, President, or certificate holder. The AE cannot delegate this accountability — though specific tasks may be delegated, the accountability remains with the AE." },
-          { type: "heading", content: "Five Core AE Responsibilities (§5.25(b))" },
-          { type: "text", content: "Under §5.25(b), the Accountable Executive is specifically responsible for:\n\n1. Ensuring the SMS is properly implemented and performing in all areas of the organization\n2. Ensuring the SMS is implemented and functions as designed\n3. Ensuring the necessary resources for SMS are available\n4. Ensuring effective safety risk controls are in place\n5. Regularly reviewing the organization's safety performance\n\nThese are not passive responsibilities. The AE must actively engage with the SMS — reviewing safety performance data, approving high-level risk acceptances, ensuring corrective actions are completed, and visibly demonstrating commitment to safety." },
-          { type: "callout", content: "The AE's signature on the safety policy is not a formality. It represents personal accountability for every element of the SMS. FAA inspectors will verify that the AE is actively engaged, not just a figurehead." },
-          { type: "text", content: "Practical AE engagement includes:\n\n• Quarterly review of safety performance indicators with the Safety Manager\n• Personal approval of any risk assessment rated as 'High'\n• Annual review and signing of the safety policy\n• Allocation of budget for safety training, reporting tools, and corrective actions\n• Attendance at safety meetings (at minimum, quarterly safety review boards)\n• Follow-up on overdue corrective actions and open hazards" },
-        ],
-        quizQuestions: [
-          { question: "Under §5.25(a), which attribute must the Accountable Executive possess?", options: ["An airline transport pilot certificate", "Control of operational resources and financial responsibility", "A degree in safety management", "At least 10 years of industry experience"], correct: 1, explanation: "§5.25(a) requires the AE to have control of the resources required for operations and responsibility for the organization's financial affairs. These ensure the AE has the authority and means to fund and support SMS implementation." },
-          { question: "How many specific responsibilities does §5.25(b) assign to the Accountable Executive?", options: ["Three", "Five", "Seven", "Ten"], correct: 1, explanation: "§5.25(b) lists five specific responsibilities: (1) ensure SMS is properly implemented, (2) ensure SMS functions as designed, (3) ensure necessary resources, (4) ensure effective risk controls, and (5) regularly review safety performance." },
-          { question: "Can the Accountable Executive delegate their SMS accountability to the Safety Manager?", options: ["Yes, through a formal letter of delegation", "Yes, if the Safety Manager agrees", "No — accountability remains with the AE even if tasks are delegated", "Only during the AE's absence"], correct: 2, explanation: "The AE can delegate specific SMS tasks but cannot delegate the accountability itself. This is a fundamental principle of §5.25 — one person must be ultimately accountable for SMS performance." },
-        ],
-      },
-      {
-        title: "Safety Manager & Management Personnel Duties",
-        sortOrder: 1,
-        contentBlocks: [
-          { type: "heading", content: "Designated Management Personnel (§5.25(c))" },
-          { type: "text", content: "Under §5.25(c), the certificate holder must designate management personnel who, on behalf of the Accountable Executive, are responsible for:\n\n1. Coordinating the SMS throughout the organization\n2. Facilitating hazard identification and safety risk analysis\n3. Monitoring the effectiveness of safety risk controls\n4. Ensuring safety promotion activities are carried out\n5. Regularly reporting to the Accountable Executive on SMS performance\n\nThe Safety Manager typically fulfills most of these functions, but they may be distributed among multiple management positions depending on organizational size." },
-          { type: "heading", content: "Day-to-Day Safety Manager Functions" },
-          { type: "text", content: "The Safety Manager's daily responsibilities include:\n\n• Monitoring incoming safety reports and triaging by severity\n• Maintaining the hazard register and ensuring timely risk assessments\n• Tracking corrective action completion and verifying effectiveness\n• Preparing safety performance data for management review\n• Coordinating training requirements and tracking compliance\n• Managing the safety reporting system (PreflightSMS)\n• Serving as the primary point of contact for safety-related inquiries\n• Coordinating with the FAA and other regulatory bodies on safety matters\n• Facilitating safety meetings and documenting outcomes\n• Ensuring all SMS documentation is current and accessible" },
-          { type: "callout", content: "The Safety Manager is the engine of the SMS. While the AE provides direction and resources, the Safety Manager ensures the system runs day-to-day. Without active engagement from this role, the SMS becomes a paper program." },
-          { type: "text", content: "The Chief Pilot often shares SMS management responsibilities, particularly regarding:\n\n• Operational risk decisions (FRAT review, flight approval)\n• Pilot training and competency evaluation\n• Standard operating procedure development and updates\n• Line safety audits and operational observations\n• Crew resource management program oversight" },
-        ],
-        quizQuestions: [
-          { question: "Under §5.25(c), how many specific functions must designated management personnel fulfill?", options: ["Three", "Five", "Seven", "Nine"], correct: 1, explanation: "§5.25(c) lists five specific functions: coordinate SMS, facilitate hazard identification and risk analysis, monitor risk control effectiveness, ensure safety promotion, and report to the AE on SMS performance." },
-          { question: "What is the Safety Manager's role regarding the hazard register?", options: ["They only review it annually", "They maintain it and ensure timely risk assessments are completed", "They delegate it entirely to line employees", "They only use it during FAA audits"], correct: 1, explanation: "The Safety Manager actively maintains the hazard register as a core daily responsibility — ensuring new hazards are logged, risk assessments are completed in a timely manner, and controls are tracked through to implementation and verification." },
-        ],
-      },
-      {
-        title: "Safety Performance Review & Oversight",
-        sortOrder: 2,
-        contentBlocks: [
-          { type: "heading", content: "Management Review Process" },
-          { type: "text", content: "Effective SMS leadership requires regular, structured review of safety performance. This connects the AE's oversight responsibility (§5.25(b)(5)) with the Safety Assurance requirements (§5.73).\n\nA recommended review structure:\n\n• Weekly — Safety Manager reviews incoming reports, FRAT trends, and open actions\n• Monthly — Safety Manager briefs Chief Pilot and operations leadership on safety metrics\n• Quarterly — Safety Review Board meeting with AE, Safety Manager, Chief Pilot, and department heads\n• Annually — Comprehensive SMS performance assessment with formal report to the AE" },
-          { type: "heading", content: "What to Review" },
-          { type: "text", content: "Key metrics for management review:\n\n• Safety reports received (volume, types, trends)\n• FRAT score trends and distribution\n• Open hazards and average time to closure\n• Corrective action completion rate and overdue items\n• Training compliance rates across all requirements\n• Incident and event rates (normalized per flight hours or departures)\n• Audit findings — internal and external\n• Safety objectives — progress toward targets defined in safety policy\n\nLook for trends, not just individual data points. A single high FRAT score is normal. A steady increase in average FRAT scores over three months is a signal that requires investigation." },
-          { type: "callout", content: "If you review safety data but don't act on what it tells you, you don't have a safety management system — you have a safety data collection system. Review must lead to action." },
-          { type: "text", content: "After each review, document:\n\n• Key findings and trends identified\n• Decisions made and rationale\n• Action items with owners and deadlines\n• Resources approved or requested\n• Date of next review\n\nThis documentation serves as evidence of active SMS management during FAA audits and demonstrates the continuous improvement cycle required by §5.75. PreflightSMS's Audit Log and Dashboard provide ready-made data for these reviews." },
-        ],
-        quizQuestions: [
-          { question: "How often should the Accountable Executive formally review SMS safety performance?", options: ["Only when an accident occurs", "Daily, reviewing every safety report personally", "At least quarterly, with a comprehensive annual assessment", "Every five years during certificate renewal"], correct: 2, explanation: "Best practice is for the AE to participate in quarterly Safety Review Board meetings and receive a comprehensive annual SMS performance assessment. This fulfills the §5.25(b)(5) requirement to regularly review safety performance." },
-          { question: "What should happen after a management safety review identifies a negative trend?", options: ["Document the finding and wait to see if it resolves itself", "Take specific corrective action with assigned owners and deadlines", "Increase punishment for involved employees", "Reduce the frequency of future reviews"], correct: 1, explanation: "Review must lead to action per §5.75. When a negative trend is identified, specific corrective actions should be developed with clear owners, deadlines, and a plan to verify effectiveness. Passive documentation without action defeats the purpose of monitoring." },
-          { question: "Which combination of metrics provides the best picture of overall SMS health?", options: ["Revenue and customer satisfaction only", "Report volume, hazard closure time, training compliance, and FRAT trends", "Number of FAA inspections passed", "Total flight hours and fleet size"], correct: 1, explanation: "A comprehensive view of SMS health requires multiple indicators: reporting volume (culture health), hazard closure time (responsiveness), training compliance (competency), and FRAT trends (operational risk). No single metric tells the full story." },
         ],
       },
     ],
@@ -1382,7 +1367,7 @@ export default function CbtModules({
                 Set up a complete 14 CFR Part 5 compliant training program with pre-built requirements and courses covering all SMS competency areas.
               </div>
               <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 20 }}>
-                10 training requirements (initial + recurrent) and 6 CBT courses with 18 lessons covering SMS Awareness, Hazard Identification, Safety Assurance, Emergency Response, Safety Promotion, and SMS Leadership will be created.
+                5 training requirements and 5 CBT courses with 18 lessons covering Safety Policy, Safety Risk Management, Safety Assurance, Emergency Response Planning, and Safety Promotion will be created.
               </div>
               <button onClick={handleInitTraining} disabled={initializing}
                 style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
