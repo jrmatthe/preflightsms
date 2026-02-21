@@ -75,6 +75,49 @@ function ActionForm({ onSubmit, onCancel, existingCount }) {
   );
 }
 
+function ActionCard({ a, onUpdateAction }) {
+  const priority = PRIORITIES.find(p => p.id === a.priority) || PRIORITIES[1];
+  const status = STATUSES.find(s => s.id === a.status) || STATUSES[0];
+  const isOverdue = a.status === "overdue";
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div style={{ ...card, padding: "14px 18px", marginBottom: 8, borderLeft: `3px solid ${isOverdue ? RED : priority.color}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setExpanded(!expanded)}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 700, color: WHITE, fontSize: 13 }}>{a.title}</span>
+            <span style={{ background: `${priority.color}22`, color: priority.color, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{priority.label}</span>
+            <span style={{ background: `${status.color}22`, color: status.color, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{status.label}</span>
+          </div>
+          <div style={{ color: MUTED, fontSize: 10 }}>
+            {a.action_code}
+            {a.assigned_to_name && ` · Assigned: ${a.assigned_to_name}`}
+            {a.due_date && ` · Due: ${a.due_date}`}
+          </div>
+          {a.description && <div style={{ color: "#666", fontSize: 11, marginTop: 4 }}>{a.description}</div>}
+        </div>
+        <span style={{ color: MUTED, fontSize: 14, flexShrink: 0 }}>{expanded ? "\u25B2" : "\u25BC"}</span>
+      </div>
+      {expanded && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Update Status</div>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {STATUSES.filter(s => s.id !== "overdue").map(s => (
+              <button key={s.id} onClick={() => onUpdateAction(a.id, { status: s.id, ...(s.id === "completed" ? { completed_at: new Date().toISOString() } : {}) })}
+                style={{ padding: "6px 14px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                  background: a.status === s.id ? `${s.color}33` : "transparent",
+                  color: a.status === s.id ? s.color : MUTED,
+                  border: `1px solid ${a.status === s.id ? s.color : BORDER}` }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CorrectiveActions({ actions, onCreateAction, onUpdateAction }) {
   const [view, setView] = useState("list");
   const [filter, setFilter] = useState("all");
@@ -154,48 +197,9 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
           <div style={{ fontSize: 42, marginBottom: 12 }}>✅</div>
           <div style={{ fontSize: 14 }}>No corrective actions</div>
         </div>
-      ) : filtered.map(a => {
-        const priority = PRIORITIES.find(p => p.id === a.priority) || PRIORITIES[1];
-        const status = STATUSES.find(s => s.id === a.status) || STATUSES[0];
-        const isOverdue = a.status === "overdue";
-        const [expanded, setExpanded] = useState(false);
-        return (
-          <div key={a.id} style={{ ...card, padding: "14px 18px", marginBottom: 8, borderLeft: `3px solid ${isOverdue ? RED : priority.color}` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setExpanded(!expanded)}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 700, color: WHITE, fontSize: 13 }}>{a.title}</span>
-                  <span style={{ background: `${priority.color}22`, color: priority.color, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{priority.label}</span>
-                  <span style={{ background: `${status.color}22`, color: status.color, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{status.label}</span>
-                </div>
-                <div style={{ color: MUTED, fontSize: 10 }}>
-                  {a.action_code}
-                  {a.assigned_to_name && ` · Assigned: ${a.assigned_to_name}`}
-                  {a.due_date && ` · Due: ${a.due_date}`}
-                </div>
-                {a.description && <div style={{ color: "#666", fontSize: 11, marginTop: 4 }}>{a.description}</div>}
-              </div>
-              <span style={{ color: MUTED, fontSize: 14, flexShrink: 0 }}>{expanded ? "\u25B2" : "\u25BC"}</span>
-            </div>
-            {expanded && (
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Update Status</div>
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                  {STATUSES.filter(s => s.id !== "overdue").map(s => (
-                    <button key={s.id} onClick={() => onUpdateAction(a.id, { status: s.id, ...(s.id === "completed" ? { completed_at: new Date().toISOString() } : {}) })}
-                      style={{ padding: "6px 14px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer",
-                        background: a.status === s.id ? `${s.color}33` : "transparent",
-                        color: a.status === s.id ? s.color : MUTED,
-                        border: `1px solid ${a.status === s.id ? s.color : BORDER}` }}>
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+      ) : filtered.map(a => (
+        <ActionCard key={a.id} a={a} onUpdateAction={onUpdateAction} />
+      ))}
     </div>
   );
 }
