@@ -164,6 +164,13 @@ export default function PlatformAdmin() {
     await api({ action: "remove_admin", admin_id: id }); loadAdmins(); showToast("Admin deactivated");
   };
 
+  const handleDeleteOrg = async (orgId) => {
+    const res = await api({ action: "delete_org", org_id: orgId });
+    if (res.error) { showToast("Error: " + res.error); return; }
+    setSelectedOrg(null); loadOrgs();
+    showToast(`Organization deleted (${res.deleted_users} user${res.deleted_users !== 1 ? "s" : ""} removed)`);
+  };
+
   const filteredOrgs = orgs.filter(o => {
     if (!search) return true; const s = search.toLowerCase();
     return (o.name || "").toLowerCase().includes(s) || (o.slug || "").toLowerCase().includes(s) || (o.tier || "").toLowerCase().includes(s);
@@ -194,7 +201,7 @@ export default function PlatformAdmin() {
         </div>
 
         {view === "admins" && <AdminsView admins={admins} admin={admin} newAdmin={newAdmin} setNewAdmin={setNewAdmin} addingAdmin={addingAdmin} onAdd={handleAddAdmin} onRemove={handleRemoveAdmin} />}
-        {view === "orgs" && <OrgsView orgs={filteredOrgs} selectedOrg={selectedOrg} selectOrg={selectOrg} search={search} setSearch={setSearch} orgUsers={orgUsers} orgStats={orgStats} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} saveChanges={saveChanges} saving={saving} />}
+        {view === "orgs" && <OrgsView orgs={filteredOrgs} selectedOrg={selectedOrg} selectOrg={selectOrg} search={search} setSearch={setSearch} orgUsers={orgUsers} orgStats={orgStats} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} saveChanges={saveChanges} saving={saving} onDeleteOrg={handleDeleteOrg} />}
 
         {toast && <div style={{ position: "fixed", bottom: 24, right: 24, padding: "10px 20px", background: `${GREEN}22`, border: `1px solid ${GREEN}44`, borderRadius: 8, color: GREEN, fontSize: 12, fontWeight: 600 }}>{toast}</div>}
       </div>
@@ -236,7 +243,7 @@ function AdminsView({ admins, admin, newAdmin, setNewAdmin, addingAdmin, onAdd, 
   );
 }
 
-function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, orgStats, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, saveChanges, saving }) {
+function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, orgStats, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, saveChanges, saving, onDeleteOrg }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", minHeight: "calc(100vh - 90px)" }}>
       <div style={{ borderRight: `1px solid ${BORDER}`, padding: 16, overflowY: "auto" }}>
@@ -264,14 +271,15 @@ function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, o
             <div style={{ textAlign: "center" }}><div style={{ fontSize: 48, marginBottom: 12 }}>🏢</div><div style={{ fontSize: 14, fontWeight: 600 }}>Select an organization</div></div>
           </div>
         ) : (
-          <OrgDetail org={selectedOrg} orgUsers={orgUsers} orgStats={orgStats} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} saveChanges={saveChanges} saving={saving} />
+          <OrgDetail org={selectedOrg} orgUsers={orgUsers} orgStats={orgStats} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} saveChanges={saveChanges} saving={saving} onDeleteOrg={onDeleteOrg} />
         )}
       </div>
     </div>
   );
 }
 
-function OrgDetail({ org, orgUsers, orgStats, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, saveChanges, saving }) {
+function OrgDetail({ org, orgUsers, orgStats, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, saveChanges, saving, onDeleteOrg }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   return (
     <div style={{ maxWidth: 800 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
@@ -356,6 +364,21 @@ function OrgDetail({ org, orgUsers, orgStats, editTier, editStatus, editFlags, e
       </div>
 
       <button onClick={saveChanges} disabled={saving} style={{ padding: "10px 32px", background: GREEN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
+
+      <div style={{ ...card, padding: "16px 20px", marginTop: 24, borderColor: `${RED}33` }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: RED, marginBottom: 8 }}>Danger Zone</div>
+        {!confirmDelete ? (
+          <button onClick={() => setConfirmDelete(true)} style={{ padding: "8px 20px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Delete Organization</button>
+        ) : (
+          <div>
+            <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>This will permanently delete <strong style={{ color: WHITE }}>{org.name}</strong>, all its data, and {orgUsers.length} user account{orgUsers.length !== 1 ? "s" : ""}. This cannot be undone.</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { onDeleteOrg(org.id); setConfirmDelete(false); }} style={{ padding: "8px 20px", background: RED, color: WHITE, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Yes, Delete Everything</button>
+              <button onClick={() => setConfirmDelete(false)} style={{ padding: "8px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
