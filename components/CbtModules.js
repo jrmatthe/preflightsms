@@ -40,6 +40,257 @@ const CATEGORIES = [
   { id: "security", label: "Security" }, { id: "crew_resource", label: "CRM" }, { id: "company", label: "Company" },
 ];
 
+// ── PART 5 TRAINING REQUIREMENTS (pre-seed) ─────────────────────
+const PART5_TRAINING_REQUIREMENTS = [
+  // Initial (one-time, frequencyMonths: 0)
+  { title: "SMS Awareness & Foundations", description: "Initial training covering SMS principles, the four pillars (Policy, SRM, SA, SP), and organizational safety objectives per §5.21 and §5.23.", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 0 },
+  { title: "Safety Reporting & Just Culture", description: "Training on safety reporting obligations, non-punitive reporting policy, unacceptable behavior boundaries, and confidentiality protections per §5.21(a)(4-5) and §5.71(a)(7).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 0 },
+  { title: "Hazard Identification & Risk Management", description: "Training on hazard identification methods, risk analysis using likelihood/severity matrices, and risk control strategies per §5.53 and §5.55.", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 0 },
+  { title: "Emergency Response Plan Training", description: "Initial training on the organization's Emergency Response Plan including activation procedures, notification chains, and post-event responsibilities per §5.27.", category: "emergency", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 0 },
+  { title: "Accountable Executive SMS Duties", description: "Role-specific training for the Accountable Executive covering SMS implementation accountability, resource provision, risk control oversight, and safety performance review per §5.25(a-b).", category: "sms", requiredFor: ["accountable_exec"], frequencyMonths: 0 },
+  { title: "Safety Manager Advanced SMS", description: "Advanced training for the designated Safety Manager covering SMS coordination, hazard analysis facilitation, risk control monitoring, safety promotion, and AE reporting per §5.25(c).", category: "sms", requiredFor: ["safety_manager"], frequencyMonths: 0 },
+  // Recurrent (annual, frequencyMonths: 12)
+  { title: "Annual SMS Recurrent Training", description: "Annual refresher covering SMS policy updates, recent safety events, lessons learned, and organizational changes affecting safety per §5.91.", category: "recurrent", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Safety Risk Management Refresher", description: "Annual refresher on SRM processes including hazard identification techniques, risk matrix application, and risk control evaluation per §5.51–§5.55.", category: "recurrent", requiredFor: ["pilot", "safety_manager", "chief_pilot"], frequencyMonths: 12 },
+  { title: "Safety Assurance & Performance Review", description: "Annual training on safety performance monitoring, data-driven analysis, assessment processes, and continuous improvement per §5.71–§5.75.", category: "recurrent", requiredFor: ["safety_manager", "chief_pilot", "accountable_exec"], frequencyMonths: 12 },
+  { title: "Safety Promotion & Communication", description: "Annual training on safety communication methods, hazard information dissemination, safety action explanation, and procedure change communication per §5.93.", category: "recurrent", requiredFor: ["safety_manager", "chief_pilot"], frequencyMonths: 12 },
+];
+
+// ── PART 5 CBT COURSES (pre-seed) ──────────────────────────────
+const PART5_CBT_COURSES = [
+  {
+    title: "SMS Awareness & Foundations",
+    description: "Comprehensive introduction to Safety Management Systems as required by 14 CFR Part 5. Covers the four pillars, safety policy, organizational responsibilities, and reporting culture.",
+    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    passingScore: 80, estimatedMinutes: 20,
+    lessons: [
+      {
+        title: "Introduction to SMS & The Four Pillars",
+        sortOrder: 0,
+        contentBlocks: [
+          { type: "heading", content: "What Is a Safety Management System?" },
+          { type: "text", content: "A Safety Management System (SMS) is a formal, organization-wide approach to managing safety risk and assuring the effectiveness of safety controls. Required by 14 CFR Part 5 for certificate holders operating under Part 121 and voluntarily adopted by Part 135 operators, an SMS provides a structured framework that moves beyond simple regulatory compliance to proactive safety management." },
+          { type: "heading", content: "The Four Pillars of SMS" },
+          { type: "text", content: "Every SMS is built on four interdependent pillars:\n\n1. Safety Policy (Subpart B, §5.21–§5.27) — Establishes management commitment, safety objectives, reporting policy, and the emergency response plan. This is the foundation that sets the tone for your entire safety culture.\n\n2. Safety Risk Management (Subpart C, §5.51–§5.57) — The processes for identifying hazards, analyzing and assessing risk, and implementing controls. SRM is applied whenever there are changes to systems, procedures, or operations.\n\n3. Safety Assurance (Subpart D, §5.71–§5.75) — Continuous monitoring of safety performance, evaluation of risk controls, and management of change. SA ensures that the controls you put in place actually work.\n\n4. Safety Promotion (Subpart E, §5.91–§5.93) — Training, education, and communication that build a positive safety culture. This course is part of your organization's Safety Promotion program." },
+          { type: "callout", content: "Key Point: SMS is not a separate program bolted onto operations — it is integrated into how you plan, execute, and evaluate every aspect of your operation." },
+          { type: "text", content: "The FAA designed Part 5 so that each pillar supports the others. Safety Policy sets the direction, SRM identifies and controls risk, Safety Assurance verifies effectiveness, and Safety Promotion ensures everyone has the knowledge and motivation to participate." },
+        ],
+        quizQuestions: [
+          { question: "How many pillars make up an SMS under 14 CFR Part 5?", options: ["Three", "Four", "Five", "Six"], correct: 1, explanation: "SMS is built on four pillars: Safety Policy, Safety Risk Management, Safety Assurance, and Safety Promotion (Subparts B through E of Part 5)." },
+          { question: "Which SMS pillar covers hazard identification and risk analysis?", options: ["Safety Policy", "Safety Risk Management", "Safety Assurance", "Safety Promotion"], correct: 1, explanation: "Safety Risk Management (Subpart C, §5.51–§5.57) covers hazard identification, risk analysis, risk assessment, and risk control." },
+          { question: "Under which subpart of 14 CFR Part 5 are training requirements defined?", options: ["Subpart B — Safety Policy", "Subpart C — Safety Risk Management", "Subpart D — Safety Assurance", "Subpart E — Safety Promotion"], correct: 3, explanation: "Safety Promotion (Subpart E, §5.91–§5.93) defines competency and training requirements as well as safety communication." },
+        ],
+      },
+      {
+        title: "Safety Policy & Your Responsibilities",
+        sortOrder: 1,
+        contentBlocks: [
+          { type: "heading", content: "The Safety Policy Framework" },
+          { type: "text", content: "Under §5.21, your organization's safety policy must include:\n\n• Safety objectives — Measurable targets the organization commits to achieving\n• Management commitment — A formal declaration of commitment to SMS implementation\n• Provision of resources — Commitment to providing the personnel, training, and tools needed\n• Reporting policy — Requirements and protections for safety reporting\n• Unacceptable behavior policy — Clear definitions of where disciplinary boundaries lie\n• Emergency Response Plan — Coordination procedures for emergencies (§5.27)" },
+          { type: "heading", content: "Roles & Accountability (§5.23–§5.25)" },
+          { type: "text", content: "Every person in the organization has a role in SMS:\n\n• Accountable Executive — Has ultimate accountability for SMS implementation and must ensure adequate resources, effective risk controls, and regular safety performance review (§5.25(a-b)).\n\n• Safety Manager — Designated to coordinate SMS across the organization, facilitate hazard identification and risk analysis, monitor risk controls, ensure safety promotion, and report to the AE (§5.25(c)).\n\n• All Employees — Accountable for following safety procedures, reporting hazards, completing required training, and supporting the safety culture (§5.23)." },
+          { type: "callout", content: "Your responsibility: Know the safety policy, report hazards without fear of retaliation, complete required training, and follow established risk controls." },
+          { type: "text", content: "The safety policy is not a document that sits on a shelf. It is the living framework that guides daily decisions. When you encounter a situation where the safe course of action is unclear, the safety policy provides the principles to guide your decision-making." },
+        ],
+        quizQuestions: [
+          { question: "According to §5.25(a), who has ultimate accountability for SMS implementation?", options: ["The Safety Manager", "The Chief Pilot", "The Accountable Executive", "The Director of Operations"], correct: 2, explanation: "Under §5.25(a), the Accountable Executive has ultimate responsibility for SMS implementation, resource allocation, and safety performance oversight." },
+          { question: "Which of the following is NOT a required element of the safety policy under §5.21?", options: ["Safety objectives", "Reporting policy", "Fleet maintenance schedule", "Emergency Response Plan reference"], correct: 2, explanation: "§5.21 requires safety objectives, management commitment, resources, reporting policy, unacceptable behavior policy, and ERP reference. Fleet maintenance schedules, while important, are not a required element of the safety policy." },
+        ],
+      },
+      {
+        title: "Safety Reporting & Just Culture",
+        sortOrder: 2,
+        contentBlocks: [
+          { type: "heading", content: "Why Safety Reporting Matters" },
+          { type: "text", content: "Safety reporting is the lifeblood of an SMS. Without a steady flow of reports about hazards, near-misses, and operational concerns, the organization cannot identify risks before they result in accidents. Under §5.21(a)(4), your organization is required to establish a safety reporting policy that encourages open communication about safety issues." },
+          { type: "heading", content: "Just Culture Principles" },
+          { type: "text", content: "A Just Culture balances accountability with learning. The core principles are:\n\n• Honest mistakes and errors are treated as learning opportunities, not grounds for punishment\n• Reporting a safety concern — even one you caused — is always protected\n• Willful violations, gross negligence, and substance abuse are NOT protected and are subject to disciplinary action (§5.21(a)(5))\n• The goal is to understand WHY errors occur, not to assign blame\n\nThis means you should always report hazards, incidents, and near-misses. The organization cannot fix problems it doesn't know about." },
+          { type: "callout", content: "Remember: The only report that can hurt you is the one you don't file. Honest reporting is always protected under your organization's Just Culture policy." },
+          { type: "heading", content: "What to Report" },
+          { type: "text", content: "You should report:\n• Hazards — Conditions or situations that could lead to an unsafe event\n• Near-misses — Events that could have resulted in an accident but didn't\n• Safety concerns — Anything that makes you uncomfortable about the safety of an operation\n• Process deficiencies — Procedures that are unclear, outdated, or difficult to follow\n• Equipment issues — Malfunctions, defects, or design concerns\n\nReports can be submitted through PreflightSMS at any time. Confidentiality protections per §5.71(a)(7) ensure your identity is protected when requested." },
+        ],
+        quizQuestions: [
+          { question: "Under a Just Culture policy, which situation would typically be protected from disciplinary action?", options: ["A pilot who reports a near-miss they were involved in", "A mechanic who intentionally signs off incomplete work", "An employee operating under the influence of alcohol", "A pilot who repeatedly ignores checklist procedures"], correct: 0, explanation: "Under Just Culture, honest mistakes and voluntary reports are protected. Willful violations, intentional negligence, and substance abuse are specifically excluded from protection per §5.21(a)(5)." },
+          { question: "What does §5.21(a)(4) require regarding safety reporting?", options: ["Annual safety audits by outside agencies", "Mandatory drug testing for all employees", "A policy defining safety reporting requirements and protections", "GPS tracking of all company aircraft"], correct: 2, explanation: "§5.21(a)(4) requires the organization to establish a safety reporting policy that defines requirements for employees to report safety hazards and issues, along with protections for those who report." },
+          { question: "Which of the following is the BEST reason to report a near-miss event?", options: ["To place blame on the responsible party", "To comply with insurance requirements", "To identify hazards before they cause an accident", "To create a paper trail for legal defense"], correct: 2, explanation: "The primary purpose of reporting near-misses is to identify hazards and contributing factors so that risk controls can be implemented before an accident occurs. This is the proactive foundation of SMS." },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Hazard Identification & Risk Management",
+    description: "Learn to identify aviation hazards, assess risk using likelihood and severity matrices, and develop effective risk controls per 14 CFR Part 5 Subpart C.",
+    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    passingScore: 80, estimatedMinutes: 25,
+    lessons: [
+      {
+        title: "Understanding Hazards, Threats & Risk",
+        sortOrder: 0,
+        contentBlocks: [
+          { type: "heading", content: "Definitions That Matter" },
+          { type: "text", content: "Before you can manage risk, you need to speak the same language:\n\n• Hazard — A condition that could foreseeably cause or contribute to an aircraft accident (§5.5). Examples: icing conditions, fatigue, unstable approach, runway contamination.\n\n• Threat — A broader term for any event or error that could compromise safety during operations. Not all threats become hazards, but unmanaged threats often do.\n\n• Risk — The composite of predicted severity and likelihood of the potential effect of a hazard (§5.5). Risk is not the hazard itself — it is the measure of what could happen if the hazard is not controlled." },
+          { type: "heading", content: "Where Hazards Come From (§5.53)" },
+          { type: "text", content: "Under §5.53, hazards are identified through:\n\n• Safety reporting by employees — The most common and valuable source\n• Analysis of flight data (FRAT scores, flight data monitoring)\n• Audit and inspection findings\n• Investigation of incidents and accidents\n• Industry safety data and regulatory information\n• Changes to equipment, procedures, or organizational structure\n• Management observations during line checks and ramp visits" },
+          { type: "callout", content: "A hazard is not the same as risk. Ice on a wing is a hazard. The risk is the probability and severity of loss of control that could result if the ice is not removed." },
+          { type: "text", content: "Effective hazard identification requires both reactive sources (incident reports, accident data) and proactive sources (FRATs, safety surveys, audits). The SMS emphasizes proactive identification — finding hazards before they cause events." },
+        ],
+        quizQuestions: [
+          { question: "According to §5.5, what is the definition of 'risk' in an SMS context?", options: ["Any condition that could cause an accident", "The composite of predicted severity and likelihood of a hazard's potential effect", "The probability of a mechanical failure", "The financial cost of an accident"], correct: 1, explanation: "Per §5.5, risk is defined as the composite of predicted severity and likelihood of the potential effect of a hazard. It requires evaluating both dimensions." },
+          { question: "Which of the following is an example of PROACTIVE hazard identification?", options: ["Investigating an accident after it occurs", "Reviewing an NTSB final report", "Analyzing FRAT scores to identify risk trends", "Responding to an FAA enforcement action"], correct: 2, explanation: "Proactive hazard identification means finding hazards before incidents occur. Analyzing FRAT data trends is proactive because it identifies patterns that could lead to events, rather than reacting to events that already happened." },
+        ],
+      },
+      {
+        title: "The Risk Matrix — Likelihood & Severity",
+        sortOrder: 1,
+        contentBlocks: [
+          { type: "heading", content: "Risk Assessment Under §5.55(a-b)" },
+          { type: "text", content: "Once a hazard is identified, §5.55 requires the organization to assess the risk by evaluating two dimensions:\n\n1. Likelihood — How probable is it that the hazard will result in an adverse event?\n2. Severity — If the event occurs, how bad will the consequences be?" },
+          { type: "heading", content: "Likelihood Scale" },
+          { type: "text", content: "A typical 5-level likelihood scale:\n\n5 — Frequent: Expected to occur routinely during operations\n4 — Probable: Will occur several times over a period\n3 — Remote: Unlikely but possible; may occur at some point\n2 — Extremely Remote: Very unlikely; not expected but conceivable\n1 — Extremely Improbable: Almost inconceivable that the event will occur" },
+          { type: "heading", content: "Severity Scale" },
+          { type: "text", content: "A typical severity classification:\n\nA — Catastrophic: Multiple fatalities, hull loss\nB — Hazardous: Serious injury, major aircraft damage, large reduction in safety margins\nC — Major: Significant injury, significant reduction in safety margins, crew workload increase\nD — Minor: Slight injury, minor aircraft damage, slight increase in workload\nE — Negligible: Little or no impact on safety" },
+          { type: "callout", content: "The risk matrix combines likelihood and severity to produce a risk level (High, Serious, Medium, Low). Only the Accountable Executive or designated authority can accept High-level risks." },
+        ],
+        quizQuestions: [
+          { question: "What two dimensions are evaluated when assessing risk under §5.55?", options: ["Cost and schedule impact", "Likelihood and severity", "Frequency and duration", "Probability and detectability"], correct: 1, explanation: "§5.55(a-b) requires assessing risk as a combination of the likelihood of a hazard's effect occurring and the severity of that effect. These two dimensions form the risk matrix." },
+          { question: "On a standard severity scale, which level represents 'serious injury or major aircraft damage'?", options: ["Catastrophic", "Hazardous", "Major", "Minor"], correct: 1, explanation: "The Hazardous severity level (B) represents serious injury to persons, major aircraft damage, or a large reduction in safety margins. Catastrophic (A) involves fatalities or hull loss." },
+          { question: "Who typically has authority to accept a High-level risk assessment?", options: ["Any line pilot", "The maintenance supervisor", "The Accountable Executive or designated authority", "The dispatcher on duty"], correct: 2, explanation: "High-level risks require acceptance by the Accountable Executive or a specifically designated authority. This ensures that significant risk acceptance decisions are made at the appropriate organizational level." },
+        ],
+      },
+      {
+        title: "Risk Controls & Mitigation",
+        sortOrder: 2,
+        contentBlocks: [
+          { type: "heading", content: "Designing Risk Controls (§5.55(c))" },
+          { type: "text", content: "Once risk is assessed, §5.55(c) requires the organization to develop risk controls that reduce the risk to an acceptable level. Risk controls follow a hierarchy of effectiveness:\n\n1. Elimination — Remove the hazard entirely (most effective, often not practical)\n2. Substitution — Replace with something less hazardous\n3. Engineering controls — Physical changes to equipment or environment\n4. Administrative controls — Procedures, policies, training, checklists\n5. Personal protective equipment — Last resort (least effective)" },
+          { type: "heading", content: "Evaluating Control Effectiveness (§5.55(d))" },
+          { type: "text", content: "Before implementing a risk control, §5.55(d) requires you to assess whether the proposed control will actually work. Consider:\n\n• Does the control address the root cause of the hazard, or just a symptom?\n• Could the control introduce new hazards?\n• Is the control practical and sustainable in daily operations?\n• How will you verify the control is working after implementation?\n• What residual risk remains after the control is in place?" },
+          { type: "callout", content: "A risk control that looks good on paper but is routinely ignored in practice provides no actual risk reduction. Effective controls must be practical, understood, and followed." },
+          { type: "text", content: "Common risk controls in aviation operations include:\n\n• Weather minimums above regulatory requirements\n• Crew pairing policies (experience matching)\n• Additional training requirements for specific operations\n• Enhanced preflight procedures for known risk areas\n• FRAT score thresholds requiring management review\n• Standard operating procedures for high-risk phases of flight\n\nRemember: The goal is to reduce risk to an acceptable level, not to eliminate all risk. Aviation inherently involves some level of risk." },
+        ],
+        quizQuestions: [
+          { question: "What does §5.55(c) require when risk is assessed as unacceptable?", options: ["Cancel all operations until the hazard is eliminated", "Develop risk controls to reduce risk to an acceptable level", "File a report with the FAA", "Transfer the risk to insurance"], correct: 1, explanation: "§5.55(c) requires the organization to design and implement risk controls that reduce the safety risk of a hazard to an acceptable level. Complete elimination is often not practical in aviation." },
+          { question: "In the hierarchy of risk controls, which type is generally MOST effective?", options: ["Administrative controls (procedures, training)", "Elimination of the hazard", "Personal protective equipment", "Engineering controls"], correct: 1, explanation: "Elimination — completely removing the hazard — is the most effective control because the risk no longer exists. However, it is often not practical in aviation, so a combination of engineering and administrative controls is typically used." },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Safety Assurance Fundamentals",
+    description: "Understand how safety performance monitoring, data analysis, and continuous improvement processes keep your SMS effective per 14 CFR Part 5 Subpart D.",
+    category: "recurrent", requiredFor: ["safety_manager", "chief_pilot", "admin"],
+    passingScore: 80, estimatedMinutes: 20,
+    lessons: [
+      {
+        title: "Safety Performance Monitoring",
+        sortOrder: 0,
+        contentBlocks: [
+          { type: "heading", content: "Why Monitor Safety Performance? (§5.71)" },
+          { type: "text", content: "Safety Risk Management identifies hazards and puts controls in place. Safety Assurance answers the critical follow-up question: Are those controls actually working?\n\nUnder §5.71(a), the organization must monitor its operations, products, and services to:\n\n1. Verify risk controls are effective (§5.71(a)(1))\n2. Acquire safety data to identify new hazards (§5.71(a)(2))\n3. Identify previously unrecognized safety deviations (§5.71(a)(3))\n4. Assess the organization's safety performance overall" },
+          { type: "heading", content: "Key Safety Performance Indicators" },
+          { type: "text", content: "Safety Performance Indicators (SPIs) are measurable data points that tell you how your SMS is performing. Common SPIs include:\n\n• Number of safety reports submitted per month\n• FRAT completion rate for flights\n• Average FRAT risk scores and trends\n• Hazard closure time (days from identification to mitigation)\n• Training completion rates and currency status\n• Overdue corrective action items\n• Incident and event rates per flight hours\n\nYour Accountable Executive reviews these metrics regularly to ensure the organization is meeting its safety objectives." },
+          { type: "callout", content: "Safety monitoring is not about catching people doing things wrong — it is about detecting trends and weaknesses in the system before they lead to incidents." },
+          { type: "text", content: "The PreflightSMS dashboard and FAA Audit Log provide real-time visibility into these performance indicators, making it easy for safety managers and the AE to identify emerging risks and track improvement actions." },
+        ],
+        quizQuestions: [
+          { question: "What is the primary purpose of safety performance monitoring under §5.71?", options: ["To discipline employees who make errors", "To verify that risk controls are effective and identify new hazards", "To prepare marketing materials about safety", "To satisfy insurance company requirements"], correct: 1, explanation: "§5.71(a) requires monitoring to verify risk control effectiveness (§5.71(a)(1)), acquire safety data (§5.71(a)(2)), and identify previously unrecognized deviations (§5.71(a)(3)). It is about system-level insight, not individual punishment." },
+          { question: "Which of the following is a valid Safety Performance Indicator (SPI)?", options: ["Company revenue per quarter", "Number of safety reports submitted per month", "Employee satisfaction survey score", "Number of new customers acquired"], correct: 1, explanation: "Safety reports per month is a direct indicator of safety culture health and SMS activity. Revenue and customer metrics, while important for business, are not safety performance indicators." },
+        ],
+      },
+      {
+        title: "Data Collection & Analysis",
+        sortOrder: 1,
+        contentBlocks: [
+          { type: "heading", content: "Safety Data Sources (§5.71(a)(2))" },
+          { type: "text", content: "Effective safety assurance depends on collecting data from multiple sources. Under §5.71(a)(2), your organization should gather:\n\n• Safety reports from employees (hazard reports, incident reports, near-miss reports)\n• FRAT assessments for each flight\n• Flight data monitoring records (if available)\n• Maintenance discrepancy reports and squawk sheets\n• Training records and currency data\n• Audit and inspection findings\n• External data: ASRS reports, NTSB recommendations, FAA InFO/SAFO bulletins, industry safety data" },
+          { type: "heading", content: "Turning Data Into Insight" },
+          { type: "text", content: "Raw data is only useful when analyzed for patterns and trends. Effective analysis involves:\n\n• Trend identification — Are FRAT scores increasing over time? Are certain risk factors appearing more frequently?\n• Root cause analysis — When incidents occur, what underlying system factors contributed?\n• Comparative analysis — How do this month's safety metrics compare to previous months or the same month last year?\n• Correlation analysis — Are high FRAT scores correlated with specific routes, weather patterns, or crew pairings?\n\nSafety data should be treated as confidential and used for system improvement, not for punitive purposes (§5.71(a)(7))." },
+          { type: "callout", content: "§5.71(a)(7) requires confidentiality protections for safety data. Safety data collected under the SMS must not be used for enforcement or disciplinary purposes except in cases of willful misconduct." },
+          { type: "text", content: "The safety manager should present data analysis results to the safety review board (or equivalent) on a regular basis. Trends that indicate declining safety performance should trigger an immediate review and potential activation of SRM processes." },
+        ],
+        quizQuestions: [
+          { question: "What does §5.71(a)(7) require regarding safety data?", options: ["All data must be shared publicly", "Confidentiality protections must be in place", "Data must be deleted after 90 days", "Only the FAA can access safety data"], correct: 1, explanation: "§5.71(a)(7) requires appropriate confidentiality protections for safety data. This ensures that employees continue to report honestly without fear that data will be used against them." },
+          { question: "Which analysis method identifies whether FRAT scores are changing over time?", options: ["Root cause analysis", "Comparative analysis", "Trend analysis", "Compliance audit"], correct: 2, explanation: "Trend analysis tracks how a metric changes over time, making it ideal for identifying whether FRAT risk scores are increasing or decreasing. This helps detect emerging risks before they result in events." },
+        ],
+      },
+      {
+        title: "Continuous Improvement & Corrective Action",
+        sortOrder: 2,
+        contentBlocks: [
+          { type: "heading", content: "Safety Performance Assessment (§5.73)" },
+          { type: "text", content: "Under §5.73, the organization must conduct periodic assessments of its safety performance. This typically involves:\n\n• Quarterly safety performance reviews with the safety review board\n• Annual comprehensive assessments presented to the Accountable Executive\n• Ad-hoc assessments triggered by significant events or trend alerts\n\nAssessments should compare actual performance against the safety objectives defined in the safety policy (§5.21). Where performance falls short, corrective action is required." },
+          { type: "heading", content: "Continuous Improvement (§5.75)" },
+          { type: "text", content: "§5.75 requires the organization to establish and maintain a process for correcting safety performance deficiencies. This means:\n\n1. Identify deficiency — Through monitoring (§5.71) or assessment (§5.73)\n2. Determine root cause — Why did the deficiency occur? What systemic factors contributed?\n3. Develop corrective action — Specific, measurable actions with assigned owners and deadlines\n4. Implement the action — Execute the plan\n5. Verify effectiveness — Follow up to confirm the action resolved the deficiency\n6. Document everything — Maintain records for audit purposes" },
+          { type: "callout", content: "Continuous improvement is not optional — §5.75 requires your organization to actively correct safety performance deficiencies and evaluate the effectiveness of those corrections." },
+          { type: "text", content: "Corrective actions should follow the SMART framework: Specific, Measurable, Achievable, Relevant, and Time-bound. Vague actions like 'improve safety culture' are not effective. Instead, a corrective action should be specific: 'Implement mandatory FRAT briefing for all flights departing after 2200L by March 1, measured by FRAT completion rate during night operations.'" },
+        ],
+        quizQuestions: [
+          { question: "What does §5.75 require regarding safety performance deficiencies?", options: ["They must be reported to the FAA within 24 hours", "A process must exist to correct deficiencies and evaluate corrections", "They must be addressed only during annual reviews", "They are acceptable as long as no accidents occur"], correct: 1, explanation: "§5.75 requires the organization to establish and maintain a process for identifying and correcting safety performance deficiencies, including evaluating whether corrective actions are effective." },
+          { question: "Which step should come AFTER implementing a corrective action?", options: ["Close the finding and move on", "Verify the action actually resolved the deficiency", "Reduce the safety budget", "Remove the hazard from the register"], correct: 1, explanation: "After implementing a corrective action, you must verify its effectiveness — confirm that the action actually resolved the deficiency. Without this verification step, you cannot know if the problem is truly fixed." },
+          { question: "How often should safety performance assessments typically be conducted?", options: ["Only after an accident", "Daily by line employees", "At least quarterly, with an annual comprehensive review", "Every five years during certificate renewal"], correct: 2, explanation: "Best practice under §5.73 is to conduct safety performance reviews at least quarterly, with a comprehensive annual assessment for the Accountable Executive. Ad-hoc assessments may be needed after significant events." },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Emergency Response Procedures",
+    description: "Training on your organization's Emergency Response Plan including emergency classification, notification procedures, command structure, and post-event recovery per §5.27.",
+    category: "emergency", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    passingScore: 80, estimatedMinutes: 15,
+    lessons: [
+      {
+        title: "ERP Overview & Emergency Classification",
+        sortOrder: 0,
+        contentBlocks: [
+          { type: "heading", content: "Emergency Response Plan Requirements (§5.27)" },
+          { type: "text", content: "Under §5.27, your organization must maintain an Emergency Response Plan (ERP) that provides procedures for responding to emergencies and unusual situations. The ERP is a required component of the safety policy and must be coordinated with the ERPs of other organizations you interface with, such as FBOs, airports, and medical facilities." },
+          { type: "heading", content: "Emergency Classification Levels" },
+          { type: "text", content: "Your ERP should define classification levels that determine the scale and nature of the response:\n\n• Level 1 — Alert: A situation requiring heightened awareness but no immediate activation (e.g., overdue aircraft, security concern, medical advisory)\n\n• Level 2 — Emergency: An event requiring activation of emergency procedures (e.g., aircraft incident with no injuries, forced landing, significant mechanical failure in flight)\n\n• Level 3 — Crisis: A major event requiring full ERP activation (e.g., accident with injuries or fatalities, hull loss, midair collision)" },
+          { type: "callout", content: "Know your ERP classification levels and what triggers each level. In an emergency, every minute counts — familiarity with procedures before an event is critical." },
+          { type: "text", content: "Each classification level should have a defined set of actions, a list of people to notify, and clear criteria for escalation to the next level. The ERP should be reviewed annually and after every activation or drill." },
+        ],
+        quizQuestions: [
+          { question: "Under §5.27, what must the Emergency Response Plan be coordinated with?", options: ["The company's marketing strategy", "The ERPs of interfacing organizations", "The FAA's national airspace plan", "Local law enforcement patrol schedules"], correct: 1, explanation: "§5.27 requires that the ERP be coordinated with the emergency response plans of other organizations the certificate holder interfaces with, such as airports, FBOs, and medical facilities." },
+          { question: "Which emergency classification level would typically apply to an aircraft accident with injuries?", options: ["Level 1 — Alert", "Level 2 — Emergency", "Level 3 — Crisis", "No classification needed"], correct: 2, explanation: "An accident with injuries represents the most serious classification level (Crisis), requiring full ERP activation including notifications to NTSB, FAA, family members, and media response preparation." },
+        ],
+      },
+      {
+        title: "Notification Chain & Command Structure",
+        sortOrder: 1,
+        contentBlocks: [
+          { type: "heading", content: "Notification Procedures" },
+          { type: "text", content: "When an emergency occurs, a structured notification chain ensures the right people are informed in the right order:\n\n1. Immediate safety — Ensure the safety of persons involved (crew, passengers, bystanders)\n2. Emergency services — Contact 911 / ATC / airport emergency if not already involved\n3. Internal notification — Alert the on-call emergency coordinator (typically chief pilot or director of operations)\n4. Accountable Executive — The AE must be notified of any Level 2 or Level 3 event\n5. Regulatory notification — NTSB (for accidents/serious incidents) and FAA FSDO\n6. Insurance and legal — Notify as required by your organization's policies\n7. Family and next-of-kin — For events involving injury or fatality, following your organization's family assistance plan" },
+          { type: "heading", content: "Command Structure During Emergencies" },
+          { type: "text", content: "During an emergency response, clear command structure prevents confusion:\n\n• Emergency Coordinator — The designated person who manages the overall response (usually chief pilot or director of operations for the first 24 hours)\n• Communications Lead — Handles all external communications including media inquiries; no one else should speak to media\n• Operations Lead — Manages ongoing flight operations, makes go/no-go decisions for remaining flights\n• Family Liaison — If applicable, serves as single point of contact for affected families\n• Accountable Executive — Makes strategic decisions and authorizes major actions" },
+          { type: "callout", content: "Never speak to media or post on social media about an emergency event. All external communications must go through the designated Communications Lead." },
+          { type: "text", content: "Your notification contact list should be maintained in PreflightSMS (Admin > Notification Contacts) and reviewed monthly for accuracy. Phone trees should be tested periodically to ensure numbers are current." },
+        ],
+        quizQuestions: [
+          { question: "In the notification chain, what is the FIRST priority during an emergency?", options: ["Notify the insurance company", "Contact the media", "Ensure the safety of persons involved", "File a report with the FAA"], correct: 2, explanation: "The immediate priority in any emergency is ensuring the safety of all persons involved — crew, passengers, and bystanders. All other notifications follow once safety is addressed." },
+          { question: "Who should handle media inquiries during an emergency response?", options: ["Any available employee", "The pilot in command", "The designated Communications Lead only", "The maintenance department"], correct: 2, explanation: "All external communications including media inquiries must be handled exclusively by the designated Communications Lead. This ensures consistent, accurate messaging and prevents unauthorized statements that could create legal or reputational issues." },
+        ],
+      },
+      {
+        title: "Post-Event Investigation & Recovery",
+        sortOrder: 2,
+        contentBlocks: [
+          { type: "heading", content: "Post-Event Investigation" },
+          { type: "text", content: "After the immediate emergency response, the organization must conduct an internal investigation. This is separate from (but coordinated with) any NTSB or FAA investigation:\n\n1. Preserve evidence — Secure the aircraft, preserve electronic records (FDR, CVR, GPS data, FRAT), photograph the scene\n2. Gather witness statements — Interview crew, passengers, witnesses, ATC. Do this while memories are fresh.\n3. Analyze contributing factors — Use the SMS hazard identification and risk analysis framework\n4. Identify root causes — Look beyond the immediate cause to systemic factors\n5. Develop corrective actions — Address root causes, not just symptoms\n6. Feed findings back into SMS — Update hazard register, risk assessments, and training as needed" },
+          { type: "heading", content: "Organizational Recovery" },
+          { type: "text", content: "An emergency event affects the entire organization. Recovery planning should address:\n\n• Operational continuity — Returning to normal operations safely and systematically\n• Employee support — Critical Incident Stress Management (CISM) for affected personnel; provide access to counseling\n• Communication — Keep all employees informed about what happened, what was learned, and what changes are being made\n• Regulatory compliance — Complete all required reports (NTSB Form 6120.1, NASA ASRS if applicable, FAA notification)\n• Lessons learned — Share findings through safety meetings and training updates (Safety Promotion per §5.93)" },
+          { type: "callout", content: "Every emergency event, whether a minor incident or major accident, generates lessons that should feed back into your SMS through the continuous improvement process (§5.75)." },
+          { type: "text", content: "ERP drills and tabletop exercises are recommended at least annually. These practice events build organizational muscle memory so that when a real emergency occurs, the response is automatic rather than improvised. Document all drills and update the ERP based on lessons learned." },
+        ],
+        quizQuestions: [
+          { question: "What is the first step in post-event investigation?", options: ["Interview the media", "Preserve evidence", "File insurance claims", "Resume normal operations"], correct: 1, explanation: "Preserving evidence is the critical first step — secure the aircraft, preserve electronic records, and photograph the scene. Evidence can be lost or degraded quickly, making early preservation essential." },
+          { question: "Under §5.75, what should happen with findings from an emergency investigation?", options: ["They should be filed away and forgotten", "They should feed back into the SMS through corrective actions and training", "They should only be shared with the FAA", "They should be handled solely by the insurance company"], correct: 1, explanation: "Per §5.75, investigation findings must feed back into the SMS through the continuous improvement process. This means updating the hazard register, developing corrective actions, and incorporating lessons learned into training." },
+          { question: "How often should ERP drills or tabletop exercises be conducted?", options: ["Only after a real emergency", "At least annually", "Every five years", "Never — drills are disruptive"], correct: 1, explanation: "Best practice is to conduct at least one tabletop exercise annually and a full-scale drill periodically. Regular practice builds organizational readiness so that emergency response becomes automatic." },
+        ],
+      },
+    ],
+  },
+];
+
 // ── TRAINING RECORD FORM ────────────────────────────────────────
 function TrainingForm({ onSubmit, onCancel, requirements }) {
   const [form, setForm] = useState({
@@ -615,12 +866,20 @@ export default function CbtModules({
   onUpdateProgress, onUpdateEnrollment,
   onPublishCourse, onRefresh,
   trainingRequirements, trainingRecords, onCreateRequirement, onLogTraining,
+  onInitTraining,
 }) {
   const [topTab, setTopTab] = useState("cbt"); // cbt | records | requirements
   const [view, setView] = useState("catalog"); // catalog, course_detail, lesson, new_course, edit_course, new_lesson, edit_lesson
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [trainingView, setTrainingView] = useState("list"); // list | new_training | new_requirement
+  const [initializing, setInitializing] = useState(false);
+
+  const handleInitTraining = async () => {
+    setInitializing(true);
+    await onInitTraining(PART5_TRAINING_REQUIREMENTS, PART5_CBT_COURSES);
+    setInitializing(false);
+  };
 
   const isAdmin = profile?.role === "admin" || profile?.role === "safety_manager";
   const publishedCourses = courses.filter(c => c.status === "published" || isAdmin);
@@ -825,11 +1084,30 @@ export default function CbtModules({
         </div>
 
         {publishedCourses.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
-            <div style={{ fontSize: 42, marginBottom: 12 }}>📚</div>
-            <div style={{ fontSize: 14 }}>No courses available yet.</div>
-            {isAdmin && <div style={{ fontSize: 12, marginTop: 4 }}>Create one to get started.</div>}
-          </div>
+          courses.length === 0 && (trainingRequirements || []).length === 0 && isAdmin && onInitTraining ? (
+            <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
+              <div style={{ ...card, padding: 40 }}>
+                <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.6 }}>🎓</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Part 5 Training Program</div>
+                <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.6, marginBottom: 24, maxWidth: 420, margin: "0 auto 24px" }}>
+                  Set up a complete 14 CFR Part 5 compliant training program with pre-built requirements and courses covering all SMS competency areas.
+                </div>
+                <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 20 }}>
+                  10 training requirements (initial + recurrent) and 4 CBT courses with 12 lessons covering SMS Awareness, Hazard Identification, Safety Assurance, and Emergency Response will be created.
+                </div>
+                <button onClick={handleInitTraining} disabled={initializing}
+                  style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
+                  {initializing ? "Initializing..." : "Initialize Part 5 Training Program"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
+              <div style={{ fontSize: 42, marginBottom: 12 }}>📚</div>
+              <div style={{ fontSize: 14 }}>No courses available yet.</div>
+              {isAdmin && <div style={{ fontSize: 12, marginTop: 4 }}>Create one to get started.</div>}
+            </div>
+          )
         ) : publishedCourses.map(c => {
           const courseLessons = c.lessons || [];
           const myEnrollment = enrollments.find(e => e.course_id === c.id && e.user_id === profile?.id);
