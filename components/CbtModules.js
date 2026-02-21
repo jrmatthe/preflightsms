@@ -992,6 +992,10 @@ export default function CbtModules({
   const [initializing, setInitializing] = useState(false);
   const [search, setSearch] = useState("");
   const [listFilter, setListFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("title_az");
+  const [showCount, setShowCount] = useState(25);
+
+  useEffect(() => { setShowCount(25); }, [listFilter, search, sortBy]);
 
   const handleInitTraining = async () => {
     setInitializing(true);
@@ -1021,10 +1025,18 @@ export default function CbtModules({
     return { current, expiring, expired };
   }, [trainingRecords]);
 
+  // Count courses by category
+  const courseCategoryCounts = useMemo(() => {
+    const c = { all: 0 };
+    CATEGORIES.forEach(cat => { c[cat.id] = 0; });
+    publishedCourses.forEach(course => { c.all++; if (c[course.category] !== undefined) c[course.category]++; });
+    return c;
+  }, [publishedCourses]);
+
   // Filtered lists for search + filter
   const filteredCourses = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return publishedCourses.filter(c => {
+    let list = publishedCourses.filter(c => {
       if (listFilter !== "all" && c.category !== listFilter) return false;
       if (q) {
         const hay = `${c.title} ${c.description || ""}`.toLowerCase();
@@ -1032,12 +1044,35 @@ export default function CbtModules({
       }
       return true;
     });
-  }, [publishedCourses, listFilter, search]);
+    list.sort((a, b) => {
+      if (sortBy === "progress") {
+        const pctA = (a.lessons || []).length > 0 ? (a.lessons || []).filter(l => progress.find(p => p.lesson_id === l.id && p.user_id === profile?.id && p.status === "completed")).length / (a.lessons || []).length : 0;
+        const pctB = (b.lessons || []).length > 0 ? (b.lessons || []).filter(l => progress.find(p => p.lesson_id === l.id && p.user_id === profile?.id && p.status === "completed")).length / (b.lessons || []).length : 0;
+        return pctB - pctA;
+      }
+      return (a.title || "").localeCompare(b.title || "");
+    });
+    return list;
+  }, [publishedCourses, listFilter, search, sortBy, progress, profile]);
+
+  const recordStatusCounts = useMemo(() => {
+    const c = { all: 0, current: 0, expiring: 0, expired: 0 };
+    const now = new Date();
+    (trainingRecords || []).forEach(r => {
+      c.all++;
+      if (!r.expiry_date) { c.current++; return; }
+      const exp = new Date(r.expiry_date);
+      if (exp < now) c.expired++;
+      else if ((exp - now) / (1000*60*60*24) < 30) c.expiring++;
+      else c.current++;
+    });
+    return c;
+  }, [trainingRecords]);
 
   const filteredRecords = useMemo(() => {
     const q = search.toLowerCase().trim();
     const now = new Date();
-    return (trainingRecords || []).filter(r => {
+    let list = (trainingRecords || []).filter(r => {
       if (listFilter !== "all") {
         const isExpired = r.expiry_date && new Date(r.expiry_date) < now;
         const isExpiring = r.expiry_date && !isExpired && (new Date(r.expiry_date) - now) / (1000*60*60*24) < 30;
@@ -1050,11 +1085,26 @@ export default function CbtModules({
       }
       return true;
     });
-  }, [trainingRecords, listFilter, search]);
+    list.sort((a, b) => {
+      if (sortBy === "oldest") return new Date(a.completed_date || a.created_at) - new Date(b.completed_date || b.created_at);
+      if (sortBy === "expiry") return (a.expiry_date || "9999") < (b.expiry_date || "9999") ? -1 : 1;
+      return new Date(b.completed_date || b.created_at) - new Date(a.completed_date || a.created_at);
+    });
+    return list;
+  }, [trainingRecords, listFilter, search, sortBy]);
+
+  const requirementTypeCounts = useMemo(() => {
+    const c = { all: 0, initial: 0, recurrent: 0 };
+    (trainingRequirements || []).forEach(r => {
+      c.all++;
+      if (r.frequency_months > 0) c.recurrent++; else c.initial++;
+    });
+    return c;
+  }, [trainingRequirements]);
 
   const filteredRequirements = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return (trainingRequirements || []).filter(r => {
+    let list = (trainingRequirements || []).filter(r => {
       if (listFilter !== "all") {
         const type = r.frequency_months > 0 ? "recurrent" : "initial";
         if (listFilter !== type) return false;
@@ -1065,7 +1115,12 @@ export default function CbtModules({
       }
       return true;
     });
-  }, [trainingRequirements, listFilter, search]);
+    list.sort((a, b) => {
+      if (sortBy === "category") return (a.category || "").localeCompare(b.category || "");
+      return (a.title || "").localeCompare(b.title || "");
+    });
+    return list;
+  }, [trainingRequirements, listFilter, search, sortBy]);
 
   const handleCompleteLesson = async (result) => {
     if (!selectedCourse || !selectedLesson) return;
@@ -1115,7 +1170,7 @@ export default function CbtModules({
   const renderTopTabs = () => (
     <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {[["cbt", "CBT Courses"], ["records", "Training Records"], ["requirements", "Requirements"]].map(([id, label]) => (
-        <button key={id} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); }}
+        <button key={id} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); setSortBy(id === "cbt" ? "title_az" : id === "records" ? "newest" : "title_az"); setShowCount(25); }}
           style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,
             background: topTab === id ? WHITE : "transparent", color: topTab === id ? BLACK : MUTED,
             fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{label}</button>
@@ -1151,13 +1206,18 @@ export default function CbtModules({
         </div>
         <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search records..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="expiry">Expiry (soonest)</option>
+          </select>
         </div>
         <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
           {[["all", "All"], ["current", "Current"], ["expiring", "Expiring"], ["expired", "Expired"]].map(([id, label]) => (
             <button key={id} onClick={() => setListFilter(id)}
               style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${listFilter === id ? WHITE : BORDER}`,
                 background: listFilter === id ? WHITE : CARD, color: listFilter === id ? BLACK : MUTED,
-                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label}</button>
+                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label} ({recordStatusCounts[id] || 0})</button>
           ))}
         </div>
         {filteredRecords.length === 0 ? (
@@ -1165,32 +1225,40 @@ export default function CbtModules({
             <div style={{ fontSize: 42, marginBottom: 12 }}>📚</div>
             <div style={{ fontSize: 14 }}>{(trainingRecords || []).length === 0 ? "No training records yet" : "No matching records"}</div>
           </div>
-        ) : filteredRecords.map(r => {
-          const isExpired = r.expiry_date && new Date(r.expiry_date) < new Date();
-          const isExpiring = r.expiry_date && !isExpired && (new Date(r.expiry_date) - new Date()) / (1000*60*60*24) < 30;
-          const statusColor = isExpired ? RED : isExpiring ? YELLOW : GREEN;
-          return (
-            <div key={r.id} style={{ ...card, padding: "12px 16px", marginBottom: 6, borderLeft: `3px solid ${statusColor}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 12, color: WHITE }}>{r.title}</div>
-                  <div style={{ fontSize: 10, color: MUTED }}>
-                    {r.user?.full_name || "Unknown"} · Completed: {r.completed_date}
-                    {r.expiry_date && ` · Expires: ${r.expiry_date}`}
-                    {r.instructor && ` · Instructor: ${r.instructor}`}
+        ) : (<>
+          {filteredRecords.slice(0, showCount).map(r => {
+            const isExpired = r.expiry_date && new Date(r.expiry_date) < new Date();
+            const isExpiring = r.expiry_date && !isExpired && (new Date(r.expiry_date) - new Date()) / (1000*60*60*24) < 30;
+            const statusColor = isExpired ? RED : isExpiring ? YELLOW : GREEN;
+            return (
+              <div key={r.id} style={{ ...card, padding: "12px 16px", marginBottom: 6, borderLeft: `3px solid ${statusColor}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: WHITE }}>{r.title}</div>
+                    <div style={{ fontSize: 10, color: MUTED }}>
+                      {r.user?.full_name || "Unknown"} · Completed: {r.completed_date}
+                      {r.expiry_date && ` · Expires: ${r.expiry_date}`}
+                      {r.instructor && ` · Instructor: ${r.instructor}`}
+                    </div>
                   </div>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: statusColor }}>
+                    {isExpired ? "EXPIRED" : isExpiring ? "EXPIRING" : "CURRENT"}
+                  </span>
+                  {isAdmin && onDeleteTrainingRecord && (
+                    <button onClick={() => { if (confirm("Delete this training record?")) onDeleteTrainingRecord(r.id); }}
+                      style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+                  )}
                 </div>
-                <span style={{ fontSize: 10, fontWeight: 600, color: statusColor }}>
-                  {isExpired ? "EXPIRED" : isExpiring ? "EXPIRING" : "CURRENT"}
-                </span>
-                {isAdmin && onDeleteTrainingRecord && (
-                  <button onClick={() => { if (confirm("Delete this training record?")) onDeleteTrainingRecord(r.id); }}
-                    style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
-                )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+          {filteredRecords.length > showCount && (
+            <button onClick={() => setShowCount(c => c + 25)}
+              style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+              Showing {showCount} of {filteredRecords.length} — Show 25 more
+            </button>
+          )}
+        </>)}
       </div>
     );
   }
@@ -1209,13 +1277,17 @@ export default function CbtModules({
         {renderTopTabs()}
         <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search requirements..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
+            <option value="title_az">Title A-Z</option>
+            <option value="category">Category</option>
+          </select>
         </div>
         <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
           {[["all", "All"], ["initial", "Initial"], ["recurrent", "Recurrent"]].map(([id, label]) => (
             <button key={id} onClick={() => setListFilter(id)}
               style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${listFilter === id ? WHITE : BORDER}`,
                 background: listFilter === id ? WHITE : CARD, color: listFilter === id ? BLACK : MUTED,
-                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label}</button>
+                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label} ({requirementTypeCounts[id] || 0})</button>
           ))}
         </div>
         {filteredRequirements.length === 0 ? (
@@ -1223,20 +1295,28 @@ export default function CbtModules({
             <div style={{ fontSize: 42, marginBottom: 12 }}>📋</div>
             <div style={{ fontSize: 14 }}>{(trainingRequirements || []).length === 0 ? "No training requirements defined yet" : "No matching requirements"}</div>
           </div>
-        ) : filteredRequirements.map(r => (
-          <div key={r.id} style={{ ...card, padding: "10px 14px", marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ flex: 1 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{r.title}</span>
-              <span style={{ fontSize: 10, color: MUTED, marginLeft: 8 }}>
-                {r.frequency_months > 0 ? `Every ${r.frequency_months} months` : "One-time"} · {r.required_for?.join(", ")}
-              </span>
+        ) : (<>
+          {filteredRequirements.slice(0, showCount).map(r => (
+            <div key={r.id} style={{ ...card, padding: "10px 14px", marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{r.title}</span>
+                <span style={{ fontSize: 10, color: MUTED, marginLeft: 8 }}>
+                  {r.frequency_months > 0 ? `Every ${r.frequency_months} months` : "One-time"} · {r.required_for?.join(", ")}
+                </span>
+              </div>
+              {isAdmin && onDeleteRequirement && (
+                <button onClick={() => { if (confirm("Delete this requirement?")) onDeleteRequirement(r.id); }}
+                  style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+              )}
             </div>
-            {isAdmin && onDeleteRequirement && (
-              <button onClick={() => { if (confirm("Delete this requirement?")) onDeleteRequirement(r.id); }}
-                style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
-            )}
-          </div>
-        ))}
+          ))}
+          {filteredRequirements.length > showCount && (
+            <button onClick={() => setShowCount(c => c + 25)}
+              style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+              Showing {showCount} of {filteredRequirements.length} — Show 25 more
+            </button>
+          )}
+        </>)}
       </div>
     );
   }
@@ -1279,13 +1359,17 @@ export default function CbtModules({
 
         <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search courses..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
+            <option value="title_az">Title A-Z</option>
+            <option value="progress">Progress</option>
+          </select>
         </div>
         <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
           {[{ id: "all", label: "All" }, ...CATEGORIES].map(c => (
             <button key={c.id} onClick={() => setListFilter(c.id)}
               style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${listFilter === c.id ? WHITE : BORDER}`,
                 background: listFilter === c.id ? WHITE : CARD, color: listFilter === c.id ? BLACK : MUTED,
-                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{c.label}</button>
+                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{c.label} ({courseCategoryCounts[c.id] || 0})</button>
           ))}
         </div>
 
@@ -1314,7 +1398,7 @@ export default function CbtModules({
             <div style={{ fontSize: 14 }}>{publishedCourses.length === 0 ? "No courses available yet." : "No matching courses."}</div>
             {publishedCourses.length === 0 && isAdmin && <div style={{ fontSize: 12, marginTop: 4 }}>Create one to get started.</div>}
           </div>
-        ) : filteredCourses.map(c => {
+        ) : (<>{filteredCourses.slice(0, showCount).map(c => {
           const courseLessons = c.lessons || [];
           const myEnrollment = enrollments.find(e => e.course_id === c.id && e.user_id === profile?.id);
           const myLessonsComplete = courseLessons.filter(l => progress.find(p => p.lesson_id === l.id && p.user_id === profile?.id && p.status === "completed")).length;
@@ -1354,6 +1438,13 @@ export default function CbtModules({
             </div>
           );
         })}
+        {filteredCourses.length > showCount && (
+          <button onClick={() => setShowCount(c => c + 25)}
+            style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+            Showing {showCount} of {filteredCourses.length} — Show 25 more
+          </button>
+        )}
+        </>)}
       </div>
     );
   }

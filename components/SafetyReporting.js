@@ -244,8 +244,12 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard }) {
 
 export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport }) {
   const [view, setView] = useState("list"); // list | new
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [showCount, setShowCount] = useState(25);
+
+  useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
 
   // Build map of report_id -> linked hazard
   const linkedHazards = useMemo(() => {
@@ -255,16 +259,24 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
   }, [hazards]);
 
   const filtered = useMemo(() => {
-    return reports.filter(r => {
+    let list = reports.filter(r => {
       if (filter !== "all" && filter !== r.status && filter !== r.report_type) return false;
       if (search && !`${r.title} ${r.description} ${r.report_code} ${r.location} ${r.category}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [reports, filter, search]);
+    list.sort((a, b) => {
+      if (sortBy === "oldest") return new Date(a.created_at) - new Date(b.created_at);
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+    return list;
+  }, [reports, filter, search, sortBy]);
 
   const counts = useMemo(() => {
-    const c = { total: reports.length, open: 0, under_review: 0, investigation: 0, closed: 0 };
-    reports.forEach(r => { if (c[r.status] !== undefined) c[r.status]++; });
+    const c = { all: reports.length, open: 0, under_review: 0, investigation: 0, corrective_action: 0, closed: 0, hazard: 0, incident: 0, near_miss: 0 };
+    reports.forEach(r => {
+      if (c[r.status] !== undefined) c[r.status]++;
+      if (c[r.report_type] !== undefined) c[r.report_type]++;
+    });
     return c;
   }, [reports]);
 
@@ -302,14 +314,20 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
       </div>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="Search reports..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...inp, flex: 1, minWidth: 180, fontSize: 13 }} />
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {["all", "open", "under_review", "investigation", "closed", "hazard", "incident", "near_miss"].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${filter === f ? WHITE : BORDER}`,
               background: filter === f ? WHITE : CARD, color: filter === f ? BLACK : MUTED,
               fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-            {f === "all" ? "All" : f.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+            {(f === "all" ? "All" : f.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())) + ` (${counts[f] || 0})`}
           </button>
         ))}
       </div>
@@ -321,11 +339,19 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
           <div style={{ fontSize: 14 }}>No safety reports yet</div>
           <div style={{ fontSize: 11, marginTop: 4 }}>Submit a report to start building your safety data.</div>
         </div>
-      ) : filtered.map(r => (
-        <ReportCard key={r.id} report={r} onStatusChange={onStatusChange}
-          linkedHazard={linkedHazards[r.id]}
-          onCreateHazard={onCreateHazardFromReport ? (report) => onCreateHazardFromReport(report) : null} />
-      ))}
+      ) : (<>
+        {filtered.slice(0, showCount).map(r => (
+          <ReportCard key={r.id} report={r} onStatusChange={onStatusChange}
+            linkedHazard={linkedHazards[r.id]}
+            onCreateHazard={onCreateHazardFromReport ? (report) => onCreateHazardFromReport(report) : null} />
+        ))}
+        {filtered.length > showCount && (
+          <button onClick={() => setShowCount(c => c + 25)}
+            style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+            Showing {showCount} of {filtered.length} — Show 25 more
+          </button>
+        )}
+      </>)}
     </div>
   );
 }

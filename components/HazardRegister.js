@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 const BLACK = "#000000", DARK = "#0A0A0A", NEAR_BLACK = "#111111", CARD = "#141414";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888";
@@ -275,6 +275,10 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
   const [view, setView] = useState(fromReport ? "new" : "list");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [showCount, setShowCount] = useState(25);
+
+  useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
 
   // If fromReport changes (user clicked Create Hazard from a report), switch to new form
   const [lastFromReport, setLastFromReport] = useState(fromReport?.id);
@@ -283,9 +287,20 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
     setView("new");
   }
 
+  const statusCounts = useMemo(() => {
+    const c = { all: 0 };
+    HAZARD_STATUSES.forEach(s => { c[s.id] = 0; });
+    hazards.forEach(h => {
+      if (c[h.status] !== undefined) c[h.status]++;
+      if (h.status !== "closed") c.all++;
+    });
+    return c;
+  }, [hazards]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return hazards.filter(h => {
+    let list = hazards.filter(h => {
+      if (filter === "all" && h.status === "closed") return false;
       if (filter !== "all" && h.status !== filter) return false;
       if (q) {
         const hay = `${h.title} ${h.description} ${h.hazard_code} ${h.category} ${h.responsible_person || ""} ${h.source || ""}`.toLowerCase();
@@ -293,7 +308,14 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
       }
       return true;
     });
-  }, [hazards, filter, search]);
+    list.sort((a, b) => {
+      if (sortBy === "oldest") return new Date(a.created_at) - new Date(b.created_at);
+      if (sortBy === "risk_high") return ((b.initial_risk_score || b.initial_likelihood * b.initial_severity) - (a.initial_risk_score || a.initial_likelihood * a.initial_severity));
+      if (sortBy === "risk_low") return ((a.initial_risk_score || a.initial_likelihood * a.initial_severity) - (b.initial_risk_score || b.initial_likelihood * b.initial_severity));
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+    return list;
+  }, [hazards, filter, search, sortBy]);
 
   const riskSummary = useMemo(() => {
     const s = { critical: 0, high: 0, medium: 0, low: 0 };
@@ -344,9 +366,15 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
         ))}
       </div>
 
-      {/* Search & Filters */}
+      {/* Search & Sort */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search hazards..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="risk_high">Risk: High → Low</option>
+          <option value="risk_low">Risk: Low → High</option>
+        </select>
       </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {["all", ...HAZARD_STATUSES.map(s => s.id)].map(f => (
@@ -354,7 +382,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
             style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${filter === f ? WHITE : BORDER}`,
               background: filter === f ? WHITE : CARD, color: filter === f ? BLACK : MUTED,
               fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-            {f === "all" ? `All (${hazards.length})` : HAZARD_STATUSES.find(s => s.id === f)?.label}
+            {f === "all" ? `All (${statusCounts.all})` : `${HAZARD_STATUSES.find(s => s.id === f)?.label} (${statusCounts[f] || 0})`}
           </button>
         ))}
       </div>
@@ -365,10 +393,18 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
           <div style={{ fontSize: 14 }}>No hazards registered</div>
           <div style={{ fontSize: 11, marginTop: 4 }}>Register identified hazards with risk assessments and mitigations.</div>
         </div>
-      ) : filtered.map(h => {
-        const lr = h.related_report_id && reports ? reports.find(r => r.id === h.related_report_id) : null;
-        return <HazardCard key={h.id} hazard={h} linkedReport={lr} />;
-      })}
+      ) : (<>
+        {filtered.slice(0, showCount).map(h => {
+          const lr = h.related_report_id && reports ? reports.find(r => r.id === h.related_report_id) : null;
+          return <HazardCard key={h.id} hazard={h} linkedReport={lr} />;
+        })}
+        {filtered.length > showCount && (
+          <button onClick={() => setShowCount(c => c + 25)}
+            style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+            Showing {showCount} of {filtered.length} — Show 25 more
+          </button>
+        )}
+      </>)}
     </div>
   );
 }

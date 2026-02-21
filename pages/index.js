@@ -881,7 +881,12 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
     }).catch(() => {});
   }, [flights]);
 
-  const recent = flights.filter(f => f.status !== "ARRIVED" || (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000);
+  const recent = useMemo(() => flights.filter(f => f.status !== "ARRIVED" || (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000), [flights, now]);
+  const flightCounts = useMemo(() => {
+    let active = 0, arrived = 0;
+    recent.forEach(f => { if (f.status === "ACTIVE") active++; else if (f.status === "ARRIVED") arrived++; });
+    return { ACTIVE: active, ARRIVED: arrived, ALL: recent.length };
+  }, [recent]);
   const displayed = (() => {
     let list = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
     const q = search.toLowerCase().trim();
@@ -977,7 +982,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
           {["ACTIVE", "ARRIVED", "ALL"].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{ padding: "5px 14px", borderRadius: 6, border: `1px solid ${filter === f ? WHITE : BORDER}`,
               background: filter === f ? WHITE : "transparent", color: filter === f ? BLACK : MUTED, fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: 0.3 }}>
-              {f === "ALL" ? "All (24h)" : f === "ACTIVE" ? "Active" : "Arrived"}</button>))}
+              {(f === "ALL" ? "All (24h)" : f === "ACTIVE" ? "Active" : "Arrived") + ` (${flightCounts[f]})`}</button>))}
         </div>
         <span style={{ fontSize: 13, color: GREEN, fontWeight: 600 }}>&#x25CF; {activeFlights.length} Active</span>
       </div>
