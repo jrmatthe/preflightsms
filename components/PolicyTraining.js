@@ -91,6 +91,8 @@ export default function PolicyTraining({
 }) {
   const [view, setView] = useState("list");   // list | new_policy
   const [expandedPolicy, setExpandedPolicy] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
 
   const myAcks = useMemo(() => {
     const set = new Set();
@@ -101,7 +103,18 @@ export default function PolicyTraining({
   }, [policies, profile]);
 
   const manualPolicies = useMemo(() => policies.filter(p => p.source_manual_key), [policies]);
-  const userPolicies = useMemo(() => policies.filter(p => !p.source_manual_key), [policies]);
+  const allUserPolicies = useMemo(() => policies.filter(p => !p.source_manual_key), [policies]);
+  const userPolicies = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return allUserPolicies.filter(p => {
+      if (filter !== "all" && p.status !== filter) return false;
+      if (q) {
+        const hay = `${p.title} ${p.description || ""} ${p.category || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [allUserPolicies, filter, search]);
 
   // Forms
   if (view === "new_policy") return <PolicyForm onSubmit={p => { onCreatePolicy(p); setView("list"); }} onCancel={() => setView("list")} />;
@@ -194,8 +207,25 @@ export default function PolicyTraining({
       )}
 
       {/* User-created policies */}
-      {manualPolicies.length > 0 && userPolicies.length > 0 && (
+      {manualPolicies.length > 0 && allUserPolicies.length > 0 && (
         <div style={{ fontSize: 12, fontWeight: 700, color: OFF_WHITE, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Other Documents</div>
+      )}
+      {(allUserPolicies.length > 0 || search || filter !== "all") && (
+        <>
+          <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search documents..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+          </div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+            {["all", "active", "draft", "under_review", "archived"].map(f => (
+              <button key={f} onClick={() => setFilter(f)}
+                style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${filter === f ? WHITE : BORDER}`,
+                  background: filter === f ? WHITE : CARD, color: filter === f ? BLACK : MUTED,
+                  fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
+                {f === "all" ? `All (${allUserPolicies.length})` : f.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+              </button>
+            ))}
+          </div>
+        </>
       )}
       {policies.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60, color: MUTED }}>

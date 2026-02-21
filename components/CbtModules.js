@@ -990,6 +990,8 @@ export default function CbtModules({
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [trainingView, setTrainingView] = useState("list"); // list | new_training | new_requirement
   const [initializing, setInitializing] = useState(false);
+  const [search, setSearch] = useState("");
+  const [listFilter, setListFilter] = useState("all");
 
   const handleInitTraining = async () => {
     setInitializing(true);
@@ -1018,6 +1020,52 @@ export default function CbtModules({
     });
     return { current, expiring, expired };
   }, [trainingRecords]);
+
+  // Filtered lists for search + filter
+  const filteredCourses = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return publishedCourses.filter(c => {
+      if (listFilter !== "all" && c.category !== listFilter) return false;
+      if (q) {
+        const hay = `${c.title} ${c.description || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [publishedCourses, listFilter, search]);
+
+  const filteredRecords = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    const now = new Date();
+    return (trainingRecords || []).filter(r => {
+      if (listFilter !== "all") {
+        const isExpired = r.expiry_date && new Date(r.expiry_date) < now;
+        const isExpiring = r.expiry_date && !isExpired && (new Date(r.expiry_date) - now) / (1000*60*60*24) < 30;
+        const status = isExpired ? "expired" : isExpiring ? "expiring" : "current";
+        if (listFilter !== status) return false;
+      }
+      if (q) {
+        const hay = `${r.title} ${r.user?.full_name || ""} ${r.instructor || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [trainingRecords, listFilter, search]);
+
+  const filteredRequirements = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return (trainingRequirements || []).filter(r => {
+      if (listFilter !== "all") {
+        const type = r.frequency_months > 0 ? "recurrent" : "initial";
+        if (listFilter !== type) return false;
+      }
+      if (q) {
+        const hay = `${r.title} ${r.description || ""} ${r.category || ""} ${(r.required_for || []).join(" ")}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [trainingRequirements, listFilter, search]);
 
   const handleCompleteLesson = async (result) => {
     if (!selectedCourse || !selectedLesson) return;
@@ -1067,7 +1115,7 @@ export default function CbtModules({
   const renderTopTabs = () => (
     <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {[["cbt", "CBT Courses"], ["records", "Training Records"], ["requirements", "Requirements"]].map(([id, label]) => (
-        <button key={id} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); }}
+        <button key={id} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); }}
           style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,
             background: topTab === id ? WHITE : "transparent", color: topTab === id ? BLACK : MUTED,
             fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{label}</button>
@@ -1101,12 +1149,23 @@ export default function CbtModules({
             <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Expired</div>
           </div>
         </div>
-        {(trainingRecords || []).length === 0 ? (
+        <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search records..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+        </div>
+        <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+          {[["all", "All"], ["current", "Current"], ["expiring", "Expiring"], ["expired", "Expired"]].map(([id, label]) => (
+            <button key={id} onClick={() => setListFilter(id)}
+              style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${listFilter === id ? WHITE : BORDER}`,
+                background: listFilter === id ? WHITE : CARD, color: listFilter === id ? BLACK : MUTED,
+                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label}</button>
+          ))}
+        </div>
+        {filteredRecords.length === 0 ? (
           <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
             <div style={{ fontSize: 42, marginBottom: 12 }}>📚</div>
-            <div style={{ fontSize: 14 }}>No training records yet</div>
+            <div style={{ fontSize: 14 }}>{(trainingRecords || []).length === 0 ? "No training records yet" : "No matching records"}</div>
           </div>
-        ) : (trainingRecords || []).map(r => {
+        ) : filteredRecords.map(r => {
           const isExpired = r.expiry_date && new Date(r.expiry_date) < new Date();
           const isExpiring = r.expiry_date && !isExpired && (new Date(r.expiry_date) - new Date()) / (1000*60*60*24) < 30;
           const statusColor = isExpired ? RED : isExpiring ? YELLOW : GREEN;
@@ -1148,12 +1207,23 @@ export default function CbtModules({
           <button onClick={() => setTrainingView("new_requirement")} style={btnPrimary}>+ Requirement</button>
         </div>
         {renderTopTabs()}
-        {(trainingRequirements || []).length === 0 ? (
+        <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search requirements..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+        </div>
+        <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+          {[["all", "All"], ["initial", "Initial"], ["recurrent", "Recurrent"]].map(([id, label]) => (
+            <button key={id} onClick={() => setListFilter(id)}
+              style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${listFilter === id ? WHITE : BORDER}`,
+                background: listFilter === id ? WHITE : CARD, color: listFilter === id ? BLACK : MUTED,
+                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label}</button>
+          ))}
+        </div>
+        {filteredRequirements.length === 0 ? (
           <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
             <div style={{ fontSize: 42, marginBottom: 12 }}>📋</div>
-            <div style={{ fontSize: 14 }}>No training requirements defined yet</div>
+            <div style={{ fontSize: 14 }}>{(trainingRequirements || []).length === 0 ? "No training requirements defined yet" : "No matching requirements"}</div>
           </div>
-        ) : (trainingRequirements || []).map(r => (
+        ) : filteredRequirements.map(r => (
           <div key={r.id} style={{ ...card, padding: "10px 14px", marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ flex: 1 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{r.title}</span>
@@ -1207,6 +1277,18 @@ export default function CbtModules({
           </div>
         </div>
 
+        <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search courses..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+        </div>
+        <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+          {[{ id: "all", label: "All" }, ...CATEGORIES].map(c => (
+            <button key={c.id} onClick={() => setListFilter(c.id)}
+              style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${listFilter === c.id ? WHITE : BORDER}`,
+                background: listFilter === c.id ? WHITE : CARD, color: listFilter === c.id ? BLACK : MUTED,
+                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{c.label}</button>
+          ))}
+        </div>
+
         {(trainingRequirements || []).length === 0 && isAdmin && onInitTraining && (
           <div style={{ maxWidth: 600, margin: "0 auto 20px", textAlign: "center" }}>
             <div style={{ ...card, padding: 40 }}>
@@ -1226,13 +1308,13 @@ export default function CbtModules({
           </div>
         )}
 
-        {publishedCourses.length === 0 ? (
+        {filteredCourses.length === 0 ? (
           <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
             <div style={{ fontSize: 42, marginBottom: 12 }}>📚</div>
-            <div style={{ fontSize: 14 }}>No courses available yet.</div>
-            {isAdmin && <div style={{ fontSize: 12, marginTop: 4 }}>Create one to get started.</div>}
+            <div style={{ fontSize: 14 }}>{publishedCourses.length === 0 ? "No courses available yet." : "No matching courses."}</div>
+            {publishedCourses.length === 0 && isAdmin && <div style={{ fontSize: 12, marginTop: 4 }}>Create one to get started.</div>}
           </div>
-        ) : publishedCourses.map(c => {
+        ) : filteredCourses.map(c => {
           const courseLessons = c.lessons || [];
           const myEnrollment = enrollments.find(e => e.course_id === c.id && e.user_id === profile?.id);
           const myLessonsComplete = courseLessons.filter(l => progress.find(p => p.lesson_id === l.id && p.user_id === profile?.id && p.status === "completed")).length;
