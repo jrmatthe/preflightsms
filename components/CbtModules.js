@@ -289,6 +289,121 @@ const PART5_CBT_COURSES = [
       },
     ],
   },
+  {
+    title: "Safety Promotion & Communication",
+    description: "Learn how to effectively communicate safety information, promote a positive safety culture, and fulfill the safety promotion requirements of 14 CFR Part 5 Subpart E (§5.93).",
+    category: "sms", requiredFor: ["safety_manager", "chief_pilot", "admin"],
+    passingScore: 80, estimatedMinutes: 20,
+    lessons: [
+      {
+        title: "Safety Communication Framework",
+        sortOrder: 0,
+        contentBlocks: [
+          { type: "heading", content: "Safety Promotion Under §5.93" },
+          { type: "text", content: "Safety Promotion is the fourth pillar of SMS and arguably the one that ties everything together. Without effective communication, even the best safety policies, risk assessments, and assurance programs fail — because people don't know about them.\n\nUnder §5.93, your organization must provide safety communication that:\n\n(a) Conveys SMS policies, procedures, and tools relevant to each employee's responsibilities\n(b) Conveys hazard information relevant to each employee's responsibilities\n(c) Explains why safety actions have been taken\n(d) Explains why safety procedures have been introduced or changed" },
+          { type: "heading", content: "Communication Channels" },
+          { type: "text", content: "Effective safety communication uses multiple channels to reach all personnel:\n\n• Safety bulletins and newsletters — Written summaries of recent events, lessons learned, and policy changes\n• Safety meetings — Regular team meetings where safety topics are discussed openly\n• Digital platforms — PreflightSMS notifications, email alerts, and dashboard announcements\n• Briefings — Pre-flight and pre-shift briefings that include relevant safety information\n• Posters and visual aids — Physical reminders in crew rooms, hangars, and dispatch areas\n• One-on-one conversations — Direct communication for sensitive or role-specific safety matters" },
+          { type: "callout", content: "The best safety communication is two-way. Employees should feel empowered to ask questions, raise concerns, and contribute ideas — not just receive information." },
+          { type: "text", content: "When choosing a communication channel, consider your audience, the urgency of the message, and whether acknowledgment of receipt is needed. Critical safety information (like a new hazard affecting current operations) needs immediate, direct communication — not a newsletter that might be read next week." },
+        ],
+        quizQuestions: [
+          { question: "Under §5.93, which of the following is a required element of safety communication?", options: ["Marketing the company's safety record to customers", "Explaining why safety actions have been taken", "Reporting safety data to competitors", "Publishing annual financial statements"], correct: 1, explanation: "§5.93(c) specifically requires the organization to explain why safety actions have been taken. This ensures employees understand the rationale behind safety decisions, building trust and compliance." },
+          { question: "What is the most important characteristic of effective safety communication?", options: ["It uses technical jargon to demonstrate expertise", "It is one-way, from management to employees", "It is two-way, encouraging employee feedback and questions", "It only occurs during annual training sessions"], correct: 2, explanation: "Effective safety communication is two-way — employees should feel empowered to ask questions, raise concerns, and contribute ideas. One-way communication misses the valuable insights that front-line employees can provide." },
+        ],
+      },
+      {
+        title: "Communicating Hazards & Safety Actions",
+        sortOrder: 1,
+        contentBlocks: [
+          { type: "heading", content: "Hazard Information Communication (§5.93(b))" },
+          { type: "text", content: "When a hazard is identified through the SRM process, the people who need to know about it must be informed promptly. §5.93(b) requires communicating hazard information relevant to each employee's responsibilities.\n\nEffective hazard communication includes:\n\n• What the hazard is — Clear, specific description\n• Who is affected — Which roles, routes, aircraft, or operations\n• What controls are in place — Current risk mitigations\n• What action is expected — What employees should do differently\n• Timeframe — How long the hazard is expected to persist" },
+          { type: "heading", content: "Explaining Safety Actions (§5.93(c-d))" },
+          { type: "text", content: "People are more likely to follow safety procedures when they understand why they exist. §5.93(c) requires explaining why safety actions are taken, and §5.93(d) requires explaining why procedures are introduced or changed.\n\nWhen communicating a safety action or procedure change:\n\n1. State what changed — The specific policy, procedure, or requirement\n2. Explain the trigger — What event, hazard, or analysis led to the change\n3. Describe the rationale — Why this particular action was chosen\n4. Clarify the expectation — What compliance looks like in practice\n5. Invite feedback — Ask for input on whether the action is practical and effective" },
+          { type: "callout", content: "Never communicate a new safety procedure without explaining WHY. 'Because we said so' is not safety promotion — it breeds resentment and non-compliance." },
+          { type: "text", content: "Example of poor communication: 'Effective immediately, all flights require a FRAT score below 25 for dispatch.'\n\nExample of effective communication: 'Following analysis of our Q3 safety data, we identified that flights departing with FRAT scores above 25 had a 3x higher rate of safety events. Starting Monday, flights scoring above 25 will require Chief Pilot review before dispatch. This adds approximately 10 minutes to the dispatch process but significantly reduces our exposure to high-risk operations. Please contact the Safety Manager with any questions or feedback on how this works in practice.'" },
+        ],
+        quizQuestions: [
+          { question: "When communicating a new safety procedure, what should always be included per §5.93(c-d)?", options: ["The name of the employee who caused the problem", "An explanation of why the procedure was introduced", "The estimated cost savings from the change", "A comparison with competitor practices"], correct: 1, explanation: "§5.93(c) requires explaining why safety actions are taken and §5.93(d) requires explaining why procedures are introduced or changed. Understanding the 'why' drives genuine compliance rather than reluctant obedience." },
+          { question: "What information should hazard communication include under §5.93(b)?", options: ["Only the hazard name and a severity rating", "The hazard description, who is affected, controls in place, and expected actions", "Only a reminder to be more careful", "Statistical analysis of all similar hazards industry-wide"], correct: 1, explanation: "Effective hazard communication under §5.93(b) must be relevant to each employee's responsibilities, meaning it should describe the hazard, who is affected, current controls, and what specific action is expected from the employee." },
+          { question: "Why is explaining the rationale behind safety changes important?", options: ["It satisfies legal documentation requirements only", "People comply more when they understand why a rule exists", "It allows employees to decide whether to follow the rule", "It is not important — rules should simply be followed"], correct: 1, explanation: "Research consistently shows that people are more likely to comply with safety procedures when they understand the reasoning. Unexplained rules breed resentment and non-compliance, while transparent communication builds trust and genuine safety culture." },
+        ],
+      },
+      {
+        title: "Building & Sustaining Safety Culture",
+        sortOrder: 2,
+        contentBlocks: [
+          { type: "heading", content: "What Is Safety Culture?" },
+          { type: "text", content: "Safety culture is the set of shared values, beliefs, and behaviors that determine how safety is prioritized in your organization. It is not a policy you write — it is the reality of how people behave when no one is watching.\n\nA positive safety culture is characterized by:\n\n• Trust — Employees trust that reporting will be handled fairly\n• Openness — People openly discuss safety concerns without fear\n• Learning — The organization treats errors as learning opportunities\n• Accountability — Everyone takes responsibility for safety, at every level\n• Flexibility — Procedures adapt based on experience and feedback" },
+          { type: "heading", content: "The Safety Promotion Role in Culture" },
+          { type: "text", content: "Safety Promotion (§5.91–§5.93) is the primary tool for building and maintaining safety culture. As a safety manager, chief pilot, or administrator, you shape culture through:\n\n• Training programs — Ensuring competency in SMS principles and tools (§5.91)\n• Communication — Making safety information accessible, timely, and relevant (§5.93)\n• Recognition — Acknowledging good safety behavior and quality reports\n• Responsiveness — Acting visibly on safety reports and closing the feedback loop\n• Leadership — Demonstrating commitment through actions, not just words\n\nThe Accountable Executive sets the tone, but every manager reinforces or undermines it daily." },
+          { type: "callout", content: "Culture is not what you say in meetings — it's what happens on the flight line at 0500 when no one is looking. Safety Promotion ensures that the right behaviors are understood, encouraged, and sustained." },
+          { type: "text", content: "Practical safety promotion activities you can implement:\n\n• Monthly safety newsletters highlighting reports received and actions taken\n• 'Safety Stand-Down' events for focused discussion of emerging risks\n• Recognition program for top safety reporters each quarter\n• Feedback surveys asking employees to rate communication effectiveness\n• Regular updates to the company safety board (physical or digital)\n• Inclusion of safety topics in every operational briefing and meeting" },
+        ],
+        quizQuestions: [
+          { question: "Which of the following best describes a positive safety culture?", options: ["Zero accident record over the past year", "Employees openly discuss concerns and trust that reporting is handled fairly", "Strict punishment for any deviation from standard procedures", "Management makes all safety decisions without employee input"], correct: 1, explanation: "A positive safety culture is characterized by trust, openness, and learning. A zero-accident record may reflect luck rather than culture, and punitive approaches actually discourage the reporting that makes SMS effective." },
+          { question: "Under §5.91–§5.93, who is primarily responsible for safety promotion activities?", options: ["Only the FAA inspector", "Only line pilots", "Management, with the Accountable Executive setting the tone", "The insurance company"], correct: 2, explanation: "While everyone participates in safety culture, §5.25 makes the Accountable Executive responsible for ensuring safety promotion, and §5.25(c) designates management personnel to carry it out. Leadership sets the tone that everyone else follows." },
+        ],
+      },
+    ],
+  },
+  {
+    title: "SMS Leadership & Role-Specific Duties",
+    description: "Role-specific training for Accountable Executives, Safety Managers, and Chief Pilots covering their SMS responsibilities under §5.25, management oversight, and safety performance review.",
+    category: "sms", requiredFor: ["safety_manager", "chief_pilot", "accountable_exec"],
+    passingScore: 80, estimatedMinutes: 20,
+    lessons: [
+      {
+        title: "Accountable Executive Responsibilities",
+        sortOrder: 0,
+        contentBlocks: [
+          { type: "heading", content: "The Accountable Executive Role (§5.25(a-b))" },
+          { type: "text", content: "The Accountable Executive (AE) is the single person who bears ultimate accountability for SMS implementation. Under §5.25(a), the AE must have:\n\n• Control of the resources required for operations authorized under the certificate\n• Responsibility for the financial affairs of the organization\n• Final authority over operations conducted under the certificate\n\nThis is typically the CEO, President, or certificate holder. The AE cannot delegate this accountability — though specific tasks may be delegated, the accountability remains with the AE." },
+          { type: "heading", content: "Five Core AE Responsibilities (§5.25(b))" },
+          { type: "text", content: "Under §5.25(b), the Accountable Executive is specifically responsible for:\n\n1. Ensuring the SMS is properly implemented and performing in all areas of the organization\n2. Ensuring the SMS is implemented and functions as designed\n3. Ensuring the necessary resources for SMS are available\n4. Ensuring effective safety risk controls are in place\n5. Regularly reviewing the organization's safety performance\n\nThese are not passive responsibilities. The AE must actively engage with the SMS — reviewing safety performance data, approving high-level risk acceptances, ensuring corrective actions are completed, and visibly demonstrating commitment to safety." },
+          { type: "callout", content: "The AE's signature on the safety policy is not a formality. It represents personal accountability for every element of the SMS. FAA inspectors will verify that the AE is actively engaged, not just a figurehead." },
+          { type: "text", content: "Practical AE engagement includes:\n\n• Quarterly review of safety performance indicators with the Safety Manager\n• Personal approval of any risk assessment rated as 'High'\n• Annual review and signing of the safety policy\n• Allocation of budget for safety training, reporting tools, and corrective actions\n• Attendance at safety meetings (at minimum, quarterly safety review boards)\n• Follow-up on overdue corrective actions and open hazards" },
+        ],
+        quizQuestions: [
+          { question: "Under §5.25(a), which attribute must the Accountable Executive possess?", options: ["An airline transport pilot certificate", "Control of operational resources and financial responsibility", "A degree in safety management", "At least 10 years of industry experience"], correct: 1, explanation: "§5.25(a) requires the AE to have control of the resources required for operations and responsibility for the organization's financial affairs. These ensure the AE has the authority and means to fund and support SMS implementation." },
+          { question: "How many specific responsibilities does §5.25(b) assign to the Accountable Executive?", options: ["Three", "Five", "Seven", "Ten"], correct: 1, explanation: "§5.25(b) lists five specific responsibilities: (1) ensure SMS is properly implemented, (2) ensure SMS functions as designed, (3) ensure necessary resources, (4) ensure effective risk controls, and (5) regularly review safety performance." },
+          { question: "Can the Accountable Executive delegate their SMS accountability to the Safety Manager?", options: ["Yes, through a formal letter of delegation", "Yes, if the Safety Manager agrees", "No — accountability remains with the AE even if tasks are delegated", "Only during the AE's absence"], correct: 2, explanation: "The AE can delegate specific SMS tasks but cannot delegate the accountability itself. This is a fundamental principle of §5.25 — one person must be ultimately accountable for SMS performance." },
+        ],
+      },
+      {
+        title: "Safety Manager & Management Personnel Duties",
+        sortOrder: 1,
+        contentBlocks: [
+          { type: "heading", content: "Designated Management Personnel (§5.25(c))" },
+          { type: "text", content: "Under §5.25(c), the certificate holder must designate management personnel who, on behalf of the Accountable Executive, are responsible for:\n\n1. Coordinating the SMS throughout the organization\n2. Facilitating hazard identification and safety risk analysis\n3. Monitoring the effectiveness of safety risk controls\n4. Ensuring safety promotion activities are carried out\n5. Regularly reporting to the Accountable Executive on SMS performance\n\nThe Safety Manager typically fulfills most of these functions, but they may be distributed among multiple management positions depending on organizational size." },
+          { type: "heading", content: "Day-to-Day Safety Manager Functions" },
+          { type: "text", content: "The Safety Manager's daily responsibilities include:\n\n• Monitoring incoming safety reports and triaging by severity\n• Maintaining the hazard register and ensuring timely risk assessments\n• Tracking corrective action completion and verifying effectiveness\n• Preparing safety performance data for management review\n• Coordinating training requirements and tracking compliance\n• Managing the safety reporting system (PreflightSMS)\n• Serving as the primary point of contact for safety-related inquiries\n• Coordinating with the FAA and other regulatory bodies on safety matters\n• Facilitating safety meetings and documenting outcomes\n• Ensuring all SMS documentation is current and accessible" },
+          { type: "callout", content: "The Safety Manager is the engine of the SMS. While the AE provides direction and resources, the Safety Manager ensures the system runs day-to-day. Without active engagement from this role, the SMS becomes a paper program." },
+          { type: "text", content: "The Chief Pilot often shares SMS management responsibilities, particularly regarding:\n\n• Operational risk decisions (FRAT review, flight approval)\n• Pilot training and competency evaluation\n• Standard operating procedure development and updates\n• Line safety audits and operational observations\n• Crew resource management program oversight" },
+        ],
+        quizQuestions: [
+          { question: "Under §5.25(c), how many specific functions must designated management personnel fulfill?", options: ["Three", "Five", "Seven", "Nine"], correct: 1, explanation: "§5.25(c) lists five specific functions: coordinate SMS, facilitate hazard identification and risk analysis, monitor risk control effectiveness, ensure safety promotion, and report to the AE on SMS performance." },
+          { question: "What is the Safety Manager's role regarding the hazard register?", options: ["They only review it annually", "They maintain it and ensure timely risk assessments are completed", "They delegate it entirely to line employees", "They only use it during FAA audits"], correct: 1, explanation: "The Safety Manager actively maintains the hazard register as a core daily responsibility — ensuring new hazards are logged, risk assessments are completed in a timely manner, and controls are tracked through to implementation and verification." },
+        ],
+      },
+      {
+        title: "Safety Performance Review & Oversight",
+        sortOrder: 2,
+        contentBlocks: [
+          { type: "heading", content: "Management Review Process" },
+          { type: "text", content: "Effective SMS leadership requires regular, structured review of safety performance. This connects the AE's oversight responsibility (§5.25(b)(5)) with the Safety Assurance requirements (§5.73).\n\nA recommended review structure:\n\n• Weekly — Safety Manager reviews incoming reports, FRAT trends, and open actions\n• Monthly — Safety Manager briefs Chief Pilot and operations leadership on safety metrics\n• Quarterly — Safety Review Board meeting with AE, Safety Manager, Chief Pilot, and department heads\n• Annually — Comprehensive SMS performance assessment with formal report to the AE" },
+          { type: "heading", content: "What to Review" },
+          { type: "text", content: "Key metrics for management review:\n\n• Safety reports received (volume, types, trends)\n• FRAT score trends and distribution\n• Open hazards and average time to closure\n• Corrective action completion rate and overdue items\n• Training compliance rates across all requirements\n• Incident and event rates (normalized per flight hours or departures)\n• Audit findings — internal and external\n• Safety objectives — progress toward targets defined in safety policy\n\nLook for trends, not just individual data points. A single high FRAT score is normal. A steady increase in average FRAT scores over three months is a signal that requires investigation." },
+          { type: "callout", content: "If you review safety data but don't act on what it tells you, you don't have a safety management system — you have a safety data collection system. Review must lead to action." },
+          { type: "text", content: "After each review, document:\n\n• Key findings and trends identified\n• Decisions made and rationale\n• Action items with owners and deadlines\n• Resources approved or requested\n• Date of next review\n\nThis documentation serves as evidence of active SMS management during FAA audits and demonstrates the continuous improvement cycle required by §5.75. PreflightSMS's Audit Log and Dashboard provide ready-made data for these reviews." },
+        ],
+        quizQuestions: [
+          { question: "How often should the Accountable Executive formally review SMS safety performance?", options: ["Only when an accident occurs", "Daily, reviewing every safety report personally", "At least quarterly, with a comprehensive annual assessment", "Every five years during certificate renewal"], correct: 2, explanation: "Best practice is for the AE to participate in quarterly Safety Review Board meetings and receive a comprehensive annual SMS performance assessment. This fulfills the §5.25(b)(5) requirement to regularly review safety performance." },
+          { question: "What should happen after a management safety review identifies a negative trend?", options: ["Document the finding and wait to see if it resolves itself", "Take specific corrective action with assigned owners and deadlines", "Increase punishment for involved employees", "Reduce the frequency of future reviews"], correct: 1, explanation: "Review must lead to action per §5.75. When a negative trend is identified, specific corrective actions should be developed with clear owners, deadlines, and a plan to verify effectiveness. Passive documentation without action defeats the purpose of monitoring." },
+          { question: "Which combination of metrics provides the best picture of overall SMS health?", options: ["Revenue and customer satisfaction only", "Report volume, hazard closure time, training compliance, and FRAT trends", "Number of FAA inspections passed", "Total flight hours and fleet size"], correct: 1, explanation: "A comprehensive view of SMS health requires multiple indicators: reporting volume (culture health), hazard closure time (responsiveness), training compliance (competency), and FRAT trends (operational risk). No single metric tells the full story." },
+        ],
+      },
+    ],
+  },
 ];
 
 // ── TRAINING RECORD FORM ────────────────────────────────────────
@@ -1101,7 +1216,7 @@ export default function CbtModules({
                 Set up a complete 14 CFR Part 5 compliant training program with pre-built requirements and courses covering all SMS competency areas.
               </div>
               <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 20 }}>
-                10 training requirements (initial + recurrent) and 4 CBT courses with 12 lessons covering SMS Awareness, Hazard Identification, Safety Assurance, and Emergency Response will be created.
+                10 training requirements (initial + recurrent) and 6 CBT courses with 18 lessons covering SMS Awareness, Hazard Identification, Safety Assurance, Emergency Response, Safety Promotion, and SMS Leadership will be created.
               </div>
               <button onClick={handleInitTraining} disabled={initializing}
                 style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
