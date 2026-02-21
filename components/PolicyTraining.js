@@ -230,6 +230,7 @@ function RequirementForm({ onSubmit, onCancel }) {
 export default function PolicyTraining({
   profile, session, policies, onCreatePolicy, onAcknowledgePolicy,
   trainingRequirements, trainingRecords, onCreateRequirement, onLogTraining, orgProfiles,
+  smsManuals,
 }) {
   const [tab, setTab] = useState("policies"); // policies | training
   const [view, setView] = useState("list");   // list | new_policy | new_training | new_requirement
@@ -241,6 +242,9 @@ export default function PolicyTraining({
     });
     return set;
   }, [policies, profile]);
+
+  const manualPolicies = useMemo(() => policies.filter(p => p.source_manual_key), [policies]);
+  const userPolicies = useMemo(() => policies.filter(p => !p.source_manual_key), [policies]);
 
   const trainingStatus = useMemo(() => {
     const now = new Date();
@@ -306,12 +310,56 @@ export default function PolicyTraining({
               <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Acknowledged</div>
             </div>
           </div>
+          {/* Part 5 SMS Manuals — read-only, sourced from Manuals tab */}
+          {manualPolicies.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: CYAN, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Part 5 SMS Manuals</div>
+              <div style={{ fontSize: 10, color: MUTED, marginBottom: 10 }}>These documents are managed in the SMS Manuals section. Review and acknowledge below.</div>
+              {manualPolicies.map(p => {
+                const acked = myAcks.has(p.id);
+                const ackCount = p.acknowledgments?.length || 0;
+                const totalUsers = orgProfiles?.length || 0;
+                const statusColor = p.status === "active" ? GREEN : p.status === "draft" ? YELLOW : MUTED;
+                return (
+                  <div key={p.id} style={{ ...card, padding: "14px 18px", marginBottom: 8, borderLeft: `3px solid ${CYAN}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 700, color: WHITE, fontSize: 13 }}>{p.title}</span>
+                          <span style={{ background: `${CYAN}22`, color: CYAN, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>SMS Manual</span>
+                          <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{p.status}</span>
+                          <span style={{ background: BORDER, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{p.version}</span>
+                        </div>
+                        <div style={{ color: MUTED, fontSize: 10 }}>
+                          {ackCount}/{totalUsers} acknowledged{p.effective_date && ` · Effective: ${p.effective_date}`}
+                        </div>
+                        {p.description && <div style={{ color: "#666", fontSize: 11, marginTop: 2 }}>{p.description}</div>}
+                      </div>
+                      {p.status === "active" && !acked && (
+                        <button onClick={() => onAcknowledgePolicy(p.id)}
+                          style={{ padding: "6px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: "pointer",
+                            background: `${CYAN}22`, color: CYAN, border: `1px solid ${CYAN}44` }}>
+                          Acknowledge
+                        </button>
+                      )}
+                      {acked && <span style={{ fontSize: 10, color: GREEN }}>Acknowledged</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* User-created policies */}
+          {manualPolicies.length > 0 && userPolicies.length > 0 && (
+            <div style={{ fontSize: 12, fontWeight: 700, color: OFF_WHITE, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Other Documents</div>
+          )}
           {policies.length === 0 ? (
             <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
               <div style={{ fontSize: 42, marginBottom: 12 }}>📄</div>
               <div style={{ fontSize: 14 }}>No policy documents yet</div>
             </div>
-          ) : policies.map(p => {
+          ) : userPolicies.map(p => {
             const cat = POLICY_CATEGORIES.find(c => c.id === p.category);
             const acked = myAcks.has(p.id);
             const ackCount = p.acknowledgments?.length || 0;
