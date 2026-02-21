@@ -237,7 +237,18 @@ const SMS_MANUAL_TEMPLATES = [
 // ══════════════════════════════════════════════════════
 
 function ManualEditor({ manual, onSave, onBack }) {
-  const [sections, setSections] = useState(manual.sections || []);
+  // Merge template sample content into any sections that have empty content
+  const initSections = () => {
+    const dbSections = manual.sections || [];
+    const template = SMS_MANUAL_TEMPLATES.find(t => t.manualKey === manual.manual_key);
+    if (!template) return dbSections;
+    return dbSections.map(sec => {
+      if (sec.content) return sec; // user already has content, keep it
+      const tmplSec = template.sections.find(ts => ts.id === sec.id);
+      return tmplSec && tmplSec.content ? { ...sec, content: tmplSec.content } : sec;
+    });
+  };
+  const [sections, setSections] = useState(initSections);
   const [status, setStatus] = useState(manual.status || "draft");
   const [version, setVersion] = useState(manual.version || "1.0");
   const [expandedSection, setExpandedSection] = useState(null);
