@@ -853,7 +853,20 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
       </div>
 
       {/* Template Variables */}
-      <TemplateVariablesForm variables={templateVariables} onSave={onSaveVariables} />
+      <TemplateVariablesForm variables={templateVariables} onSave={async (vars) => {
+        // Merge template content into empty DB sections so variable replacement works
+        const mergedManuals = smsManuals.map(m => {
+          const template = SMS_MANUAL_TEMPLATES.find(t => t.manualKey === m.manual_key);
+          if (!template) return m;
+          const mergedSections = (m.sections || []).map(sec => {
+            if (sec.content) return sec;
+            const tmplSec = template.sections.find(ts => ts.id === sec.id);
+            return tmplSec?.content ? { ...sec, content: tmplSec.content } : sec;
+          });
+          return { ...m, sections: mergedSections };
+        });
+        await onSaveVariables(vars, mergedManuals);
+      }} />
 
       {/* Summary stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
