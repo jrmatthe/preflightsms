@@ -1011,13 +1011,19 @@ export default function CbtModules({
   const isAdmin = profile?.role === "admin" || profile?.role === "safety_manager";
   const publishedCourses = courses.filter(c => c.status === "published" || isAdmin);
 
+  // Admins see all org records; non-admins see only their own
+  const visibleRecords = useMemo(() => {
+    if (isAdmin) return trainingRecords || [];
+    return (trainingRecords || []).filter(r => r.user_id === profile?.id);
+  }, [trainingRecords, isAdmin, profile]);
+
   const openCourse = (c) => { setSelectedCourse(c); setView("course_detail"); };
   const openLesson = (l) => { setSelectedLesson(l); setView("lesson"); };
 
   const trainingStatus = useMemo(() => {
     const now = new Date();
     let current = 0, expiring = 0, expired = 0;
-    (trainingRecords || []).forEach(r => {
+    visibleRecords.forEach(r => {
       if (!r.expiry_date) { current++; return; }
       const exp = new Date(r.expiry_date);
       if (exp < now) expired++;
@@ -1028,7 +1034,7 @@ export default function CbtModules({
       }
     });
     return { current, expiring, expired };
-  }, [trainingRecords]);
+  }, [visibleRecords]);
 
   // Current user's training status (for expiry banner in CBT view)
   const myTrainingStatus = useMemo(() => {
@@ -1126,7 +1132,7 @@ export default function CbtModules({
   const recordStatusCounts = useMemo(() => {
     const c = { all: 0, current: 0, expiring: 0, expired: 0 };
     const now = new Date();
-    (trainingRecords || []).forEach(r => {
+    visibleRecords.forEach(r => {
       c.all++;
       if (!r.expiry_date) { c.current++; return; }
       const exp = new Date(r.expiry_date);
@@ -1135,12 +1141,12 @@ export default function CbtModules({
       else c.current++;
     });
     return c;
-  }, [trainingRecords]);
+  }, [visibleRecords]);
 
   const filteredRecords = useMemo(() => {
     const q = search.toLowerCase().trim();
     const now = new Date();
-    let list = (trainingRecords || []).filter(r => {
+    let list = visibleRecords.filter(r => {
       if (listFilter !== "all") {
         const isExpired = r.expiry_date && new Date(r.expiry_date) < now;
         const isExpiring = r.expiry_date && !isExpired && (new Date(r.expiry_date) - now) / (1000*60*60*24) < 30;
