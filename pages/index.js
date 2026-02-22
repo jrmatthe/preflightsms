@@ -3148,6 +3148,15 @@ export default function PVTAIRFrat() {
 
   // Session exists but no profile — user was removed from org
   if (isOnline && session && !authLoading && !profileLoading && !profile) {
+    // If they arrived via invite link, show the invite flow (sign out first so InviteAcceptScreen can re-auth)
+    const inviteParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    if (inviteParams?.has("invite")) {
+      return <InviteAcceptScreen token={inviteParams.get("invite")} onAuth={async (sess) => {
+        setSession(sess);
+        const p = await getProfile();
+        setProfile(p);
+      }} />;
+    }
     return (
       <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ ...card, padding: 48, maxWidth: 440, textAlign: "center" }}>
