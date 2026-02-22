@@ -2012,17 +2012,41 @@ function InviteAcceptScreen({ token, onAuth }) {
     if (!agreedTos) { setError("Please agree to the Terms of Service and Privacy Policy"); return; }
     setError(""); setSubmitting(true);
     try {
-      // Sign up with the invited email
+      // Try sign up first
       const { error: signupErr } = await signUp(email, password, name.trim(), invite.org_id);
-      if (signupErr) { setError(signupErr.message); setSubmitting(false); return; }
+      let isReturningUser = false;
+      if (signupErr) {
+        // If the email already has an auth account (e.g. previously removed user), fall back to sign-in
+        if (signupErr.message && signupErr.message.includes("already registered")) {
+          isReturningUser = true;
+        } else {
+          setError(signupErr.message); setSubmitting(false); return;
+        }
+      }
       // Sign in
       const { data: session, error: loginErr } = await signIn(email, password);
-      if (loginErr) { setError("Account created. Check your email to confirm, then log in."); setSubmitting(false); return; }
-      // Set the invited role
+      if (loginErr) {
+        setError(isReturningUser ? "Incorrect password. If you had a previous account, use your existing password." : "Account created. Check your email to confirm, then log in.");
+        setSubmitting(false); return;
+      }
       if (session?.session) {
-        await supabase.from("profiles").update({ role: invite.role }).eq("id", session.session.user.id);
+        const userId = session.session.user.id;
+        if (isReturningUser) {
+          // Re-create profile for returning user (profile was deleted when removed from org)
+          const { data: existingProfile } = await supabase.from("profiles").select("id").eq("id", userId).single();
+          if (existingProfile) {
+            // Profile exists — update org, role, and name
+            await supabase.from("profiles").update({ org_id: invite.org_id, role: invite.role, full_name: name.trim() }).eq("id", userId);
+          } else {
+            // Profile was deleted — re-insert
+            await supabase.from("profiles").insert({ id: userId, org_id: invite.org_id, full_name: name.trim(), email, role: invite.role });
+          }
+        } else {
+          // New user — set the invited role (signUp created profile with 'pilot' default)
+          await supabase.from("profiles").update({ role: invite.role }).eq("id", userId);
+        }
         // Mark invitation as accepted
-        await acceptInvitation(token, session.session.user.id);
+        await acceptInvitation(token, userId);
         // Clear URL and auth
         if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname);
         onAuth(session.session);
