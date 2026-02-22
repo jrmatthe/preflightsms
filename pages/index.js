@@ -2453,6 +2453,7 @@ function buildTourSeedData(today, userName, fleet) {
       { id: "_seed_tr1", org_id: "_seed", title: "Annual Safety Recurrent", description: "Annual SMS and safety awareness recurrent training.", category: "recurrent", frequency_months: 12, required_for: ["pilot", "captain", "first_officer"], created_at: iso(-90) },
     ],
     trainingRecs: [
+      { id: "_seed_trr1", org_id: "_seed", requirement_id: "_seed_tr1", user_id: "_seed_u1", title: "Annual Safety Recurrent", user: { full_name: pilot }, completed_date: dateStr(-15), expiry_date: dateStr(350), notes: "Completed online module and check ride", created_at: iso(-15) },
     ],
     cbtCourses: [
       { id: "_seed_cbt1", org_id: "_seed", title: "SMS Fundamentals", description: "Introduction to Safety Management Systems for Part 5 compliance.", status: "published", category: "sms", estimated_minutes: 45, passing_score: 80, created_at: iso(-60) },
