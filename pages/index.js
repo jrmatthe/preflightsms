@@ -2016,32 +2016,31 @@ function InviteAcceptScreen({ token, onAuth }) {
       const { error: signupErr } = await signUp(email, password, name.trim(), invite.org_id);
       let isReturningUser = false;
       if (signupErr) {
-        // If the email already has an auth account (e.g. previously removed user), fall back to sign-in
         if (signupErr.message && signupErr.message.includes("already registered")) {
           isReturningUser = true;
         } else {
           setError(signupErr.message); setSubmitting(false); return;
         }
       }
-      // Sign in
+      if (isReturningUser) {
+        // Returning user — use server API to update password and re-create profile
+        const res = await fetch("/api/rejoin-org", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, fullName: name.trim(), orgId: invite.org_id, role: invite.role }),
+        });
+        const result = await res.json();
+        if (!res.ok) { setError(result.error || "Failed to rejoin organization"); setSubmitting(false); return; }
+      }
+      // Sign in (with new password for returning users, or freshly created account)
       const { data: session, error: loginErr } = await signIn(email, password);
       if (loginErr) {
-        setError(isReturningUser ? "Incorrect password. If you had a previous account, use your existing password." : "Account created. Check your email to confirm, then log in.");
+        setError(isReturningUser ? "Failed to sign in after rejoining. Try logging in from the main page." : "Account created. Check your email to confirm, then log in.");
         setSubmitting(false); return;
       }
       if (session?.session) {
         const userId = session.session.user.id;
-        if (isReturningUser) {
-          // Re-create profile for returning user (profile was deleted when removed from org)
-          const { data: existingProfile } = await supabase.from("profiles").select("id").eq("id", userId).single();
-          if (existingProfile) {
-            // Profile exists — update org, role, and name
-            await supabase.from("profiles").update({ org_id: invite.org_id, role: invite.role, full_name: name.trim() }).eq("id", userId);
-          } else {
-            // Profile was deleted — re-insert
-            await supabase.from("profiles").insert({ id: userId, org_id: invite.org_id, full_name: name.trim(), email, role: invite.role });
-          }
-        } else {
+        if (!isReturningUser) {
           // New user — set the invited role (signUp created profile with 'pilot' default)
           await supabase.from("profiles").update({ role: invite.role }).eq("id", userId);
         }
