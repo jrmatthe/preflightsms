@@ -46,9 +46,9 @@ const DEFAULT_RISK_LEVELS = {
 const DEFAULT_AIRCRAFT_TYPES = ["PC-12", "King Air"];
 
 const ONBOARDING_STEPS = [
-  { id: "welcome", phase: "setup", title: "Welcome to PreflightSMS", desc: "Let\u2019s get your safety management system set up in about 3 minutes." },
-  { id: "fleet", phase: "setup", title: "Add Your Fleet", desc: "Register the aircraft your organization operates." },
-  { id: "invite", phase: "setup", title: "Invite Your Team", desc: "Bring your pilots and safety officers on board." },
+  { id: "welcome", phase: "setup", title: "Welcome to PreflightSMS", desc: "Let\u2019s get your safety management system set up in about 3 minutes.", descNonAdmin: "Here\u2019s a quick tour of your organization\u2019s safety management system." },
+  { id: "fleet", phase: "setup", adminOnly: true, title: "Add Your Fleet", desc: "Register the aircraft your organization operates." },
+  { id: "invite", phase: "setup", adminOnly: true, title: "Invite Your Team", desc: "Bring your pilots and safety officers on board." },
   { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", feature: null, subSteps: [
     { target: "tour-frat-flight-info", placement: "bottom", title: "Flight Information", desc: "Enter flight details including PIC, aircraft, route, and times. Use ICAO airport codes to auto-fetch live weather data and flag risk factors." },
     { target: "tour-frat-risk-categories", placement: "right", title: "Risk Scoring", desc: "Five weighted risk categories \u2014 Weather, Pilot/Crew, Aircraft, Environment, and Operational. Check applicable factors; weather items are auto-detected from METAR/TAF data." },
@@ -68,11 +68,11 @@ const ONBOARDING_STEPS = [
     { target: "tour-reports-stats", placement: "bottom", title: "Report Queue", desc: "Track report status across your organization. See open, in-review, and closed counts at a glance." },
     { target: null, placement: "top-right", title: "Admin Escalation", desc: "Safety managers review incoming reports and can escalate them directly into formal investigations with a single click." },
   ]},
-  { id: "tour-hazards", phase: "tour", tab: "hazards", title: "Investigations", feature: "hazard_register", subSteps: [
+  { id: "tour-hazards", phase: "tour", tab: "hazards", title: "Investigations", adminOnly: true, feature: "hazard_register", subSteps: [
     { target: "tour-hazards-stats", placement: "bottom", title: "Investigation Dashboard", desc: "Risk-scored investigations from escalated safety reports. Track open, in-progress, and closed investigations with severity ratings." },
     { target: null, placement: "top-right", title: "Risk Matrix & Escalation", desc: "Each investigation uses a 5\u00d75 risk matrix (severity \u00d7 likelihood). When corrective or preventative action is needed, escalate directly to the Actions tab." },
   ]},
-  { id: "tour-actions", phase: "tour", tab: "actions", title: "Corrective Actions", feature: "corrective_actions", subSteps: [
+  { id: "tour-actions", phase: "tour", tab: "actions", title: "Corrective Actions", adminOnly: true, feature: "corrective_actions", subSteps: [
     { target: "tour-actions-stats", placement: "bottom", title: "Action Tracking", desc: "Monitor open, overdue, and completed corrective and preventative actions. Each action links back to its source investigation." },
     { target: null, placement: "top-right", title: "Status Workflow", desc: "Assign owners, set due dates, and track completion \u2014 closing the loop from hazard report all the way through to resolution." },
   ]},
@@ -84,15 +84,15 @@ const ONBOARDING_STEPS = [
     { target: "tour-cbt-tabs", placement: "bottom", title: "CBT Courses", desc: "Create and assign video-based training courses with quizzes and completion tracking. Enroll crew members and monitor progress.", componentTab: { component: "cbt", value: "cbt" } },
     { target: "tour-cbt-tabs", placement: "bottom", title: "Training Requirements", desc: "Set recurring training requirements with due dates. Log completion records and monitor employee compliance across your entire organization.", componentTab: { component: "cbt", value: "requirements" } },
   ]},
-  { id: "tour-audit", phase: "tour", tab: "audit", title: "FAA Audit Log", feature: "faa_audit_log", subSteps: [
+  { id: "tour-audit", phase: "tour", tab: "audit", title: "FAA Audit Log", adminOnly: true, feature: "faa_audit_log", subSteps: [
     { target: "tour-audit-stats", placement: "bottom", title: "Compliance Summary", desc: "A real-time 42-point Part 5 compliance checklist. Each item syncs automatically with data across the platform \u2014 FRATs, flights, reports, investigations, actions, policies, and training." },
     { target: "tour-audit-progress", placement: "bottom", title: "Compliance Progress", desc: "See your overall compliance percentage and drill into each subpart. Present this to the FAA during an audit to prove Part 5 compliance." },
   ]},
-  { id: "tour-dashboard", phase: "tour", tab: "dashboard", title: "Safety Dashboard", feature: "dashboard_basic", subSteps: [
+  { id: "tour-dashboard", phase: "tour", tab: "dashboard", title: "Safety Dashboard", adminOnly: true, feature: "dashboard_basic", subSteps: [
     { target: "tour-dashboard-health", placement: "bottom", title: "SMS Health Score", desc: "Your organization\u2019s overall SMS Compliance Health score \u2014 a single number that reflects how well your safety system is performing across all areas." },
     { target: "tour-dashboard-kpi", placement: "bottom", title: "KPI Cards & Trends", desc: "Risk score distributions, reporting frequency, hazard categories, action completion rates, and training compliance \u2014 spot patterns before they become problems." },
   ]},
-  { id: "tour-admin", phase: "tour", tab: "admin", title: "Admin Panel", feature: null, subSteps: [
+  { id: "tour-admin", phase: "tour", tab: "admin", title: "Admin Panel", adminOnly: true, feature: null, subSteps: [
     { target: "tour-admin-tabs", placement: "bottom", title: "Command Center", desc: "Five sections: Organization settings, Fleet management, FRAT Templates, User management, and Subscription & billing.", componentTab: { component: "admin", value: "org" } },
     { target: "tour-admin-invite", placement: "right", title: "Invite & Manage Users", desc: "Invite new team members by email with role-based access. Manage permissions for pilots, safety managers, chief pilots, and admins.", componentTab: { component: "admin", value: "users" } },
     { target: "tour-admin-tabs", placement: "bottom", title: "FRAT Templates", desc: "Customize FRAT risk categories and scoring to match your company\u2019s specific operations. Create multiple templates and assign them to different aircraft types.", componentTab: { component: "admin", value: "frat" } },
@@ -594,7 +594,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   </>);
 }
 
-function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, setCv, fleetAircraft, onAddAircraft, onInviteUser, orgName, userName, org, orgSlug }) {
+function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, setCv, fleetAircraft, onAddAircraft, onInviteUser, orgName, userName, org, orgSlug, userRole }) {
   const [step, setStep] = useState(0);
   const [subStep, setSubStep] = useState(0);
   const [cardPos, setCardPos] = useState(null);
@@ -612,11 +612,16 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
   const [busy, setBusy] = useState(false);
   const prevStepRef = useRef(step);
 
-  // Filter steps by org features
+  // Filter steps by org features and user role
+  const isAdminRole = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(userRole);
+  const orgSettings = org?.settings || {};
   const steps = useMemo(() => ONBOARDING_STEPS.filter(s => {
-    if (!s.feature) return true;
-    return hasFeature(org, s.feature);
-  }), [org]);
+    if (s.adminOnly && !isAdminRole) return false;
+    if (s.id === "fleet" && fleetAircraft.length > 0) return false;
+    if (s.id === "invite" && orgSettings.onboarding_completed) return false;
+    if (s.feature && !hasFeature(org, s.feature)) return false;
+    return true;
+  }), [org, isAdminRole, fleetAircraft, orgSettings.onboarding_completed]);
 
   const current = steps[step] || steps[0];
   const setupSteps = steps.filter(s => s.phase === "setup");
@@ -661,7 +666,8 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
         setHighlightRect(null);
         return;
       }
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const isMobile = window.innerWidth <= 768;
+      el.scrollIntoView({ behavior: "smooth", block: isMobile ? "start" : "center" });
       // Re-measure after scroll settles
       setTimeout(() => {
         const rect = el.getBoundingClientRect();
@@ -785,9 +791,12 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
             <div style={{ textAlign: "center" }}>
               <div style={{ width: 56, height: 56, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 28 }}>{"\u2708\uFE0F"}</div>
               <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 22 }}>Welcome, {(userName || "").split(" ")[0] || "there"}!</h2>
-              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 8px" }}>You&apos;ve created <strong style={{ color: WHITE }}>{orgName}</strong> on PreflightSMS.</p>
-              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 28px" }}>{current.desc}</p>
-              <button onClick={goNext} style={btnPrimary}>Let&apos;s Go</button>
+              {isAdminRole
+                ? <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 8px" }}>You&apos;ve created <strong style={{ color: WHITE }}>{orgName}</strong> on PreflightSMS.</p>
+                : <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 8px" }}>You&apos;ve joined <strong style={{ color: WHITE }}>{orgName}</strong> on PreflightSMS.</p>
+              }
+              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 28px" }}>{isAdminRole ? current.desc : (current.descNonAdmin || current.desc)}</p>
+              <button onClick={goNext} style={btnPrimary}>{isAdminRole ? "Let\u2019s Go" : "Start Tour"}</button>
             </div>
           )}
 
@@ -2515,6 +2524,7 @@ export default function PVTAIRFrat() {
   const [invitations_list, setInvitationsList] = useState([]);
   const isOnline = !!supabase;
   const org = profile?.organizations || {};
+  const isAdmin = ["admin", "safety_manager", "accountable_exec"].includes(profile?.role);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [tourSubTabs, setTourSubTabs] = useState({});
 
@@ -2675,20 +2685,17 @@ export default function PVTAIRFrat() {
     setSmsSignatures(orgSettings.sms_signatures || {});
   }, [profile]);
 
-  // Onboarding wizard trigger
+  // Onboarding wizard trigger — per-user via localStorage
   useEffect(() => {
-    if (!profile || !isOnline) return;
-    const isAdmin = ["admin", "safety_manager", "accountable_exec"].includes(profile.role);
-    const orgSettings = profile.organizations?.settings || {};
+    if (!profile || !isOnline || !session?.user?.id) return;
     const subStatus = profile.organizations?.subscription_status || "active";
-    const isCanceled = subStatus === "canceled";
-    const isSuspended = subStatus === "suspended";
+    if (["canceled", "suspended"].includes(subStatus)) return;
     const trialCreatedAt = profile.organizations?.created_at ? new Date(profile.organizations.created_at) : null;
-    const isTrialExpired = subStatus === "trial" && trialCreatedAt && Math.floor((Date.now() - trialCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) >= 14;
-    if (isAdmin && !orgSettings.onboarding_completed && !orgSettings.onboarding_skipped && fleetAircraft.length === 0 && !isCanceled && !isSuspended && !isTrialExpired) {
-      setShowOnboarding(true);
-    }
-  }, [profile, fleetAircraft, isOnline]);
+    if (subStatus === "trial" && trialCreatedAt && Math.floor((Date.now() - trialCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) >= 14) return;
+    const key = `preflightsms_onboarding_${session.user.id}`;
+    const done = localStorage.getItem(key);
+    if (!done) setShowOnboarding(true);
+  }, [profile, isOnline, session]);
 
   // ── Poll notifications every 60s ──
   useEffect(() => {
@@ -3206,20 +3213,26 @@ export default function PVTAIRFrat() {
     setShowOnboarding(false);
     setTourSubTabs({});
     setCv("submit");
+    if (session?.user?.id) localStorage.setItem(`preflightsms_onboarding_${session.user.id}`, "completed");
     if (profile?.org_id) {
       refreshAllData(profile.org_id);
-      await saveOnboardingStatus(profile.org_id, { onboarding_completed: true });
-      setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true } } } : prev);
+      if (isAdmin) {
+        await saveOnboardingStatus(profile.org_id, { onboarding_completed: true });
+        setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true } } } : prev);
+      }
     }
   };
   const handleOnboardingDismiss = async () => {
     setShowOnboarding(false);
     setTourSubTabs({});
     setCv("submit");
+    if (session?.user?.id) localStorage.setItem(`preflightsms_onboarding_${session.user.id}`, "skipped");
     if (profile?.org_id) {
       refreshAllData(profile.org_id);
-      await saveOnboardingStatus(profile.org_id, { onboarding_completed: true, onboarding_skipped: true });
-      setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true, onboarding_skipped: true } } } : prev);
+      if (isAdmin) {
+        await saveOnboardingStatus(profile.org_id, { onboarding_completed: true, onboarding_skipped: true });
+        setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true, onboarding_skipped: true } } } : prev);
+      }
     }
   };
 
@@ -3227,7 +3240,7 @@ export default function PVTAIRFrat() {
   const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: isTrialExpired ? "Your trial has expired — subscribe to continue" : "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
-    {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} onTourStart={handleTourStart} onSubTabChange={handleSubTabChange} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} />}
+    {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} onTourStart={isAdmin ? handleTourStart : undefined} onSubTabChange={handleSubTabChange} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} userRole={profile?.role} />}
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} />
       <div className="main-content" style={{ marginLeft: 140 }}>
