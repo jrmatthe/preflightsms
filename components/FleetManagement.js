@@ -42,7 +42,7 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
     const toSave = {
       ...form,
       registration: reg,
-      type: form.type.trim(),
+      type: form.type.trim().toUpperCase(),
       year: form.year ? parseInt(form.year) || null : null,
       max_passengers: form.max_passengers ? parseInt(form.max_passengers) || null : null,
     };
@@ -140,7 +140,7 @@ function AircraftForm({form,setField,onSave,onCancel,isNew}) {
     <div style={{...lbl}}>{l}</div>
     <input type={type} value={form[key]||""} onChange={e=>{
       let v = e.target.value;
-      if (key === "registration") v = v.toUpperCase();
+      if (key === "registration" || key === "type") v = v.toUpperCase();
       setField(key,v);
     }} style={inp} />
   </div>);

@@ -43,7 +43,6 @@ const DEFAULT_RISK_LEVELS = {
   HIGH: { label: "HIGH RISK", color: AMBER, bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.25)", min: 31, max: 45, action: "Requires management approval before departure" },
   CRITICAL: { label: "CRITICAL RISK", color: RED, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", min: 46, max: 100, action: "Flight should not depart without risk mitigation and executive approval" },
 };
-const DEFAULT_AIRCRAFT_TYPES = ["PC-12", "King Air"];
 
 const ONBOARDING_STEPS = [
   { id: "welcome", phase: "setup", title: "Welcome to PreflightSMS", desc: "Let\u2019s get your safety management system set up in about 3 minutes.", descNonAdmin: "Here\u2019s a quick tour of your organization\u2019s safety management system." },
@@ -738,7 +737,7 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
     try {
       let reg = acTail.trim().toUpperCase();
       if (reg && !reg.startsWith("N")) reg = "N" + reg;
-      await onAddAircraft({ type: acType.trim(), registration: reg });
+      await onAddAircraft({ type: acType.trim().toUpperCase(), registration: reg });
       setAcAdded(prev => prev + 1);
       setAcType("");
       setAcTail("");
@@ -971,7 +970,7 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes, orgId, userName, allTemplates, fleetAircraft }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, fleetAircraft }) {
   // Template switching: find template assigned to selected aircraft
   const [activeTemplateId, setActiveTemplateId] = useState(null);
   const resolveTemplate = useCallback((aircraft) => {
@@ -1543,6 +1542,16 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
                       <br />ID: {f.id} &middot; Score: {f.score} {f.riskLevel} &middot; Filed {formatDateTime(f.timestamp)}
                       {f.arrivedAt && <span> &middot; Arrived {formatDateTime(f.arrivedAt)}</span>}
                     </div>
+                    {f.attachments && f.attachments.length > 0 && (
+                      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                        {f.attachments.map((att, i) => (
+                          <a key={i} href={att.url} target="_blank" rel="noopener noreferrer"
+                             style={{ display: "block", width: 48, height: 48, borderRadius: 6, overflow: "hidden", border: `1px solid ${BORDER}` }}>
+                            <img src={att.url} alt={att.name || "Attachment"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                     {f.status === "ACTIVE" && (
                       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "ARRIVED"); }}
@@ -2558,7 +2567,6 @@ export default function PVTAIRFrat() {
   // Derived template config
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
   const riskLevels = fratTemplate?.risk_thresholds ? buildRiskLevels(fratTemplate.risk_thresholds) : DEFAULT_RISK_LEVELS;
-  const aircraftTypes = fratTemplate?.aircraft_types || DEFAULT_AIRCRAFT_TYPES;
 
   // Init offline queue
   useEffect(() => {
@@ -2572,6 +2580,7 @@ export default function PVTAIRFrat() {
         etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs,
         numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
         status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED",
+        attachments: f.attachments || [],
       })));
       const { data: frats } = await fetchFRATs(orgId);
       if (frats) setRecords(frats.map(r => ({
@@ -2653,6 +2662,7 @@ export default function PVTAIRFrat() {
         numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
         status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at,
         cancelled: f.status === "CANCELLED",
+        attachments: f.attachments || [],
       })));
     });
     fetchReports(orgId).then(({ data }) => setReports(data || []));
@@ -2690,6 +2700,7 @@ export default function PVTAIRFrat() {
           numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
           status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at,
           cancelled: f.status === "CANCELLED",
+          attachments: f.attachments || [],
         })));
       });
     });
@@ -2803,6 +2814,7 @@ export default function PVTAIRFrat() {
         numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
         status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED",
         approvalStatus: f.approval_status, fratDbId: f.frat_id,
+        attachments: f.attachments || [],
       })));
     } else {
       const nr = [entry, ...records]; saveLocal(nr);
@@ -2829,6 +2841,7 @@ export default function PVTAIRFrat() {
             etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs,
             numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
             status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED",
+            attachments: f.attachments || [],
           })));
         } catch (e) {
           // Queue for offline sync
@@ -3333,18 +3346,18 @@ export default function PVTAIRFrat() {
         <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} fleetAircraft={fleetAircraft} />)}
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} fleetAircraft={fleetAircraft} />)}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} onApproveFlight={async (flightDbId, fratDbId) => {
           await approveFlight(flightDbId, session.user.id);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", "");
           const { data: fl } = await fetchFlights(profile.org_id);
-          setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id })));
+          setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] })));
           setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
         }} onRejectFlight={async (flightDbId, fratDbId) => {
           await rejectFlight(flightDbId);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", "");
           const { data: fl } = await fetchFlights(profile.org_id);
-          setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id })));
+          setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] })));
           setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
         }} />}
         {cv === "crew" && <CrewRoster crewRecords={crewRecords} canManage={!isReadOnly && ["admin", "safety_manager", "accountable_exec"].includes(profile?.role)} onAdd={roGuard(async (record) => {
