@@ -596,7 +596,9 @@ function OnboardingWizard({ onComplete, onDismiss, setCv, fleetAircraft, onAddAi
     if (!acType.trim() || !acTail.trim()) return;
     setBusy(true);
     try {
-      await onAddAircraft({ aircraft_type: acType.trim(), tail_number: acTail.trim().toUpperCase() });
+      let reg = acTail.trim().toUpperCase();
+      if (reg && !reg.startsWith("N")) reg = "N" + reg;
+      await onAddAircraft({ type: acType.trim(), registration: reg });
       setAcAdded(prev => prev + 1);
       setAcType("");
       setAcTail("");
