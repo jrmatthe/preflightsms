@@ -27,6 +27,8 @@ function PolicyForm({ onSubmit, onCancel }) {
     title: "", description: "", category: "safety_policy", version: "1.0",
     content: "", effectiveDate: "", reviewDate: "", status: "active",
   });
+  const [file, setFile] = useState(null);
+  const fileRef = { current: null };
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   return (
     <div style={{ maxWidth: 700, margin: "0 auto" }}>
@@ -65,7 +67,22 @@ function PolicyForm({ onSubmit, onCancel }) {
       </div>
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Content</label>
-        <textarea value={form.content} onChange={e => set("content", e.target.value)} placeholder="Paste policy text here, or leave blank if using file upload (coming soon)" rows={8} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+        <textarea value={form.content} onChange={e => set("content", e.target.value)} placeholder="Paste policy text here, or use file upload below" rows={8} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>File Attachment</label>
+        <input ref={el => fileRef.current = el} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" onChange={e => { if (e.target.files?.[0]) setFile(e.target.files[0]); }} style={{ display: "none" }} />
+        {!file ? (
+          <button onClick={() => fileRef.current?.click()} style={{ padding: "10px 16px", background: NEAR_BLACK, border: `1px dashed ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, cursor: "pointer", width: "100%" }}>
+            Upload PDF, DOC, XLS, PPT, or TXT file
+          </button>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6 }}>
+            <span style={{ fontSize: 12, color: OFF_WHITE, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
+            <span style={{ fontSize: 10, color: MUTED }}>{(file.size / 1024).toFixed(0)} KB</span>
+            <button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ""; }} style={{ background: "none", border: "none", color: RED, fontSize: 14, cursor: "pointer", padding: "0 4px" }}>×</button>
+          </div>
+        )}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }} className="report-grid">
         <div>
@@ -77,7 +94,7 @@ function PolicyForm({ onSubmit, onCancel }) {
           <input type="date" value={form.reviewDate} onChange={e => set("reviewDate", e.target.value)} style={inp} />
         </div>
       </div>
-      <button onClick={() => { if (form.title.trim()) onSubmit(form); }} disabled={!form.title.trim()}
+      <button onClick={() => { if (form.title.trim()) onSubmit({ ...form, file }); }} disabled={!form.title.trim()}
         style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1 }}>
         Add Document
       </button>
@@ -244,11 +261,20 @@ export default function PolicyTraining({
                     </div>
                   </div>
                 </div>
-                {isExpanded && p.content && (
+                {isExpanded && (p.content || p.file_url) && (
                   <div style={{ padding: "0 18px 18px", borderTop: `1px solid ${BORDER}` }}>
-                    <div style={{ marginTop: 14, whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.7, color: OFF_WHITE, maxHeight: 500, overflowY: "auto", background: NEAR_BLACK, borderRadius: 6, padding: 16 }}>
-                      {p.content}
-                    </div>
+                    {p.file_url && (
+                      <div style={{ marginTop: 14, marginBottom: p.content ? 10 : 0 }}>
+                        <a href={p.file_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: CYAN, fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+                          📎 {p.file_name || "Download File"}
+                        </a>
+                      </div>
+                    )}
+                    {p.content && (
+                      <div style={{ marginTop: p.file_url ? 0 : 14, whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.7, color: OFF_WHITE, maxHeight: 500, overflowY: "auto", background: NEAR_BLACK, borderRadius: 6, padding: 16 }}>
+                        {p.content}
+                      </div>
+                    )}
                     {!acked && (
                       <button onClick={() => onAcknowledgePolicy(p.id)}
                         style={{ marginTop: 12, padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -310,6 +336,7 @@ export default function PolicyTraining({
                     <span style={{ fontWeight: 700, color: WHITE, fontSize: 13 }}>{p.title}</span>
                     <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{p.status}</span>
                     <span style={{ background: `${BORDER}`, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{p.version}</span>
+                    {p.file_url && <span style={{ background: `${CYAN}22`, color: CYAN, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>📎 File</span>}
                   </div>
                   <div style={{ color: MUTED, fontSize: 10 }}>
                     {cat?.label || p.category} · {ackCount} acknowledgment{ackCount !== 1 ? "s" : ""}
@@ -331,11 +358,20 @@ export default function PolicyTraining({
                 </div>
               </div>
             </div>
-            {isExpanded && p.content && (
+            {isExpanded && (p.content || p.file_url) && (
               <div style={{ padding: "0 18px 18px", borderTop: `1px solid ${BORDER}` }}>
-                <div style={{ marginTop: 14, whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.7, color: OFF_WHITE, maxHeight: 500, overflowY: "auto", background: NEAR_BLACK, borderRadius: 6, padding: 16 }}>
-                  {p.content}
-                </div>
+                {p.file_url && (
+                  <div style={{ marginTop: 14, marginBottom: p.content ? 10 : 0 }}>
+                    <a href={p.file_url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: CYAN, fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+                      📎 {p.file_name || "Download File"}
+                    </a>
+                  </div>
+                )}
+                {p.content && (
+                  <div style={{ marginTop: p.file_url ? 0 : 14, whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.7, color: OFF_WHITE, maxHeight: 500, overflowY: "auto", background: NEAR_BLACK, borderRadius: 6, padding: 16 }}>
+                    {p.content}
+                  </div>
+                )}
                 {!acked && (
                   <button onClick={() => onAcknowledgePolicy(p.id)}
                     style={{ marginTop: 12, padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
