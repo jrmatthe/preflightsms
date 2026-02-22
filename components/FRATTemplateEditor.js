@@ -21,13 +21,11 @@ const DEFAULT_THRESHOLDS = [
 ];
 
 // ── SINGLE TEMPLATE EDITOR ─────────────────────────────────────
-function TemplateEditor({ template, onSave, saving, allAircraftTypes }) {
+function TemplateEditor({ template, onSave, saving, fleetAircraftTypes }) {
   const [name, setName] = useState(template?.name || "Default FRAT");
   const [categories, setCategories] = useState(template?.categories || []);
-  const [aircraftTypes, setAircraftTypes] = useState(template?.aircraft_types || []);
   const [assignedAircraft, setAssignedAircraft] = useState(template?.assigned_aircraft || []);
   const [thresholds, setThresholds] = useState(template?.risk_thresholds || DEFAULT_THRESHOLDS);
-  const [newAircraft, setNewAircraft] = useState("");
   const [expandedCat, setExpandedCat] = useState(null);
   const [dirty, setDirty] = useState(false);
   const markDirty = () => setDirty(true);
@@ -40,12 +38,10 @@ function TemplateEditor({ template, onSave, saving, allAircraftTypes }) {
   const updateFactor = (catId, fId, field, val) => { setCategories(c => c.map(x => x.id === catId ? { ...x, factors: x.factors.map(f => f.id === fId ? { ...f, [field]: field === "score" ? parseInt(val) || 0 : val } : f) } : x)); markDirty(); };
   const removeFactor = (catId, fId) => { setCategories(c => c.map(x => x.id === catId ? { ...x, factors: x.factors.filter(f => f.id !== fId) } : x)); markDirty(); };
   const moveFactor = (catId, idx, dir) => { setCategories(c => c.map(x => { if (x.id !== catId) return x; const a = [...x.factors]; const n = idx + dir; if (n < 0 || n >= a.length) return x; [a[idx], a[n]] = [a[n], a[idx]]; return { ...x, factors: a }; })); markDirty(); };
-  const addAircraftType = () => { if (!newAircraft.trim()) return; setAircraftTypes(a => [...a, newAircraft.trim()]); setNewAircraft(""); markDirty(); };
-  const removeAircraftType = (idx) => { setAircraftTypes(a => a.filter((_, i) => i !== idx)); markDirty(); };
   const toggleAssigned = (ac) => { setAssignedAircraft(p => p.includes(ac) ? p.filter(a => a !== ac) : [...p, ac]); markDirty(); };
   const updateThreshold = (idx, field, val) => { setThresholds(t => t.map((x, i) => i === idx ? { ...x, [field]: field === "min" || field === "max" ? parseInt(val) || 0 : val } : x)); markDirty(); };
 
-  const handleSave = () => { onSave({ name, categories, aircraft_types: aircraftTypes, risk_thresholds: thresholds, assigned_aircraft: assignedAircraft }); setDirty(false); };
+  const handleSave = () => { onSave({ name, categories, risk_thresholds: thresholds, assigned_aircraft: assignedAircraft }); setDirty(false); };
 
   const totalFactors = categories.reduce((s, c) => s + c.factors.length, 0);
   const maxScore = categories.reduce((s, c) => s + c.factors.reduce((ss, f) => ss + f.score, 0), 0);
@@ -67,35 +63,18 @@ function TemplateEditor({ template, onSave, saving, allAircraftTypes }) {
       </div>
 
       {/* Aircraft Assignment */}
-      {allAircraftTypes.length > 0 && (
+      {fleetAircraftTypes.length > 0 && (
         <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
           <div style={sectionLabel}>Assign to Aircraft</div>
           <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>When a pilot selects one of these aircraft, this template loads automatically.</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {allAircraftTypes.map(ac => (
+            {fleetAircraftTypes.map(ac => (
               <button key={ac} onClick={() => toggleAssigned(ac)} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", background: assignedAircraft.includes(ac) ? `${CYAN}22` : "transparent", color: assignedAircraft.includes(ac) ? CYAN : MUTED, border: `1px solid ${assignedAircraft.includes(ac) ? CYAN : BORDER}` }}>{ac}</button>
             ))}
           </div>
           {assignedAircraft.length === 0 && <div style={{ fontSize: 10, color: SUBTLE, marginTop: 6 }}>No aircraft assigned — available as manual selection only.</div>}
         </div>
       )}
-
-      {/* Aircraft Types */}
-      <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
-        <div style={sectionLabel}>Aircraft Types (FRAT dropdown)</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-          {aircraftTypes.map((a, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${BORDER}` }}>
-              <span style={{ color: OFF_WHITE, fontSize: 12 }}>{a}</span>
-              <button onClick={() => removeAircraftType(i)} style={{ background: "none", border: "none", color: SUBTLE, cursor: "pointer", fontSize: 14, padding: 0 }}>&times;</button>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input value={newAircraft} onChange={e => setNewAircraft(e.target.value)} onKeyDown={e => e.key === "Enter" && addAircraftType()} placeholder="Add aircraft type..." style={{ ...inp, flex: 1, maxWidth: 200 }} />
-          <button onClick={addAircraftType} style={btnSecondary}>Add</button>
-        </div>
-      </div>
 
       {/* Risk Thresholds */}
       <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
@@ -165,17 +144,16 @@ function TemplateEditor({ template, onSave, saving, allAircraftTypes }) {
 }
 
 // ── MAIN: TEMPLATE LIST + EDITOR ───────────────────────────────
-export default function FRATTemplateEditor({ template, templates, onSave, onCreateTemplate, onDeleteTemplate, onSetActive, saving }) {
+export default function FRATTemplateEditor({ template, templates, onSave, onCreateTemplate, onDeleteTemplate, onSetActive, saving, fleetAircraftTypes = [] }) {
   const allTemplates = templates || (template ? [template] : []);
   const [selectedId, setSelectedId] = useState(template?.id || allTemplates[0]?.id || null);
   const [showEditor, setShowEditor] = useState(!!template);
 
   const selectedTemplate = allTemplates.find(t => t.id === selectedId);
   const activeTemplate = allTemplates.find(t => t.is_active);
-  const allAircraftTypes = [...new Set(allTemplates.flatMap(t => t.aircraft_types || []))];
 
-  const handleCreate = async () => { if (onCreateTemplate) await onCreateTemplate({ name: "New Template", categories: [], aircraft_types: [], risk_thresholds: [...DEFAULT_THRESHOLDS], assigned_aircraft: [] }); };
-  const handleDuplicate = async (t) => { if (onCreateTemplate) await onCreateTemplate({ name: `${t.name} (Copy)`, categories: t.categories || [], aircraft_types: t.aircraft_types || [], risk_thresholds: t.risk_thresholds || [...DEFAULT_THRESHOLDS], assigned_aircraft: [] }); };
+  const handleCreate = async () => { if (onCreateTemplate) await onCreateTemplate({ name: "New Template", categories: [], risk_thresholds: [...DEFAULT_THRESHOLDS], assigned_aircraft: [] }); };
+  const handleDuplicate = async (t) => { if (onCreateTemplate) await onCreateTemplate({ name: `${t.name} (Copy)`, categories: t.categories || [], risk_thresholds: t.risk_thresholds || [...DEFAULT_THRESHOLDS], assigned_aircraft: [] }); };
   const handleDelete = async (t) => {
     if (t.is_active) { alert("Cannot delete the active template. Set another as active first."); return; }
     if (!confirm(`Delete "${t.name}"?`)) return;
@@ -185,7 +163,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
   const handleSetActive = async (t) => { if (onSetActive) await onSetActive(t.id); };
 
   // Single-template fallback
-  if (!templates) return <TemplateEditor template={template} onSave={onSave} saving={saving} allAircraftTypes={allAircraftTypes} />;
+  if (!templates) return <TemplateEditor template={template} onSave={onSave} saving={saving} fleetAircraftTypes={fleetAircraftTypes} />;
 
   return (
     <div>
@@ -236,7 +214,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
             <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Editing: {selectedTemplate.name}</div>
             <button onClick={() => setShowEditor(false)} style={btnSecondary}>Close Editor</button>
           </div>
-          <TemplateEditor template={selectedTemplate} onSave={(data) => onSave({ ...data, id: selectedTemplate.id })} saving={saving} allAircraftTypes={allAircraftTypes} />
+          <TemplateEditor template={selectedTemplate} onSave={(data) => onSave({ ...data, id: selectedTemplate.id })} saving={saving} fleetAircraftTypes={fleetAircraftTypes} />
         </div>
       )}
     </div>
