@@ -137,8 +137,7 @@ function getExpDate(c, field, calcField) {
 }
 
 const emptyForm = {
-  full_name:"",email:"",phone:"",employee_id:"",position:"pilot",status:"active",
-  hire_date:"",base_location:"",notes:"",birth_date:"",
+  full_name:"",position:"pilot",status:"active",notes:"",birth_date:"",
   certificate_type:"",certificate_number:"",certificate_issued:"",
   ratings:[],type_ratings:[],
   medical_class:"",medical_issued:"",medical_expires:"",basicmed:false,
@@ -147,7 +146,6 @@ const emptyForm = {
   last_recurrent:"",recurrent_expires:"",
   last_135_checkride:"",checkride_expires:"",
   checkride_early_grace_months:1,checkride_base_interval_months:12,
-  passport_expires:"",
 };
 
 // ══════════════════════════════════════════════
@@ -167,7 +165,7 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
 
   const filtered = useMemo(() => crew.filter(c => {
     if (filterStatus && c.status !== filterStatus) return false;
-    if (search) { const s=search.toLowerCase(); return (c.full_name||"").toLowerCase().includes(s)||(c.employee_id||"").toLowerCase().includes(s); }
+    if (search) { const s=search.toLowerCase(); return (c.full_name||"").toLowerCase().includes(s); }
     return true;
   }), [crew, search, filterStatus]);
 
@@ -182,7 +180,6 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
         getExpDate(c,"ipc_expires",calc.ipc_expires_calc),
         getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc),
         getExpDate(c,"checkride_expires",calc.checkride_expires_calc),
-        c.passport_expires
       ];
       dates.forEach(d => { if(daysUntil(d)!==null && daysUntil(d)<=60) n++; });
     });
@@ -203,6 +200,8 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
     if (!toSave.ipc_expires && calc.ipc_expires_calc) toSave.ipc_expires = calc.ipc_expires_calc;
     if (!toSave.recurrent_expires && calc.recurrent_expires_calc) toSave.recurrent_expires = calc.recurrent_expires_calc;
     if (!toSave.checkride_expires && calc.checkride_expires_calc) toSave.checkride_expires = calc.checkride_expires_calc;
+    // Sanitize empty strings to null (Postgres rejects "" for date columns)
+    Object.keys(toSave).forEach(k => { if (toSave[k] === "") toSave[k] = null; });
     if(selected){await onUpdate(selected.id, toSave);}else{await onAdd(toSave);}
     setEditing(false);setSelected(null);
   };
@@ -248,7 +247,7 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:WHITE}}>{c.full_name}{hasAlert&&<span style={{color:AMBER,marginLeft:6,fontSize:11}}>{"\u26A0"}</span>}</div>
-                  <div style={{fontSize:10,color:MUTED,marginTop:2}}>{c.position?.replace("_"," ")} {c.employee_id&&`\u00B7 #${c.employee_id}`}</div>
+                  <div style={{fontSize:10,color:MUTED,marginTop:2}}>{c.position?.replace("_"," ")}</div>
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:9,fontWeight:600,textTransform:"uppercase",color:c.status==="active"?GREEN:c.status==="leave"?YELLOW:RED}}>{c.status}</div>
@@ -288,7 +287,7 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
       <div>
         <div style={{fontSize:20,fontWeight:800,color:WHITE}}>{c.full_name}</div>
-        <div style={{fontSize:11,color:MUTED}}>{c.position?.replace("_"," ")} {c.employee_id&&`\u00B7 #${c.employee_id}`} {c.base_location&&`\u00B7 ${c.base_location}`}</div>
+        <div style={{fontSize:11,color:MUTED}}>{c.position?.replace("_"," ")}</div>
       </div>
       {canManage&&<div style={{display:"flex",gap:6}}>
         <button onClick={onEdit} style={{padding:"6px 14px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${BORDER}`,color:CYAN}}>Edit</button>
@@ -303,10 +302,6 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
     </div>
 
     {tab==="info"&&<div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-        <div><div style={{...lbl}}>Contact</div><div style={{fontSize:12,color:WHITE}}>{c.email||"\u2014"}</div><div style={{fontSize:12,color:MUTED}}>{c.phone||"\u2014"}</div></div>
-        <div><div style={{...lbl}}>Hire Date</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.hire_date)}</div></div>
-      </div>
       <div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
         <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:8}}>Certificates & Ratings</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
@@ -418,7 +413,6 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
         {expBadge(ipcExp,"IPC (61.57) \u2014 6 cal months")}
         {expBadge(ckExp,"Part 135 Checkride (135.293)")}
         {expBadge(recExp,"Recurrent Training (135.293)")}
-        {expBadge(c.passport_expires,"Passport")}
       </div>
     </div>}
   </div>);
@@ -443,9 +437,8 @@ function CrewForm({form,setField,toggleRating,addTypeRating,removeTypeRating,new
     <div style={{fontSize:16,fontWeight:700,color:WHITE,marginBottom:12}}>{isNew?"Add Crew Member":"Edit Crew Member"}</div>
     {section("Personal Information")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-      {field("Full Name *","full_name")}{field("Employee ID","employee_id")}{field("Email","email","email")}{field("Phone","phone","tel")}
-      {field("Position","position","select",POSITIONS)}{field("Status","status","select",STATUSES)}
-      {field("Date of Birth","birth_date","date")}{field("Hire Date","hire_date","date")}{field("Base Location","base_location")}
+      {field("Full Name *","full_name")}{field("Position","position","select",POSITIONS)}
+      {field("Status","status","select",STATUSES)}{field("Date of Birth","birth_date","date")}
     </div>
     {section("Certificates")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{field("Certificate Type","certificate_type","select",CERT_TYPES)}{field("Certificate Number","certificate_number")}{field("Date Issued","certificate_issued","date")}</div>
@@ -488,8 +481,7 @@ function CrewForm({form,setField,toggleRating,addTypeRating,removeTypeRating,new
       <div>{field("Expires (override)","recurrent_expires","date")}{calcHint(calc.recurrent_expires_calc,"135.293")}</div>
     </div>
 
-    {section("Other")}
-    {field("Passport Expires","passport_expires","date")}
+    {section("Notes")}
     <div style={{marginBottom:8}}><div style={{...lbl}}>Notes</div><textarea value={form.notes||""} onChange={e=>setField("notes",e.target.value)} rows={3} style={{...inp,resize:"vertical"}} /></div>
     <div style={{display:"flex",gap:8,marginTop:16}}>
       <button onClick={onSave} style={{padding:"10px 24px",background:GREEN,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>{isNew?"Add Crew Member":"Save Changes"}</button>
