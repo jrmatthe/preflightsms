@@ -21,6 +21,16 @@ const POLICY_CATEGORIES = [
   { id: "other", label: "Other" },
 ];
 
+const PART5_TAG_OPTIONS = [
+  { id: "safety_policy", label: "Safety Policy", cfr: "§5.21" },
+  { id: "safety_accountability", label: "Safety Accountability & Authority", cfr: "§5.23–5.25" },
+  { id: "erp", label: "Emergency Response Plan", cfr: "§5.27" },
+  { id: "srm", label: "Safety Risk Management", cfr: "§5.51–5.57" },
+  { id: "safety_assurance", label: "Safety Assurance", cfr: "§5.71–5.75" },
+  { id: "safety_promotion", label: "Safety Promotion", cfr: "§5.91–5.93" },
+  { id: "org_system_description", label: "Organizational System Description", cfr: "§5.17" },
+];
+
 // ── POLICY LIBRARY ────────────────────────────────────────────
 function PolicyForm({ onSubmit, onCancel }) {
   const [form, setForm] = useState({
@@ -28,6 +38,7 @@ function PolicyForm({ onSubmit, onCancel }) {
     content: "", effectiveDate: "", reviewDate: "", status: "active",
   });
   const [file, setFile] = useState(null);
+  const [part5Tags, setPart5Tags] = useState([]);
   const fileRef = { current: null };
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   return (
@@ -84,6 +95,23 @@ function PolicyForm({ onSubmit, onCancel }) {
           </div>
         )}
       </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Part 5 Compliance Tags <span style={{ fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+        <div style={{ fontSize: 10, color: MUTED, marginBottom: 6 }}>Select which Part 5 requirements this document covers for audit tracking</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {PART5_TAG_OPTIONS.map(t => {
+            const selected = part5Tags.includes(t.id);
+            return (
+              <button key={t.id} type="button" onClick={() => setPart5Tags(prev => selected ? prev.filter(x => x !== t.id) : [...prev, t.id])}
+                style={{ padding: "5px 10px", borderRadius: 4, fontSize: 10, cursor: "pointer",
+                  background: selected ? `${CYAN}22` : NEAR_BLACK, color: selected ? CYAN : MUTED,
+                  border: `1px solid ${selected ? CYAN + "66" : BORDER}`, fontWeight: selected ? 600 : 400 }}>
+                {t.label} <span style={{ opacity: 0.6 }}>{t.cfr}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }} className="report-grid">
         <div>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Effective Date</label>
@@ -94,7 +122,7 @@ function PolicyForm({ onSubmit, onCancel }) {
           <input type="date" value={form.reviewDate} onChange={e => set("reviewDate", e.target.value)} style={inp} />
         </div>
       </div>
-      <button onClick={() => { if (form.title.trim()) onSubmit({ ...form, file }); }} disabled={!form.title.trim()}
+      <button onClick={() => { if (form.title.trim()) onSubmit({ ...form, file, part5Tags: part5Tags.length > 0 ? part5Tags : null }); }} disabled={!form.title.trim()}
         style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1 }}>
         Add Document
       </button>
@@ -337,6 +365,7 @@ export default function PolicyTraining({
                     <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{p.status}</span>
                     <span style={{ background: `${BORDER}`, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{p.version}</span>
                     {p.file_url && <span style={{ background: `${CYAN}22`, color: CYAN, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>📎 File</span>}
+                    {p.part5_tags?.length > 0 && <span style={{ background: `${GREEN}18`, color: GREEN, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 600 }}>Part 5</span>}
                   </div>
                   <div style={{ color: MUTED, fontSize: 10 }}>
                     {cat?.label || p.category} · {ackCount} acknowledgment{ackCount !== 1 ? "s" : ""}
