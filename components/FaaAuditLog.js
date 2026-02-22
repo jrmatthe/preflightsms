@@ -353,6 +353,10 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       const secs = m.sections || [];
       return secs.length > 0 && secs.every(s => s.completed);
     },
+    // Check if any active uploaded policy is tagged with this Part 5 section
+    policyCoversManual: (key) => {
+      return (policies || []).some(p => p.status === "active" && p.part5_tags?.includes(key));
+    },
   }), [frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, smsManuals]);
 
   // Calculate compliance status for each requirement
@@ -362,9 +366,9 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       if (manualOverrides[req.id] !== undefined) {
         statuses[req.id] = manualOverrides[req.id];
       } else {
-        // Check if a completed SMS manual template satisfies this requirement
+        // Check if a completed SMS manual template OR tagged uploaded policy satisfies this requirement
         const manualKeys = REQ_MANUAL_MAP[req.id] || [];
-        const manualSatisfied = manualKeys.some(k => dataCtx.manualComplete(k));
+        const manualSatisfied = manualKeys.some(k => dataCtx.manualComplete(k) || dataCtx.policyCoversManual(k));
         if (manualSatisfied) {
           statuses[req.id] = "compliant";
         } else if (req.autoCheck) {
@@ -384,9 +388,11 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       const secs = manual?.sections || [];
       const completed = secs.filter(s => s.completed).length;
       const total = secs.length;
-      return { key, label: MANUAL_LABELS[key], reqIds, completed, total, isComplete: total > 0 && completed === total, exists: !!manual };
+      const templateComplete = total > 0 && completed === total;
+      const policyTagged = (policies || []).some(p => p.status === "active" && p.part5_tags?.includes(key));
+      return { key, label: MANUAL_LABELS[key], reqIds, completed, total, isComplete: templateComplete || policyTagged, templateComplete, policyTagged, exists: !!manual };
     });
-  }, [smsManuals]);
+  }, [smsManuals, policies]);
 
   // Summary counts
   const summary = useMemo(() => {
@@ -470,13 +476,17 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
             <div key={ms.key} style={{ padding: "8px 12px", background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${ms.isComplete ? GREEN + "44" : BORDER}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: ms.isComplete ? GREEN : OFF_WHITE }}>{ms.label}</span>
-                <span style={{ fontSize: 9, color: ms.isComplete ? GREEN : MUTED, fontWeight: 600 }}>{ms.exists ? `${ms.completed}/${ms.total}` : "Not started"}</span>
+                <span style={{ fontSize: 9, color: ms.isComplete ? GREEN : MUTED, fontWeight: 600 }}>
+                  {ms.policyTagged && !ms.templateComplete ? "Policy uploaded" : ms.exists ? `${ms.completed}/${ms.total}` : "Not started"}
+                </span>
               </div>
               <div style={{ height: 3, background: CARD, borderRadius: 2, overflow: "hidden", marginBottom: 4 }}>
-                <div style={{ width: ms.total > 0 ? `${ms.completed / ms.total * 100}%` : "0%", height: "100%", background: ms.isComplete ? GREEN : AMBER, borderRadius: 2 }} />
+                <div style={{ width: ms.isComplete ? "100%" : ms.total > 0 ? `${ms.completed / ms.total * 100}%` : "0%", height: "100%", background: ms.isComplete ? GREEN : AMBER, borderRadius: 2 }} />
               </div>
               <div style={{ fontSize: 9, color: MUTED }}>
-                {ms.isComplete ? `Satisfies ${ms.reqIds.length} requirements` : `Covers ${ms.reqIds.length} requirements when complete`}
+                {ms.isComplete
+                  ? `Satisfies ${ms.reqIds.length} requirements${ms.policyTagged && !ms.templateComplete ? " (via uploaded policy)" : ""}`
+                  : `Covers ${ms.reqIds.length} requirements when complete`}
               </div>
             </div>
           ))}
@@ -530,8 +540,10 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 11, fontWeight: 600, color: WHITE }}>{req.section} — {req.title}</span>
-                        {(REQ_MANUAL_MAP[req.id] || []).some(k => dataCtx.manualComplete(k)) && (
-                          <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 3, background: `${CYAN}18`, color: CYAN, fontWeight: 600 }}>SMS Manual</span>
+                        {(REQ_MANUAL_MAP[req.id] || []).some(k => dataCtx.manualComplete(k) || dataCtx.policyCoversManual(k)) && (
+                          <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 3, background: `${CYAN}18`, color: CYAN, fontWeight: 600 }}>
+                            {(REQ_MANUAL_MAP[req.id] || []).some(k => dataCtx.manualComplete(k)) ? "SMS Manual" : "Policy Doc"}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -546,16 +558,19 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
                         <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.4 }}>{evidenceText}</div>
                       </div>
 
-                      {/* SMS Manual template status for this requirement */}
+                      {/* SMS Manual template / uploaded policy status for this requirement */}
                       {(REQ_MANUAL_MAP[req.id] || []).length > 0 && (
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                           {(REQ_MANUAL_MAP[req.id] || []).map(mk => {
-                            const complete = dataCtx.manualComplete(mk);
+                            const templateDone = dataCtx.manualComplete(mk);
+                            const policyDone = dataCtx.policyCoversManual(mk);
+                            const satisfied = templateDone || policyDone;
                             const ms = manualStatuses.find(m => m.key === mk);
+                            const labelSuffix = templateDone ? (ms?.exists ? ` (${ms.completed}/${ms.total})` : "") : policyDone ? " (uploaded policy)" : (ms?.exists ? ` (${ms.completed}/${ms.total})` : " (not started)");
                             return (
                               <span key={mk} style={{ fontSize: 9, padding: "3px 8px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 4,
-                                background: complete ? `${GREEN}15` : `${AMBER}15`, color: complete ? GREEN : AMBER, border: `1px solid ${complete ? GREEN : AMBER}33` }}>
-                                {complete ? "\u2713" : "\u25CB"} {MANUAL_LABELS[mk]} {ms?.exists ? `(${ms.completed}/${ms.total})` : "(not started)"}
+                                background: satisfied ? `${GREEN}15` : `${AMBER}15`, color: satisfied ? GREEN : AMBER, border: `1px solid ${satisfied ? GREEN : AMBER}33` }}>
+                                {satisfied ? "\u2713" : "\u25CB"} {MANUAL_LABELS[mk]}{labelSuffix}
                               </span>
                             );
                           })}
