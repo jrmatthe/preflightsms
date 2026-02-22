@@ -136,7 +136,7 @@ export default function PolicyTraining({
 
   // Top-level tab bar (Policy Library | SMS Manuals)
   const tabs = [["policies", "Policy Library"]];
-  if (showManuals) tabs.push(["manuals", "SMS Manuals"]);
+  if (showManuals) tabs.push(["manuals", "SMS Manual Templates"]);
   const renderTopTabs = () => tabs.length > 1 ? (
     <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {tabs.map(([id, label]) => (
