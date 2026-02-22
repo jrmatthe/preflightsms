@@ -492,9 +492,20 @@ function CrewForm({form,setField,toggleRating,addTypeRating,removeTypeRating,new
       {field("Medical Class","medical_class","select",MEDICAL_CLASSES)}
       {field("Date Issued","medical_issued","date")}
     </div>
-    {calcHint(calc.medical_expires_calc,"61.23")}
+    {(()=>{
+      const priv=calcMedicalPrivileges(form.medical_class,form.medical_issued,form.birth_date);
+      if(!priv) return null;
+      return (<div style={{fontSize:9,marginTop:4,padding:"6px 8px",borderRadius:4,background:`${NEAR_BLACK}`,border:`1px solid ${BORDER}`}}>
+        <div style={{color:MUTED,marginBottom:2}}>Age at exam: {priv.age}{priv.under40?" (under 40)":" (40+)"}</div>
+        {priv.first&&<div style={{color:CYAN}}>1st Class expires: {fmtDate(priv.first)}{priv.first===priv.second?" (same as 2nd)":""}</div>}
+        {priv.second&&priv.first!==priv.second&&<div style={{color:CYAN}}>Steps down to 2nd Class through: {fmtDate(priv.second)}</div>}
+        {priv.second&&!priv.first&&<div style={{color:CYAN}}>2nd Class expires: {fmtDate(priv.second)}</div>}
+        {priv.third&&<div style={{color:MUTED}}>3rd Class expires: {fmtDate(priv.third)}</div>}
+        <div style={{color:AMBER,marginTop:2}}>Part 135 requires 2nd Class minimum — limit: {fmtDate(priv.part135Expires)}</div>
+      </div>);
+    })()}
     <div style={{marginTop:6}}>{field("Expires (override)","medical_expires","date")}</div>
-    <div style={{fontSize:9,color:MUTED,marginTop:2}}>Leave blank to auto-calculate. Manual entry overrides the FAR calculation.</div>
+    <div style={{fontSize:9,color:MUTED,marginTop:2}}>Leave blank to auto-calculate Part 135 expiration. Manual entry overrides.</div>
     <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:11,color:MUTED,marginTop:4}}><input type="checkbox" checked={form.basicmed} onChange={e=>setField("basicmed",e.target.checked)} />BasicMed</label>
 
     {needsIPC(form.position)&&<>{section("Instrument Proficiency Check (auto: 6 cal months per 135.297)")}
