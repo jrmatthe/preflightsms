@@ -1,4 +1,4 @@
--- Migration 017: Aircraft / Fleet Management
+-- Migration 017: Aircraft / Fleet Registry
 -- Run in Supabase SQL Editor
 
 -- 1. Create aircraft table
@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS aircraft (
   serial_number TEXT DEFAULT '',
   year INTEGER,
   max_passengers INTEGER,
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'maintenance', 'inactive')),
   base_location TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -20,9 +19,8 @@ CREATE TABLE IF NOT EXISTS aircraft (
 -- 2. Unique constraint: no duplicate tail numbers per org
 ALTER TABLE aircraft ADD CONSTRAINT aircraft_org_registration_unique UNIQUE (org_id, registration);
 
--- 3. Indexes
+-- 3. Index
 CREATE INDEX idx_aircraft_org_id ON aircraft(org_id);
-CREATE INDEX idx_aircraft_org_status ON aircraft(org_id, status);
 
 -- 4. Enable RLS
 ALTER TABLE aircraft ENABLE ROW LEVEL SECURITY;
