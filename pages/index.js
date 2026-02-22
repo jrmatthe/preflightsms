@@ -594,7 +594,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   </>);
 }
 
-function OnboardingWizard({ onComplete, onDismiss, setCv, fleetAircraft, onAddAircraft, onInviteUser, orgName, userName, org, orgSlug }) {
+function OnboardingWizard({ onComplete, onDismiss, onTourStart, setCv, fleetAircraft, onAddAircraft, onInviteUser, orgName, userName, org, orgSlug }) {
   const [step, setStep] = useState(0);
   const [subStep, setSubStep] = useState(0);
   const [cardPos, setCardPos] = useState(null);
@@ -702,8 +702,11 @@ function OnboardingWizard({ onComplete, onDismiss, setCv, fleetAircraft, onAddAi
     if (current.phase === "tour" && current.subSteps) {
       if (subStep < current.subSteps.length - 1) { setSubStep(subStep + 1); return; }
     }
-    if (step < steps.length - 1) { setStep(step + 1); setSubStep(0); }
-    else onComplete();
+    const nextIdx = step + 1;
+    if (nextIdx < steps.length) {
+      if (current.phase === "setup" && steps[nextIdx].phase === "tour" && onTourStart) onTourStart();
+      setStep(nextIdx); setSubStep(0);
+    } else onComplete();
   };
 
   const goBack = () => {
@@ -2394,6 +2397,75 @@ function AuthScreen({ onAuth, initialMode }) {
       </div></div>);
 }
 
+// ── Tour seed data generator (state-only, never written to DB) ──
+function buildTourSeedData(today, userName, fleet) {
+  const d = new Date(today + "T12:00:00Z");
+  const iso = (offset) => { const dt = new Date(d); dt.setDate(dt.getDate() + offset); return dt.toISOString(); };
+  const dateStr = (offset) => { const dt = new Date(d); dt.setDate(dt.getDate() + offset); return dt.toISOString().slice(0, 10); };
+  const pilot = userName || "J. Smith";
+  const ac = fleet && fleet[0] ? fleet[0].aircraft_type || "PC-12" : "PC-12";
+  const tail = fleet && fleet[0] ? fleet[0].tail_number || "N123AB" : "N123AB";
+
+  // ETA helpers for active flights
+  const now = new Date();
+  const eta2h = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString();
+  const eta4h = new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
+
+  return {
+    records: [
+      { id: "_seed_FRAT001", dbId: "_seed_r1", pilot, aircraft: ac, tailNumber: tail, departure: "KSFF", destination: "KBOI", cruiseAlt: "FL250", date: dateStr(-1), etd: "14:00", ete: "1:45", eta: "15:45", fuelLbs: 2800, numCrew: 2, numPax: 3, score: 8, riskLevel: "LOW", factors: ["Day VFR", "Familiar route"], wxBriefing: "VFR conditions", remarks: "", attachments: [], timestamp: iso(-1) },
+      { id: "_seed_FRAT002", dbId: "_seed_r2", pilot, aircraft: ac, tailNumber: tail, departure: "KBOI", destination: "KSEA", cruiseAlt: "FL270", date: dateStr(-2), etd: "09:00", ete: "1:30", eta: "10:30", fuelLbs: 2600, numCrew: 2, numPax: 5, score: 22, riskLevel: "MODERATE", factors: ["Mountain terrain", "IFR required", "Gusty winds"], wxBriefing: "IFR with moderate turbulence", remarks: "Mountain wave advisory", attachments: [], timestamp: iso(-2) },
+      { id: "_seed_FRAT003", dbId: "_seed_r3", pilot, aircraft: ac, tailNumber: tail, departure: "KDEN", destination: "KASE", cruiseAlt: "FL250", date: dateStr(-3), etd: "07:00", ete: "0:55", eta: "07:55", fuelLbs: 2200, numCrew: 2, numPax: 4, score: 35, riskLevel: "HIGH", factors: ["Mountain terrain", "Short runway", "Night approach", "Icing conditions", "Gusty crosswind"], wxBriefing: "Marginal VFR, icing above 12000", remarks: "Chief pilot approval obtained", attachments: [], timestamp: iso(-3) },
+    ],
+    flights: [
+      { id: "_seed_FLT001", dbId: "_seed_f1", pilot, aircraft: ac, tailNumber: tail, departure: "KSFF", destination: "KBOI", cruiseAlt: "FL250", etd: new Date(now.getTime() - 30 * 60 * 1000).toISOString(), ete: "1:45", eta: eta2h, fuelLbs: 2800, numCrew: 2, numPax: 3, score: 8, riskLevel: "LOW", status: "ACTIVE", timestamp: iso(0), arrivedAt: null, cancelled: false },
+      { id: "_seed_FLT002", dbId: "_seed_f2", pilot, aircraft: ac, tailNumber: tail, departure: "KBOI", destination: "KSEA", cruiseAlt: "FL270", etd: new Date(now.getTime() - 15 * 60 * 1000).toISOString(), ete: "1:30", eta: eta4h, fuelLbs: 2600, numCrew: 2, numPax: 5, score: 22, riskLevel: "MODERATE", status: "ACTIVE", timestamp: iso(0), arrivedAt: null, cancelled: false },
+      { id: "_seed_FLT003", dbId: "_seed_f3", pilot, aircraft: ac, tailNumber: tail, departure: "KDEN", destination: "KASE", cruiseAlt: "FL250", etd: iso(-1), ete: "0:55", eta: iso(-1), fuelLbs: 2200, numCrew: 2, numPax: 4, score: 35, riskLevel: "HIGH", status: "ARRIVED", timestamp: iso(-1), arrivedAt: iso(-1), cancelled: false },
+    ],
+    crewRecords: [
+      { id: "_seed_c1", org_id: "_seed", full_name: pilot, role: "PIC", email: "pic@example.com", certificate_type: "ATP", certificate_number: "ATP-123456", medical_class: "First Class", medical_expiry: dateStr(180), flight_review_date: dateStr(-90), flight_review_expiry: dateStr(275), ipc_date: dateStr(-60), ipc_expiry: dateStr(120), checkride_date: dateStr(-200), checkride_expiry: dateStr(165), type_ratings: [ac], total_hours: 4500, notes: "" },
+      { id: "_seed_c2", org_id: "_seed", full_name: "A. Johnson", role: "SIC", email: "sic@example.com", certificate_type: "Commercial", certificate_number: "COM-789012", medical_class: "Second Class", medical_expiry: dateStr(30), flight_review_date: dateStr(-300), flight_review_expiry: dateStr(65), ipc_date: dateStr(-150), ipc_expiry: dateStr(30), checkride_date: dateStr(-100), checkride_expiry: dateStr(265), type_ratings: [ac], total_hours: 1200, notes: "Medical expiring soon" },
+      { id: "_seed_c3", org_id: "_seed", full_name: "M. Davis", role: "Dispatcher", email: "dispatch@example.com", certificate_type: "None", certificate_number: "", medical_class: "", medical_expiry: "", flight_review_date: "", flight_review_expiry: "", ipc_date: "", ipc_expiry: "", checkride_date: "", checkride_expiry: "", type_ratings: [], total_hours: 0, notes: "Ground operations" },
+    ],
+    reports: [
+      { id: "_seed_rp1", org_id: "_seed", title: "Bird Strike on Departure", type: "hazard", description: "Large bird strike during initial climb out of KSFF runway 21. Minor leading edge dent, no engine ingestion.", reporter: pilot, status: "open", severity: "medium", created_at: iso(-2), updated_at: iso(-2) },
+      { id: "_seed_rp2", org_id: "_seed", title: "Cabin Pressure Fluctuation", type: "incident", description: "Intermittent cabin pressure fluctuations noted between FL250-FL270 on KBOI-KSEA segment. Returned to normal after descent.", reporter: "A. Johnson", status: "under_review", severity: "high", created_at: iso(-5), updated_at: iso(-3) },
+      { id: "_seed_rp3", org_id: "_seed", title: "Runway Incursion Avoided", type: "near_miss", description: "Ground vehicle crossed runway 28L during taxi. Stopped short per tower instruction. No conflict.", reporter: pilot, status: "closed", severity: "high", created_at: iso(-10), updated_at: iso(-7) },
+    ],
+    hazards: [
+      { id: "_seed_h1", org_id: "_seed", title: "Icing Conditions — Mountain Routes", description: "Persistent moderate icing reported on KDEN-KASE and KBOI-KSEA mountain segments above FL180.", status: "active", severity: 4, likelihood: 3, risk_score: 12, category: "Environmental", mitigation: "Verify anti-ice/de-ice systems operational. Brief alternate routes below icing layer.", created_at: iso(-4), updated_at: iso(-2), report_id: null },
+      { id: "_seed_h2", org_id: "_seed", title: "Fuel Contamination — KSFF", description: "Water contamination found in sumped fuel sample at KSFF FBO. FBO notified and filters replaced.", status: "mitigated", severity: 4, likelihood: 1, risk_score: 4, category: "Operational", mitigation: "Fuel filters replaced. Double sump checks required for 30 days.", created_at: iso(-14), updated_at: iso(-7), report_id: null },
+    ],
+    actions: [
+      { id: "_seed_a1", org_id: "_seed", title: "Verify anti-ice systems on all fleet aircraft", description: "Perform functional check of all anti-ice and de-ice systems prior to winter operations.", status: "open", priority: "high", assigned_to: pilot, due_date: dateStr(14), created_at: iso(-3), updated_at: iso(-3), hazard_id: "_seed_h1", completed_at: null },
+      { id: "_seed_a2", org_id: "_seed", title: "Update winter operations SOP", description: "Revise winter ops SOP to include mandatory icing briefings for mountain routes.", status: "in_progress", priority: "medium", assigned_to: pilot, due_date: dateStr(30), created_at: iso(-7), updated_at: iso(-2), hazard_id: "_seed_h1", completed_at: null },
+      { id: "_seed_a3", org_id: "_seed", title: "Replace fuel filters at KSFF", description: "Coordinate with FBO to replace all fuel filters and verify fuel quality.", status: "completed", priority: "high", assigned_to: "M. Davis", due_date: dateStr(-3), created_at: iso(-14), updated_at: iso(-7), hazard_id: "_seed_h2", completed_at: iso(-7) },
+    ],
+    policies: [
+      { id: "_seed_p1", org_id: "_seed", title: "Safety Policy Statement", type: "safety_policy", content: "Our organization is committed to achieving the highest level of aviation safety...", status: "active", version: 1, acknowledgments: [{ user_id: "_seed_u1", user_name: pilot, acknowledged_at: iso(-5) }], created_at: iso(-30), updated_at: iso(-5) },
+      { id: "_seed_p2", org_id: "_seed", title: "Standard Operating Procedures", type: "sop", content: "These procedures govern normal, abnormal, and emergency operations...", status: "active", version: 2, acknowledgments: [], created_at: iso(-60), updated_at: iso(-10) },
+    ],
+    trainingReqs: [
+      { id: "_seed_tr1", org_id: "_seed", title: "Annual Safety Recurrent", description: "Annual SMS and safety awareness recurrent training.", frequency: "annual", required_for: "all_pilots", created_at: iso(-90) },
+    ],
+    trainingRecs: [
+      { id: "_seed_trr1", org_id: "_seed", requirement_id: "_seed_tr1", user_id: "_seed_u1", user_name: pilot, completed_at: iso(-15), expires_at: dateStr(350), notes: "Completed online module and check ride", created_at: iso(-15) },
+    ],
+    cbtCourses: [
+      { id: "_seed_cbt1", org_id: "_seed", title: "SMS Fundamentals", description: "Introduction to Safety Management Systems for Part 5 compliance.", status: "published", created_at: iso(-60), updated_at: iso(-30) },
+    ],
+    smsManuals: [
+      { id: "_seed_sm1", org_id: "_seed", title: "Safety Policy Manual", manual_type: "safety_policy", status: "draft", sections: [
+        { id: "sp1", title: "Safety Policy Statement", content: "Our organization is committed to the highest standards of aviation safety.", completed: true },
+        { id: "sp2", title: "Safety Objectives", content: "Achieve zero preventable accidents through proactive hazard identification.", completed: true },
+        { id: "sp3", title: "Management Commitment", content: "Senior management allocates adequate resources for SMS implementation.", completed: true },
+        { id: "sp4", title: "Accountable Executive", content: "", completed: false },
+        { id: "sp5", title: "Safety Accountabilities", content: "", completed: false },
+      ], created_at: iso(-20), updated_at: iso(-5) },
+    ],
+  };
+}
+
 export default function PVTAIRFrat() {
   const _initTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
   const [cv, setCv] = useState(() => {
@@ -2519,10 +2591,8 @@ export default function PVTAIRFrat() {
     }
   }, []);
 
-  // ── Load data from Supabase when profile is available ──
-  useEffect(() => {
-    if (!profile) return;
-    const orgId = profile.org_id;
+  // ── Re-fetch tour-seeded data from Supabase (used by useEffect + tour-end handlers) ──
+  const refreshAllData = (orgId) => {
     fetchFRATs(orgId).then(({ data }) => {
       setRecords(data.map(r => ({
         id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number,
@@ -2543,6 +2613,31 @@ export default function PVTAIRFrat() {
         cancelled: f.status === "CANCELLED",
       })));
     });
+    fetchReports(orgId).then(({ data }) => setReports(data || []));
+    fetchHazards(orgId).then(({ data }) => setHazards(data || []));
+    fetchActions(orgId).then(({ data }) => setActions(data || []));
+    fetchCrewRecords(orgId).then(({ data }) => setCrewRecords(data || []));
+    fetchPolicies(orgId).then(({ data }) => setPolicies(data || []));
+    fetchTrainingRequirements(orgId).then(({ data }) => setTrainingReqs(data || []));
+    fetchTrainingRecords(orgId).then(({ data }) => setTrainingRecs(data || []));
+    fetchCbtCourses(orgId).then(({ data }) => {
+      setCbtCourses(data || []);
+      (data || []).forEach(c => {
+        fetchCbtLessons(c.id).then(({ data: lessons }) => {
+          setCbtLessonsMap(prev => ({ ...prev, [c.id]: lessons || [] }));
+        });
+      });
+    });
+    fetchCbtProgress(orgId).then(({ data }) => setCbtProgress(data || []));
+    fetchCbtEnrollments(orgId).then(({ data }) => setCbtEnrollments(data || []));
+    fetchSmsManuals(orgId).then(({ data }) => setSmsManuals(data || []));
+  };
+
+  // ── Load data from Supabase when profile is available ──
+  useEffect(() => {
+    if (!profile) return;
+    const orgId = profile.org_id;
+    refreshAllData(orgId);
     // Subscribe to real-time flight updates
     const channel = subscribeToFlights(orgId, (payload) => {
       fetchFlights(orgId).then(({ data }) => {
@@ -2559,33 +2654,12 @@ export default function PVTAIRFrat() {
     // Load FRAT template
     fetchFratTemplate(orgId).then(({ data }) => { if (data) setFratTemplate(data); });
     fetchAllFratTemplates(orgId).then(({ data }) => { setFratTemplates(data || []); });
-    // Load reports, hazards, actions, policies, training
-    fetchReports(orgId).then(({ data }) => setReports(data || []));
-    fetchHazards(orgId).then(({ data }) => setHazards(data || []));
-    fetchActions(orgId).then(({ data }) => setActions(data || []));
-    fetchCrewRecords(orgId).then(({ data }) => setCrewRecords(data || []));
     fetchAircraft(orgId).then(({ data }) => setFleetAircraft(data || []));
     fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || []));
-    fetchPolicies(orgId).then(({ data }) => setPolicies(data || []));
-    fetchTrainingRequirements(orgId).then(({ data }) => setTrainingReqs(data || []));
-    fetchTrainingRecords(orgId).then(({ data }) => setTrainingRecs(data || []));
-    // CBT
-    fetchCbtCourses(orgId).then(({ data }) => {
-      setCbtCourses(data || []);
-      // Fetch lessons for each course
-      (data || []).forEach(c => {
-        fetchCbtLessons(c.id).then(({ data: lessons }) => {
-          setCbtLessonsMap(prev => ({ ...prev, [c.id]: lessons || [] }));
-        });
-      });
-    });
-    fetchCbtProgress(orgId).then(({ data }) => setCbtProgress(data || []));
-    fetchCbtEnrollments(orgId).then(({ data }) => setCbtEnrollments(data || []));
     fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
     fetchNotifications(orgId).then(({ data }) => setNotifications(data || []));
     if (session?.user?.id) fetchNotificationReads(session.user.id).then(({ data }) => setNotifReads((data || []).map(r => r.notification_id)));
     fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
-    fetchSmsManuals(orgId).then(({ data }) => setSmsManuals(data || []));
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [profile]);
 
@@ -3105,12 +3179,27 @@ export default function PVTAIRFrat() {
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
 
   // Onboarding handlers
+  const handleTourStart = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const seed = buildTourSeedData(today, userName, fleetAircraft);
+    setRecords(seed.records);
+    setFlights(seed.flights);
+    setCrewRecords(seed.crewRecords);
+    setReports(seed.reports);
+    setHazards(seed.hazards);
+    setActions(seed.actions);
+    setPolicies(seed.policies);
+    setTrainingReqs(seed.trainingReqs);
+    setTrainingRecs(seed.trainingRecs);
+    setCbtCourses(seed.cbtCourses);
+    setSmsManuals(seed.smsManuals);
+  };
   const handleOnboardingComplete = async () => {
     setShowOnboarding(false);
     setCv("submit");
     if (profile?.org_id) {
+      refreshAllData(profile.org_id);
       await saveOnboardingStatus(profile.org_id, { onboarding_completed: true });
-      // Update local profile to prevent re-showing
       setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true } } } : prev);
     }
   };
@@ -3118,6 +3207,7 @@ export default function PVTAIRFrat() {
     setShowOnboarding(false);
     setCv("submit");
     if (profile?.org_id) {
+      refreshAllData(profile.org_id);
       await saveOnboardingStatus(profile.org_id, { onboarding_completed: true, onboarding_skipped: true });
       setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true, onboarding_skipped: true } } } : prev);
     }
@@ -3127,7 +3217,7 @@ export default function PVTAIRFrat() {
   const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: isTrialExpired ? "Your trial has expired — subscribe to continue" : "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
-    {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} />}
+    {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} onTourStart={handleTourStart} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} />}
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} />
       <div className="main-content" style={{ marginLeft: 140 }}>
