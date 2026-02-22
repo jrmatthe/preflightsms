@@ -277,6 +277,36 @@ const SUBPART_NAMES = {
   F: "Documentation & Recordkeeping",
 };
 
+// Map each SMS manual template to the Part 5 requirements it satisfies when completed
+const MANUAL_REQUIREMENT_MAP = {
+  safety_policy: ["5.21a1", "5.21a2", "5.21a3", "5.21a4", "5.21a5", "5.21a7", "5.21b", "5.21c", "5.21d", "5.95a"],
+  safety_accountability: ["5.23a", "5.23b", "5.25a", "5.25b", "5.25c"],
+  erp: ["5.21a6", "5.27"],
+  srm: ["5.51", "5.53a", "5.53c", "5.55a", "5.55b", "5.55c", "5.55d", "5.57"],
+  safety_assurance: ["5.71a", "5.71a1", "5.71a2", "5.71a3", "5.71a4", "5.71a5", "5.71a7", "5.73", "5.75"],
+  safety_promotion: ["5.91", "5.93a", "5.93b", "5.93c", "5.93d"],
+  org_system_description: ["5.17"],
+};
+
+// Reverse map: requirement ID → manual key(s) that satisfy it
+const REQ_MANUAL_MAP = {};
+Object.entries(MANUAL_REQUIREMENT_MAP).forEach(([key, ids]) => {
+  ids.forEach(id => {
+    if (!REQ_MANUAL_MAP[id]) REQ_MANUAL_MAP[id] = [];
+    REQ_MANUAL_MAP[id].push(key);
+  });
+});
+
+const MANUAL_LABELS = {
+  safety_policy: "Safety Policy",
+  safety_accountability: "Safety Accountability & Authority",
+  erp: "Emergency Response Plan",
+  srm: "Safety Risk Management",
+  safety_assurance: "Safety Assurance",
+  safety_promotion: "Safety Promotion",
+  org_system_description: "Org. System Description",
+};
+
 // ══════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
@@ -331,14 +361,32 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
     PART5_REQUIREMENTS.forEach(req => {
       if (manualOverrides[req.id] !== undefined) {
         statuses[req.id] = manualOverrides[req.id];
-      } else if (req.autoCheck) {
-        statuses[req.id] = req.autoCheck(dataCtx) ? "compliant" : "needs_attention";
       } else {
-        statuses[req.id] = "manual_review";
+        // Check if a completed SMS manual template satisfies this requirement
+        const manualKeys = REQ_MANUAL_MAP[req.id] || [];
+        const manualSatisfied = manualKeys.some(k => dataCtx.manualComplete(k));
+        if (manualSatisfied) {
+          statuses[req.id] = "compliant";
+        } else if (req.autoCheck) {
+          statuses[req.id] = req.autoCheck(dataCtx) ? "compliant" : "needs_attention";
+        } else {
+          statuses[req.id] = "manual_review";
+        }
       }
     });
     return statuses;
   }, [dataCtx, manualOverrides]);
+
+  // SMS Manual template completion status for the summary section
+  const manualStatuses = useMemo(() => {
+    return Object.entries(MANUAL_REQUIREMENT_MAP).map(([key, reqIds]) => {
+      const manual = (smsManuals || []).find(m => m.manual_key === key);
+      const secs = manual?.sections || [];
+      const completed = secs.filter(s => s.completed).length;
+      const total = secs.length;
+      return { key, label: MANUAL_LABELS[key], reqIds, completed, total, isComplete: total > 0 && completed === total, exists: !!manual };
+    });
+  }, [smsManuals]);
 
   // Summary counts
   const summary = useMemo(() => {
@@ -414,6 +462,27 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
         </div>
       </div>
 
+      {/* SMS Manual Documentation Status */}
+      <div style={{ ...card, padding: "14px 18px", marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>SMS Manual Documentation Status</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
+          {manualStatuses.map(ms => (
+            <div key={ms.key} style={{ padding: "8px 12px", background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${ms.isComplete ? GREEN + "44" : BORDER}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: ms.isComplete ? GREEN : OFF_WHITE }}>{ms.label}</span>
+                <span style={{ fontSize: 9, color: ms.isComplete ? GREEN : MUTED, fontWeight: 600 }}>{ms.exists ? `${ms.completed}/${ms.total}` : "Not started"}</span>
+              </div>
+              <div style={{ height: 3, background: CARD, borderRadius: 2, overflow: "hidden", marginBottom: 4 }}>
+                <div style={{ width: ms.total > 0 ? `${ms.completed / ms.total * 100}%` : "0%", height: "100%", background: ms.isComplete ? GREEN : AMBER, borderRadius: 2 }} />
+              </div>
+              <div style={{ fontSize: 9, color: MUTED }}>
+                {ms.isComplete ? `Satisfies ${ms.reqIds.length} requirements` : `Covers ${ms.reqIds.length} requirements when complete`}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Filter */}
       <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
         {[["all", "All"], ["compliant", "Compliant"], ["needs_attention", "Needs Attention"], ["manual_review", "Manual Review"]].map(([id, l]) => (
@@ -459,7 +528,12 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
                     style={{ padding: "10px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: isOpen ? "rgba(255,255,255,0.02)" : "transparent" }}>
                     <span style={{ fontSize: 14, color: statusColor(status), fontWeight: 700, width: 20, textAlign: "center" }}>{statusIcon(status)}</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: WHITE }}>{req.section} — {req.title}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: WHITE }}>{req.section} — {req.title}</span>
+                        {(REQ_MANUAL_MAP[req.id] || []).some(k => dataCtx.manualComplete(k)) && (
+                          <span style={{ fontSize: 8, padding: "1px 6px", borderRadius: 3, background: `${CYAN}18`, color: CYAN, fontWeight: 600 }}>SMS Manual</span>
+                        )}
+                      </div>
                     </div>
                     <span style={{ fontSize: 9, color: statusColor(status), fontWeight: 600, padding: "2px 8px", borderRadius: 3, background: `${statusColor(status)}15`, border: `1px solid ${statusColor(status)}33` }}>{statusLabel(status)}</span>
                   </div>
@@ -471,6 +545,22 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
                         <div style={{ fontSize: 9, color: CYAN, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Evidence in PreflightSMS</div>
                         <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.4 }}>{evidenceText}</div>
                       </div>
+
+                      {/* SMS Manual template status for this requirement */}
+                      {(REQ_MANUAL_MAP[req.id] || []).length > 0 && (
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                          {(REQ_MANUAL_MAP[req.id] || []).map(mk => {
+                            const complete = dataCtx.manualComplete(mk);
+                            const ms = manualStatuses.find(m => m.key === mk);
+                            return (
+                              <span key={mk} style={{ fontSize: 9, padding: "3px 8px", borderRadius: 3, display: "inline-flex", alignItems: "center", gap: 4,
+                                background: complete ? `${GREEN}15` : `${AMBER}15`, color: complete ? GREEN : AMBER, border: `1px solid ${complete ? GREEN : AMBER}33` }}>
+                                {complete ? "\u2713" : "\u25CB"} {MANUAL_LABELS[mk]} {ms?.exists ? `(${ms.completed}/${ms.total})` : "(not started)"}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {/* Data counts if applicable */}
                       {req.evidence === "system" && (
