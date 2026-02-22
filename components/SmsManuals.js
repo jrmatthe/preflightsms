@@ -774,7 +774,7 @@ function ManualEditor({ manual, onSave, onBack, templateVariables, signatures, o
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function SmsManuals({ profile, session, smsManuals, onSaveManual, onInitManuals, templateVariables, signatures, onSaveVariables, onSaveSignature, fleetAircraft }) {
+export default function SmsManuals({ profile, session, smsManuals, onSaveManual, onInitManuals, templateVariables, signatures, onSaveVariables, onSaveSignature, fleetAircraft, embedded }) {
   const [selectedManual, setSelectedManual] = useState(null);
   const [initializing, setInitializing] = useState(false);
 
@@ -849,9 +849,8 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
   }
 
   // Manual list view
-  return (
-    <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+  const listContent = (<>
+      {!embedded && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>SMS Manuals</div>
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR Part 5 SMS Documentation Templates</div>
@@ -860,7 +859,13 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
           style={{ padding: "8px 16px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
           {initializing ? "Reloading..." : "Reload Template Defaults"}
         </button>
-      </div>
+      </div>}
+      {embedded && <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <button onClick={handleResetToDefaults} disabled={initializing}
+          style={{ padding: "8px 16px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
+          {initializing ? "Reloading..." : "Reload Template Defaults"}
+        </button>
+      </div>}
 
       {/* Template Variables */}
       <TemplateVariablesForm variables={templateVariables} fleetAircraft={fleetAircraft} onSave={async (vars) => {
@@ -951,6 +956,13 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
           Completed manuals are automatically reflected in the FAA Part 5 Audit Log compliance checks.
         </div>
       </div>
+  </>);
+
+  if (embedded) return listContent;
+
+  return (
+    <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+      {listContent}
     </div>
   );
 }

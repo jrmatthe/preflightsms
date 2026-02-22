@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import SmsManuals from "./SmsManuals";
 
 const CARD = "#161616", NEAR_BLACK = "#111111";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
@@ -87,7 +88,10 @@ function PolicyForm({ onSubmit, onCancel }) {
 // ── MAIN COMPONENT ────────────────────────────────────────────
 export default function PolicyTraining({
   profile, session, policies, onCreatePolicy, onAcknowledgePolicy, orgProfiles,
-  smsManuals, showManuals, renderManuals,
+  smsManuals, showManuals,
+  // SMS Manuals props (passed through when showManuals is true)
+  templateVariables, signatures, fleetAircraft,
+  onSaveManual, onInitManuals, onSaveVariables, onSaveSignature,
 }) {
   const [topTab, setTopTab] = useState("policies");
   const [view, setView] = useState("list");   // list | new_policy
@@ -151,12 +155,22 @@ export default function PolicyTraining({
   // Forms
   if (view === "new_policy") return <PolicyForm onSubmit={p => { onCreatePolicy(p); setView("list"); }} onCancel={() => setView("list")} />;
 
-  // SMS Manuals subtab
-  if (topTab === "manuals" && showManuals && renderManuals) {
+  // SMS Manual Templates subtab
+  if (topTab === "manuals" && showManuals) {
     return (
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>SMS Manual Templates</div>
+            <div style={{ fontSize: 11, color: MUTED }}>§5.21–5.27 — 14 CFR Part 5 SMS documentation</div>
+          </div>
+        </div>
         {renderTopTabs()}
-        {renderManuals()}
+        <SmsManuals profile={profile} session={session} smsManuals={smsManuals}
+          templateVariables={templateVariables} signatures={signatures}
+          fleetAircraft={fleetAircraft} onSaveManual={onSaveManual}
+          onInitManuals={onInitManuals} onSaveVariables={onSaveVariables}
+          onSaveSignature={onSaveSignature} embedded />
       </div>
     );
   }
