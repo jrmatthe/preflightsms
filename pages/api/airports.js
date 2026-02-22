@@ -1,8 +1,28 @@
 // Airport coordinate lookup using aviationweather.gov station info
+import { find } from "geo-tz";
+
 const AWC = "https://aviationweather.gov/api/data";
 
 // Cache for airport coordinates (persists for server lifetime)
 const cache = {};
+
+function getTimezoneAbbr(tz) {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" });
+    const parts = fmt.formatToParts(new Date());
+    const tzPart = parts.find(p => p.type === "timeZoneName");
+    if (!tzPart) return "";
+    const s = tzPart.value;
+    // Normalize to generic abbreviations: PST/PDT→PT, MST/MDT→MT, CST/CDT→CT, EST/EDT→ET
+    if (/^P[SD]T$/.test(s)) return "PT";
+    if (/^M[SD]T$/.test(s)) return "MT";
+    if (/^C[SD]T$/.test(s)) return "CT";
+    if (/^E[SD]T$/.test(s)) return "ET";
+    if (/^AK[SD]T$/.test(s)) return "AKT";
+    if (/^H[SD]T$/.test(s)) return "HT";
+    return s;
+  } catch { return ""; }
+}
 
 export default async function handler(req, res) {
   const { ids } = req.query;
@@ -28,7 +48,9 @@ export default async function handler(req, res) {
         if (Array.isArray(data)) {
           for (const m of data) {
             if (m.icaoId && m.lat && m.lon) {
-              const coord = { lat: m.lat, lon: m.lon, name: m.name || m.icaoId };
+              const tzResult = find(m.lat, m.lon);
+              const tz = tzResult && tzResult.length > 0 ? tzResult[0] : "America/Los_Angeles";
+              const coord = { lat: m.lat, lon: m.lon, name: m.name || m.icaoId, tz, tzAbbr: getTimezoneAbbr(tz) };
               cache[m.icaoId.toUpperCase()] = coord;
               results[m.icaoId.toUpperCase()] = coord;
             }
