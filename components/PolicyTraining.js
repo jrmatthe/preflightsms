@@ -390,6 +390,11 @@ export default function PolicyTraining({
           Showing {showCount} of {userPolicies.length} — Show 25 more
         </button>
       )}
+      <div style={{ marginTop: 24, padding: "12px 16px", borderRadius: 6, border: `1px solid ${BORDER}`, background: NEAR_BLACK }}>
+        <p style={{ fontSize: 10, color: MUTED, lineHeight: 1.6, margin: 0 }}>
+          Disclaimer: Editing SMS manual templates or uploading your own policy documents may affect your organization's regulatory compliance. The certificate holder is solely responsible for ensuring all documentation — whether generated from templates, manually entered, or uploaded — meets applicable FAA, 14 CFR Part 5, and other regulatory requirements. PreflightSMS does not review, verify, or certify the compliance of any user content. See our <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: CYAN, textDecoration: "none" }}>Terms of Service</a> for details.
+        </p>
+      </div>
     </div>
   );
 }
