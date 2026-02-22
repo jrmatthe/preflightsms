@@ -3147,15 +3147,35 @@ export default function PVTAIRFrat() {
   }
 
   // Session exists but no profile — user was removed from org
-  if (isOnline && session && !authLoading && !profileLoading && !profile) {
-    // If they arrived via invite link, show the invite flow (sign out first so InviteAcceptScreen can re-auth)
-    const inviteParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-    if (inviteParams?.has("invite")) {
-      return <InviteAcceptScreen token={inviteParams.get("invite")} onAuth={async (sess) => {
-        setSession(sess);
+  // If they arrived via invite link, re-create their profile directly (they're already authenticated)
+  const orphanInviteToken = (isOnline && session && !authLoading && !profileLoading && !profile && typeof window !== "undefined") ? new URLSearchParams(window.location.search).get("invite") : null;
+  const [orphanInviteProcessing, setOrphanInviteProcessing] = useState(false);
+  useEffect(() => {
+    if (!orphanInviteToken || orphanInviteProcessing) return;
+    setOrphanInviteProcessing(true);
+    (async () => {
+      try {
+        const { data: inv, error: invErr } = await getInvitationByToken(orphanInviteToken);
+        if (invErr || !inv) { setOrphanInviteProcessing(false); return; }
+        const userId = session.user.id;
+        // Check if profile exists (shouldn't, but be safe)
+        const { data: existingProfile } = await supabase.from("profiles").select("id").eq("id", userId).single();
+        if (existingProfile) {
+          await supabase.from("profiles").update({ org_id: inv.org_id, role: inv.role }).eq("id", userId);
+        } else {
+          await supabase.from("profiles").insert({ id: userId, org_id: inv.org_id, full_name: session.user.user_metadata?.full_name || session.user.email, email: session.user.email, role: inv.role });
+        }
+        await acceptInvitation(orphanInviteToken, userId);
+        if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname);
         const p = await getProfile();
         setProfile(p);
-      }} />;
+      } catch (e) { console.error("Orphan invite error:", e); }
+      setOrphanInviteProcessing(false);
+    })();
+  }, [orphanInviteToken]);
+  if (isOnline && session && !authLoading && !profileLoading && !profile) {
+    if (orphanInviteToken || orphanInviteProcessing) {
+      return <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: MUTED, fontSize: 14 }}>Joining organization...</div></div>;
     }
     return (
       <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
