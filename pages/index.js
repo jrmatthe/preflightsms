@@ -3308,7 +3308,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "FLIGHT FOLLOWING" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "INVESTIGATIONS" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICIES" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
+              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "FLIGHT FOLLOWING" : cv === "reports" ? "SAFETY REPORTS" : cv === "hazards" ? "INVESTIGATIONS" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICIES" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>

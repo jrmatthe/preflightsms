@@ -185,7 +185,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard }) {
             <span style={{ background: `${status.color}22`, color: status.color, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700, border: `1px solid ${status.color}44` }}>{status.label}</span>
           </div>
           <div style={{ color: MUTED, fontSize: 10 }}>
-            {report.report_code} · {report.category.replace(/_/g, " ")} · {new Date(report.created_at).toLocaleDateString()}
+            {report.category.replace(/_/g, " ")} · {new Date(report.created_at).toLocaleDateString()}
             {report.location && ` · ${report.location}`}
             {report.anonymous && " · Anonymous"}
             {report.confidential && " · Confidential"}
@@ -263,7 +263,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
   const filtered = useMemo(() => {
     let list = reports.filter(r => {
       if (filter !== "all" && filter !== r.status && filter !== r.report_type) return false;
-      if (search && !`${r.title} ${r.description} ${r.report_code} ${r.location} ${r.category}`.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !`${r.title} ${r.description} ${r.location} ${r.category}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
     list.sort((a, b) => {
@@ -303,7 +303,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
       {/* Stats */}
       <div data-tour="tour-reports-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
-          { label: "Total Reports", value: counts.total },
+          { label: "Total Reports", value: counts.all },
           { label: "Open", value: counts.open },
           { label: "Under Review", value: counts.under_review + counts.investigation },
           { label: "Closed", value: counts.closed },
