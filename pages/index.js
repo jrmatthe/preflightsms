@@ -50,23 +50,23 @@ const ONBOARDING_STEPS = [
   { id: "fleet", phase: "setup", adminOnly: true, title: "Add Your Fleet", desc: "Register the aircraft your organization operates." },
   { id: "invite", phase: "setup", adminOnly: true, title: "Invite Your Team", desc: "Bring your pilots and safety officers on board." },
   { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", feature: null, subSteps: [
-    { target: "tour-frat-flight-info", placement: "bottom", title: "Flight Information", desc: "Enter flight details including PIC, aircraft, route, and times. Use ICAO airport codes to auto-fetch live weather data and flag risk factors." },
+    { target: "tour-frat-flight-info", placement: "bottom", title: "Flight Information", desc: "Enter flight details including PIC, aircraft, route, and times. Use ICAO airport codes to auto-fetch live weather data and flag risk factors.", descNonAdmin: "Enter your flight details including aircraft, route, and times. ICAO airport codes auto-fetch live weather data and flag risk factors for you." },
     { target: "tour-frat-risk-categories", placement: "right", title: "Risk Scoring", desc: "Five weighted risk categories \u2014 Weather, Pilot/Crew, Aircraft, Environment, and Operational. Check applicable factors; weather items are auto-detected from METAR/TAF data." },
-    { target: "tour-frat-score-panel", placement: "left", title: "Live Risk Score", desc: "The cumulative risk score updates in real time. Color-coded thresholds determine if the flight is authorized or requires management approval before departure." },
+    { target: "tour-frat-score-panel", placement: "left", title: "Live Risk Score", desc: "The cumulative risk score updates in real time. Color-coded thresholds determine if the flight is authorized or requires management approval before departure.", descNonAdmin: "Your cumulative risk score updates in real time. Color-coded thresholds show whether the flight is authorized or needs management approval before departure." },
   ]},
   { id: "tour-flights", phase: "tour", tab: "flights", title: "Flight Following", feature: null, subSteps: [
-    { target: "tour-flights-board", placement: "bottom", title: "Live Flight Board", desc: "Every submitted FRAT creates a live flight. Track departures and arrivals on an interactive route map with real-time aircraft position estimates." },
-    { target: "tour-flights-status", placement: "bottom", title: "Status Tracking", desc: "Filter by Active, Arrived, or All flights. Mark flights as arrived, delayed, or cancelled. Overdue flights automatically trigger email alerts to your notification contacts." },
+    { target: "tour-flights-board", placement: "bottom", title: "Live Flight Board", desc: "Every submitted FRAT creates a live flight. Track departures and arrivals on an interactive route map with real-time aircraft position estimates.", descNonAdmin: "Every FRAT you submit creates a live flight. View your departures and arrivals on an interactive route map with real-time position estimates." },
+    { target: "tour-flights-status", placement: "bottom", title: "Status Tracking", desc: "Filter by Active, Arrived, or All flights. Mark flights as arrived, delayed, or cancelled. Overdue flights automatically trigger email alerts to your notification contacts.", descNonAdmin: "Filter by Active, Arrived, or All flights. Update your flight status as arrived, delayed, or cancelled. Overdue flights automatically alert your safety team." },
   ]},
   { id: "tour-crew", phase: "tour", tab: "crew", title: "Crew Roster", feature: null, subSteps: [
-    { target: "tour-crew-header", placement: "bottom", title: "Manage Crew", desc: "Add crew members and see at a glance how many have expiring certificates. Each crew member\u2019s FAR currency dates are tracked automatically." },
-    { target: "tour-crew-list", placement: "right", title: "Crew Cards", desc: "Each card shows FAR currency badges, type ratings, and certificate status. Click any crew member to see their full detail panel." },
-    { target: null, placement: "top-right", title: "Detail Panel", desc: "The detail panel auto-calculates medical, flight review, IPC, and checkride expirations per FAR. Add training records, type ratings, and upload documents." },
+    { target: "tour-crew-header", placement: "bottom", title: "Manage Crew", titleNonAdmin: "Crew Overview", desc: "Add crew members and see at a glance how many have expiring certificates. Each crew member\u2019s FAR currency dates are tracked automatically.", descNonAdmin: "View your team and see at a glance who has expiring certificates. FAR currency dates are tracked automatically for every crew member." },
+    { target: "tour-crew-list", placement: "right", title: "Crew Cards", desc: "Each card shows FAR currency badges, type ratings, and certificate status. Click any crew member to see their full detail panel.", descNonAdmin: "Each card shows FAR currency badges, type ratings, and certificate status. Click your own card to see your full detail panel." },
+    { target: null, placement: "top-right", title: "Detail Panel", desc: "The detail panel auto-calculates medical, flight review, IPC, and checkride expirations per FAR. Add training records, type ratings, and upload documents.", adminOnly: true },
   ]},
   { id: "tour-reports", phase: "tour", tab: "reports", title: "Safety Reporting", feature: null, subSteps: [
-    { target: "tour-reports-new-btn", placement: "bottom", title: "Submit Reports", desc: "Pilots and crew can submit anonymous or confidential hazard and safety reports \u2014 the backbone of a just-culture SMS." },
-    { target: "tour-reports-stats", placement: "bottom", title: "Report Queue", desc: "Track report status across your organization. See open, in-review, and closed counts at a glance." },
-    { target: null, placement: "top-right", title: "Admin Escalation", desc: "Safety managers review incoming reports and can escalate them directly into formal investigations with a single click." },
+    { target: "tour-reports-new-btn", placement: "bottom", title: "Submit Reports", desc: "Pilots and crew can submit anonymous or confidential hazard and safety reports \u2014 the backbone of a just-culture SMS.", descNonAdmin: "Submit anonymous or confidential hazard and safety reports here. This is the backbone of a just-culture SMS \u2014 your reports help keep everyone safe." },
+    { target: "tour-reports-stats", placement: "bottom", title: "Report Queue", titleNonAdmin: "Your Reports", desc: "Track report status across your organization. See open, in-review, and closed counts at a glance.", descNonAdmin: "Track the status of reports you\u2019ve submitted. See whether they\u2019re open, in review, or closed." },
+    { target: null, placement: "top-right", title: "Admin Escalation", desc: "Safety managers review incoming reports and can escalate them directly into formal investigations with a single click.", adminOnly: true },
   ]},
   { id: "tour-hazards", phase: "tour", tab: "hazards", title: "Investigations", adminOnly: true, feature: "hazard_register", subSteps: [
     { target: "tour-hazards-stats", placement: "bottom", title: "Investigation Dashboard", desc: "Risk-scored investigations from escalated safety reports. Track open, in-progress, and closed investigations with severity ratings." },
@@ -77,12 +77,12 @@ const ONBOARDING_STEPS = [
     { target: null, placement: "top-right", title: "Status Workflow", desc: "Assign owners, set due dates, and track completion \u2014 closing the loop from hazard report all the way through to resolution." },
   ]},
   { id: "tour-policy", phase: "tour", tab: "policy", title: "Policies & SMS Manuals", feature: "policy_library", subSteps: [
-    { target: "tour-policy-tabs", placement: "bottom", title: "Policy Library", desc: "Publish company policies with version control and acknowledgment tracking. Ensure every team member has read and signed off on critical safety documents.", componentTab: { component: "policy", value: "policies" } },
-    { target: "tour-policy-tabs", placement: "bottom", title: "SMS Manual Templates", desc: "Build Part 5 manuals with guided autofill templates. Each section maps to FAA requirements \u2014 no starting from scratch.", componentTab: { component: "policy", value: "manuals" } },
+    { target: "tour-policy-tabs", placement: "bottom", title: "Policy Library", desc: "Publish company policies with version control and acknowledgment tracking. Ensure every team member has read and signed off on critical safety documents.", descNonAdmin: "Read and acknowledge your organization\u2019s safety policies here. You\u2019ll be notified when new policies are published that need your sign-off.", componentTab: { component: "policy", value: "policies" } },
+    { target: "tour-policy-tabs", placement: "bottom", title: "SMS Manual Templates", desc: "Build Part 5 manuals with guided autofill templates. Each section maps to FAA requirements \u2014 no starting from scratch.", descNonAdmin: "Your organization\u2019s SMS manuals live here. Reference them anytime for standard operating procedures and safety guidelines.", componentTab: { component: "policy", value: "manuals" } },
   ]},
   { id: "tour-cbt", phase: "tour", tab: "cbt", title: "Training & CBT", feature: "cbt_modules", subSteps: [
-    { target: "tour-cbt-tabs", placement: "bottom", title: "CBT Courses", desc: "Create and assign video-based training courses with quizzes and completion tracking. Enroll crew members and monitor progress.", componentTab: { component: "cbt", value: "cbt" } },
-    { target: "tour-cbt-tabs", placement: "bottom", title: "Training Requirements", desc: "Set recurring training requirements with due dates. Log completion records and monitor employee compliance across your entire organization.", componentTab: { component: "cbt", value: "requirements" } },
+    { target: "tour-cbt-tabs", placement: "bottom", title: "CBT Courses", desc: "Create and assign video-based training courses with quizzes and completion tracking. Enroll crew members and monitor progress.", descNonAdmin: "Complete your assigned training courses here. Each course includes video lessons and quizzes \u2014 your progress is tracked automatically.", componentTab: { component: "cbt", value: "cbt" } },
+    { target: "tour-cbt-tabs", placement: "bottom", title: "Training Requirements", desc: "Set recurring training requirements with due dates. Log completion records and monitor employee compliance across your entire organization.", descNonAdmin: "View your training requirements and due dates. Log completion records to stay current with your organization\u2019s training program.", componentTab: { component: "cbt", value: "requirements" } },
   ]},
   { id: "tour-audit", phase: "tour", tab: "audit", title: "FAA Audit Log", adminOnly: true, feature: "faa_audit_log", subSteps: [
     { target: "tour-audit-stats", placement: "bottom", title: "Compliance Summary", desc: "A real-time 42-point Part 5 compliance checklist. Each item syncs automatically with data across the platform \u2014 FRATs, flights, reports, investigations, actions, policies, and training." },
@@ -628,16 +628,19 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
   const tourSteps = steps.filter(s => s.phase === "tour");
   const isSetup = current.phase === "setup";
   const tourIdx = tourSteps.indexOf(current);
-  const currentSub = current.subSteps ? current.subSteps[subStep] : null;
+  // Filter sub-steps by role (remove adminOnly sub-steps for non-admins)
+  const filterSubs = useCallback((subs) => subs ? subs.filter(s => !s.adminOnly || isAdminRole) : null, [isAdminRole]);
+  const filteredSubSteps = filterSubs(current.subSteps);
+  const currentSub = filteredSubSteps ? filteredSubSteps[subStep] : null;
 
   // Count total sub-steps for global progress
-  const totalSubSteps = useMemo(() => tourSteps.reduce((sum, s) => sum + (s.subSteps ? s.subSteps.length : 1), 0), [tourSteps]);
+  const totalSubSteps = useMemo(() => tourSteps.reduce((sum, s) => sum + (filterSubs(s.subSteps) ? filterSubs(s.subSteps).length : 1), 0), [tourSteps, filterSubs]);
   const globalSubIdx = useMemo(() => {
     let count = 0;
-    for (let i = 0; i < tourIdx; i++) count += (tourSteps[i].subSteps ? tourSteps[i].subSteps.length : 1);
+    for (let i = 0; i < tourIdx; i++) count += (filterSubs(tourSteps[i].subSteps) ? filterSubs(tourSteps[i].subSteps).length : 1);
     return count + subStep;
-  }, [tourIdx, subStep, tourSteps]);
-  const isLastGlobal = tourIdx === tourSteps.length - 1 && (!current.subSteps || subStep === current.subSteps.length - 1);
+  }, [tourIdx, subStep, tourSteps, filterSubs]);
+  const isLastGlobal = tourIdx === tourSteps.length - 1 && (!filteredSubSteps || subStep === filteredSubSteps.length - 1);
 
   // Navigate to the tab when entering a tour step (only when tab-level step changes)
   useEffect(() => {
@@ -709,8 +712,8 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
   }, [step, subStep, currentSub]);
 
   const goNext = () => {
-    if (current.phase === "tour" && current.subSteps) {
-      if (subStep < current.subSteps.length - 1) { setSubStep(subStep + 1); return; }
+    if (current.phase === "tour" && filteredSubSteps) {
+      if (subStep < filteredSubSteps.length - 1) { setSubStep(subStep + 1); return; }
     }
     const nextIdx = step + 1;
     if (nextIdx < steps.length) {
@@ -723,8 +726,9 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
     if (current.phase === "tour" && subStep > 0) { setSubStep(subStep - 1); return; }
     if (step > 0) {
       const prevStep = steps[step - 1];
+      const prevSubs = filterSubs(prevStep.subSteps);
       setStep(step - 1);
-      setSubStep(prevStep.subSteps ? prevStep.subSteps.length - 1 : 0);
+      setSubStep(prevSubs ? prevSubs.length - 1 : 0);
     }
   };
 
@@ -876,9 +880,9 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
   }
 
   // Tour phase — dynamic positioned card with highlight ring
-  const subSteps = current.subSteps || [];
-  const subTitle = currentSub ? currentSub.title : current.title;
-  const subDesc = currentSub ? currentSub.desc : "";
+  const subSteps = filteredSubSteps || [];
+  const subTitle = currentSub ? (!isAdminRole && currentSub.titleNonAdmin ? currentSub.titleNonAdmin : currentSub.title) : current.title;
+  const subDesc = currentSub ? (!isAdminRole && currentSub.descNonAdmin ? currentSub.descNonAdmin : currentSub.desc) : "";
   const pos = cardPos || { top: 80, right: 24, arrowDir: null };
 
   return (
