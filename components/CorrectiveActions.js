@@ -218,7 +218,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
         <button onClick={() => setView("new")} style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ New Action</button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+      <div data-tour="tour-actions-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
           { label: "Open", value: counts.open },
           { label: "In Progress", value: counts.in_progress },

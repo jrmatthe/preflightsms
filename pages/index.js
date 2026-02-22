@@ -49,16 +49,54 @@ const ONBOARDING_STEPS = [
   { id: "welcome", phase: "setup", title: "Welcome to PreflightSMS", desc: "Let\u2019s get your safety management system set up in about 3 minutes." },
   { id: "fleet", phase: "setup", title: "Add Your Fleet", desc: "Register the aircraft your organization operates." },
   { id: "invite", phase: "setup", title: "Invite Your Team", desc: "Bring your pilots and safety officers on board." },
-  { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", desc: "Pilots complete a FRAT before every flight. The form scores risk factors across weather, crew fatigue, aircraft, and operations \u2014 then determines whether the flight is authorized or requires management approval before departure.", feature: null },
-  { id: "tour-flights", phase: "tour", tab: "flights", title: "Flight Following", desc: "Every submitted FRAT creates a live flight. Track departures and arrivals in real-time, mark flights as arrived, delayed, or cancelled. If a flight goes overdue, the system automatically sends email alerts to your notification contacts.", feature: null },
-  { id: "tour-reports", phase: "tour", tab: "reports", title: "Safety Reporting", desc: "Pilots and crew can submit anonymous hazard and safety reports \u2014 the backbone of a just-culture SMS. Admins and safety managers review incoming reports and can escalate them directly into formal investigations.", feature: null },
-  { id: "tour-hazards", phase: "tour", tab: "hazards", title: "Investigations", desc: "Reports escalated by safety managers land here for formal investigation. Evaluate root causes, assign severity and likelihood ratings, and when corrective or preventative action is needed, send them directly to the Actions tab.", feature: "hazard_register" },
-  { id: "tour-actions", phase: "tour", tab: "actions", title: "Corrective Actions", desc: "Track corrective and preventative actions that come out of investigations. Assign owners, set due dates, and monitor completion \u2014 closing the loop from hazard report all the way through to resolution.", feature: "corrective_actions" },
-  { id: "tour-policy", phase: "tour", tab: "policy", title: "Policies & SMS Manuals", desc: "Two tools in one tab. Publish company policies and track which team members have acknowledged them. Plus, build all required Part 5 SMS manuals using guided templates with autofill \u2014 no starting from scratch.", feature: "policy_library" },
-  { id: "tour-cbt", phase: "tour", tab: "cbt", title: "Training & CBT", desc: "Host video-based computer training courses, set recurring training requirements with due dates, log completion records, and monitor employee compliance across your entire team \u2014 all in one place.", feature: "cbt_modules" },
-  { id: "tour-audit", phase: "tour", tab: "audit", title: "FAA Audit Log", desc: "A real-time compliance record that syncs with every section of the platform \u2014 FRATs, flights, reports, investigations, actions, policies, and training. Present it to the FAA during an audit to prove your organization is 100% Part 5 compliant.", feature: "faa_audit_log" },
-  { id: "tour-dashboard", phase: "tour", tab: "dashboard", title: "Safety Dashboard", desc: "Data and trends across all safety subjects in your organization. See risk score distributions, reporting frequency, hazard categories, action completion rates, and training compliance \u2014 so you can spot patterns before they become problems.", feature: "dashboard_basic" },
-  { id: "tour-admin", phase: "tour", tab: "admin", title: "Admin Panel", desc: "Your command center. Invite new users and manage roles, customize FRAT templates to match your company\u2019s specific risk factors, update your fleet, configure notification contacts, and manage your subscription and billing.", feature: null },
+  { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", feature: null, subSteps: [
+    { target: "tour-frat-flight-info", placement: "bottom", title: "Flight Information", desc: "Enter flight details including PIC, aircraft, route, and times. Use ICAO airport codes to auto-fetch live weather data and flag risk factors." },
+    { target: "tour-frat-risk-categories", placement: "right", title: "Risk Scoring", desc: "Five weighted risk categories \u2014 Weather, Pilot/Crew, Aircraft, Environment, and Operational. Check applicable factors; weather items are auto-detected from METAR/TAF data." },
+    { target: "tour-frat-score-panel", placement: "left", title: "Live Risk Score", desc: "The cumulative risk score updates in real time. Color-coded thresholds determine if the flight is authorized or requires management approval before departure." },
+  ]},
+  { id: "tour-flights", phase: "tour", tab: "flights", title: "Flight Following", feature: null, subSteps: [
+    { target: "tour-flights-board", placement: "bottom", title: "Live Flight Board", desc: "Every submitted FRAT creates a live flight. Track departures and arrivals on an interactive route map with real-time aircraft position estimates." },
+    { target: "tour-flights-status", placement: "bottom", title: "Status Tracking", desc: "Filter by Active, Arrived, or All flights. Mark flights as arrived, delayed, or cancelled. Overdue flights automatically trigger email alerts to your notification contacts." },
+  ]},
+  { id: "tour-crew", phase: "tour", tab: "crew", title: "Crew Roster", feature: null, subSteps: [
+    { target: "tour-crew-header", placement: "bottom", title: "Manage Crew", desc: "Add crew members and see at a glance how many have expiring certificates. Each crew member\u2019s FAR currency dates are tracked automatically." },
+    { target: "tour-crew-list", placement: "right", title: "Crew Cards", desc: "Each card shows FAR currency badges, type ratings, and certificate status. Click any crew member to see their full detail panel." },
+    { target: null, placement: "top-right", title: "Detail Panel", desc: "The detail panel auto-calculates medical, flight review, IPC, and checkride expirations per FAR. Add training records, type ratings, and upload documents." },
+  ]},
+  { id: "tour-reports", phase: "tour", tab: "reports", title: "Safety Reporting", feature: null, subSteps: [
+    { target: "tour-reports-new-btn", placement: "bottom", title: "Submit Reports", desc: "Pilots and crew can submit anonymous or confidential hazard and safety reports \u2014 the backbone of a just-culture SMS." },
+    { target: "tour-reports-stats", placement: "bottom", title: "Report Queue", desc: "Track report status across your organization. See open, in-review, and closed counts at a glance." },
+    { target: null, placement: "top-right", title: "Admin Escalation", desc: "Safety managers review incoming reports and can escalate them directly into formal investigations with a single click." },
+  ]},
+  { id: "tour-hazards", phase: "tour", tab: "hazards", title: "Investigations", feature: "hazard_register", subSteps: [
+    { target: "tour-hazards-stats", placement: "bottom", title: "Investigation Dashboard", desc: "Risk-scored investigations from escalated safety reports. Track open, in-progress, and closed investigations with severity ratings." },
+    { target: null, placement: "top-right", title: "Risk Matrix & Escalation", desc: "Each investigation uses a 5\u00d75 risk matrix (severity \u00d7 likelihood). When corrective or preventative action is needed, escalate directly to the Actions tab." },
+  ]},
+  { id: "tour-actions", phase: "tour", tab: "actions", title: "Corrective Actions", feature: "corrective_actions", subSteps: [
+    { target: "tour-actions-stats", placement: "bottom", title: "Action Tracking", desc: "Monitor open, overdue, and completed corrective and preventative actions. Each action links back to its source investigation." },
+    { target: null, placement: "top-right", title: "Status Workflow", desc: "Assign owners, set due dates, and track completion \u2014 closing the loop from hazard report all the way through to resolution." },
+  ]},
+  { id: "tour-policy", phase: "tour", tab: "policy", title: "Policies & SMS Manuals", feature: "policy_library", subSteps: [
+    { target: "tour-policy-tabs", placement: "bottom", title: "Two Tools in One", desc: "Switch between Policy Library and SMS Manuals. Publish company policies with acknowledgment tracking, or build Part 5 manuals with guided autofill templates." },
+    { target: null, placement: "top-right", title: "Acknowledgment Tracking", desc: "Track which team members have acknowledged each policy. SMS Manuals use guided templates to autofill required Part 5 sections \u2014 no starting from scratch." },
+  ]},
+  { id: "tour-cbt", phase: "tour", tab: "cbt", title: "Training & CBT", feature: "cbt_modules", subSteps: [
+    { target: "tour-cbt-tabs", placement: "bottom", title: "Training Hub", desc: "Three views: CBT Courses for video-based training, Requirements for recurring due dates, and Compliance for a team-wide matrix." },
+    { target: null, placement: "top-right", title: "Compliance Matrix", desc: "Set recurring training requirements, log completion records, and monitor employee compliance across your entire organization in one place." },
+  ]},
+  { id: "tour-audit", phase: "tour", tab: "audit", title: "FAA Audit Log", feature: "faa_audit_log", subSteps: [
+    { target: "tour-audit-stats", placement: "bottom", title: "Compliance Summary", desc: "A real-time 42-point Part 5 compliance checklist. Each item syncs automatically with data across the platform \u2014 FRATs, flights, reports, investigations, actions, policies, and training." },
+    { target: "tour-audit-progress", placement: "bottom", title: "Compliance Progress", desc: "See your overall compliance percentage and drill into each subpart. Present this to the FAA during an audit to prove Part 5 compliance." },
+  ]},
+  { id: "tour-dashboard", phase: "tour", tab: "dashboard", title: "Safety Dashboard", feature: "dashboard_basic", subSteps: [
+    { target: "tour-dashboard-health", placement: "bottom", title: "SMS Health Score", desc: "Your organization\u2019s overall SMS Compliance Health score \u2014 a single number that reflects how well your safety system is performing across all areas." },
+    { target: "tour-dashboard-kpi", placement: "bottom", title: "KPI Cards & Trends", desc: "Risk score distributions, reporting frequency, hazard categories, action completion rates, and training compliance \u2014 spot patterns before they become problems." },
+  ]},
+  { id: "tour-admin", phase: "tour", tab: "admin", title: "Admin Panel", feature: null, subSteps: [
+    { target: "tour-admin-tabs", placement: "bottom", title: "Command Center", desc: "Five sections: Organization settings, Fleet management, FRAT Templates, User management, and Subscription & billing." },
+    { target: "tour-admin-invite", placement: "right", title: "Invite & Manage Users", desc: "Invite new team members by email with role-based access. Manage permissions for pilots, safety managers, chief pilots, and admins." },
+    { target: null, placement: "top-right", title: "FRAT Templates", desc: "Customize FRAT risk categories and scoring to match your company\u2019s specific operations. Create multiple templates and assign them to different aircraft types." },
+  ]},
 ];
 
 const DEFAULT_RISK_CATEGORIES = [
@@ -558,6 +596,9 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
 
 function OnboardingWizard({ onComplete, onDismiss, setCv, fleetAircraft, onAddAircraft, onInviteUser, orgName, userName, org, orgSlug }) {
   const [step, setStep] = useState(0);
+  const [subStep, setSubStep] = useState(0);
+  const [cardPos, setCardPos] = useState(null);
+  const [highlightRect, setHighlightRect] = useState(null);
   // Fleet mini-form state
   const [acType, setAcType] = useState("");
   const [acTail, setAcTail] = useState("");
@@ -569,6 +610,7 @@ function OnboardingWizard({ onComplete, onDismiss, setCv, fleetAircraft, onAddAi
   const [invError, setInvError] = useState("");
   const [invSuccess, setInvSuccess] = useState("");
   const [busy, setBusy] = useState(false);
+  const prevStepRef = useRef(step);
 
   // Filter steps by org features
   const steps = useMemo(() => ONBOARDING_STEPS.filter(s => {
@@ -577,20 +619,101 @@ function OnboardingWizard({ onComplete, onDismiss, setCv, fleetAircraft, onAddAi
   }), [org]);
 
   const current = steps[step] || steps[0];
-  const isLastStep = step === steps.length - 1;
   const setupSteps = steps.filter(s => s.phase === "setup");
   const tourSteps = steps.filter(s => s.phase === "tour");
   const isSetup = current.phase === "setup";
+  const tourIdx = tourSteps.indexOf(current);
+  const currentSub = current.subSteps ? current.subSteps[subStep] : null;
 
-  // Navigate to the tab when entering a tour step
+  // Count total sub-steps for global progress
+  const totalSubSteps = useMemo(() => tourSteps.reduce((sum, s) => sum + (s.subSteps ? s.subSteps.length : 1), 0), [tourSteps]);
+  const globalSubIdx = useMemo(() => {
+    let count = 0;
+    for (let i = 0; i < tourIdx; i++) count += (tourSteps[i].subSteps ? tourSteps[i].subSteps.length : 1);
+    return count + subStep;
+  }, [tourIdx, subStep, tourSteps]);
+  const isLastGlobal = tourIdx === tourSteps.length - 1 && (!current.subSteps || subStep === current.subSteps.length - 1);
+
+  // Navigate to the tab when entering a tour step (only when tab-level step changes)
   useEffect(() => {
-    if (current.phase === "tour" && current.tab) {
+    if (current.phase === "tour" && current.tab && step !== prevStepRef.current) {
       setCv(current.tab);
     }
+    prevStepRef.current = step;
   }, [step, current]);
 
-  const goNext = () => { if (step < steps.length - 1) setStep(step + 1); else onComplete(); };
-  const goBack = () => { if (step > 0) setStep(step - 1); };
+  // Position calculation for tour card
+  useEffect(() => {
+    if (!currentSub) { setCardPos(null); setHighlightRect(null); return; }
+    const timer = setTimeout(() => {
+      if (!currentSub.target) {
+        setCardPos({ top: 80, right: 24, arrowDir: null });
+        setHighlightRect(null);
+        return;
+      }
+      const el = document.querySelector(`[data-tour="${currentSub.target}"]`);
+      if (!el) {
+        setCardPos({ top: 80, right: 24, arrowDir: null });
+        setHighlightRect(null);
+        return;
+      }
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Re-measure after scroll settles
+      setTimeout(() => {
+        const rect = el.getBoundingClientRect();
+        const cardW = 340;
+        const cardH = 220;
+        const margin = 16;
+        let pos = {};
+        let arrowDir = null;
+        const placement = currentSub.placement || "bottom";
+        if (placement === "bottom") {
+          pos.top = Math.min(rect.bottom + 12, window.innerHeight - cardH - margin);
+          pos.left = Math.max(margin, Math.min(rect.left + rect.width / 2 - cardW / 2, window.innerWidth - cardW - margin));
+          arrowDir = "up";
+        } else if (placement === "right") {
+          pos.top = Math.max(margin, Math.min(rect.top + rect.height / 2 - cardH / 2, window.innerHeight - cardH - margin));
+          pos.left = Math.min(rect.right + 12, window.innerWidth - cardW - margin);
+          arrowDir = "left";
+        } else if (placement === "left") {
+          pos.top = Math.max(margin, Math.min(rect.top + rect.height / 2 - cardH / 2, window.innerHeight - cardH - margin));
+          pos.left = Math.max(margin, rect.left - cardW - 12);
+          arrowDir = "right";
+        } else if (placement === "top") {
+          pos.top = Math.max(margin, rect.top - cardH - 12);
+          pos.left = Math.max(margin, Math.min(rect.left + rect.width / 2 - cardW / 2, window.innerWidth - cardW - margin));
+          arrowDir = "down";
+        } else {
+          pos.top = 80;
+          pos.right = 24;
+        }
+        // Clamp
+        if (pos.top !== undefined) pos.top = Math.max(margin, Math.min(pos.top, window.innerHeight - cardH - margin));
+        if (pos.left !== undefined) pos.left = Math.max(margin, Math.min(pos.left, window.innerWidth - cardW - margin));
+        pos.arrowDir = arrowDir;
+        setCardPos(pos);
+        setHighlightRect({ top: rect.top - 4, left: rect.left - 4, width: rect.width + 8, height: rect.height + 8 });
+      }, 300);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [step, subStep, currentSub]);
+
+  const goNext = () => {
+    if (current.phase === "tour" && current.subSteps) {
+      if (subStep < current.subSteps.length - 1) { setSubStep(subStep + 1); return; }
+    }
+    if (step < steps.length - 1) { setStep(step + 1); setSubStep(0); }
+    else onComplete();
+  };
+
+  const goBack = () => {
+    if (current.phase === "tour" && subStep > 0) { setSubStep(subStep - 1); return; }
+    if (step > 0) {
+      const prevStep = steps[step - 1];
+      setStep(step - 1);
+      setSubStep(prevStep.subSteps ? prevStep.subSteps.length - 1 : 0);
+    }
+  };
 
   const handleAddAircraft = async () => {
     if (!acType.trim() || !acTail.trim()) return;
@@ -622,6 +745,20 @@ function OnboardingWizard({ onComplete, onDismiss, setCv, fleetAircraft, onAddAi
   const inp = { width: "100%", padding: "10px 12px", borderRadius: 6, border: `1px solid ${BORDER}`, background: NEAR_BLACK, color: WHITE, fontSize: 13, fontFamily: "inherit" };
   const btnPrimary = { padding: "10px 28px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" };
   const btnSecondary = { padding: "10px 28px", background: "transparent", color: OFF_WHITE, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" };
+
+  // Arrow component
+  const TourArrow = ({ dir }) => {
+    if (!dir) return null;
+    const size = 10;
+    const styles = {
+      position: "absolute", width: 0, height: 0,
+      ...(dir === "up" && { top: -size, left: "50%", transform: "translateX(-50%)", borderLeft: `${size}px solid transparent`, borderRight: `${size}px solid transparent`, borderBottom: `${size}px solid ${CARD}` }),
+      ...(dir === "down" && { bottom: -size, left: "50%", transform: "translateX(-50%)", borderLeft: `${size}px solid transparent`, borderRight: `${size}px solid transparent`, borderTop: `${size}px solid ${CARD}` }),
+      ...(dir === "left" && { left: -size, top: "50%", transform: "translateY(-50%)", borderTop: `${size}px solid transparent`, borderBottom: `${size}px solid transparent`, borderRight: `${size}px solid ${CARD}` }),
+      ...(dir === "right" && { right: -size, top: "50%", transform: "translateY(-50%)", borderTop: `${size}px solid transparent`, borderBottom: `${size}px solid transparent`, borderLeft: `${size}px solid ${CARD}` }),
+    };
+    return <div style={styles} />;
+  };
 
   // Setup phase — full-screen modal
   if (isSetup) {
@@ -722,33 +859,78 @@ function OnboardingWizard({ onComplete, onDismiss, setCv, fleetAircraft, onAddAi
     );
   }
 
-  // Tour phase — floating card overlay
-  const tourIdx = tourSteps.indexOf(current);
+  // Tour phase — dynamic positioned card with highlight ring
+  const subSteps = current.subSteps || [];
+  const subTitle = currentSub ? currentSub.title : current.title;
+  const subDesc = currentSub ? currentSub.desc : "";
+  const pos = cardPos || { top: 80, right: 24, arrowDir: null };
+
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.6)", pointerEvents: "auto" }}>
-      <div className="onboarding-tour-card" style={{ position: "fixed", top: 80, right: 24, width: 360, ...card, padding: "28px 24px", boxShadow: "0 16px 48px rgba(0,0,0,0.6)", zIndex: 2001 }}>
-        {/* Tour progress dots */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+    <>
+      {/* Dim overlay — pointer-events: none so user can see underlying app */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 1998, background: "rgba(0,0,0,0.3)", pointerEvents: "none" }} />
+
+      {/* Highlight ring around target element */}
+      {highlightRect && (
+        <div className="tour-highlight-ring" style={{
+          position: "fixed", top: highlightRect.top, left: highlightRect.left,
+          width: highlightRect.width, height: highlightRect.height,
+          borderRadius: 8, pointerEvents: "none", zIndex: 1999,
+          boxShadow: "0 0 0 3px #FFFFFF, 0 0 16px rgba(255,255,255,0.2)",
+          animation: "tourPulse 2s ease-in-out infinite",
+        }} />
+      )}
+
+      {/* Tour card */}
+      <div className="onboarding-tour-card" style={{
+        position: "fixed",
+        top: pos.top != null ? pos.top : undefined,
+        left: pos.left != null ? pos.left : undefined,
+        right: pos.right != null ? pos.right : undefined,
+        width: 340, ...card, padding: "24px 22px",
+        boxShadow: "0 16px 48px rgba(0,0,0,0.6)", zIndex: 2001,
+        transition: "top 0.3s ease, left 0.3s ease, right 0.3s ease",
+      }}>
+        <TourArrow dir={pos.arrowDir} />
+
+        {/* Tab-level segmented progress bar */}
+        <div style={{ display: "flex", gap: 3, marginBottom: 8 }}>
           {tourSteps.map((s, i) => (
-            <div key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= tourIdx ? WHITE : BORDER, transition: "background 0.2s" }} />
+            <div key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i < tourIdx ? WHITE : i === tourIdx ? CYAN : BORDER, transition: "background 0.2s" }} />
           ))}
         </div>
-        <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>
-          Feature tour {tourIdx + 1} of {tourSteps.length}
+
+        {/* Sub-step dots */}
+        {subSteps.length > 1 && (
+          <div style={{ display: "flex", gap: 5, justifyContent: "center", marginBottom: 10 }}>
+            {subSteps.map((_, i) => (
+              <div key={i} style={{ width: 6, height: 6, borderRadius: 3, background: i <= subStep ? WHITE : BORDER, transition: "background 0.2s" }} />
+            ))}
+          </div>
+        )}
+
+        <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>
+          Feature tour — Tab {tourIdx + 1} of {tourSteps.length}
         </div>
-        <h3 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 18 }}>{current.title}</h3>
-        <p style={{ color: OFF_WHITE, fontSize: 13, lineHeight: 1.6, margin: "0 0 24px" }}>{current.desc}</p>
+        <div style={{ fontSize: 10, color: SUBTLE, marginBottom: 10 }}>{current.title}</div>
+        <h3 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 6px", fontSize: 17 }}>{subTitle}</h3>
+        <p style={{ color: OFF_WHITE, fontSize: 13, lineHeight: 1.6, margin: "0 0 20px" }}>{subDesc}</p>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button onClick={goBack} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Back</button>
-          <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={goBack} disabled={step === setupSteps.length && subStep === 0} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12, opacity: (step === setupSteps.length && subStep === 0) ? 0.3 : 1 }}>Back</button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button onClick={onDismiss} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>Skip tour</button>
-            <button onClick={isLastStep ? onComplete : goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>
-              {isLastStep ? "Get Started" : "Next"}
+            <button onClick={isLastGlobal ? onComplete : goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>
+              {isLastGlobal ? "Get Started" : "Next"}
             </button>
           </div>
         </div>
+
+        {/* Global sub-step counter */}
+        <div style={{ textAlign: "center", marginTop: 12, fontSize: 10, color: SUBTLE }}>
+          {globalSubIdx + 1} of {totalSubSteps}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -938,7 +1120,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <div style={{ ...card, padding: "24px 28px 28px", marginBottom: 18 }}>
+      <div data-tour="tour-frat-flight-info" style={{ ...card, padding: "24px 28px 28px", marginBottom: 18 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 16 }}>Flight Information</div>
         <div className="flight-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, minWidth: 0 }}>
           {[{ key: "pilot", label: "Pilot in Command", placeholder: "Full name", type: "text" },
@@ -1032,7 +1214,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
       <WeatherBriefing briefing={wxAnalysis.briefing} reasons={wxAnalysis.reasons} flags={wxAnalysis.flags} stationSummaries={wxAnalysis.stationSummaries} wxLoading={wxLoading} wxError={wxError} />
 
       <div className="frat-grid" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 24 }}>
-        <div>
+        <div data-tour="tour-frat-risk-categories">
           <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${BORDER}` }}>Risk Categories</div>
           {RISK_CATEGORIES.map(cat => { const catScore = cat.factors.reduce((s, f) => s + (checked[f.id] ? f.score : 0), 0); return (
             <div key={cat.id} style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10 }}>
@@ -1060,7 +1242,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
               style={{ width: "100%", minHeight: 60, padding: 10, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", color: OFF_WHITE, background: NEAR_BLACK }} /></div>
         </div>
 
-        <div className="score-panel-desktop" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
+        <div className="score-panel-desktop" data-tour="tour-frat-score-panel" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
           <div style={{ ...card, padding: 24, border: `1px solid ${getRL(score).border}`, borderRadius: 10 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, textAlign: "center", marginBottom: 8 }}>Risk Score</div>
             <div style={{ fontSize: 56, fontWeight: 800, color: getRL(score).color, textAlign: "center", lineHeight: 1, marginBottom: 12 }}>{score}</div>
@@ -1262,11 +1444,11 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+    <div data-tour="tour-flights-board" style={{ maxWidth: 1200, margin: "0 auto" }}>
       <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search flights..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div data-tour="tour-flights-status" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 6 }}>
           {["ACTIVE", "ARRIVED", "ALL"].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{ padding: "5px 14px", borderRadius: 6, border: `1px solid ${filter === f ? WHITE : BORDER}`,
@@ -3143,6 +3325,8 @@ export default function PVTAIRFrat() {
       </div>{/* end main-content */}
       <style>{`*{box-sizing:border-box}input:focus,select:focus,textarea:focus{outline:none;border-color:${WHITE} !important;box-shadow:0 0 0 2px rgba(255,255,255,0.15) !important}select option{background:${NEAR_BLACK};color:${OFF_WHITE}}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes tourPulse{0%,100%{box-shadow:0 0 0 3px #ffffff,0 0 12px rgba(255,255,255,0.15)}50%{box-shadow:0 0 0 3px #22d3ee,0 0 24px rgba(34,211,238,0.35)}}
+.tour-highlight-ring{animation:tourPulse 2s ease-in-out infinite}
 @media(max-width:768px){
 .frat-grid{grid-template-columns:1fr !important}
 .flight-info-grid{grid-template-columns:1fr 1fr !important}
@@ -3169,6 +3353,7 @@ export default function PVTAIRFrat() {
 .trial-banner{flex-direction:column !important;gap:8px !important;text-align:center}
 .flight-board-grid{grid-template-columns:1fr !important}
 .onboarding-tour-card{top:auto !important;bottom:0 !important;right:0 !important;left:0 !important;width:100% !important;border-radius:16px 16px 0 0 !important;max-height:60vh;overflow-y:auto}
+.tour-highlight-ring{display:none !important}
 }
 @media(max-width:480px){
 .flight-info-grid{grid-template-columns:1fr !important}

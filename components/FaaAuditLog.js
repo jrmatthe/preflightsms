@@ -383,7 +383,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       </div>
 
       {/* Summary cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+      <div data-tour="tour-audit-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
           { label: "Total Requirements", value: summary.total },
           { label: "Compliant", value: summary.compliant, dot: GREEN },
@@ -402,7 +402,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       </div>
 
       {/* Compliance bar */}
-      <div style={{ ...card, padding: "12px 16px", marginBottom: 16 }}>
+      <div data-tour="tour-audit-progress" style={{ ...card, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
           <span style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Overall Compliance</span>
           <span style={{ fontSize: 11, color: WHITE, fontWeight: 700 }}>{Math.round(summary.compliant / summary.total * 100)}%</span>

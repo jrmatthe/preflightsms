@@ -362,7 +362,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
   if (!canManage) return null;
 
   return (
-    <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
+    <div data-tour="tour-admin-invite" style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Invite Team Members</div>
         {!showForm && <button onClick={() => setShowForm(true)} style={{ padding: "6px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Invite User</button>}
@@ -479,7 +479,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Admin tabs */}
-      <div className="admin-tabs" style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+      <div className="admin-tabs" data-tour="tour-admin-tabs" style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
         {[{ id: "org", label: "Organization" }, { id: "fleet", label: "Fleet" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "notifications", label: "Notifications", feat: "approval_workflow" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
           if (!t.feat) return true;
           const flags = orgData?.feature_flags || {};

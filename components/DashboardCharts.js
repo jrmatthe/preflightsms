@@ -156,7 +156,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions }) {
   return (
     <div>
       {/* Compliance banner */}
-      <div style={{ ...card, padding: "18px 22px", marginBottom: 16, borderLeft: `4px solid ${compColor}` }}>
+      <div data-tour="tour-dashboard-health" style={{ ...card, padding: "18px 22px", marginBottom: 16, borderLeft: `4px solid ${compColor}` }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: WHITE, marginBottom: 4 }}>SMS Compliance Health</div>
@@ -176,7 +176,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions }) {
       </div>
 
       {/* KPI cards */}
-      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
+      <div className="stat-grid" data-tour="tour-dashboard-kpi" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
         <StatCard label="FRATs (30d)" value={stats.r7Count} sub={`${stats.totalFrats} total`} icon="📋" />
         <StatCard label="Avg Risk Score" value={stats.avgScore.toFixed(1)} color={getRiskColor(Math.round(stats.avgScore))} sub="30-day average" icon="📊" />
         <StatCard label="Active Flights" value={stats.activeFlights} sub={`${stats.f30} in last 30d`} icon="✈️" />

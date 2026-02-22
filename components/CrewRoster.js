@@ -215,7 +215,7 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
 
   return (
     <div style={{maxWidth:1200,margin:"0 auto"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+      <div data-tour="tour-crew-header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
         <div>
           <div style={{fontSize:18,fontWeight:700,color:WHITE}}>Crew Roster</div>
           <div style={{fontSize:11,color:MUTED}}>
@@ -226,7 +226,7 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
         {canManage&&!editing&&<button onClick={startAdd} style={{padding:"8px 20px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Add Crew Member</button>}
       </div>
 
-      <div className="crew-grid" style={{display:"grid",gridTemplateColumns:selected||editing?"380px 1fr":"1fr",gap:16,minHeight:500}}>
+      <div className="crew-grid" data-tour="tour-crew-list" style={{display:"grid",gridTemplateColumns:selected||editing?"380px 1fr":"1fr",gap:16,minHeight:500}}>
         <div>
           <div style={{display:"flex",gap:6,marginBottom:10}}><input placeholder="Search crew..." value={search} onChange={e=>setSearch(e.target.value)} style={{...inp,flex:1}} /></div>
           <div style={{display:"flex",gap:4,marginBottom:10}}>

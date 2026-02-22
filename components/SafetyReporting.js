@@ -294,14 +294,14 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Safety Reports</div>
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR §5.71 — Safety Assurance: Internal reporting of hazards and incidents</div>
         </div>
-        <button onClick={() => setView("new")}
+        <button data-tour="tour-reports-new-btn" onClick={() => setView("new")}
           style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
           + New Report
         </button>
       </div>
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+      <div data-tour="tour-reports-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
           { label: "Total Reports", value: counts.total },
           { label: "Open", value: counts.open },
