@@ -2203,7 +2203,7 @@ export default function PVTAIRFrat() {
             }),
           });
         } catch (e) { console.error("Approval notification error:", e); }
-        createNotification(profile.org_id, { type: "frat_needs_approval", title: "FRAT Awaiting Approval", body: `${entry.pilot} submitted ${entry.id} (${entry.riskLevel})`, link_tab: "submit", target_roles: ["admin", "safety_manager"] });
+        createNotification(profile.org_id, { type: "frat_needs_approval", title: "FRAT Awaiting Approval", body: `${entry.pilot} — ${entry.riskLevel} risk — ${entry.departure} to ${entry.destination}`, link_tab: "submit", target_roles: ["admin", "safety_manager"] });
       }
 
       // Refresh data from server
@@ -2311,7 +2311,7 @@ export default function PVTAIRFrat() {
       if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchReports(profile.org_id);
       setReports(data || []);
-      createNotification(profile.org_id, { type: "report_submitted", title: "New Safety Report", body: `${profile.full_name} submitted a hazard report`, link_tab: "reports", target_roles: ["admin", "safety_manager"] });
+      createNotification(profile.org_id, { type: "report_submitted", title: "New Safety Report", body: `${profile.full_name} submitted a safety report`, link_tab: "reports", target_roles: ["admin", "safety_manager"] });
       setToast({ message: `${report.reportCode} submitted`, level: { bg: "rgba(34,211,238,0.15)", border: "rgba(34,211,238,0.4)", color: "#22D3EE" } }); setTimeout(() => setToast(null), 4000);
     }
   }, [profile, session, isOnline]);

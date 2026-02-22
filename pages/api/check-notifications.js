@@ -1,22 +1,29 @@
-// /api/check-notifications — In-app notification cron
-// Called daily. Creates notifications for:
-// 1. Training records expiring within 30 days
-// 2. Corrective actions past due
-// 3. Corrective actions due within 7 days
-// Required env vars: SUPABASE_SERVICE_KEY, CRON_SECRET
+// /api/check-notifications — In-app notification generator
+// Two modes:
+//   1. Cron mode: called with x-cron-secret header, checks ALL orgs
+//   2. Client mode: called with ?orgId=xxx, checks just that org
+// Creates notifications for:
+//   - Training records expiring within 30 days
+//   - Corrective actions past due
+//   - Corrective actions due within 7 days
+// Required env vars: SUPABASE_SERVICE_KEY
 
 import { createClient } from "@supabase/supabase-js";
 
 export default async function handler(req, res) {
-  const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
-  if (cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
   if (!supabaseUrl || !supabaseServiceKey) {
     return res.status(500).json({ error: "Supabase not configured" });
+  }
+
+  // Auth: either cron secret OR orgId param
+  const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
+  const orgIdParam = req.query.orgId;
+  const isCron = cronSecret === process.env.CRON_SECRET && process.env.CRON_SECRET;
+
+  if (!isCron && !orgIdParam) {
+    return res.status(401).json({ error: "Unauthorized — provide secret or orgId" });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -29,12 +36,15 @@ export default async function handler(req, res) {
     const thresholdDate = new Date(now);
     thresholdDate.setDate(thresholdDate.getDate() + 30);
 
-    const { data: expiringRecords } = await supabase
+    let trainingQuery = supabase
       .from("training_records")
       .select("*, user:profiles!training_records_user_id_fkey(id, full_name, org_id)")
       .not("expiry_date", "is", null)
       .lte("expiry_date", thresholdDate.toISOString().slice(0, 10))
       .gte("expiry_date", now.toISOString().slice(0, 10));
+    if (orgIdParam) trainingQuery = trainingQuery.eq("org_id", orgIdParam);
+
+    const { data: expiringRecords } = await trainingQuery;
 
     if (expiringRecords?.length) {
       for (const record of expiringRecords) {
@@ -44,7 +54,7 @@ export default async function handler(req, res) {
         const daysUntil = Math.ceil((new Date(record.expiry_date) - now) / (1000 * 60 * 60 * 24));
         const bodyText = `${record.title} expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""} (${user.full_name || "Unknown"})`;
 
-        // Check for duplicate
+        // Check for duplicate within past 7 days
         const { data: existing } = await supabase
           .from("notifications")
           .select("id")
@@ -71,16 +81,18 @@ export default async function handler(req, res) {
     }
 
     // ── 2. Corrective Actions Overdue ───────────────────────────
-    const { data: overdueActions } = await supabase
+    let overdueQuery = supabase
       .from("corrective_actions")
       .select("*")
       .not("due_date", "is", null)
       .lt("due_date", now.toISOString().slice(0, 10))
       .not("status", "in", '("completed","cancelled")');
+    if (orgIdParam) overdueQuery = overdueQuery.eq("org_id", orgIdParam);
+
+    const { data: overdueActions } = await overdueQuery;
 
     if (overdueActions?.length) {
       for (const action of overdueActions) {
-        // Check for duplicate within past 7 days
         const { data: existing } = await supabase
           .from("notifications")
           .select("id")
@@ -109,19 +121,21 @@ export default async function handler(req, res) {
     const dueSoonDate = new Date(now);
     dueSoonDate.setDate(dueSoonDate.getDate() + 7);
 
-    const { data: dueSoonActions } = await supabase
+    let dueSoonQuery = supabase
       .from("corrective_actions")
       .select("*")
       .not("due_date", "is", null)
       .gte("due_date", now.toISOString().slice(0, 10))
       .lte("due_date", dueSoonDate.toISOString().slice(0, 10))
       .not("status", "in", '("completed","cancelled")');
+    if (orgIdParam) dueSoonQuery = dueSoonQuery.eq("org_id", orgIdParam);
+
+    const { data: dueSoonActions } = await dueSoonQuery;
 
     if (dueSoonActions?.length) {
       for (const action of dueSoonActions) {
         const daysUntil = Math.ceil((new Date(action.due_date) - now) / (1000 * 60 * 60 * 24));
 
-        // Check for duplicate within past 7 days
         const { data: existing } = await supabase
           .from("notifications")
           .select("id")
