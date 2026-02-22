@@ -117,7 +117,7 @@ function findUnfilledVariables(content) {
 // TEMPLATE VARIABLES FORM
 // ══════════════════════════════════════════════════════
 
-function TemplateVariablesForm({ variables, onSave }) {
+function TemplateVariablesForm({ variables, onSave, fleetAircraft }) {
   const [values, setValues] = useState(variables || {});
   const [expanded, setExpanded] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState(null);
@@ -236,10 +236,21 @@ function TemplateVariablesForm({ variables, onSave }) {
                         </button>
                       </div>
                     ))}
-                    <button onClick={addAircraft}
-                      style={{ padding: "6px 14px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 4, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>
-                      + Add Aircraft
-                    </button>
+                    <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                      <button onClick={addAircraft}
+                        style={{ padding: "6px 14px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 4, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
+                        + Add Aircraft
+                      </button>
+                      {fleetAircraft && fleetAircraft.filter(a => a.status === "active").length > 0 && (
+                        <button onClick={() => {
+                          const active = fleetAircraft.filter(a => a.status === "active");
+                          setAircraft(active.map(a => ({ type: a.type || "", reg: a.registration || "", pax: a.max_passengers ? String(a.max_passengers) : "", range: "" })));
+                        }}
+                          style={{ padding: "6px 14px", background: "transparent", border: `1px solid ${GREEN}44`, borderRadius: 4, color: GREEN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
+                          Sync from Fleet
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -764,7 +775,7 @@ function ManualEditor({ manual, onSave, onBack, templateVariables, signatures, o
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function SmsManuals({ profile, session, smsManuals, onSaveManual, onInitManuals, templateVariables, signatures, onSaveVariables, onSaveSignature }) {
+export default function SmsManuals({ profile, session, smsManuals, onSaveManual, onInitManuals, templateVariables, signatures, onSaveVariables, onSaveSignature, fleetAircraft }) {
   const [selectedManual, setSelectedManual] = useState(null);
   const [initializing, setInitializing] = useState(false);
 
@@ -853,7 +864,7 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
       </div>
 
       {/* Template Variables */}
-      <TemplateVariablesForm variables={templateVariables} onSave={async (vars) => {
+      <TemplateVariablesForm variables={templateVariables} fleetAircraft={fleetAircraft} onSave={async (vars) => {
         // Merge template content into empty DB sections so variable replacement works
         const mergedManuals = smsManuals.map(m => {
           const template = SMS_MANUAL_TEMPLATES.find(t => t.manualKey === m.manual_key);

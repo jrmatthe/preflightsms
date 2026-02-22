@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -14,6 +14,7 @@ const PolicyTraining = dynamic(() => import("../components/PolicyTraining"), { s
 const FaaAuditLog = dynamic(() => import("../components/FaaAuditLog"), { ssr: false });
 const SmsManuals = dynamic(() => import("../components/SmsManuals"), { ssr: false });
 const CbtModules = dynamic(() => import("../components/CbtModules"), { ssr: false });
+const FleetManagement = dynamic(() => import("../components/FleetManagement"), { ssr: false });
 
 const COMPANY_NAME = "PreflightSMS";
 const ADMIN_PASSWORD = "admin2026";
@@ -445,11 +446,13 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     manuals: I(<><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></>),
     dashboard: I(<><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></>),
     admin: I(<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>),
+    fleet: I(<><path d="M22 2L2 8.5l7.5 3L22 2zM22 2l-8.5 13.5 3 7.5L22 2z"/><path d="M9.5 11.5L2 22l9.5-5.5"/></>),
   };
   const tabs = [
     { id: "submit", label: "FRAT", icon: icons.submit, p: false },
     { id: "flights", label: "Flights", icon: icons.flights, p: false },
     { id: "crew", label: "Crew", icon: icons.crew, p: false },
+    { id: "fleet", label: "Fleet", icon: icons.fleet, p: false },
     { id: "reports", label: "Reports", icon: icons.reports, p: false },
     { id: "hazards", label: "Hazards", icon: icons.hazards, p: false },
     { id: "actions", label: "Actions", icon: icons.actions, p: false },
@@ -546,7 +549,7 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes, orgId, userName, allTemplates }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTypes, orgId, userName, allTemplates, fleetAircraft }) {
   // Template switching: find template assigned to selected aircraft
   const [activeTemplateId, setActiveTemplateId] = useState(null);
   const resolveTemplate = useCallback((aircraft) => {
@@ -556,7 +559,13 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
 
   const currentTemplate = activeTemplateId ? allTemplates?.find(t => t.id === activeTemplateId) : null;
   const RISK_CATEGORIES = currentTemplate?.categories || riskCategories || DEFAULT_RISK_CATEGORIES;
-  const AIRCRAFT_TYPES = currentTemplate?.aircraft_types || aircraftTypes || DEFAULT_AIRCRAFT_TYPES;
+  const activeFleet = useMemo(() => (fleetAircraft || []).filter(a => a.status === "active"), [fleetAircraft]);
+  const FLEET_REG_MAP = useMemo(() => {
+    const map = {};
+    activeFleet.forEach(a => { if (!map[a.type]) map[a.type] = []; map[a.type].push(a); });
+    return map;
+  }, [activeFleet]);
+  const AIRCRAFT_TYPES = activeFleet.length > 0 ? [...new Set(activeFleet.map(a => a.type))] : (currentTemplate?.aircraft_types || aircraftTypes || DEFAULT_AIRCRAFT_TYPES);
   const currentRiskLevels = currentTemplate?.risk_thresholds ? buildRiskLevels(currentTemplate.risk_thresholds) : riskLevels;
   const getRL = (s) => getRiskLevel(s, currentRiskLevels);
   const getLocalDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
@@ -687,13 +696,25 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
               {f.type === "select" ? (
                 <select value={fi[f.key]} onChange={e => {
                   const val = e.target.value;
-                  setFi(p => ({ ...p, [f.key]: val }));
+                  setFi(p => {
+                    const next = { ...p, [f.key]: val };
+                    if (f.key === "aircraft" && FLEET_REG_MAP[val]) {
+                      const matches = FLEET_REG_MAP[val];
+                      next.tailNumber = matches.length === 1 ? matches[0].registration : "";
+                    }
+                    return next;
+                  });
                   if (f.key === "aircraft" && allTemplates && allTemplates.length > 1) {
                     const matched = resolveTemplate(val);
                     if (matched) { setActiveTemplateId(matched.id); setChecked({}); setAutoSuggested({}); }
                   }
                 }} style={inp}>
                   {AIRCRAFT_TYPES.map(a => <option key={a}>{a}</option>)}</select>
+              ) : f.key === "tailNumber" && FLEET_REG_MAP[fi.aircraft] && FLEET_REG_MAP[fi.aircraft].length > 1 ? (
+                <select value={fi.tailNumber} onChange={e => setFi(p => ({ ...p, tailNumber: e.target.value }))} style={inp}>
+                  <option value="">Select tail number...</option>
+                  {FLEET_REG_MAP[fi.aircraft].map(a => <option key={a.registration} value={a.registration}>{a.registration}</option>)}
+                </select>
               ) : (<input type={f.type === "date" ? "date" : "text"} placeholder={f.placeholder} value={fi[f.key]}
                 onChange={e => { let v = f.upper ? e.target.value.toUpperCase() : e.target.value; setFi(p => ({ ...p, [f.key]: v })); }}
                 onBlur={e => { if (f.key === "tailNumber" && fi.tailNumber && !fi.tailNumber.startsWith("N")) { setFi(p => ({ ...p, tailNumber: "N" + p.tailNumber })); } }} style={inp} />)}
@@ -1290,7 +1311,7 @@ function SignupFlow({ onAuth }) {
       const orgRes = await fetch("/api/create-org", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: orgName.trim(), slug, tier, feature_flags: features,
-          subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 25 : 5 }),
+          subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 15 : 5 }),
       });
       const orgJson = await orgRes.json();
       if (!orgRes.ok || !orgJson.data) { setError(orgJson.error || "Failed to create organization"); setLoading(false); return; }
@@ -1676,7 +1697,7 @@ function AuthScreen({ onAuth, initialMode }) {
         const orgRes = await fetch("/api/create-org", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: orgName.trim(), slug, tier, feature_flags: features,
-            subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 25 : 5 }),
+            subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 15 : 5 }),
         });
         const orgJson = await orgRes.json();
         if (!orgRes.ok || !orgJson.data) { setError(orgJson.error || "Failed to create organization"); setLoading(false); return; }
@@ -1929,6 +1950,7 @@ export default function PVTAIRFrat() {
   const [hazards, setHazards] = useState([]);
   const [actions, setActions] = useState([]);
   const [crewRecords, setCrewRecords] = useState([]);
+  const [fleetAircraft, setFleetAircraft] = useState([]);
   const [orgProfiles, setOrgProfiles] = useState([]);
   const [policies, setPolicies] = useState([]);
   const [trainingReqs, setTrainingReqs] = useState([]);
@@ -2078,6 +2100,7 @@ export default function PVTAIRFrat() {
     fetchHazards(orgId).then(({ data }) => setHazards(data || []));
     fetchActions(orgId).then(({ data }) => setActions(data || []));
     fetchCrewRecords(orgId).then(({ data }) => setCrewRecords(data || []));
+    fetchAircraft(orgId).then(({ data }) => setFleetAircraft(data || []));
     fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || []));
     fetchPolicies(orgId).then(({ data }) => setPolicies(data || []));
     fetchTrainingRequirements(orgId).then(({ data }) => setTrainingReqs(data || []));
@@ -2547,7 +2570,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "crew" ? "CREW ROSTER" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "HAZARD REGISTER" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY LIBRARY" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "manuals" ? "SMS MANUALS" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
+              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "crew" ? "CREW ROSTER" : cv === "fleet" ? "FLEET MANAGEMENT" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "HAZARD REGISTER" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY LIBRARY" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "manuals" ? "SMS MANUALS" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2567,7 +2590,7 @@ export default function PVTAIRFrat() {
         <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} />)}
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} aircraftTypes={aircraftTypes} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} fleetAircraft={fleetAircraft} />)}
         {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} onApproveFlight={async (flightDbId, fratDbId) => {
           await approveFlight(flightDbId, session.user.id);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", "");
@@ -2596,13 +2619,28 @@ export default function PVTAIRFrat() {
           const { data } = await fetchCrewRecords(profile?.org_id);
           setCrewRecords(data || []);
         })} />}
+        {cv === "fleet" && <FleetManagement aircraft={fleetAircraft} canManage={!isReadOnly && ["admin", "safety_manager", "accountable_exec"].includes(profile?.role)} maxAircraft={org?.max_aircraft || 5} onAdd={roGuard(async (record) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          await createAircraft(orgId, record);
+          const { data } = await fetchAircraft(orgId);
+          setFleetAircraft(data || []);
+        })} onUpdate={roGuard(async (id, updates) => {
+          await updateAircraft(id, updates);
+          const { data } = await fetchAircraft(profile?.org_id);
+          setFleetAircraft(data || []);
+        })} onDelete={roGuard(async (id) => {
+          await deleteAircraft(id);
+          const { data } = await fetchAircraft(profile?.org_id);
+          setFleetAircraft(data || []);
+        })} />}
         {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={reports} onStatusChange={roGuard(onReportStatusChange)} hazards={hazards} onCreateHazardFromReport={(report) => { setHazardFromReport(report); setCv("hazards"); }} />}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} />}
         {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={roGuard(onCreateAction)} onUpdateAction={roGuard(onUpdateAction)} />}
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={roGuard(onCreatePolicy)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} />}
         {cv === "cbt" && <CbtModules profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
         {cv === "audit" && <FaaAuditLog frats={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} profiles={orgProfiles} trainingRecords={trainingRecs} org={profile?.organizations} smsManuals={smsManuals} />}
-        {cv === "manuals" && <SmsManuals profile={profile} session={session} smsManuals={smsManuals} templateVariables={templateVariables} signatures={smsSignatures} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} />}
+        {cv === "manuals" && <SmsManuals profile={profile} session={session} smsManuals={smsManuals} templateVariables={templateVariables} signatures={smsSignatures} fleetAircraft={fleetAircraft} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} />}
         {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
