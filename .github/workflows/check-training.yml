@@ -1,0 +1,16 @@
+name: Check Training
+
+on:
+  schedule:
+    - cron: '15 6 * * *'  # Daily at 6:15 AM UTC
+  workflow_dispatch: {}   # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger training expiry checks
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/check-training"
