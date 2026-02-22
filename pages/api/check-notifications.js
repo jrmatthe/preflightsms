@@ -30,18 +30,20 @@ export default async function handler(req, res) {
 
   try {
     const now = new Date();
-    const results = { training_expiring: 0, action_overdue: 0, action_due_soon: 0 };
+    const results = { training_expiring: 0, training_admin: 0, action_overdue: 0, action_due_soon: 0 };
 
-    // ── 1. Training Expiring (within 30 days) ───────────────────
+    // ── 1. Training Expiring / Expired ───────────────────────────
     const thresholdDate = new Date(now);
     thresholdDate.setDate(thresholdDate.getDate() + 30);
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     let trainingQuery = supabase
       .from("training_records")
       .select("*, user:profiles!training_records_user_id_fkey(id, full_name, org_id)")
       .not("expiry_date", "is", null)
       .lte("expiry_date", thresholdDate.toISOString().slice(0, 10))
-      .gte("expiry_date", now.toISOString().slice(0, 10));
+      .gte("expiry_date", thirtyDaysAgo.toISOString().slice(0, 10));
     if (orgIdParam) trainingQuery = trainingQuery.eq("org_id", orgIdParam);
 
     const { data: expiringRecords } = await trainingQuery;
@@ -51,11 +53,17 @@ export default async function handler(req, res) {
         const user = record.user;
         if (!user?.org_id || !user?.id) continue;
 
-        const daysUntil = Math.ceil((new Date(record.expiry_date) - now) / (1000 * 60 * 60 * 24));
-        const bodyText = `${record.title} expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""} (${user.full_name || "Unknown"})`;
+        const expiryDate = new Date(record.expiry_date);
+        const isExpired = expiryDate < now;
+        const daysUntil = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+        const daysAgo = Math.floor((now - expiryDate) / (1000 * 60 * 60 * 24));
 
-        // Check for duplicate within past 7 days
-        const { data: existing } = await supabase
+        const userBodyText = isExpired
+          ? `${record.title} expired ${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago (${user.full_name || "Unknown"})`
+          : `${record.title} expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""} (${user.full_name || "Unknown"})`;
+
+        // ── 1a. Per-user notification ──
+        const { data: existingUser } = await supabase
           .from("notifications")
           .select("id")
           .eq("org_id", user.org_id)
@@ -65,18 +73,47 @@ export default async function handler(req, res) {
           .gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
           .limit(1);
 
-        if (existing?.length) continue;
+        if (!existingUser?.length) {
+          await supabase.from("notifications").insert({
+            org_id: user.org_id,
+            type: "training_expiring",
+            title: isExpired ? "Training Expired" : "Training Expiring Soon",
+            body: userBodyText,
+            link_tab: "cbt",
+            target_user_id: user.id,
+            target_roles: null,
+          });
+          results.training_expiring++;
+        }
 
-        await supabase.from("notifications").insert({
-          org_id: user.org_id,
-          type: "training_expiring",
-          title: "Training Expiring Soon",
-          body: bodyText,
-          link_tab: "cbt",
-          target_user_id: user.id,
-          target_roles: null,
-        });
-        results.training_expiring++;
+        // ── 1b. Admin / safety-manager notification ──
+        const adminBodyText = isExpired
+          ? `${user.full_name || "Unknown"}'s ${record.title} expired ${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago`
+          : `${user.full_name || "Unknown"}'s ${record.title} expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`;
+
+        const { data: existingAdmin } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("org_id", user.org_id)
+          .eq("type", "training_expiring")
+          .is("target_user_id", null)
+          .ilike("body", `%${record.title}%`)
+          .ilike("body", `%${user.full_name || "Unknown"}%`)
+          .gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .limit(1);
+
+        if (!existingAdmin?.length) {
+          await supabase.from("notifications").insert({
+            org_id: user.org_id,
+            type: "training_expiring",
+            title: isExpired ? "Training Expired" : "Training Expiring Soon",
+            body: adminBodyText,
+            link_tab: "cbt",
+            target_user_id: null,
+            target_roles: ["admin", "safety_manager"],
+          });
+          results.training_admin++;
+        }
       }
     }
 
@@ -161,7 +198,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      message: `Created ${results.training_expiring} training, ${results.action_overdue} overdue, ${results.action_due_soon} due-soon notifications`,
+      message: `Created ${results.training_expiring} training (user), ${results.training_admin} training (admin), ${results.action_overdue} overdue, ${results.action_due_soon} due-soon notifications`,
       results,
       checked: now.toISOString(),
     });
