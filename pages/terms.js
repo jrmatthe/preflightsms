@@ -49,6 +49,10 @@ export default function TermsOfService() {
               PreflightSMS is a decision-support and recordkeeping tool. It does not provide operational control, dispatch authority, or regulatory compliance certification. All flight risk assessments, go/no-go decisions, and safety determinations remain the sole responsibility of the pilot-in-command and the certificate holder. PreflightSMS does not guarantee the accuracy, completeness, or timeliness of any risk assessment, weather data, or safety information presented through the Service.
             </Section>
 
+            <Section title="8a. User-Generated and Uploaded Content">
+              You are solely responsible for the accuracy, completeness, and regulatory compliance of all documents you upload to or create within the Service, including but not limited to safety policies, standard operating procedures, training materials, and any content generated from templates. PreflightSMS provides templates and tools as starting points but does not review, verify, or certify the compliance of any user content. There is no guarantee that documents — whether created from templates, manually entered, or uploaded — meet FAA, 14 CFR Part 5, or any other regulatory requirements. The certificate holder bears full responsibility for ensuring that all SMS documentation meets applicable regulations and is suitable for operational use.
+            </Section>
+
             <Section title="9. Limitation of Liability">
               TO THE MAXIMUM EXTENT PERMITTED BY LAW, PREFLIGHTSMS AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE. OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT YOU PAID TO US IN THE TWELVE MONTHS PRECEDING THE CLAIM.
             </Section>
