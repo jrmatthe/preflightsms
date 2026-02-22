@@ -967,9 +967,10 @@ export default function CbtModules({
   onPublishCourse, onRefresh,
   trainingRequirements, trainingRecords, onCreateRequirement, onLogTraining,
   onDeleteTrainingRecord, onDeleteRequirement,
-  onInitTraining,
+  onInitTraining, tourTab,
 }) {
   const [topTab, setTopTab] = useState("cbt"); // cbt | records | requirements
+  useEffect(() => { if (tourTab) setTopTab(tourTab); }, [tourTab]);
   const [view, setView] = useState("catalog"); // catalog, course_detail, lesson, new_course, edit_course, new_lesson, edit_lesson
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
