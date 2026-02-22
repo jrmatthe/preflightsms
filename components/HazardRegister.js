@@ -106,8 +106,8 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
     <div style={{ maxWidth: 700, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Register New Hazard</div>
-          <div style={{ fontSize: 11, color: MUTED }}>§5.51 — Hazard identification and risk analysis</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>New Investigation</div>
+          <div style={{ fontSize: 11, color: MUTED }}>§5.51 — Safety investigation and risk analysis</div>
         </div>
         {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
       </div>
@@ -123,14 +123,14 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
       )}
 
       <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Hazard Title *</label>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Investigation Title *</label>
         <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Icing conditions on KSFF-KBOI route during winter" style={inp} />
       </div>
 
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Description *</label>
         <textarea value={form.description} onChange={e => set("description", e.target.value)}
-          placeholder="Describe the hazard, contributing factors, and potential consequences"
+          placeholder="Describe the issue, contributing factors, and potential consequences"
           rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
       </div>
 
@@ -205,13 +205,13 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
 
       <button onClick={handleSubmit} disabled={!form.title.trim() || !form.initialLikelihood || !form.initialSeverity}
         style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.title.trim() || !form.initialLikelihood || !form.initialSeverity) ? 0.4 : 1 }}>
-        Register Hazard
+        Register Investigation
       </button>
     </div>
   );
 }
 
-function HazardCard({ hazard, linkedReport }) {
+function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, canManage }) {
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
   const initScore = hazard.initial_risk_score || (hazard.initial_likelihood * hazard.initial_severity);
   const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
@@ -265,13 +265,36 @@ function HazardCard({ hazard, linkedReport }) {
               </div>
             </div>
           )}
+          {linkedActions && linkedActions.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Corrective Actions ({linkedActions.length})</div>
+              {linkedActions.map(a => {
+                const sColor = a.status === "completed" ? GREEN : a.status === "in_progress" ? YELLOW : a.status === "overdue" ? RED : CYAN;
+                return (
+                  <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", marginBottom: 4, background: `${sColor}11`, border: `1px solid ${sColor}33`, borderRadius: 6 }}>
+                    <span style={{ fontSize: 10, color: sColor, fontWeight: 700 }}>✓</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{a.action_code} — {a.title}</div>
+                    </div>
+                    <span style={{ fontSize: 9, color: sColor, background: `${sColor}22`, padding: "2px 8px", borderRadius: 8 }}>{a.status?.replace(/_/g, " ")}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {onCreateAction && canManage && (
+            <button onClick={() => onCreateAction(hazard)}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 8, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              <span style={{ fontSize: 14 }}>✓</span> Create Corrective Action
+            </button>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-export default function HazardRegister({ profile, session, onCreateHazard, hazards, fromReport, onClearFromReport, reports }) {
+export default function HazardRegister({ profile, session, onCreateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction }) {
   const [view, setView] = useState(fromReport ? "new" : "list");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -329,6 +352,15 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
     return s;
   }, [hazards]);
 
+  const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
+
+  // Build linked actions lookup: hazard id -> array of actions
+  const linkedActionsMap = useMemo(() => {
+    const map = {};
+    if (actions) actions.forEach(a => { if (a.hazard_id) { if (!map[a.hazard_id]) map[a.hazard_id] = []; map[a.hazard_id].push(a); } });
+    return map;
+  }, [actions]);
+
   if (view === "new") {
     return <HazardForm existingCount={hazards.length} fromReport={fromReport}
       onSubmit={(h) => { onCreateHazard(h); setView("list"); if (onClearFromReport) onClearFromReport(); }}
@@ -339,12 +371,12 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Hazard Register</div>
-          <div style={{ fontSize: 11, color: MUTED }}>14 CFR §5.53 — System analysis and hazard identification</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Investigations</div>
+          <div style={{ fontSize: 11, color: MUTED }}>14 CFR §5.53 — Safety investigation and risk analysis</div>
         </div>
         <button onClick={() => setView("new")}
           style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-          + New Hazard
+          + New Investigation
         </button>
       </div>
 
@@ -368,7 +400,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
 
       {/* Search & Sort */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search hazards..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search investigations..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
         <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
@@ -390,13 +422,13 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
           <div style={{ fontSize: 42, marginBottom: 12 }}>⚠️</div>
-          <div style={{ fontSize: 14 }}>No hazards registered</div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>Register identified hazards with risk assessments and mitigations.</div>
+          <div style={{ fontSize: 14 }}>No investigations yet</div>
+          <div style={{ fontSize: 11, marginTop: 4 }}>Create investigations with risk assessments and mitigations.</div>
         </div>
       ) : (<>
         {filtered.slice(0, showCount).map(h => {
           const lr = h.related_report_id && reports ? reports.find(r => r.id === h.related_report_id) : null;
-          return <HazardCard key={h.id} hazard={h} linkedReport={lr} />;
+          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} canManage={canManage} />;
         })}
         {filtered.length > showCount && (
           <button onClick={() => setShowCount(c => c + 25)}

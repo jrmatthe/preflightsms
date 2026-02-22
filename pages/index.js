@@ -454,7 +454,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     { id: "crew", label: "Crew", icon: icons.crew, p: false },
     { id: "fleet", label: "Fleet", icon: icons.fleet, p: false },
     { id: "reports", label: "Reports", icon: icons.reports, p: false },
-    { id: "hazards", label: "Hazards", icon: icons.hazards, p: false },
+    { id: "hazards", label: "Investigations", icon: icons.hazards, p: false },
     { id: "actions", label: "Actions", icon: icons.actions, p: false },
     { id: "policy", label: "Policy", icon: icons.policy, p: false },
     { id: "cbt", label: "Training", icon: icons.cbt, p: false },
@@ -1163,7 +1163,7 @@ function LandingPage() {
     { icon: "\u2713", title: "Flight Risk Assessment", desc: "Configurable FRAT with weighted scoring, risk thresholds, and approval workflows." },
     { icon: "\u25CE", title: "Flight Following", desc: "Real-time flight tracking with status updates, ETA monitoring, and arrival confirmation." },
     { icon: "\u26A0", title: "Safety Reporting", desc: "Confidential hazard, incident, and near-miss reporting with status tracking." },
-    { icon: "\u25B3", title: "Hazard Register", desc: "Structured hazard identification with severity/likelihood risk matrix scoring." },
+    { icon: "\u25B3", title: "Investigation Register", desc: "Structured safety investigation with severity/likelihood risk matrix scoring." },
     { icon: "\u2298", title: "Corrective Actions", desc: "Track risk controls from identification through completion with due dates." },
     { icon: "\u25C9", title: "Crew Currency", desc: "Auto-calculated medical, flight review, IPC, and checkride expirations per FARs." },
     { icon: "\u25C7", title: "FAA Part 5 Audit Log", desc: "42-point compliance checklist mapped to every Part 5 requirement with evidence tracking." },
@@ -1233,7 +1233,7 @@ function LandingPage() {
         </div>
         <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {[
-            { name: "Starter", price: "$149", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Hazards", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
+            { name: "Starter", price: "$149", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Investigations", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
             { name: "Professional", price: "$299", desc: "Full SMS with analytics & compliance", badge: "MOST POPULAR", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"] },
           ].map(p => (
             <div key={p.name} style={{ background: CARD, border: `1px solid ${p.badge ? WHITE+"44" : BORDER}`, borderRadius: 12, padding: "28px 24px", position: "relative" }}>
@@ -1478,7 +1478,7 @@ function SignupFlow({ onAuth }) {
               <p style={{ fontSize: 13, color: MUTED, margin: "0 0 24px" }}>Both include a full 14-day trial. Upgrade or downgrade anytime.</p>
               <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
                 {[
-                  { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster & Currency", "Safety Reporting", "Hazard Register", "Policy Library"] },
+                  { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster & Currency", "Safety Reporting", "Investigation Register", "Policy Library"] },
                   { id: "professional", name: "Professional", price: "$299", desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
                 ].map(p => (
                   <div key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ ...card, padding: "18px 16px", cursor: "pointer", position: "relative", transition: "all 0.2s", border: `2px solid ${selectedPlan === p.id ? (p.badge ? GREEN : WHITE) : BORDER}`, background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD }}>
@@ -1733,7 +1733,7 @@ function AuthScreen({ onAuth, initialMode }) {
   };
 
   const plans = [
-    { id: "starter", name: "Starter", price: "$149", period: "/mo", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Hazards", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
+    { id: "starter", name: "Starter", price: "$149", period: "/mo", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Investigations", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
     { id: "professional", name: "Professional", price: "$299", period: "/mo", desc: "Full SMS with analytics & compliance", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"] },
   ];
 
@@ -1980,6 +1980,7 @@ export default function PVTAIRFrat() {
   const [fratTemplate, setFratTemplate] = useState(null);
   const [fratTemplates, setFratTemplates] = useState([]);
   const [hazardFromReport, setHazardFromReport] = useState(null);
+  const [actionFromInvestigation, setActionFromInvestigation] = useState(null);
   const [notifContacts, setNotifContacts] = useState([]);
   const [invitations_list, setInvitationsList] = useState([]);
   const isOnline = !!supabase;
@@ -2578,7 +2579,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "crew" ? "CREW ROSTER" : cv === "fleet" ? "FLEET MANAGEMENT" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "HAZARD REGISTER" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY LIBRARY" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "manuals" ? "SMS MANUALS" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
+              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "ACTIVE FLIGHTS" : cv === "crew" ? "CREW ROSTER" : cv === "fleet" ? "FLEET MANAGEMENT" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "INVESTIGATIONS" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICY LIBRARY" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "manuals" ? "SMS MANUALS" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2643,8 +2644,8 @@ export default function PVTAIRFrat() {
           setFleetAircraft(data || []);
         })} />}
         {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={reports} onStatusChange={roGuard(onReportStatusChange)} hazards={hazards} onCreateHazardFromReport={(report) => { setHazardFromReport(report); setCv("hazards"); }} />}
-        {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} />}
-        {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={roGuard(onCreateAction)} onUpdateAction={roGuard(onUpdateAction)} />}
+        {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} actions={actions} onCreateAction={(hazard) => { setActionFromInvestigation(hazard); setCv("actions"); }} />}
+        {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={roGuard(onCreateAction)} onUpdateAction={roGuard(onUpdateAction)} fromInvestigation={actionFromInvestigation} hazards={hazards} onClearFromInvestigation={() => setActionFromInvestigation(null)} />}
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={roGuard(onCreatePolicy)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} />}
         {cv === "cbt" && <CbtModules profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
         {cv === "audit" && <FaaAuditLog frats={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} profiles={orgProfiles} trainingRecords={trainingRecs} org={profile?.organizations} smsManuals={smsManuals} />}

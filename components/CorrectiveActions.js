@@ -23,9 +23,12 @@ const STATUSES = [
   { id: "cancelled", label: "Cancelled", color: MUTED },
 ];
 
-function ActionForm({ onSubmit, onCancel, existingCount }) {
+function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation }) {
   const [form, setForm] = useState({
-    title: "", description: "", assignedToName: "", dueDate: "", priority: "medium",
+    title: fromInvestigation ? `Action for: ${fromInvestigation.title}` : "",
+    assignedToName: "", dueDate: "", priority: "medium",
+    hazardId: fromInvestigation?.id || null,
+    reportId: fromInvestigation?.related_report_id || null,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const handleSubmit = () => {
@@ -42,6 +45,16 @@ function ActionForm({ onSubmit, onCancel, existingCount }) {
         </div>
         {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
       </div>
+
+      {fromInvestigation && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", marginBottom: 16, background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
+          <span style={{ color: CYAN, fontSize: 12 }}>△</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>From investigation {fromInvestigation.hazard_code}</div>
+            <div style={{ fontSize: 10, color: MUTED }}>{fromInvestigation.title}</div>
+          </div>
+        </div>
+      )}
 
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Action Required *</label>
@@ -75,7 +88,7 @@ function ActionForm({ onSubmit, onCancel, existingCount }) {
   );
 }
 
-function ActionCard({ a, onUpdateAction }) {
+function ActionCard({ a, onUpdateAction, linkedInvestigation }) {
   const priority = PRIORITIES.find(p => p.id === a.priority) || PRIORITIES[1];
   const status = STATUSES.find(s => s.id === a.status) || STATUSES[0];
   const isOverdue = a.status === "overdue";
@@ -100,6 +113,16 @@ function ActionCard({ a, onUpdateAction }) {
       </div>
       {expanded && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+          {linkedInvestigation && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 10, background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
+              <span style={{ fontSize: 10, color: CYAN, fontWeight: 700 }}>△</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>From investigation {linkedInvestigation.hazard_code}</div>
+                <div style={{ fontSize: 10, color: MUTED }}>{linkedInvestigation.title}</div>
+              </div>
+              <span style={{ fontSize: 9, color: CYAN, background: `${CYAN}22`, padding: "2px 8px", borderRadius: 8 }}>{linkedInvestigation.status}</span>
+            </div>
+          )}
           <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Update Status</div>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {STATUSES.filter(s => s.id !== "overdue").map(s => (
@@ -118,14 +141,28 @@ function ActionCard({ a, onUpdateAction }) {
   );
 }
 
-export default function CorrectiveActions({ actions, onCreateAction, onUpdateAction }) {
-  const [view, setView] = useState("list");
+export default function CorrectiveActions({ actions, onCreateAction, onUpdateAction, fromInvestigation, hazards, onClearFromInvestigation }) {
+  const [view, setView] = useState(fromInvestigation ? "new" : "list");
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [showCount, setShowCount] = useState(25);
 
   useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
+
+  // If fromInvestigation changes, switch to new form
+  const [lastFromInvestigation, setLastFromInvestigation] = useState(fromInvestigation?.id);
+  if (fromInvestigation?.id && fromInvestigation.id !== lastFromInvestigation) {
+    setLastFromInvestigation(fromInvestigation.id);
+    setView("new");
+  }
+
+  // Build hazard lookup for linked investigation display
+  const hazardMap = useMemo(() => {
+    const map = {};
+    if (hazards) hazards.forEach(h => { map[h.id] = h; });
+    return map;
+  }, [hazards]);
 
   // Mark overdue
   const processed = useMemo(() => {
@@ -165,7 +202,9 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
   }, [processed]);
 
   if (view === "new") {
-    return <ActionForm existingCount={actions.length} onSubmit={a => { onCreateAction(a); setView("list"); }} onCancel={() => setView("list")} />;
+    return <ActionForm existingCount={actions.length} fromInvestigation={fromInvestigation}
+      onSubmit={a => { onCreateAction(a); setView("list"); if (onClearFromInvestigation) onClearFromInvestigation(); }}
+      onCancel={() => { setView("list"); if (onClearFromInvestigation) onClearFromInvestigation(); }} />;
   }
 
   return (
@@ -219,7 +258,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
         </div>
       ) : (<>
         {filtered.slice(0, showCount).map(a => (
-          <ActionCard key={a.id} a={a} onUpdateAction={onUpdateAction} />
+          <ActionCard key={a.id} a={a} onUpdateAction={onUpdateAction} linkedInvestigation={a.hazard_id ? hazardMap[a.hazard_id] : null} />
         ))}
         {filtered.length > showCount && (
           <button onClick={() => setShowCount(c => c + 25)}
