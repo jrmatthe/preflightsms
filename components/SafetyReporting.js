@@ -251,6 +251,8 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
 
   useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
 
+  const canManage = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role);
+
   // Build map of report_id -> linked hazard
   const linkedHazards = useMemo(() => {
     const map = {};
@@ -341,9 +343,9 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
         </div>
       ) : (<>
         {filtered.slice(0, showCount).map(r => (
-          <ReportCard key={r.id} report={r} onStatusChange={onStatusChange}
-            linkedHazard={linkedHazards[r.id]}
-            onCreateHazard={onCreateHazardFromReport ? (report) => onCreateHazardFromReport(report) : null} />
+          <ReportCard key={r.id} report={r} onStatusChange={canManage ? onStatusChange : null}
+            linkedHazard={canManage ? linkedHazards[r.id] : null}
+            onCreateHazard={canManage && onCreateHazardFromReport ? (report) => onCreateHazardFromReport(report) : null} />
         ))}
         {filtered.length > showCount && (
           <button onClick={() => setShowCount(c => c + 25)}
