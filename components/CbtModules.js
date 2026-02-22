@@ -1260,7 +1260,7 @@ export default function CbtModules({
   const tabs = [["cbt", "CBT Courses"], ["records", "Training Records"], ["requirements", "Requirements"]];
   if (isAdmin) tabs.push(["compliance", "Compliance"]);
   const renderTopTabs = () => (
-    <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+    <div data-tour="tour-cbt-tabs" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {tabs.map(([id, label]) => (
         <button key={id} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); setSortBy(id === "cbt" ? "title_az" : id === "records" ? "newest" : "title_az"); setShowCount(25); }}
           style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,

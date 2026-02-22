@@ -381,7 +381,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
       </div>
 
       {/* Risk summary */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+      <div data-tour="tour-hazards-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
           { label: "Critical", value: riskSummary.critical, dot: RED },
           { label: "High", value: riskSummary.high, dot: "#F97316" },

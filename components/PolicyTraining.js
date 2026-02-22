@@ -142,7 +142,7 @@ export default function PolicyTraining({
   const tabs = [["policies", "Policy Library"]];
   if (showManuals) tabs.push(["manuals", "SMS Manual Templates"]);
   const renderTopTabs = () => tabs.length > 1 ? (
-    <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+    <div data-tour="tour-policy-tabs" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {tabs.map(([id, label]) => (
         <button key={id} onClick={() => { setTopTab(id); setView("list"); setSearch(""); setFilter("active"); setSortBy("newest"); setShowCount(25); }}
           style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,
