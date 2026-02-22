@@ -110,34 +110,28 @@ const inp = { width: "100%", maxWidth: "100%", padding: "12px 14px", border: `1p
 const card = { background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` };
 
 // ── TIME UTILITIES ──────────────────────────────────────────────
-// Pilots enter times in Spokane local (Pacific Time). App converts to UTC for TAF matching.
-function parseLocalTime(dateStr, timeStr) {
+// Pilots enter times in local time for the departure airport. App converts to UTC for TAF matching.
+function parseLocalTime(dateStr, timeStr, tz = "America/Los_Angeles") {
   if (!dateStr || !timeStr) return null;
   const t = timeStr.replace(/[^0-9]/g, "").padStart(4, "0");
   const hh = parseInt(t.slice(0, 2), 10);
   const mm = parseInt(t.slice(2, 4), 10);
   if (isNaN(hh) || isNaN(mm) || hh > 23 || mm > 59) return null;
-  // Build a date string in Pacific time and let the browser convert to UTC
-  const localStr = `${dateStr}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00`;
-  // Use Intl to get the UTC offset for America/Los_Angeles on this date
+  // Use Intl to get the UTC offset for the given timezone on this date
   try {
-    const opts = { timeZone: "America/Los_Angeles", hour: "numeric", hour12: false, timeZoneName: "shortOffset" };
+    const opts = { timeZone: tz, hour: "numeric", hour12: false, timeZoneName: "shortOffset" };
     const fmt = new Intl.DateTimeFormat("en-US", opts);
-    // Create a temp date at noon to determine offset for this date
     const tempDate = new Date(`${dateStr}T12:00:00Z`);
     const parts = fmt.formatToParts(tempDate);
     const tzPart = parts.find(p => p.type === "timeZoneName");
-    // Parse offset like "GMT-8" or "GMT-7"
     let offsetHours = -8; // default PST
     if (tzPart && tzPart.value) {
       const match = tzPart.value.match(/GMT([+-]?\d+)/);
       if (match) offsetHours = parseInt(match[1], 10);
     }
-    // Convert local time to UTC
     const localDate = new Date(`${dateStr}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00Z`);
     return new Date(localDate.getTime() - offsetHours * 3600000);
   } catch {
-    // Fallback: assume PST (UTC-8)
     const localDate = new Date(`${dateStr}T${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00Z`);
     return new Date(localDate.getTime() + 8 * 3600000);
   }
@@ -157,8 +151,20 @@ function parseETE(ete) {
   return Math.floor(n / 100) * 60 + (n % 100);
 }
 
-function calcArrivalTime(dateStr, etdStr, eteStr) {
-  const dep = parseLocalTime(dateStr, etdStr);
+function formatETE(raw) {
+  if (!raw) return raw;
+  const s = raw.trim();
+  if (s.includes(":")) return s;
+  const n = parseInt(s, 10);
+  if (isNaN(n)) return s;
+  if (n < 10) return `${n}:00`;
+  if (n < 60) return `0:${String(n).padStart(2, "0")}`;
+  if (n >= 100) return `${Math.floor(n / 100)}:${String(n % 100).padStart(2, "0")}`;
+  return s;
+}
+
+function calcArrivalTime(dateStr, etdStr, eteStr, tz = "America/Los_Angeles") {
+  const dep = parseLocalTime(dateStr, etdStr, tz);
   if (!dep) return null;
   const mins = parseETE(eteStr);
   if (!mins) return null;
@@ -170,10 +176,10 @@ function formatZulu(d) {
   return `${String(d.getUTCHours()).padStart(2,"0")}${String(d.getUTCMinutes()).padStart(2,"0")}Z`;
 }
 
-function formatLocal(d) {
+function formatLocal(d, tz = "America/Los_Angeles") {
   if (!d) return "";
   try {
-    return d.toLocaleTimeString("en-US", { timeZone: "America/Los_Angeles", hour: "2-digit", minute: "2-digit", hour12: false }).replace(":", "");
+    return d.toLocaleTimeString("en-US", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).replace(":", "");
   } catch { return ""; }
 }
 
@@ -589,6 +595,8 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
   const [wxLoading, setWxLoading] = useState(false);
   const [wxError, setWxError] = useState(null);
   const [autoSuggested, setAutoSuggested] = useState({});
+  const [depTz, setDepTz] = useState(null); // { tz, tzAbbr }
+  const [destTz, setDestTz] = useState(null);
   const fetchTimer = useRef(null);
 
   const score = useMemo(() => { let s = 0; RISK_CATEGORIES.forEach(c => c.factors.forEach(f => { if (checked[f.id]) s += f.score; })); return s; }, [checked]);
@@ -621,8 +629,8 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
           setWxAnalysis({ flags: {}, reasons: {}, briefing: null });
         } else {
           setWxData(data);
-          data.depTimeZ = parseLocalTime(fi.date, fi.etd);
-          data.arrTimeZ = calcArrivalTime(fi.date, fi.etd, fi.ete);
+          data.depTimeZ = parseLocalTime(fi.date, fi.etd, depTz?.tz);
+          data.arrTimeZ = calcArrivalTime(fi.date, fi.etd, fi.ete, depTz?.tz);
           const analysis = analyzeWeather(data);
           setWxAnalysis(analysis);
           // Auto-check flagged items, track which were auto-suggested
@@ -643,6 +651,26 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
     }, 1200);
     return () => { if (fetchTimer.current) clearTimeout(fetchTimer.current); };
   }, [fi.departure, fi.destination, fi.cruiseAlt, fi.etd, fi.ete, fi.date]);
+
+  // Fetch departure airport timezone
+  useEffect(() => {
+    const dep = fi.departure.trim().toUpperCase();
+    if (dep.length < 3) { setDepTz(null); return; }
+    fetch(`/api/airports?ids=${dep}`).then(r => r.json()).then(data => {
+      if (data[dep]?.tz) setDepTz({ tz: data[dep].tz, tzAbbr: data[dep].tzAbbr });
+      else setDepTz(null);
+    }).catch(() => setDepTz(null));
+  }, [fi.departure]);
+
+  // Fetch destination airport timezone
+  useEffect(() => {
+    const dest = fi.destination.trim().toUpperCase();
+    if (dest.length < 3) { setDestTz(null); return; }
+    fetch(`/api/airports?ids=${dest}`).then(r => r.json()).then(data => {
+      if (data[dest]?.tz) setDestTz({ tz: data[dest].tz, tzAbbr: data[dest].tzAbbr });
+      else setDestTz(null);
+    }).catch(() => setDestTz(null));
+  }, [fi.destination]);
 
   // Photo attachment handlers
   const handleAddPhoto = (e) => {
@@ -676,8 +704,8 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
       setUploadingPhotos(false);
     }
 
-    const eta = calcArrivalTime(fi.date, fi.etd, fi.ete);
-    onSubmit({ id: fratId, ...fi, eta: eta ? eta.toISOString() : "", score, riskLevel: getRL(score).label, factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
+    const eta = calcArrivalTime(fi.date, fi.etd, fi.ete, depTz?.tz);
+    onSubmit({ id: fratId, ...fi, depTz: depTz?.tz || "America/Los_Angeles", destTz: destTz?.tz || "America/Los_Angeles", eta: eta ? eta.toISOString() : "", score, riskLevel: getRL(score).label, factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
       wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls });
     if (onNavigate) onNavigate("flights");
   };
@@ -707,7 +735,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
             { key: "destination", label: "Destination (ICAO)", placeholder: "e.g. KBOI", type: "text", upper: true },
             { key: "cruiseAlt", label: "Cruise Altitude", placeholder: "e.g. FL180 or 12000", type: "text" },
             { key: "date", label: "Flight Date", type: "date" },
-            { key: "etd", label: "Est. Departure (Spokane)", placeholder: "e.g. 1430", type: "text" },
+            { key: "etd", label: `Est. Departure (${depTz?.tzAbbr || "local"})`, placeholder: "e.g. 1430", type: "text" },
             { key: "ete", label: "Est. Time Enroute", placeholder: "e.g. 1:30, 45, or 0:30", type: "text" },
             { key: "fuelLbs", label: "Fuel Onboard (lbs)", placeholder: "e.g. 2400", type: "text" },
             { key: "numCrew", label: "Number of Crew", placeholder: "e.g. 2", type: "text" },
@@ -735,6 +763,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
                     </select>
               ) : (<input type={f.type === "date" ? "date" : "text"} placeholder={f.placeholder} value={fi[f.key]}
                 onChange={e => { let v = f.upper ? e.target.value.toUpperCase() : e.target.value; setFi(p => ({ ...p, [f.key]: v })); }}
+                onBlur={f.key === "ete" ? () => setFi(p => ({ ...p, ete: formatETE(p.ete) })) : undefined}
                 style={inp} />)}
             </div>))}
         </div>
@@ -1079,7 +1108,16 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
                   </div>
                   <div style={{ color: MUTED, fontSize: 11 }}>
                     <span>ETD/ETA</span>{" "}
-                    <span style={{ color: OFF_WHITE }}>{f.etd ? f.etd.replace(/[^0-9]/g, "").padStart(4, "0").replace(/(\d{2})(\d{2})/, "$1:$2") : "—"} / {f.eta ? formatLocal(new Date(f.eta)).replace(/(\d{2})(\d{2})/, "$1:$2") : "—"}</span>
+                    <span style={{ color: OFF_WHITE }}>{(() => {
+                      const depCoord = airportCoords[f.departure];
+                      const destCoord = airportCoords[f.destination];
+                      const depAbbr = depCoord?.tzAbbr || "";
+                      const destAbbr = destCoord?.tzAbbr || "";
+                      const etdFmt = f.etd ? f.etd.replace(/[^0-9]/g, "").padStart(4, "0").replace(/(\d{2})(\d{2})/, "$1:$2") : "—";
+                      const destTzId = destCoord?.tz || "America/Los_Angeles";
+                      const etaFmt = f.eta ? formatLocal(new Date(f.eta), destTzId).replace(/(\d{2})(\d{2})/, "$1:$2") : "—";
+                      return `${etdFmt}${depAbbr ? " " + depAbbr : ""} / ${etaFmt}${destAbbr ? " " + destAbbr : ""}`;
+                    })()}</span>
                   </div>
                 </div>
                 {/* Expanded details */}
