@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 const FRATTemplateEditor = dynamic(() => import("./FRATTemplateEditor"), { ssr: false });
 const NotificationContacts = dynamic(() => import("./NotificationContacts"), { ssr: false });
+const FleetManagement = dynamic(() => import("./FleetManagement"), { ssr: false });
 
 const CARD = "#161616", NEAR_BLACK = "#111111";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
@@ -445,7 +446,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -479,7 +480,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Admin tabs */}
       <div className="admin-tabs" style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-        {[{ id: "org", label: "Organization" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "notifications", label: "Notifications", feat: "approval_workflow" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
+        {[{ id: "org", label: "Organization" }, { id: "fleet", label: "Fleet" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "notifications", label: "Notifications", feat: "approval_workflow" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
           if (!t.feat) return true;
           const flags = orgData?.feature_flags || {};
           return flags[t.feat] !== false; // Show if true or undefined
@@ -499,6 +500,10 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
 
       {activeTab === "notifications" && canManage && (
         <NotificationContacts contacts={notificationContacts || []} onAdd={onAddContact} onUpdate={onUpdateContact} onDelete={onDeleteContact} />
+      )}
+
+      {activeTab === "fleet" && canManage && (
+        <FleetManagement aircraft={fleetAircraft || []} canManage={canManage} maxAircraft={maxAircraft || 5} onAdd={onAddAircraft} onUpdate={onUpdateAircraft} onDelete={onDeleteAircraft} />
       )}
 
       {activeTab === "org" && (<>

@@ -453,7 +453,6 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     { id: "submit", label: "FRAT", icon: icons.submit, p: false },
     { id: "flights", label: "Flight Following", icon: icons.flights, p: false },
     { id: "crew", label: "Crew", icon: icons.crew, p: false },
-    { id: "fleet", label: "Fleet", icon: icons.fleet, p: false },
     { id: "reports", label: "Reports", icon: icons.reports, p: false },
     { id: "hazards", label: "Investigations", icon: icons.hazards, p: false },
     { id: "actions", label: "Actions", icon: icons.actions, p: false },
@@ -572,7 +571,15 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
   const currentRiskLevels = currentTemplate?.risk_thresholds ? buildRiskLevels(currentTemplate.risk_thresholds) : riskLevels;
   const getRL = (s) => getRiskLevel(s, currentRiskLevels);
   const getLocalDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
-  const [fi, setFi] = useState({ pilot: userName || "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" });
+  const [fi, setFi] = useState({ pilot: userName || "", aircraft: "", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" });
+  // Sync initial aircraft + tail with first fleet entry when fleet loads
+  useEffect(() => {
+    if (fleetList.length > 0 && !fi.aircraft) {
+      const firstType = fleetList[0].type;
+      const matches = FLEET_REG_MAP[firstType] || [];
+      setFi(p => ({ ...p, aircraft: firstType, tailNumber: matches.length === 1 ? matches[0].registration : "" }));
+    }
+  }, [fleetList]);
   const [attachments, setAttachments] = useState([]); // { file, preview, uploading, url }
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [checked, setChecked] = useState({});
@@ -674,13 +681,14 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
       wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls });
     if (onNavigate) onNavigate("flights");
   };
-  const reset = () => { attachments.forEach(a => URL.revokeObjectURL(a.preview)); setAttachments([]); setUploadingPhotos(false); setFi({ pilot: "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); };
+  const defaultAircraft = fleetList.length > 0 ? fleetList[0].type : "";
+  const reset = () => { attachments.forEach(a => URL.revokeObjectURL(a.preview)); setAttachments([]); setUploadingPhotos(false); setFi({ pilot: "", aircraft: defaultAircraft, tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); };
 
   if (!hasFleet) return (
     <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}>
       <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>No Aircraft Registered</div>
       <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Add aircraft to your fleet registry before submitting a FRAT.</div>
-      <button onClick={() => onNavigate("fleet")} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Fleet Registry</button>
+      <button onClick={() => onNavigate("admin")} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Admin → Fleet</button>
     </div>
   );
 
@@ -1979,6 +1987,7 @@ export default function PVTAIRFrat() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(!!supabase);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [fratTemplate, setFratTemplate] = useState(null);
   const [fratTemplates, setFratTemplates] = useState([]);
   const [hazardFromReport, setHazardFromReport] = useState(null);
@@ -2039,8 +2048,8 @@ export default function PVTAIRFrat() {
       // Listen for auth changes
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
         setSession(sess);
-        if (sess) getProfile().then(p => setProfile(p));
-        else { setProfile(null); setRecords([]); setFlights([]); }
+        if (sess) { setProfileLoading(true); getProfile().then(p => { setProfile(p); setProfileLoading(false); }); }
+        else { setProfile(null); setProfileLoading(false); setRecords([]); setFlights([]); }
       });
       return () => subscription.unsubscribe();
     } else {
@@ -2571,7 +2580,7 @@ export default function PVTAIRFrat() {
   }
 
   // Session exists but no profile — user was removed from org
-  if (isOnline && session && !authLoading && !profile) {
+  if (isOnline && session && !authLoading && !profileLoading && !profile) {
     return (
       <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ ...card, padding: 48, maxWidth: 440, textAlign: "center" }}>
@@ -2649,7 +2658,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "FLIGHT FOLLOWING" : cv === "crew" ? "CREW ROSTER" : cv === "fleet" ? "FLEET MANAGEMENT" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "INVESTIGATIONS" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICIES" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
+              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "FLIGHT FOLLOWING" : cv === "crew" ? "CREW ROSTER" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "INVESTIGATIONS" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICIES" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2698,21 +2707,6 @@ export default function PVTAIRFrat() {
           await deleteCrewRecord(id);
           const { data } = await fetchCrewRecords(profile?.org_id);
           setCrewRecords(data || []);
-        })} />}
-        {cv === "fleet" && <FleetManagement aircraft={fleetAircraft} canManage={!isReadOnly && ["admin", "safety_manager", "accountable_exec"].includes(profile?.role)} maxAircraft={org?.max_aircraft || 5} onAdd={roGuard(async (record) => {
-          const orgId = profile?.org_id;
-          if (!orgId) return;
-          await createAircraft(orgId, record);
-          const { data } = await fetchAircraft(orgId);
-          setFleetAircraft(data || []);
-        })} onUpdate={roGuard(async (id, updates) => {
-          await updateAircraft(id, updates);
-          const { data } = await fetchAircraft(profile?.org_id);
-          setFleetAircraft(data || []);
-        })} onDelete={roGuard(async (id) => {
-          await deleteAircraft(id);
-          const { data } = await fetchAircraft(profile?.org_id);
-          setFleetAircraft(data || []);
         })} />}
         {cv === "reports" && (() => { const canManageReports = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role); const visibleReports = canManageReports ? reports : reports.filter(r => r.reporter_id === session?.user?.id); return <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={visibleReports} onStatusChange={canManageReports ? roGuard(onReportStatusChange) : null} hazards={hazards} onCreateHazardFromReport={canManageReports ? (report) => { setHazardFromReport(report); setCv("hazards"); } : null} />; })()}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} actions={actions} onCreateAction={(hazard) => { setActionFromInvestigation(hazard); setCv("actions"); }} />}
@@ -2833,7 +2827,21 @@ export default function PVTAIRFrat() {
           }
           const orgId = profile?.org_id;
           if (orgId) fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || []));
-        }} />}
+        }} fleetAircraft={fleetAircraft} maxAircraft={org?.max_aircraft || 5} onAddAircraft={roGuard(async (record) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          await createAircraft(orgId, record);
+          const { data } = await fetchAircraft(orgId);
+          setFleetAircraft(data || []);
+        })} onUpdateAircraft={roGuard(async (id, updates) => {
+          await updateAircraft(id, updates);
+          const { data } = await fetchAircraft(profile?.org_id);
+          setFleetAircraft(data || []);
+        })} onDeleteAircraft={roGuard(async (id) => {
+          await deleteAircraft(id);
+          const { data } = await fetchAircraft(profile?.org_id);
+          setFleetAircraft(data || []);
+        })} />}
       </main>
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
         {orgName} Safety Management System · PreflightSMS · 14 CFR Part 5 SMS · {new Date().getFullYear()}</footer>
