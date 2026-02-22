@@ -2450,10 +2450,9 @@ function buildTourSeedData(today, userName, fleet) {
       { id: "_seed_p2", org_id: "_seed", title: "Standard Operating Procedures", category: "sop", description: "Normal and emergency operations procedures", content: "These procedures govern normal, abnormal, and emergency operations...", status: "active", version: 2, effective_date: dateStr(-60), acknowledgments: [], created_at: iso(-60) },
     ],
     trainingReqs: [
-      { id: "_seed_tr1", org_id: "_seed", title: "Annual Safety Recurrent", description: "Annual SMS and safety awareness recurrent training.", frequency: "annual", required_for: "all_pilots", created_at: iso(-90) },
+      { id: "_seed_tr1", org_id: "_seed", title: "Annual Safety Recurrent", description: "Annual SMS and safety awareness recurrent training.", category: "recurrent", frequency_months: 12, required_for: ["pilot", "captain", "first_officer"], created_at: iso(-90) },
     ],
     trainingRecs: [
-      { id: "_seed_trr1", org_id: "_seed", requirement_id: "_seed_tr1", user_id: "_seed_u1", user_name: pilot, completed_at: iso(-15), expires_at: dateStr(350), notes: "Completed online module and check ride", created_at: iso(-15) },
     ],
     cbtCourses: [
       { id: "_seed_cbt1", org_id: "_seed", title: "SMS Fundamentals", description: "Introduction to Safety Management Systems for Part 5 compliance.", status: "published", category: "sms", estimated_minutes: 45, passing_score: 80, created_at: iso(-60) },
