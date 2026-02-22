@@ -232,7 +232,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard }) {
             ) : onCreateHazard && (
               <button onClick={() => onCreateHazard(report)}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                <span style={{ fontSize: 14 }}>△</span> Create Hazard from Report
+                <span style={{ fontSize: 14 }}>△</span> Open Investigation
               </button>
             )}
           </div>

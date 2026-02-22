@@ -214,7 +214,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions }) {
           <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Open Items by Type</h3>
           {[
             { label: "Safety Reports", count: stats.openReports, total: stats.totalReports, color: CYAN },
-            { label: "Hazards", count: stats.openHazards, total: hazards.length, color: AMBER },
+            { label: "Investigations", count: stats.openHazards, total: hazards.length, color: AMBER },
             { label: "Corrective Actions", count: stats.openActions, total: actions.length, color: stats.overdueActions > 0 ? RED : GREEN },
           ].map(item => (
             <div key={item.label} style={{ marginBottom: 12 }}>
@@ -535,7 +535,7 @@ function SafetyMetrics({ reports, hazards, actions }) {
     <div>
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
         <StatCard label="Safety Reports" value={stats.totalReports} icon="📝" />
-        <StatCard label="Open Hazards" value={stats.hazardRiskData.reduce((a, d) => a + d.value, 0)} color={AMBER} icon="⚡" />
+        <StatCard label="Open Investigations" value={stats.hazardRiskData.reduce((a, d) => a + d.value, 0)} color={AMBER} icon="⚡" />
         <StatCard label="Corrective Actions" value={stats.totalActions} sub={stats.overdueActions.length > 0 ? `${stats.overdueActions.length} overdue` : "None overdue"} color={stats.overdueActions.length > 0 ? RED : WHITE} icon="✓" />
         <StatCard label="Avg Closure Time" value={stats.avgClosureTime ? `${stats.avgClosureTime}d` : "—"} sub="For completed actions" icon="⏱" />
       </div>
@@ -559,7 +559,7 @@ function SafetyMetrics({ reports, hazards, actions }) {
             ))}
           </div>
         </ChartCard>
-        <ChartCard title="Hazards by Risk Level">
+        <ChartCard title="Investigations by Risk Level">
           {stats.hazardRiskData.length > 0 ? (
             <ResponsiveContainer width="100%" height={150}>
               <PieChart><Pie data={stats.hazardRiskData} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
