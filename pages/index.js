@@ -2314,6 +2314,12 @@ export default function PVTAIRFrat() {
       if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchHazards(profile.org_id);
       setHazards(data || []);
+      // Auto-advance linked report to "investigation"
+      if (hazard.relatedReportId) {
+        await updateReport(hazard.relatedReportId, { status: "investigation" });
+        const { data: rpts } = await fetchReports(profile.org_id);
+        setReports(rpts || []);
+      }
       setToast({ message: `${hazard.hazardCode} registered`, level: { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" } }); setTimeout(() => setToast(null), 4000);
     }
   }, [profile, session, isOnline]);
@@ -2325,17 +2331,35 @@ export default function PVTAIRFrat() {
       if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchActions(profile.org_id);
       setActions(data || []);
+      // Auto-advance linked report to "corrective_action"
+      if (action.reportId) {
+        await updateReport(action.reportId, { status: "corrective_action" });
+        const { data: rpts } = await fetchReports(profile.org_id);
+        setReports(rpts || []);
+      }
       setToast({ message: `${action.actionCode} created`, level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: "#4ADE80" } }); setTimeout(() => setToast(null), 4000);
     }
   }, [profile, isOnline]);
 
   const onUpdateAction = useCallback(async (actionId, updates) => {
     if (isOnline && profile) {
+      // If completing/cancelling, find linked report to auto-close
+      if (updates.status === "completed" || updates.status === "cancelled") {
+        const action = actions.find(a => a.id === actionId);
+        if (action?.hazard_id) {
+          const hazard = hazards.find(h => h.id === action.hazard_id);
+          if (hazard?.related_report_id) {
+            await updateReport(hazard.related_report_id, { status: "closed", closed_at: new Date().toISOString() });
+            const { data: rpts } = await fetchReports(profile.org_id);
+            setReports(rpts || []);
+          }
+        }
+      }
       await updateAction(actionId, updates);
       const { data } = await fetchActions(profile.org_id);
       setActions(data || []);
     }
-  }, [profile, isOnline]);
+  }, [profile, isOnline, actions, hazards]);
 
   // ── Admin: Update Role ──
   const onUpdateRole = useCallback(async (profileId, role) => {
@@ -2643,7 +2667,7 @@ export default function PVTAIRFrat() {
           const { data } = await fetchAircraft(profile?.org_id);
           setFleetAircraft(data || []);
         })} />}
-        {cv === "reports" && <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={reports} onStatusChange={roGuard(onReportStatusChange)} hazards={hazards} onCreateHazardFromReport={(report) => { setHazardFromReport(report); setCv("hazards"); }} />}
+        {cv === "reports" && (() => { const canManageReports = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role); const visibleReports = canManageReports ? reports : reports.filter(r => r.reporter_id === session?.user?.id); return <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={visibleReports} onStatusChange={canManageReports ? roGuard(onReportStatusChange) : null} hazards={hazards} onCreateHazardFromReport={canManageReports ? (report) => { setHazardFromReport(report); setCv("hazards"); } : null} />; })()}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} actions={actions} onCreateAction={(hazard) => { setActionFromInvestigation(hazard); setCv("actions"); }} />}
         {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={roGuard(onCreateAction)} onUpdateAction={roGuard(onUpdateAction)} fromInvestigation={actionFromInvestigation} hazards={hazards} onClearFromInvestigation={() => setActionFromInvestigation(null)} />}
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={roGuard(onCreatePolicy)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} />}
