@@ -26,6 +26,7 @@ const STATUSES = [
 function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation }) {
   const [form, setForm] = useState({
     title: fromInvestigation ? `Action for: ${fromInvestigation.title}` : "",
+    description: fromInvestigation ? `Source investigation: ${fromInvestigation.hazard_code}\n\n${fromInvestigation.description || ""}` : "",
     assignedToName: "", dueDate: "", priority: "medium",
     hazardId: fromInvestigation?.id || null,
     reportId: fromInvestigation?.related_report_id || null,
