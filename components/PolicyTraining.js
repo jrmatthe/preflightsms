@@ -88,12 +88,13 @@ function PolicyForm({ onSubmit, onCancel }) {
 // ── MAIN COMPONENT ────────────────────────────────────────────
 export default function PolicyTraining({
   profile, session, policies, onCreatePolicy, onAcknowledgePolicy, orgProfiles,
-  smsManuals, showManuals,
+  smsManuals, showManuals, tourTab,
   // SMS Manuals props (passed through when showManuals is true)
   templateVariables, signatures, fleetAircraft,
   onSaveManual, onInitManuals, onSaveVariables, onSaveSignature,
 }) {
   const [topTab, setTopTab] = useState("policies");
+  useEffect(() => { if (tourTab) setTopTab(tourTab); }, [tourTab]);
   const [view, setView] = useState("list");   // list | new_policy
   const [expandedPolicy, setExpandedPolicy] = useState(null);
   const [search, setSearch] = useState("");
