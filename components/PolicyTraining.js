@@ -87,8 +87,9 @@ function PolicyForm({ onSubmit, onCancel }) {
 // ── MAIN COMPONENT ────────────────────────────────────────────
 export default function PolicyTraining({
   profile, session, policies, onCreatePolicy, onAcknowledgePolicy, orgProfiles,
-  smsManuals,
+  smsManuals, showManuals, renderManuals,
 }) {
+  const [topTab, setTopTab] = useState("policies");
   const [view, setView] = useState("list");   // list | new_policy
   const [expandedPolicy, setExpandedPolicy] = useState(null);
   const [search, setSearch] = useState("");
@@ -133,8 +134,32 @@ export default function PolicyTraining({
     return list;
   }, [allUserPolicies, filter, search, sortBy]);
 
+  // Top-level tab bar (Policy Library | SMS Manuals)
+  const tabs = [["policies", "Policy Library"]];
+  if (showManuals) tabs.push(["manuals", "SMS Manuals"]);
+  const renderTopTabs = () => tabs.length > 1 ? (
+    <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+      {tabs.map(([id, label]) => (
+        <button key={id} onClick={() => { setTopTab(id); setView("list"); setSearch(""); setFilter("active"); setSortBy("newest"); setShowCount(25); }}
+          style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,
+            background: topTab === id ? WHITE : "transparent", color: topTab === id ? BLACK : MUTED,
+            fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{label}</button>
+      ))}
+    </div>
+  ) : null;
+
   // Forms
   if (view === "new_policy") return <PolicyForm onSubmit={p => { onCreatePolicy(p); setView("list"); }} onCancel={() => setView("list")} />;
+
+  // SMS Manuals subtab
+  if (topTab === "manuals" && showManuals && renderManuals) {
+    return (
+      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        {renderTopTabs()}
+        {renderManuals()}
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
@@ -147,6 +172,7 @@ export default function PolicyTraining({
           <button onClick={() => setView("new_policy")} style={{ padding: "8px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Document</button>
         </div>
       </div>
+      {renderTopTabs()}
 
       {/* Policy stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
