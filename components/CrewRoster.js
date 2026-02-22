@@ -16,24 +16,37 @@ const COMMON_RATINGS=["Instrument","Multi-Engine Land","Single-Engine Land","Sin
 // FAA AUTO-CALCULATION RULES
 // ══════════════════════════════════════════════
 
-// Calendar month end rule: expiration is last day of the Nth month
+// Calendar month end rule per FAR: "last day of the Nth month after the month of the date of examination"
 function addCalendarMonths(dateStr, months) {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
+  const d = new Date(dateStr + "T12:00:00"); // noon to avoid timezone shift
   d.setMonth(d.getMonth() + months + 1);
   d.setDate(0); // last day of target month
   return d.toISOString().split("T")[0];
 }
 
-// Medical privileges per 14 CFR 61.23 with step-down
-// Returns { first, second, third } expiration dates
-// Part 135 requires at least 2nd class privileges
+// Medical privileges per 14 CFR 61.23(d) with full step-down timeline
+// Age is calculated at date of examination per the regulation
+//
+// First Class issued:
+//   Under 40: 1st class 12mo, 2nd class 12mo (same — no step-down window), 3rd class 60mo
+//   40+:      1st class 6mo,  2nd class 12mo (months 7-12 = 2nd class window), 3rd class 24mo
+//
+// Second Class issued:
+//   Under 40: 2nd class 12mo, 3rd class 60mo
+//   40+:      2nd class 12mo, 3rd class 24mo
+//
+// Third Class issued:
+//   Under 40: 3rd class 60mo
+//   40+:      3rd class 24mo
+//
+// Part 135 requires at least 2nd class medical privileges
 function calcMedicalPrivileges(medClass, issuedDate, birthDate) {
   if (!medClass || !issuedDate) return null;
-  const issued = new Date(issuedDate);
-  let age = 40;
+  const issued = new Date(issuedDate + "T12:00:00");
+  let age = 40; // conservative default if no DOB
   if (birthDate) {
-    const birth = new Date(birthDate);
+    const birth = new Date(birthDate + "T12:00:00");
     age = issued.getFullYear() - birth.getFullYear();
     const m = issued.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && issued.getDate() < birth.getDate())) age--;
@@ -44,61 +57,46 @@ function calcMedicalPrivileges(medClass, issuedDate, birthDate) {
 
   if (mc === "first") {
     first = addCalendarMonths(issuedDate, under40 ? 12 : 6);
-    second = addCalendarMonths(issuedDate, 12); // steps down to 2nd after 1st expires
+    // Under 40: 1st & 2nd expire together at 12 months (no separate 2nd-class window)
+    // Over 40: 1st expires at 6 months, 2nd class privileges continue through 12 months
+    second = addCalendarMonths(issuedDate, 12);
     third = addCalendarMonths(issuedDate, under40 ? 60 : 24);
   } else if (mc === "second") {
-    first = null; // no 1st class privileges
     second = addCalendarMonths(issuedDate, 12);
     third = addCalendarMonths(issuedDate, under40 ? 60 : 24);
   } else if (mc === "third") {
-    first = null;
-    second = null;
     third = addCalendarMonths(issuedDate, under40 ? 60 : 24);
   }
 
-  return { first, second, third, part135Expires: second, totalExpires: third };
+  return { first, second, third, under40, age, part135Expires: second, totalExpires: third };
 }
 
-// Legacy wrapper for alerts — returns the Part 135 relevant date
+// Wrapper for alerts — returns the Part 135 relevant date (2nd class expiration)
 function calcMedicalExpires(medClass, issuedDate, birthDate) {
   const p = calcMedicalPrivileges(medClass, issuedDate, birthDate);
   return p ? p.part135Expires : null;
 }
 
-// Flight review: 24 calendar months from date (14 CFR 61.56)
-function calcFlightReviewExpires(lastDate) {
-  return addCalendarMonths(lastDate, 24);
-}
-
-// IPC: 6 calendar months (14 CFR 61.57(d))
+// 135.297 Instrument Proficiency Check: 6 calendar months (PIC under IFR)
+// Note: Part 135 PICs are EXEMPT from 61.57 per 61.57(e)(3) — this is the applicable check
 function calcIPCExpires(lastDate) {
   return addCalendarMonths(lastDate, 6);
 }
 
-// 135 recurrent training: 12 calendar months (14 CFR 135.293)
-function calcRecurrentExpires(lastDate) {
+// 135.293 Competency Check: 12 calendar months (PIC and SIC)
+// Also satisfies 61.56 flight review per 61.56(d)
+function calcCheckrideExpires(lastDate) {
   return addCalendarMonths(lastDate, 12);
 }
 
-// 135 checkride: 12 calendar months with early/late grace
-// Early grace: checkride taken within grace window before expiration preserves cycle
-function calcCheckrideExpires(lastDate, baseInterval) {
-  return addCalendarMonths(lastDate, baseInterval || 12);
+// 135.299 Line Check: 12 calendar months (PIC only)
+function calcLineCheckExpires(lastDate) {
+  return addCalendarMonths(lastDate, 12);
 }
 
-function checkrideGraceInfo(expiresDate, earlyGraceMonths) {
-  if (!expiresDate) return null;
-  const expires = new Date(expiresDate);
-  const earlyStart = new Date(expires);
-  earlyStart.setMonth(earlyStart.getMonth() - (earlyGraceMonths || 1));
-  const now = new Date();
-  const days = Math.ceil((expires - now) / 86400000);
-  return {
-    expired: days < 0,
-    days,
-    inEarlyWindow: now >= earlyStart && now <= expires,
-    earlyWindowStart: earlyStart.toISOString().split("T")[0],
-  };
+// 135.343 Recurrent Training: 12 calendar months
+function calcRecurrentExpires(lastDate) {
+  return addCalendarMonths(lastDate, 12);
 }
 
 // ══════════════════════════════════════════════
@@ -124,10 +122,10 @@ function expBadge(dateStr, labelText) {
 function getCalcDates(c) {
   return {
     medical_expires_calc: calcMedicalExpires(c.medical_class, c.medical_issued, c.birth_date),
-    flight_review_expires_calc: calcFlightReviewExpires(c.last_flight_review),
     ipc_expires_calc: calcIPCExpires(c.last_ipc),
+    checkride_expires_calc: calcCheckrideExpires(c.last_135_checkride),
+    line_check_expires_calc: calcLineCheckExpires(c.last_line_check),
     recurrent_expires_calc: calcRecurrentExpires(c.last_recurrent),
-    checkride_expires_calc: calcCheckrideExpires(c.last_135_checkride, c.checkride_base_interval_months),
   };
 }
 
@@ -141,11 +139,10 @@ const emptyForm = {
   certificate_type:"",certificate_number:"",certificate_issued:"",
   ratings:[],type_ratings:[],
   medical_class:"",medical_issued:"",medical_expires:"",basicmed:false,
-  last_flight_review:"",flight_review_expires:"",
   last_ipc:"",ipc_expires:"",
-  last_recurrent:"",recurrent_expires:"",
   last_135_checkride:"",checkride_expires:"",
-  checkride_early_grace_months:1,checkride_base_interval_months:12,
+  last_line_check:"",line_check_expires:"",
+  last_recurrent:"",recurrent_expires:"",
 };
 
 // ══════════════════════════════════════════════
@@ -176,10 +173,10 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
       const priv = calcMedicalPrivileges(c.medical_class, c.medical_issued, c.birth_date);
       const dates = [
         priv?.part135Expires,
-        getExpDate(c,"flight_review_expires",calc.flight_review_expires_calc),
         getExpDate(c,"ipc_expires",calc.ipc_expires_calc),
-        getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc),
         getExpDate(c,"checkride_expires",calc.checkride_expires_calc),
+        getExpDate(c,"line_check_expires",calc.line_check_expires_calc),
+        getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc),
       ];
       dates.forEach(d => { if(daysUntil(d)!==null && daysUntil(d)<=60) n++; });
     });
@@ -196,10 +193,10 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
     const calc = getCalcDates(form);
     const toSave = {...form};
     if (!toSave.medical_expires && calc.medical_expires_calc) toSave.medical_expires = calc.medical_expires_calc;
-    if (!toSave.flight_review_expires && calc.flight_review_expires_calc) toSave.flight_review_expires = calc.flight_review_expires_calc;
     if (!toSave.ipc_expires && calc.ipc_expires_calc) toSave.ipc_expires = calc.ipc_expires_calc;
-    if (!toSave.recurrent_expires && calc.recurrent_expires_calc) toSave.recurrent_expires = calc.recurrent_expires_calc;
     if (!toSave.checkride_expires && calc.checkride_expires_calc) toSave.checkride_expires = calc.checkride_expires_calc;
+    if (!toSave.line_check_expires && calc.line_check_expires_calc) toSave.line_check_expires = calc.line_check_expires_calc;
+    if (!toSave.recurrent_expires && calc.recurrent_expires_calc) toSave.recurrent_expires = calc.recurrent_expires_calc;
     // Sanitize empty strings to null (Postgres rejects "" for date columns)
     Object.keys(toSave).forEach(k => { if (toSave[k] === "") toSave[k] = null; });
     if(selected){await onUpdate(selected.id, toSave);}else{await onAdd(toSave);}
@@ -241,7 +238,7 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
           :filtered.map(c=>{
             const isSelected=selected?.id===c.id;
             const calc=getCalcDates(c);
-            const dates=[getExpDate(c,"medical_expires",calc.medical_expires_calc),getExpDate(c,"flight_review_expires",calc.flight_review_expires_calc),getExpDate(c,"ipc_expires",calc.ipc_expires_calc),getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc),getExpDate(c,"checkride_expires",calc.checkride_expires_calc)];
+            const dates=[getExpDate(c,"medical_expires",calc.medical_expires_calc),getExpDate(c,"ipc_expires",calc.ipc_expires_calc),getExpDate(c,"checkride_expires",calc.checkride_expires_calc),getExpDate(c,"line_check_expires",calc.line_check_expires_calc),getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc)];
             const hasAlert=dates.some(d=>{const dd=daysUntil(d);return dd!==null&&dd<=60;});
             return (<div key={c.id} onClick={()=>selectCrew(c)} style={{...card,padding:"12px 16px",marginBottom:6,cursor:"pointer",border:`1px solid ${isSelected?LIGHT_BORDER:BORDER}`,background:isSelected?"rgba(255,255,255,0.04)":CARD}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -274,14 +271,10 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
 
 function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,setConfirmDelete}) {
   const calc=getCalcDates(c);
-  const medExp=getExpDate(c,"medical_expires",calc.medical_expires_calc);
-  const frExp=getExpDate(c,"flight_review_expires",calc.flight_review_expires_calc);
   const ipcExp=getExpDate(c,"ipc_expires",calc.ipc_expires_calc);
-  const recExp=getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc);
   const ckExp=getExpDate(c,"checkride_expires",calc.checkride_expires_calc);
-  const ckGrace=checkrideGraceInfo(ckExp,c.checkride_early_grace_months);
-
-  const sub=({t})=><div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>{t}</div>;
+  const lcExp=getExpDate(c,"line_check_expires",calc.line_check_expires_calc);
+  const recExp=getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc);
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
@@ -331,19 +324,30 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
             <div style={{padding:"8px 12px",borderRadius:6,marginBottom:8,background:meets135?`${GREEN}11`:`${RED}11`,border:`1px solid ${meets135?GREEN:RED}33`}}>
               <div style={{fontSize:12,fontWeight:700,color:meets135?GREEN:RED}}>Current: {currentPriv} {meets135?"\u2713 Meets Part 135":"\u26A0 Does NOT meet Part 135 minimum"}</div>
             </div>
-            <div style={{fontSize:10,fontWeight:600,color:MUTED,marginBottom:6}}>PRIVILEGE STEP-DOWN TIMELINE</div>
-            {priv.first&&<div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${BORDER}`}}>
-              <span style={{fontSize:11,color:OFF_WHITE}}>1st Class privileges expire</span>
-              <span style={{fontSize:10,fontWeight:600,color:expColor(priv.first)}}>{fmtDate(priv.first)}</span>
-            </div>}
-            {priv.second&&<div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${BORDER}`}}>
-              <span style={{fontSize:11,color:OFF_WHITE}}>2nd Class privileges expire <span style={{color:AMBER,fontSize:9}}>(Part 135 limit)</span></span>
-              <span style={{fontSize:10,fontWeight:600,color:expColor(priv.second)}}>{fmtDate(priv.second)}</span>
-            </div>}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <span style={{fontSize:10,fontWeight:600,color:MUTED}}>PRIVILEGE STEP-DOWN TIMELINE (61.23)</span>
+              <span style={{fontSize:9,color:SUBTLE}}>Age at exam: {priv.age}{priv.under40?" (under 40)":" (40+)"}</span>
+            </div>
+            {priv.first&&priv.second&&priv.first===priv.second?(
+              <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${BORDER}`}}>
+                <span style={{fontSize:11,color:OFF_WHITE}}>1st &amp; 2nd Class expire together <span style={{color:AMBER,fontSize:9}}>(Part 135 limit)</span></span>
+                <span style={{fontSize:10,fontWeight:600,color:expColor(priv.first)}}>{fmtDate(priv.first)}</span>
+              </div>
+            ):(<>
+              {priv.first&&<div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${BORDER}`}}>
+                <span style={{fontSize:11,color:OFF_WHITE}}>1st Class privileges expire</span>
+                <span style={{fontSize:10,fontWeight:600,color:expColor(priv.first)}}>{fmtDate(priv.first)}</span>
+              </div>}
+              {priv.second&&<div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${BORDER}`}}>
+                <span style={{fontSize:11,color:OFF_WHITE}}>2nd Class privileges expire <span style={{color:AMBER,fontSize:9}}>(Part 135 limit)</span></span>
+                <span style={{fontSize:10,fontWeight:600,color:expColor(priv.second)}}>{fmtDate(priv.second)}</span>
+              </div>}
+            </>)}
             {priv.third&&<div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${BORDER}`}}>
               <span style={{fontSize:11,color:OFF_WHITE}}>3rd Class privileges expire</span>
               <span style={{fontSize:10,fontWeight:600,color:expColor(priv.third)}}>{fmtDate(priv.third)}</span>
             </div>}
+            {priv.first&&priv.second&&priv.first!==priv.second&&<div style={{fontSize:9,color:SUBTLE,marginTop:6}}>After 1st Class expires, 2nd Class privileges continue through {fmtDate(priv.second)}</div>}
           </div>);
         })()}
       </div>
@@ -351,47 +355,45 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
     </div>}
 
     {tab==="currency"&&<div>
-      <div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
-        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Flight Review (61.56)</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-          <div><div style={{...lbl}}>Last Completed</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.last_flight_review)}</div></div>
-          <div><div style={{...lbl}}>Expires</div><div style={{fontSize:12,color:expColor(frExp),fontWeight:600}}>{fmtDate(frExp)}</div>
-            {!c.flight_review_expires&&calc.flight_review_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto: 24 calendar months</div>}
-          </div>
-        </div>
-      </div>
+      <div style={{fontSize:9,color:MUTED,marginBottom:12}}>Part 135 pilot-in-command currency requirements. 135.297 IPC also satisfies 135.293 competency check and 61.56 flight review.</div>
 
       <div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
-        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Instrument Proficiency Check (61.57)</div>
+        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Instrument Proficiency Check (135.297) <span style={{color:MUTED,fontWeight:400}}>\u2014 6 cal months</span></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <div><div style={{...lbl}}>Last IPC</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.last_ipc)}</div></div>
           <div><div style={{...lbl}}>Expires</div><div style={{fontSize:12,color:expColor(ipcExp),fontWeight:600}}>{fmtDate(ipcExp)}</div>
-            {!c.ipc_expires&&calc.ipc_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto: 6 calendar months</div>}
+            {!c.ipc_expires&&calc.ipc_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto-calculated per 135.297</div>}
           </div>
         </div>
       </div>
 
       <div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
-        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Part 135 Checkride (135.293)</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:10}}>
+        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Competency Check (135.293) <span style={{color:MUTED,fontWeight:400}}>\u2014 12 cal months</span></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <div><div style={{...lbl}}>Last Checkride</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.last_135_checkride)}</div></div>
           <div><div style={{...lbl}}>Expires</div><div style={{fontSize:12,color:expColor(ckExp),fontWeight:600}}>{fmtDate(ckExp)}</div>
-            {!c.checkride_expires&&calc.checkride_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto: {c.checkride_base_interval_months||12} calendar months</div>}
+            {!c.checkride_expires&&calc.checkride_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto-calculated per 135.293</div>}
           </div>
         </div>
-        {ckGrace&&(<div style={{padding:"10px 12px",borderRadius:6,background:`${ckGrace.expired?RED:ckGrace.inEarlyWindow?GREEN:MUTED}11`,border:`1px solid ${ckGrace.expired?RED:ckGrace.inEarlyWindow?GREEN:MUTED}33`}}>
-          {ckGrace.expired?<div style={{fontSize:11,color:RED,fontWeight:600}}>{"\u26A0"} CHECKRIDE EXPIRED \u2014 {Math.abs(ckGrace.days)} days overdue</div>
-          :ckGrace.inEarlyWindow?<div><div style={{fontSize:11,color:GREEN,fontWeight:600}}>{"\u2713"} IN EARLY GRACE WINDOW</div><div style={{fontSize:10,color:MUTED,marginTop:2}}>Taking checkride now preserves the original {c.checkride_base_interval_months||12}-month cycle. Window opened {fmtDate(ckGrace.earlyWindowStart)}.</div></div>
-          :<div><div style={{fontSize:11,color:OFF_WHITE,fontWeight:600}}>{ckGrace.days} days until expiration</div><div style={{fontSize:10,color:MUTED,marginTop:2}}>Early grace window opens {fmtDate(ckGrace.earlyWindowStart)} ({c.checkride_early_grace_months||1}mo before)</div></div>}
-        </div>)}
+        <div style={{fontSize:9,color:SUBTLE,marginTop:8}}>A current 135.297 IPC satisfies this requirement. Also satisfies 61.56 flight review.</div>
+      </div>
+
+      <div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
+        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Line Check (135.299) <span style={{color:MUTED,fontWeight:400}}>\u2014 12 cal months, PIC only</span></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div><div style={{...lbl}}>Last Line Check</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.last_line_check)}</div></div>
+          <div><div style={{...lbl}}>Expires</div><div style={{fontSize:12,color:expColor(lcExp),fontWeight:600}}>{fmtDate(lcExp)}</div>
+            {!c.line_check_expires&&calc.line_check_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto-calculated per 135.299</div>}
+          </div>
+        </div>
       </div>
 
       <div style={{...card,padding:"14px 16px",background:NEAR_BLACK}}>
-        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Recurrent Training (135.293)</div>
+        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Recurrent Training (135.343) <span style={{color:MUTED,fontWeight:400}}>\u2014 12 cal months</span></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <div><div style={{...lbl}}>Last Recurrent</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.last_recurrent)}</div></div>
           <div><div style={{...lbl}}>Expires</div><div style={{fontSize:12,color:expColor(recExp),fontWeight:600}}>{fmtDate(recExp)}</div>
-            {!c.recurrent_expires&&calc.recurrent_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto: 12 calendar months</div>}
+            {!c.recurrent_expires&&calc.recurrent_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto-calculated per 135.343</div>}
           </div>
         </div>
       </div>
@@ -409,10 +411,10 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
             {priv?.third&&expBadge(priv.third,"3rd Class Medical (all privileges)")}
           </>);
         })()}
-        {expBadge(frExp,"Flight Review (61.56) \u2014 24 cal months")}
-        {expBadge(ipcExp,"IPC (61.57) \u2014 6 cal months")}
-        {expBadge(ckExp,"Part 135 Checkride (135.293)")}
-        {expBadge(recExp,"Recurrent Training (135.293)")}
+        {expBadge(ipcExp,"IPC (135.297) \u2014 6 cal months")}
+        {expBadge(ckExp,"Competency Check (135.293) \u2014 12 cal months")}
+        {expBadge(lcExp,"Line Check (135.299) \u2014 12 cal months")}
+        {expBadge(recExp,"Recurrent Training (135.343) \u2014 12 cal months")}
       </div>
     </div>}
   </div>);
@@ -455,30 +457,28 @@ function CrewForm({form,setField,toggleRating,addTypeRating,removeTypeRating,new
     <div style={{fontSize:9,color:MUTED,marginTop:2}}>Leave blank to auto-calculate. Manual entry overrides the FAR calculation.</div>
     <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:11,color:MUTED,marginTop:4}}><input type="checkbox" checked={form.basicmed} onChange={e=>setField("basicmed",e.target.checked)} />BasicMed</label>
 
-    {section("Flight Review (auto: 24 cal months per 61.56)")}
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-      {field("Last Flight Review","last_flight_review","date")}
-      <div>{field("Expires (override)","flight_review_expires","date")}{calcHint(calc.flight_review_expires_calc,"61.56")}</div>
-    </div>
-
-    {section("IPC (auto: 6 cal months per 61.57)")}
+    {section("Instrument Proficiency Check (auto: 6 cal months per 135.297)")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {field("Last IPC","last_ipc","date")}
-      <div>{field("Expires (override)","ipc_expires","date")}{calcHint(calc.ipc_expires_calc,"61.57")}</div>
+      <div>{field("Expires (override)","ipc_expires","date")}{calcHint(calc.ipc_expires_calc,"135.297")}</div>
     </div>
 
-    {section("Part 135 Checkride (auto-calculates per 135.293)")}
+    {section("Competency Check (auto: 12 cal months per 135.293)")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {field("Last Checkride","last_135_checkride","date")}
       <div>{field("Expires (override)","checkride_expires","date")}{calcHint(calc.checkride_expires_calc,"135.293")}</div>
-      {field("Base Interval (months)","checkride_base_interval_months","number")}
-      {field("Early Grace (months)","checkride_early_grace_months","number")}
     </div>
 
-    {section("Recurrent Training (auto: 12 cal months per 135.293)")}
+    {section("Line Check (auto: 12 cal months per 135.299)")}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+      {field("Last Line Check","last_line_check","date")}
+      <div>{field("Expires (override)","line_check_expires","date")}{calcHint(calc.line_check_expires_calc,"135.299")}</div>
+    </div>
+
+    {section("Recurrent Training (auto: 12 cal months per 135.343)")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {field("Last Recurrent","last_recurrent","date")}
-      <div>{field("Expires (override)","recurrent_expires","date")}{calcHint(calc.recurrent_expires_calc,"135.293")}</div>
+      <div>{field("Expires (override)","recurrent_expires","date")}{calcHint(calc.recurrent_expires_calc,"135.343")}</div>
     </div>
 
     {section("Notes")}
