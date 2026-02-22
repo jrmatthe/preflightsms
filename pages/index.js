@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, fetchNotifications, createNotification, fetchNotificationReads, markNotificationRead } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, fetchNotifications, createNotification, fetchNotificationReads, markNotificationRead, saveOnboardingStatus } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -44,6 +44,19 @@ const DEFAULT_RISK_LEVELS = {
   CRITICAL: { label: "CRITICAL RISK", color: RED, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", min: 46, max: 100, action: "Flight should not depart without risk mitigation and executive approval" },
 };
 const DEFAULT_AIRCRAFT_TYPES = ["PC-12", "King Air"];
+
+const ONBOARDING_STEPS = [
+  { id: "welcome", phase: "setup", title: "Welcome to PreflightSMS", desc: "Let\u2019s get your safety management system set up in about 3 minutes." },
+  { id: "fleet", phase: "setup", title: "Add Your Fleet", desc: "Register the aircraft your organization operates." },
+  { id: "invite", phase: "setup", title: "Invite Your Team", desc: "Bring your pilots and safety officers on board." },
+  { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", desc: "Pilots complete this before every flight \u2014 scores risk factors and determines if management approval is needed.", feature: null },
+  { id: "tour-flights", phase: "tour", tab: "flights", title: "Flight Following", desc: "Active flights tracked in real-time. Mark arrived, delayed, or cancelled. Overdue alerts sent via email.", feature: null },
+  { id: "tour-reports", phase: "tour", tab: "reports", title: "Safety Reporting", desc: "Anonymous hazard reports \u2014 the backbone of a just-culture SMS program.", feature: null },
+  { id: "tour-policy", phase: "tour", tab: "policy", title: "Policies & SMS Manuals", desc: "Manage policies with acknowledgment tracking. Build Part 5 compliant SMS manuals.", feature: "policy_library" },
+  { id: "tour-cbt", phase: "tour", tab: "cbt", title: "Training & CBT", desc: "Track training requirements, log records, and deliver computer-based training modules.", feature: "cbt_modules" },
+  { id: "tour-admin", phase: "tour", tab: "admin", title: "Admin Panel", desc: "Fleet, templates, team management, notifications, and billing \u2014 all in one place.", feature: null },
+];
+
 const DEFAULT_RISK_CATEGORIES = [
   { id: "weather", name: "Weather", icon: "", factors: [
     { id: "wx_ceiling", label: "Ceiling < 1000' AGL at departure or destination", score: 4 },
@@ -537,6 +550,200 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
       </>)}
     </div>)}
   </>);
+}
+
+function OnboardingWizard({ onComplete, onDismiss, setCv, fleetAircraft, onAddAircraft, onInviteUser, orgName, userName, org, orgSlug }) {
+  const [step, setStep] = useState(0);
+  // Fleet mini-form state
+  const [acType, setAcType] = useState("");
+  const [acTail, setAcTail] = useState("");
+  const [acAdded, setAcAdded] = useState(0);
+  // Invite mini-form state
+  const [invEmail, setInvEmail] = useState("");
+  const [invRole, setInvRole] = useState("pilot");
+  const [invSent, setInvSent] = useState(0);
+  const [invError, setInvError] = useState("");
+  const [invSuccess, setInvSuccess] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  // Filter steps by org features
+  const steps = useMemo(() => ONBOARDING_STEPS.filter(s => {
+    if (!s.feature) return true;
+    return hasFeature(org, s.feature);
+  }), [org]);
+
+  const current = steps[step] || steps[0];
+  const isLastStep = step === steps.length - 1;
+  const setupSteps = steps.filter(s => s.phase === "setup");
+  const tourSteps = steps.filter(s => s.phase === "tour");
+  const isSetup = current.phase === "setup";
+
+  // Navigate to the tab when entering a tour step
+  useEffect(() => {
+    if (current.phase === "tour" && current.tab) {
+      setCv(current.tab);
+    }
+  }, [step, current]);
+
+  const goNext = () => { if (step < steps.length - 1) setStep(step + 1); else onComplete(); };
+  const goBack = () => { if (step > 0) setStep(step - 1); };
+
+  const handleAddAircraft = async () => {
+    if (!acType.trim() || !acTail.trim()) return;
+    setBusy(true);
+    try {
+      await onAddAircraft({ aircraft_type: acType.trim(), tail_number: acTail.trim().toUpperCase() });
+      setAcAdded(prev => prev + 1);
+      setAcType("");
+      setAcTail("");
+    } catch (e) { console.error(e); }
+    setBusy(false);
+  };
+
+  const handleInvite = async () => {
+    if (!invEmail.trim()) return;
+    setBusy(true);
+    setInvError("");
+    setInvSuccess("");
+    try {
+      const result = await onInviteUser(invEmail.trim(), invRole);
+      if (result?.error) { setInvError(typeof result.error === "string" ? result.error : result.error.message || "Failed to send invite"); }
+      else { setInvSent(prev => prev + 1); setInvSuccess(`Invite sent to ${invEmail.trim()}`); setInvEmail(""); }
+    } catch (e) { setInvError("Failed to send invite"); }
+    setBusy(false);
+  };
+
+  const inp = { width: "100%", padding: "10px 12px", borderRadius: 6, border: `1px solid ${BORDER}`, background: NEAR_BLACK, color: WHITE, fontSize: 13, fontFamily: "inherit" };
+  const btnPrimary = { padding: "10px 28px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" };
+  const btnSecondary = { padding: "10px 28px", background: "transparent", color: OFF_WHITE, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" };
+
+  // Setup phase — full-screen modal
+  if (isSetup) {
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <div style={{ ...card, maxWidth: 520, width: "100%", padding: "36px 32px", position: "relative" }}>
+          {/* Step dots */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 28 }}>
+            {setupSteps.map((s, i) => {
+              const stepIdx = steps.indexOf(s);
+              return <div key={s.id} style={{ width: 8, height: 8, borderRadius: 4, background: stepIdx <= step ? WHITE : BORDER, transition: "background 0.2s" }} />;
+            })}
+          </div>
+
+          {/* Step 0: Welcome */}
+          {current.id === "welcome" && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 28 }}>{"\u2708\uFE0F"}</div>
+              <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 22 }}>Welcome, {(userName || "").split(" ")[0] || "there"}!</h2>
+              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 8px" }}>You&apos;ve created <strong style={{ color: WHITE }}>{orgName}</strong> on PreflightSMS.</p>
+              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 28px" }}>{current.desc}</p>
+              <button onClick={goNext} style={btnPrimary}>Let&apos;s Go</button>
+            </div>
+          )}
+
+          {/* Step 1: Add Fleet */}
+          {current.id === "fleet" && (
+            <div>
+              <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 6px", fontSize: 20 }}>{current.title}</h2>
+              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 20px" }}>{current.desc}</p>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <input value={acType} onChange={e => setAcType(e.target.value)} placeholder="Aircraft type (e.g. PC-12)" style={{ ...inp, flex: 1 }} onKeyDown={e => e.key === "Enter" && handleAddAircraft()} />
+                <input value={acTail} onChange={e => setAcTail(e.target.value)} placeholder="Tail # (e.g. N123AB)" style={{ ...inp, flex: 1 }} onKeyDown={e => e.key === "Enter" && handleAddAircraft()} />
+              </div>
+              <button onClick={handleAddAircraft} disabled={busy || !acType.trim() || !acTail.trim()} style={{ ...btnSecondary, width: "100%", marginBottom: 16, opacity: (!acType.trim() || !acTail.trim()) ? 0.4 : 1 }}>
+                {busy ? "Adding..." : "+ Add Aircraft"}
+              </button>
+              {(acAdded > 0 || (fleetAircraft && fleetAircraft.length > 0)) && (
+                <div style={{ padding: "10px 14px", borderRadius: 6, background: NEAR_BLACK, border: `1px solid ${BORDER}`, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ color: GREEN, fontSize: 16 }}>{"\u2713"}</span>
+                  <span style={{ color: OFF_WHITE, fontSize: 13 }}>{fleetAircraft?.length || acAdded} aircraft registered</span>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <button onClick={goBack} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Back</button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={goNext} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Skip</button>
+                  {(fleetAircraft?.length > 0 || acAdded > 0) && <button onClick={goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>Next</button>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Invite Team */}
+          {current.id === "invite" && (
+            <div>
+              <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 6px", fontSize: 20 }}>{current.title}</h2>
+              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 20px" }}>{current.desc}</p>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <input value={invEmail} onChange={e => { setInvEmail(e.target.value); setInvError(""); setInvSuccess(""); }} placeholder="Email address" type="email" style={{ ...inp, flex: 2 }} onKeyDown={e => e.key === "Enter" && handleInvite()} />
+                <select value={invRole} onChange={e => setInvRole(e.target.value)} style={{ ...inp, flex: 1, appearance: "auto" }}>
+                  <option value="pilot">Pilot</option>
+                  <option value="safety_manager">Safety Manager</option>
+                  <option value="chief_pilot">Chief Pilot</option>
+                </select>
+              </div>
+              <button onClick={handleInvite} disabled={busy || !invEmail.trim()} style={{ ...btnSecondary, width: "100%", marginBottom: 12, opacity: !invEmail.trim() ? 0.4 : 1 }}>
+                {busy ? "Sending..." : "Send Invite"}
+              </button>
+              {invError && <div style={{ color: RED, fontSize: 12, marginBottom: 8 }}>{invError}</div>}
+              {invSuccess && <div style={{ color: GREEN, fontSize: 12, marginBottom: 8 }}>{invSuccess}</div>}
+              {invSent > 0 && <div style={{ padding: "10px 14px", borderRadius: 6, background: NEAR_BLACK, border: `1px solid ${BORDER}`, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ color: GREEN, fontSize: 16 }}>{"\u2713"}</span>
+                <span style={{ color: OFF_WHITE, fontSize: 13 }}>{invSent} invite{invSent !== 1 ? "s" : ""} sent</span>
+              </div>}
+              {orgSlug && (
+                <div style={{ padding: "10px 14px", borderRadius: 6, background: NEAR_BLACK, border: `1px solid ${BORDER}`, marginBottom: 16 }}>
+                  <div style={{ fontSize: 10, color: MUTED, marginBottom: 2 }}>Or share your join code</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: CYAN, fontFamily: "monospace" }}>{orgSlug}</div>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <button onClick={goBack} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Back</button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={goNext} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Skip</button>
+                  {invSent > 0 && <button onClick={goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>Next</button>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Skip setup link */}
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <button onClick={onDismiss} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>Skip setup entirely</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Tour phase — floating card overlay
+  const tourIdx = tourSteps.indexOf(current);
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.6)", pointerEvents: "auto" }}>
+      <div className="onboarding-tour-card" style={{ position: "fixed", top: 80, right: 24, width: 360, ...card, padding: "28px 24px", boxShadow: "0 16px 48px rgba(0,0,0,0.6)", zIndex: 2001 }}>
+        {/* Tour progress dots */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+          {tourSteps.map((s, i) => (
+            <div key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= tourIdx ? WHITE : BORDER, transition: "background 0.2s" }} />
+          ))}
+        </div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>
+          Feature tour {tourIdx + 1} of {tourSteps.length}
+        </div>
+        <h3 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 18 }}>{current.title}</h3>
+        <p style={{ color: OFF_WHITE, fontSize: 13, lineHeight: 1.6, margin: "0 0 24px" }}>{current.desc}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button onClick={goBack} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Back</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onDismiss} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>Skip tour</button>
+            <button onClick={isLastStep ? onComplete : goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>
+              {isLastStep ? "Get Started" : "Next"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function RiskScoreGauge({ score }) {
@@ -2044,6 +2251,7 @@ export default function PVTAIRFrat() {
   const [invitations_list, setInvitationsList] = useState([]);
   const isOnline = !!supabase;
   const org = profile?.organizations || {};
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Derived template config
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
@@ -2199,6 +2407,21 @@ export default function PVTAIRFrat() {
     setTemplateVariables(orgSettings.sms_template_variables || {});
     setSmsSignatures(orgSettings.sms_signatures || {});
   }, [profile]);
+
+  // Onboarding wizard trigger
+  useEffect(() => {
+    if (!profile || !isOnline) return;
+    const isAdmin = ["admin", "safety_manager", "accountable_exec"].includes(profile.role);
+    const orgSettings = profile.organizations?.settings || {};
+    const subStatus = profile.organizations?.subscription_status || "active";
+    const isCanceled = subStatus === "canceled";
+    const isSuspended = subStatus === "suspended";
+    const trialCreatedAt = profile.organizations?.created_at ? new Date(profile.organizations.created_at) : null;
+    const isTrialExpired = subStatus === "trial" && trialCreatedAt && Math.floor((Date.now() - trialCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) >= 14;
+    if (isAdmin && !orgSettings.onboarding_completed && !orgSettings.onboarding_skipped && fleetAircraft.length === 0 && !isCanceled && !isSuspended && !isTrialExpired) {
+      setShowOnboarding(true);
+    }
+  }, [profile, fleetAircraft, isOnline]);
 
   // ── Poll notifications every 60s ──
   useEffect(() => {
@@ -2693,10 +2916,30 @@ export default function PVTAIRFrat() {
   const userName = profile?.full_name || "";
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
 
+  // Onboarding handlers
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    setCv("submit");
+    if (profile?.org_id) {
+      await saveOnboardingStatus(profile.org_id, { onboarding_completed: true });
+      // Update local profile to prevent re-showing
+      setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true } } } : prev);
+    }
+  };
+  const handleOnboardingDismiss = async () => {
+    setShowOnboarding(false);
+    setCv("submit");
+    if (profile?.org_id) {
+      await saveOnboardingStatus(profile.org_id, { onboarding_completed: true, onboarding_skipped: true });
+      setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true, onboarding_skipped: true } } } : prev);
+    }
+  };
+
   // Read-only guard for canceled subscriptions
   const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: isTrialExpired ? "Your trial has expired — subscribe to continue" : "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
+    {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} />}
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} />
       <div className="main-content" style={{ marginLeft: 140 }}>
@@ -2919,6 +3162,7 @@ export default function PVTAIRFrat() {
 .trial-expired-plans{flex-direction:column !important}
 .trial-banner{flex-direction:column !important;gap:8px !important;text-align:center}
 .flight-board-grid{grid-template-columns:1fr !important}
+.onboarding-tour-card{top:auto !important;bottom:0 !important;right:0 !important;left:0 !important;width:100% !important;border-radius:16px 16px 0 0 !important;max-height:60vh;overflow-y:auto}
 }
 @media(max-width:480px){
 .flight-info-grid{grid-template-columns:1fr !important}
