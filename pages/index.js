@@ -893,6 +893,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
+    CANCELLED: { label: "CANCELLED", color: MUTED, bg: "rgba(255,255,255,0.04)", border: "rgba(255,255,255,0.12)" },
     PENDING_APPROVAL: { label: "AWAITING APPROVAL", color: YELLOW, bg: "rgba(250,204,21,0.08)", border: "rgba(250,204,21,0.25)" },
     REJECTED: { label: "REJECTED", color: RED, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)" },
   };
@@ -920,14 +921,19 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
     }).catch(() => {});
   }, [flights]);
 
-  const recent = useMemo(() => flights.filter(f => f.status !== "ARRIVED" || (now - new Date(f.arrivedAt || f.timestamp).getTime()) < 24 * 3600000), [flights, now]);
+  const recent = useMemo(() => flights.filter(f => {
+    if (f.status === "ACTIVE" || f.status === "PENDING_APPROVAL") return true;
+    const completedAt = f.arrivedAt || f.timestamp;
+    if (!completedAt) return false;
+    return (now - new Date(completedAt).getTime()) < 24 * 3600000;
+  }), [flights, now]);
   const flightCounts = useMemo(() => {
     let active = 0, arrived = 0;
-    recent.forEach(f => { if (f.status === "ACTIVE") active++; else if (f.status === "ARRIVED") arrived++; });
+    recent.forEach(f => { if (f.status === "ACTIVE" || f.status === "PENDING_APPROVAL") active++; else arrived++; });
     return { ACTIVE: active, ARRIVED: arrived, ALL: recent.length };
   }, [recent]);
   const displayed = (() => {
-    let list = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE") : filter === "ARRIVED" ? recent.filter(f => f.status === "ARRIVED") : recent;
+    let list = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE" || f.status === "PENDING_APPROVAL") : filter === "ARRIVED" ? recent.filter(f => f.status !== "ACTIVE" && f.status !== "PENDING_APPROVAL") : recent;
     const q = search.toLowerCase().trim();
     if (q) list = list.filter(f => `${f.pilot || ""} ${f.departure || ""} ${f.destination || ""} ${f.aircraft || ""} ${f.id || ""}`.toLowerCase().includes(q));
     return list;
@@ -944,7 +950,9 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
     if (f.status === "ARRIVED") return 100;
     if (!f.eta) return -1;
     const end = new Date(f.eta).getTime();
-    const start = new Date(f.timestamp).getTime();
+    // Compute actual departure time from eta minus ete (more accurate than created_at)
+    const eteMins = parseETE(f.ete);
+    const start = eteMins > 0 ? end - eteMins * 60000 : new Date(f.timestamp).getTime();
     if (isNaN(end) || isNaN(start) || end <= start) return 0;
     const pct = ((now - start) / (end - start)) * 100;
     return Math.max(0, Math.min(pct, 95));
@@ -1043,8 +1051,8 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
             const st = STATUSES[f.status] || STATUSES.ACTIVE;
             const overdue = isOverdue(f);
             const progress = getProgress(f);
-            const statusLabel = overdue ? "OVERDUE" : f.status === "PENDING_APPROVAL" ? "AWAITING APPROVAL" : f.status === "REJECTED" ? "REJECTED" : f.status === "ACTIVE" ? "ENROUTE" : "ARRIVED";
-            const statusColor = overdue ? RED : f.status === "PENDING_APPROVAL" ? YELLOW : f.status === "REJECTED" ? RED : st.color;
+            const statusLabel = overdue ? "OVERDUE" : st.label;
+            const statusColor = overdue ? RED : st.color;
             return (
               <div key={f.id} style={{ ...card, padding: "18px 22px", marginBottom: 12, borderRadius: 10, border: `1px solid ${overdue ? RED + "44" : BORDER}`, cursor: "pointer" }}
                 onClick={() => setSelectedFlight(selectedFlight === f.id ? null : f.id)}>
@@ -1071,7 +1079,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight 
                   </div>
                   <div style={{ color: MUTED, fontSize: 11 }}>
                     <span>ETD/ETA</span>{" "}
-                    <span style={{ color: OFF_WHITE }}>{f.etd || "—"} / {f.eta ? formatLocal(new Date(f.eta)) : "—"}</span>
+                    <span style={{ color: OFF_WHITE }}>{f.etd ? f.etd.replace(/[^0-9]/g, "").padStart(4, "0").replace(/(\d{2})(\d{2})/, "$1:$2") : "—"} / {f.eta ? formatLocal(new Date(f.eta)).replace(/(\d{2})(\d{2})/, "$1:$2") : "—"}</span>
                   </div>
                 </div>
                 {/* Expanded details */}
