@@ -6,7 +6,7 @@ const GREEN="#4ADE80",YELLOW="#FACC15",AMBER="#F59E0B",RED="#EF4444",CYAN="#22D3
 const card={background:CARD,borderRadius:10,border:`1px solid ${BORDER}`};
 const inp={width:"100%",padding:"8px 12px",background:NEAR_BLACK,border:`1px solid ${BORDER}`,borderRadius:6,color:WHITE,fontSize:12,boxSizing:"border-box"};
 const lbl={fontSize:9,color:MUTED,textTransform:"uppercase",letterSpacing:1,marginBottom:3,fontWeight:600};
-const POSITIONS=["pilot","captain","first_officer","check_airman","dispatcher","other"];
+const POSITIONS=["PIC","SIC","Check Airman"];
 const STATUSES=["active","inactive","leave","terminated"];
 const CERT_TYPES=["ATP","Commercial","Private"];
 const MEDICAL_CLASSES=["First","Second","Third"];
@@ -99,6 +99,19 @@ function calcRecurrentExpires(lastDate) {
   return addCalendarMonths(lastDate, 12);
 }
 
+// 135.339 FAA Observation Check: 24 calendar months (Check Airman only)
+function calcFaaObservationExpires(lastDate) {
+  return addCalendarMonths(lastDate, 24);
+}
+
+// Position-based requirement helpers
+// PIC: 135.297, 135.293, 135.299, 135.343
+// SIC: 135.293, 135.343 only (NO 135.297 IPC, NO 135.299 line check)
+// Check Airman: all PIC items + 135.339 FAA observation (24 months)
+function needsIPC(pos) { return pos === "PIC" || pos === "Check Airman"; }
+function needsLineCheck(pos) { return pos === "PIC" || pos === "Check Airman"; }
+function needsFaaObservation(pos) { return pos === "Check Airman"; }
+
 // ══════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════
@@ -126,6 +139,7 @@ function getCalcDates(c) {
     checkride_expires_calc: calcCheckrideExpires(c.last_135_checkride),
     line_check_expires_calc: calcLineCheckExpires(c.last_line_check),
     recurrent_expires_calc: calcRecurrentExpires(c.last_recurrent),
+    faa_observation_expires_calc: calcFaaObservationExpires(c.last_faa_observation),
   };
 }
 
@@ -135,7 +149,7 @@ function getExpDate(c, field, calcField) {
 }
 
 const emptyForm = {
-  full_name:"",position:"pilot",status:"active",notes:"",birth_date:"",
+  full_name:"",position:"PIC",status:"active",notes:"",birth_date:"",
   certificate_type:"",certificate_number:"",certificate_issued:"",
   ratings:[],type_ratings:[],
   medical_class:"",medical_issued:"",medical_expires:"",basicmed:false,
@@ -143,13 +157,14 @@ const emptyForm = {
   last_135_checkride:"",checkride_expires:"",
   last_line_check:"",line_check_expires:"",
   last_recurrent:"",recurrent_expires:"",
+  last_faa_observation:"",faa_observation_expires:"",
 };
 
 // ══════════════════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════════════════
 
-export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, canManage }) {
+export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, canManage, fleetAircraftTypes = [] }) {
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -171,13 +186,15 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
     crew.filter(c=>c.status==="active").forEach(c => {
       const calc = getCalcDates(c);
       const priv = calcMedicalPrivileges(c.medical_class, c.medical_issued, c.birth_date);
+      const pos = c.position;
       const dates = [
         priv?.part135Expires,
-        getExpDate(c,"ipc_expires",calc.ipc_expires_calc),
         getExpDate(c,"checkride_expires",calc.checkride_expires_calc),
-        getExpDate(c,"line_check_expires",calc.line_check_expires_calc),
         getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc),
       ];
+      if (needsIPC(pos)) dates.push(getExpDate(c,"ipc_expires",calc.ipc_expires_calc));
+      if (needsLineCheck(pos)) dates.push(getExpDate(c,"line_check_expires",calc.line_check_expires_calc));
+      if (needsFaaObservation(pos)) dates.push(getExpDate(c,"faa_observation_expires",calc.faa_observation_expires_calc));
       dates.forEach(d => { if(daysUntil(d)!==null && daysUntil(d)<=60) n++; });
     });
     return n;
@@ -197,6 +214,7 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
     if (!toSave.checkride_expires && calc.checkride_expires_calc) toSave.checkride_expires = calc.checkride_expires_calc;
     if (!toSave.line_check_expires && calc.line_check_expires_calc) toSave.line_check_expires = calc.line_check_expires_calc;
     if (!toSave.recurrent_expires && calc.recurrent_expires_calc) toSave.recurrent_expires = calc.recurrent_expires_calc;
+    if (!toSave.faa_observation_expires && calc.faa_observation_expires_calc) toSave.faa_observation_expires = calc.faa_observation_expires_calc;
     // Sanitize empty strings to null (Postgres rejects "" for date columns)
     Object.keys(toSave).forEach(k => { if (toSave[k] === "") toSave[k] = null; });
     if(selected){await onUpdate(selected.id, toSave);}else{await onAdd(toSave);}
@@ -238,13 +256,17 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
           :filtered.map(c=>{
             const isSelected=selected?.id===c.id;
             const calc=getCalcDates(c);
-            const dates=[getExpDate(c,"medical_expires",calc.medical_expires_calc),getExpDate(c,"ipc_expires",calc.ipc_expires_calc),getExpDate(c,"checkride_expires",calc.checkride_expires_calc),getExpDate(c,"line_check_expires",calc.line_check_expires_calc),getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc)];
+            const pos=c.position;
+            const dates=[getExpDate(c,"medical_expires",calc.medical_expires_calc),getExpDate(c,"checkride_expires",calc.checkride_expires_calc),getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc)];
+            if(needsIPC(pos)) dates.push(getExpDate(c,"ipc_expires",calc.ipc_expires_calc));
+            if(needsLineCheck(pos)) dates.push(getExpDate(c,"line_check_expires",calc.line_check_expires_calc));
+            if(needsFaaObservation(pos)) dates.push(getExpDate(c,"faa_observation_expires",calc.faa_observation_expires_calc));
             const hasAlert=dates.some(d=>{const dd=daysUntil(d);return dd!==null&&dd<=60;});
             return (<div key={c.id} onClick={()=>selectCrew(c)} style={{...card,padding:"12px 16px",marginBottom:6,cursor:"pointer",border:`1px solid ${isSelected?LIGHT_BORDER:BORDER}`,background:isSelected?"rgba(255,255,255,0.04)":CARD}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:WHITE}}>{c.full_name}{hasAlert&&<span style={{color:AMBER,marginLeft:6,fontSize:11}}>{"\u26A0"}</span>}</div>
-                  <div style={{fontSize:10,color:MUTED,marginTop:2}}>{c.position?.replace("_"," ")}</div>
+                  <div style={{fontSize:10,color:MUTED,marginTop:2}}>{c.position}</div>
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:9,fontWeight:600,textTransform:"uppercase",color:c.status==="active"?GREEN:c.status==="leave"?YELLOW:RED}}>{c.status}</div>
@@ -256,7 +278,7 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
           })}
         </div>
         {(selected||editing)&&<div style={{...card,padding:"20px 24px",overflowY:"auto",maxHeight:"calc(100vh - 200px)"}}>
-          {editing?<CrewForm form={form} setField={setField} toggleRating={toggleRating} addTypeRating={addTypeRating} removeTypeRating={removeTypeRating} newTypeRating={newTypeRating} setNewTypeRating={setNewTypeRating} onSave={save} onCancel={()=>setEditing(false)} isNew={!selected} />
+          {editing?<CrewForm form={form} setField={setField} toggleRating={toggleRating} addTypeRating={addTypeRating} removeTypeRating={removeTypeRating} newTypeRating={newTypeRating} setNewTypeRating={setNewTypeRating} onSave={save} onCancel={()=>setEditing(false)} isNew={!selected} fleetAircraftTypes={fleetAircraftTypes} />
           :selected?<DetailView crew={selected} tab={tab} setTab={setTab} canManage={canManage} onEdit={startEdit} onDelete={handleDelete} confirmDelete={confirmDelete} setConfirmDelete={setConfirmDelete} />
           :null}
         </div>}
@@ -271,16 +293,18 @@ export default function CrewRoster({ crewRecords, onAdd, onUpdate, onDelete, can
 
 function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,setConfirmDelete}) {
   const calc=getCalcDates(c);
+  const pos=c.position;
   const ipcExp=getExpDate(c,"ipc_expires",calc.ipc_expires_calc);
   const ckExp=getExpDate(c,"checkride_expires",calc.checkride_expires_calc);
   const lcExp=getExpDate(c,"line_check_expires",calc.line_check_expires_calc);
   const recExp=getExpDate(c,"recurrent_expires",calc.recurrent_expires_calc);
+  const faoExp=getExpDate(c,"faa_observation_expires",calc.faa_observation_expires_calc);
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
       <div>
         <div style={{fontSize:20,fontWeight:800,color:WHITE}}>{c.full_name}</div>
-        <div style={{fontSize:11,color:MUTED}}>{c.position?.replace("_"," ")}</div>
+        <div style={{fontSize:11,color:MUTED}}>{c.position}</div>
       </div>
       {canManage&&<div style={{display:"flex",gap:6}}>
         <button onClick={onEdit} style={{padding:"6px 14px",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${BORDER}`,color:CYAN}}>Edit</button>
@@ -355,9 +379,9 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
     </div>}
 
     {tab==="currency"&&<div>
-      <div style={{fontSize:9,color:MUTED,marginBottom:12}}>Part 135 pilot-in-command currency requirements. 135.297 IPC also satisfies 135.293 competency check and 61.56 flight review.</div>
+      <div style={{fontSize:9,color:MUTED,marginBottom:12}}>Part 135 currency requirements for {pos}. {needsIPC(pos)?"135.297 IPC also satisfies 135.293 competency check and 61.56 flight review.":"SIC requires 135.293 competency check and 135.343 recurrent training."}</div>
 
-      <div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
+      {needsIPC(pos)&&<div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
         <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Instrument Proficiency Check (135.297) <span style={{color:MUTED,fontWeight:400}}>\u2014 6 cal months</span></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <div><div style={{...lbl}}>Last IPC</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.last_ipc)}</div></div>
@@ -365,7 +389,7 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
             {!c.ipc_expires&&calc.ipc_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto-calculated per 135.297</div>}
           </div>
         </div>
-      </div>
+      </div>}
 
       <div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
         <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Competency Check (135.293) <span style={{color:MUTED,fontWeight:400}}>\u2014 12 cal months</span></div>
@@ -375,20 +399,20 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
             {!c.checkride_expires&&calc.checkride_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto-calculated per 135.293</div>}
           </div>
         </div>
-        <div style={{fontSize:9,color:SUBTLE,marginTop:8}}>A current 135.297 IPC satisfies this requirement. Also satisfies 61.56 flight review.</div>
+        {needsIPC(pos)&&<div style={{fontSize:9,color:SUBTLE,marginTop:8}}>A current 135.297 IPC satisfies this requirement. Also satisfies 61.56 flight review.</div>}
       </div>
 
-      <div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
-        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Line Check (135.299) <span style={{color:MUTED,fontWeight:400}}>\u2014 12 cal months, PIC only</span></div>
+      {needsLineCheck(pos)&&<div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
+        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Line Check (135.299) <span style={{color:MUTED,fontWeight:400}}>\u2014 12 cal months</span></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <div><div style={{...lbl}}>Last Line Check</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.last_line_check)}</div></div>
           <div><div style={{...lbl}}>Expires</div><div style={{fontSize:12,color:expColor(lcExp),fontWeight:600}}>{fmtDate(lcExp)}</div>
             {!c.line_check_expires&&calc.line_check_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto-calculated per 135.299</div>}
           </div>
         </div>
-      </div>
+      </div>}
 
-      <div style={{...card,padding:"14px 16px",background:NEAR_BLACK}}>
+      <div style={{...card,padding:"14px 16px",marginBottom:12,background:NEAR_BLACK}}>
         <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>Recurrent Training (135.343) <span style={{color:MUTED,fontWeight:400}}>\u2014 12 cal months</span></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <div><div style={{...lbl}}>Last Recurrent</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.last_recurrent)}</div></div>
@@ -397,12 +421,22 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
           </div>
         </div>
       </div>
+
+      {needsFaaObservation(pos)&&<div style={{...card,padding:"14px 16px",background:NEAR_BLACK}}>
+        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:10}}>FAA Observation Check (135.339) <span style={{color:MUTED,fontWeight:400}}>\u2014 24 cal months</span></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div><div style={{...lbl}}>Last Observation</div><div style={{fontSize:12,color:WHITE}}>{fmtDate(c.last_faa_observation)}</div></div>
+          <div><div style={{...lbl}}>Expires</div><div style={{fontSize:12,color:expColor(faoExp),fontWeight:600}}>{fmtDate(faoExp)}</div>
+            {!c.faa_observation_expires&&calc.faa_observation_expires_calc&&<div style={{fontSize:9,color:CYAN,marginTop:2}}>Auto-calculated per 135.339</div>}
+          </div>
+        </div>
+      </div>}
     </div>}
 
     {tab==="alerts"&&<div>
       <div style={{...card,padding:"14px 16px",background:NEAR_BLACK}}>
         <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:8}}>Upcoming Expirations</div>
-        <div style={{fontSize:9,color:MUTED,marginBottom:10}}>Dates auto-calculated per FAR unless manually overridden</div>
+        <div style={{fontSize:9,color:MUTED,marginBottom:10}}>Dates auto-calculated per FAR unless manually overridden. Showing requirements for {pos}.</div>
         {(()=>{
           const priv=calcMedicalPrivileges(c.medical_class,c.medical_issued,c.birth_date);
           return (<>
@@ -411,10 +445,11 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
             {priv?.third&&expBadge(priv.third,"3rd Class Medical (all privileges)")}
           </>);
         })()}
-        {expBadge(ipcExp,"IPC (135.297) \u2014 6 cal months")}
+        {needsIPC(pos)&&expBadge(ipcExp,"IPC (135.297) \u2014 6 cal months")}
         {expBadge(ckExp,"Competency Check (135.293) \u2014 12 cal months")}
-        {expBadge(lcExp,"Line Check (135.299) \u2014 12 cal months")}
+        {needsLineCheck(pos)&&expBadge(lcExp,"Line Check (135.299) \u2014 12 cal months")}
         {expBadge(recExp,"Recurrent Training (135.343) \u2014 12 cal months")}
+        {needsFaaObservation(pos)&&expBadge(faoExp,"FAA Observation (135.339) \u2014 24 cal months")}
       </div>
     </div>}
   </div>);
@@ -424,7 +459,7 @@ function DetailView({crew:c,tab,setTab,canManage,onEdit,onDelete,confirmDelete,s
 // FORM
 // ══════════════════════════════════════════════
 
-function CrewForm({form,setField,toggleRating,addTypeRating,removeTypeRating,newTypeRating,setNewTypeRating,onSave,onCancel,isNew}) {
+function CrewForm({form,setField,toggleRating,addTypeRating,removeTypeRating,newTypeRating,setNewTypeRating,onSave,onCancel,isNew,fleetAircraftTypes}) {
   const calc=getCalcDates(form);
   const section=(title)=><div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:8,marginTop:16,paddingBottom:6,borderBottom:`1px solid ${BORDER}`}}>{title}</div>;
   const field=(l,key,type="text",opts)=>(<div style={{marginBottom:8}}>
@@ -445,7 +480,12 @@ function CrewForm({form,setField,toggleRating,addTypeRating,removeTypeRating,new
     {section("Certificates")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{field("Certificate Type","certificate_type","select",CERT_TYPES)}{field("Certificate Number","certificate_number")}{field("Date Issued","certificate_issued","date")}</div>
     <div style={{marginTop:8}}><div style={{...lbl}}>Ratings</div><div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>{COMMON_RATINGS.map(r=><button key={r} onClick={()=>toggleRating(r)} style={{padding:"4px 10px",borderRadius:4,fontSize:10,cursor:"pointer",background:form.ratings.includes(r)?`${GREEN}22`:"transparent",border:`1px solid ${form.ratings.includes(r)?GREEN+"66":BORDER}`,color:form.ratings.includes(r)?GREEN:MUTED}}>{r}</button>)}</div></div>
-    <div style={{marginBottom:8}}><div style={{...lbl}}>Type Ratings</div><div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{form.type_ratings.map(r=><span key={r} onClick={()=>removeTypeRating(r)} style={{padding:"4px 8px",borderRadius:4,fontSize:10,cursor:"pointer",background:`${CYAN}22`,border:`1px solid ${CYAN}44`,color:CYAN}}>{r} {"\u2715"}</span>)}</div><div style={{display:"flex",gap:6}}><input placeholder="e.g. PC-12, BE-200" value={newTypeRating} onChange={e=>setNewTypeRating(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTypeRating()} style={{...inp,flex:1}} /><button onClick={addTypeRating} style={{padding:"6px 12px",background:CYAN,color:BLACK,border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer"}}>Add</button></div></div>
+    <div style={{marginBottom:8}}><div style={{...lbl}}>Type Ratings (from Fleet)</div>
+      {fleetAircraftTypes.length>0?<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{fleetAircraftTypes.map(t=><button key={t} onClick={()=>{const tr=form.type_ratings||[];setField("type_ratings",tr.includes(t)?tr.filter(x=>x!==t):[...tr,t]);}} style={{padding:"4px 10px",borderRadius:4,fontSize:10,cursor:"pointer",background:(form.type_ratings||[]).includes(t)?`${CYAN}22`:"transparent",border:`1px solid ${(form.type_ratings||[]).includes(t)?CYAN+"66":BORDER}`,color:(form.type_ratings||[]).includes(t)?CYAN:MUTED}}>{t}</button>)}</div>
+      :<div style={{fontSize:10,color:MUTED,marginBottom:6}}>Add aircraft to Fleet Management to assign type ratings</div>}
+      {(form.type_ratings||[]).filter(t=>!fleetAircraftTypes.includes(t)).length>0&&<div style={{marginTop:4}}><div style={{fontSize:9,color:MUTED,marginBottom:3}}>Additional (not in fleet)</div><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{form.type_ratings.filter(t=>!fleetAircraftTypes.includes(t)).map(r=><span key={r} onClick={()=>removeTypeRating(r)} style={{padding:"4px 8px",borderRadius:4,fontSize:10,cursor:"pointer",background:`${CYAN}22`,border:`1px solid ${CYAN}44`,color:CYAN}}>{r} {"\u2715"}</span>)}</div></div>}
+      <div style={{display:"flex",gap:6,marginTop:6}}><input placeholder="Add custom type..." value={newTypeRating} onChange={e=>setNewTypeRating(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTypeRating()} style={{...inp,flex:1}} /><button onClick={addTypeRating} style={{padding:"6px 12px",background:CYAN,color:BLACK,border:"none",borderRadius:6,fontSize:11,fontWeight:600,cursor:"pointer"}}>Add</button></div>
+    </div>
 
     {section("Medical (auto-calculates per 61.23)")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -457,11 +497,11 @@ function CrewForm({form,setField,toggleRating,addTypeRating,removeTypeRating,new
     <div style={{fontSize:9,color:MUTED,marginTop:2}}>Leave blank to auto-calculate. Manual entry overrides the FAR calculation.</div>
     <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:11,color:MUTED,marginTop:4}}><input type="checkbox" checked={form.basicmed} onChange={e=>setField("basicmed",e.target.checked)} />BasicMed</label>
 
-    {section("Instrument Proficiency Check (auto: 6 cal months per 135.297)")}
+    {needsIPC(form.position)&&<>{section("Instrument Proficiency Check (auto: 6 cal months per 135.297)")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {field("Last IPC","last_ipc","date")}
       <div>{field("Expires (override)","ipc_expires","date")}{calcHint(calc.ipc_expires_calc,"135.297")}</div>
-    </div>
+    </div></>}
 
     {section("Competency Check (auto: 12 cal months per 135.293)")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -469,17 +509,23 @@ function CrewForm({form,setField,toggleRating,addTypeRating,removeTypeRating,new
       <div>{field("Expires (override)","checkride_expires","date")}{calcHint(calc.checkride_expires_calc,"135.293")}</div>
     </div>
 
-    {section("Line Check (auto: 12 cal months per 135.299)")}
+    {needsLineCheck(form.position)&&<>{section("Line Check (auto: 12 cal months per 135.299)")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {field("Last Line Check","last_line_check","date")}
       <div>{field("Expires (override)","line_check_expires","date")}{calcHint(calc.line_check_expires_calc,"135.299")}</div>
-    </div>
+    </div></>}
 
     {section("Recurrent Training (auto: 12 cal months per 135.343)")}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {field("Last Recurrent","last_recurrent","date")}
       <div>{field("Expires (override)","recurrent_expires","date")}{calcHint(calc.recurrent_expires_calc,"135.343")}</div>
     </div>
+
+    {needsFaaObservation(form.position)&&<>{section("FAA Observation Check (auto: 24 cal months per 135.339)")}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+      {field("Last FAA Observation","last_faa_observation","date")}
+      <div>{field("Expires (override)","faa_observation_expires","date")}{calcHint(calc.faa_observation_expires_calc,"135.339")}</div>
+    </div></>}
 
     {section("Notes")}
     <div style={{marginBottom:8}}><div style={{...lbl}}>Notes</div><textarea value={form.notes||""} onChange={e=>setField("notes",e.target.value)} rows={3} style={{...inp,resize:"vertical"}} /></div>
