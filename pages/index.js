@@ -559,13 +559,14 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
 
   const currentTemplate = activeTemplateId ? allTemplates?.find(t => t.id === activeTemplateId) : null;
   const RISK_CATEGORIES = currentTemplate?.categories || riskCategories || DEFAULT_RISK_CATEGORIES;
-  const activeFleet = useMemo(() => (fleetAircraft || []).filter(a => a.status === "active"), [fleetAircraft]);
+  const fleetList = fleetAircraft || [];
   const FLEET_REG_MAP = useMemo(() => {
     const map = {};
-    activeFleet.forEach(a => { if (!map[a.type]) map[a.type] = []; map[a.type].push(a); });
+    fleetList.forEach(a => { if (!map[a.type]) map[a.type] = []; map[a.type].push(a); });
     return map;
-  }, [activeFleet]);
-  const AIRCRAFT_TYPES = activeFleet.length > 0 ? [...new Set(activeFleet.map(a => a.type))] : (currentTemplate?.aircraft_types || aircraftTypes || DEFAULT_AIRCRAFT_TYPES);
+  }, [fleetList]);
+  const AIRCRAFT_TYPES = [...new Set(fleetList.map(a => a.type))];
+  const hasFleet = fleetList.length > 0;
   const currentRiskLevels = currentTemplate?.risk_thresholds ? buildRiskLevels(currentTemplate.risk_thresholds) : riskLevels;
   const getRL = (s) => getRiskLevel(s, currentRiskLevels);
   const getLocalDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
@@ -673,14 +674,25 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
   };
   const reset = () => { attachments.forEach(a => URL.revokeObjectURL(a.preview)); setAttachments([]); setUploadingPhotos(false); setFi({ pilot: "", aircraft: "PC-12", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); };
 
+  if (!hasFleet) return (
+    <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>No Aircraft Registered</div>
+      <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Add aircraft to your fleet registry before submitting a FRAT.</div>
+      <button onClick={() => onNavigate("fleet")} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Fleet Registry</button>
+    </div>
+  );
+
+  // Build tail number options for current aircraft type
+  const tailOptions = FLEET_REG_MAP[fi.aircraft] || [];
+
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div style={{ ...card, padding: "24px 28px 28px", marginBottom: 18 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 16 }}>Flight Information</div>
         <div className="flight-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, minWidth: 0 }}>
           {[{ key: "pilot", label: "Pilot in Command", placeholder: "Full name", type: "text" },
-            { key: "aircraft", label: "Aircraft Type", type: "select" },
-            { key: "tailNumber", label: "Tail Number", placeholder: "e.g. N123AB", type: "text", upper: true },
+            { key: "aircraft", label: "Aircraft Type", type: "fleet-type" },
+            { key: "tailNumber", label: "Tail Number", type: "fleet-tail" },
             { key: "departure", label: "Departure (ICAO)", placeholder: "e.g. KSFF", type: "text", upper: true },
             { key: "destination", label: "Destination (ICAO)", placeholder: "e.g. KBOI", type: "text", upper: true },
             { key: "cruiseAlt", label: "Cruise Altitude", placeholder: "e.g. FL180 or 12000", type: "text" },
@@ -693,31 +705,27 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, aircraftTy
           ].map(f => (
             <div key={f.key} style={{ minWidth: 0, overflow: "hidden" }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{f.label}</label>
-              {f.type === "select" ? (
-                <select value={fi[f.key]} onChange={e => {
+              {f.type === "fleet-type" ? (
+                <select value={fi.aircraft} onChange={e => {
                   const val = e.target.value;
-                  setFi(p => {
-                    const next = { ...p, [f.key]: val };
-                    if (f.key === "aircraft" && FLEET_REG_MAP[val]) {
-                      const matches = FLEET_REG_MAP[val];
-                      next.tailNumber = matches.length === 1 ? matches[0].registration : "";
-                    }
-                    return next;
-                  });
-                  if (f.key === "aircraft" && allTemplates && allTemplates.length > 1) {
+                  const matches = FLEET_REG_MAP[val] || [];
+                  setFi(p => ({ ...p, aircraft: val, tailNumber: matches.length === 1 ? matches[0].registration : "" }));
+                  if (allTemplates && allTemplates.length > 1) {
                     const matched = resolveTemplate(val);
                     if (matched) { setActiveTemplateId(matched.id); setChecked({}); setAutoSuggested({}); }
                   }
                 }} style={inp}>
                   {AIRCRAFT_TYPES.map(a => <option key={a}>{a}</option>)}</select>
-              ) : f.key === "tailNumber" && FLEET_REG_MAP[fi.aircraft] && FLEET_REG_MAP[fi.aircraft].length > 1 ? (
-                <select value={fi.tailNumber} onChange={e => setFi(p => ({ ...p, tailNumber: e.target.value }))} style={inp}>
-                  <option value="">Select tail number...</option>
-                  {FLEET_REG_MAP[fi.aircraft].map(a => <option key={a.registration} value={a.registration}>{a.registration}</option>)}
-                </select>
+              ) : f.type === "fleet-tail" ? (
+                tailOptions.length === 1
+                  ? <input type="text" value={tailOptions[0].registration} readOnly style={{...inp, color: CYAN, cursor: "default"}} />
+                  : <select value={fi.tailNumber} onChange={e => setFi(p => ({ ...p, tailNumber: e.target.value }))} style={inp}>
+                      <option value="">Select tail number...</option>
+                      {tailOptions.map(a => <option key={a.registration} value={a.registration}>{a.registration}</option>)}
+                    </select>
               ) : (<input type={f.type === "date" ? "date" : "text"} placeholder={f.placeholder} value={fi[f.key]}
                 onChange={e => { let v = f.upper ? e.target.value.toUpperCase() : e.target.value; setFi(p => ({ ...p, [f.key]: v })); }}
-                onBlur={e => { if (f.key === "tailNumber" && fi.tailNumber && !fi.tailNumber.startsWith("N")) { setFi(p => ({ ...p, tailNumber: "N" + p.tailNumber })); } }} style={inp} />)}
+                style={inp} />)}
             </div>))}
         </div>
       </div>

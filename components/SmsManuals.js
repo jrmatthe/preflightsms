@@ -241,10 +241,9 @@ function TemplateVariablesForm({ variables, onSave, fleetAircraft }) {
                         style={{ padding: "6px 14px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 4, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
                         + Add Aircraft
                       </button>
-                      {fleetAircraft && fleetAircraft.filter(a => a.status === "active").length > 0 && (
+                      {fleetAircraft && fleetAircraft.length > 0 && (
                         <button onClick={() => {
-                          const active = fleetAircraft.filter(a => a.status === "active");
-                          setAircraft(active.map(a => ({ type: a.type || "", reg: a.registration || "", pax: a.max_passengers ? String(a.max_passengers) : "", range: "" })));
+                          setAircraft(fleetAircraft.map(a => ({ type: a.type || "", reg: a.registration || "", pax: a.max_passengers ? String(a.max_passengers) : "", range: "" })));
                         }}
                           style={{ padding: "6px 14px", background: "transparent", border: `1px solid ${GREEN}44`, borderRadius: 4, color: GREEN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
                           Sync from Fleet
