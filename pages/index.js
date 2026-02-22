@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, fetchNotifications, createNotification, fetchNotificationReads, markNotificationRead } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -15,6 +15,7 @@ const FaaAuditLog = dynamic(() => import("../components/FaaAuditLog"), { ssr: fa
 const SmsManuals = dynamic(() => import("../components/SmsManuals"), { ssr: false });
 const CbtModules = dynamic(() => import("../components/CbtModules"), { ssr: false });
 const FleetManagement = dynamic(() => import("../components/FleetManagement"), { ssr: false });
+const NotificationCenter = dynamic(() => import("../components/NotificationCenter"), { ssr: false });
 
 const COMPANY_NAME = "PreflightSMS";
 const ADMIN_PASSWORD = "admin2026";
@@ -504,9 +505,12 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     {/* Mobile top bar */}
     <header className="nav-mobile-header" style={{ display: "none", background: BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, zIndex: 100, padding: "0 16px", alignItems: "center", justifyContent: "space-between" }}>
       <img src={orgLogo || LOGO_URL} alt={orgName || "P"} style={{ height: 28, objectFit: "contain" }} onError={e => { e.target.src = LOGO_URL; }} />
-      <button className="nav-hamburger" onClick={() => setMenuOpen(!menuOpen)}
-        style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: WHITE, fontSize: 18 }}>
-        {menuOpen ? "\u2715" : "\u2630"}</button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {isOnline && session && <NotificationCenter notifications={notifications} reads={notifReads} onMarkRead={onMarkNotifRead} onMarkAllRead={onMarkAllNotifsRead} profile={profile} onNavigate={(tab) => { setCv(tab); setMenuOpen(false); }} />}
+        <button className="nav-hamburger" onClick={() => setMenuOpen(!menuOpen)}
+          style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: WHITE, fontSize: 18 }}>
+          {menuOpen ? "\u2715" : "\u2630"}</button>
+      </div>
     </header>
     {menuOpen && (<div className="nav-mobile-menu" style={{ display: "none", flexDirection: "column", padding: "8px 16px", gap: 2, background: NEAR_BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 48, zIndex: 99 }}>
       {tabs.map(t => (
@@ -1980,6 +1984,8 @@ export default function PVTAIRFrat() {
   const [hazardFromReport, setHazardFromReport] = useState(null);
   const [actionFromInvestigation, setActionFromInvestigation] = useState(null);
   const [notifContacts, setNotifContacts] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [notifReads, setNotifReads] = useState([]);
   const [invitations_list, setInvitationsList] = useState([]);
   const isOnline = !!supabase;
   const org = profile?.organizations || {};
@@ -2125,6 +2131,8 @@ export default function PVTAIRFrat() {
     fetchCbtProgress(orgId).then(({ data }) => setCbtProgress(data || []));
     fetchCbtEnrollments(orgId).then(({ data }) => setCbtEnrollments(data || []));
     fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
+    fetchNotifications(orgId).then(({ data }) => setNotifications(data || []));
+    if (session?.user?.id) fetchNotificationReads(session.user.id).then(({ data }) => setNotifReads((data || []).map(r => r.notification_id)));
     fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
     fetchSmsManuals(orgId).then(({ data }) => setSmsManuals(data || []));
     return () => { if (channel) supabase.removeChannel(channel); };
@@ -2136,6 +2144,16 @@ export default function PVTAIRFrat() {
     setTemplateVariables(orgSettings.sms_template_variables || {});
     setSmsSignatures(orgSettings.sms_signatures || {});
   }, [profile]);
+
+  // ── Poll notifications every 60s ──
+  useEffect(() => {
+    if (!profile?.org_id || !session?.user?.id) return;
+    const interval = setInterval(() => {
+      fetchNotifications(profile.org_id).then(({ data }) => { if (data) setNotifications(data); });
+      fetchNotificationReads(session.user.id).then(({ data }) => { if (data) setNotifReads(data.map(r => r.notification_id)); });
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [profile, session]);
 
   // ── localStorage helpers (offline mode only) ──
   const saveLocal = useCallback(nr => { setRecords(nr); try { localStorage.setItem("pvtair_frat_records", JSON.stringify(nr)); } catch (e) {} }, []);
@@ -2185,6 +2203,7 @@ export default function PVTAIRFrat() {
             }),
           });
         } catch (e) { console.error("Approval notification error:", e); }
+        createNotification(profile.org_id, { type: "frat_needs_approval", title: "FRAT Awaiting Approval", body: `${entry.pilot} submitted ${entry.id} (${entry.riskLevel})`, link_tab: "submit", target_roles: ["admin", "safety_manager"] });
       }
 
       // Refresh data from server
@@ -2292,6 +2311,7 @@ export default function PVTAIRFrat() {
       if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchReports(profile.org_id);
       setReports(data || []);
+      createNotification(profile.org_id, { type: "report_submitted", title: "New Safety Report", body: `${profile.full_name} submitted a hazard report`, link_tab: "reports", target_roles: ["admin", "safety_manager"] });
       setToast({ message: `${report.reportCode} submitted`, level: { bg: "rgba(34,211,238,0.15)", border: "rgba(34,211,238,0.4)", color: "#22D3EE" } }); setTimeout(() => setToast(null), 4000);
     }
   }, [profile, session, isOnline]);
@@ -2318,6 +2338,7 @@ export default function PVTAIRFrat() {
         const { data: rpts } = await fetchReports(profile.org_id);
         setReports(rpts || []);
       }
+      createNotification(profile.org_id, { type: "investigation_created", title: "New Investigation", body: `Investigation opened: ${hazard.title || hazard.hazardCode || "Untitled"}`, link_tab: "hazards", target_roles: ["admin", "safety_manager"] });
       setToast({ message: `${hazard.hazardCode} registered`, level: { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" } }); setTimeout(() => setToast(null), 4000);
     }
   }, [profile, session, isOnline]);
@@ -2335,6 +2356,7 @@ export default function PVTAIRFrat() {
         const { data: rpts } = await fetchReports(profile.org_id);
         setReports(rpts || []);
       }
+      createNotification(profile.org_id, { type: "action_created", title: "New Corrective Action", body: `Corrective action created: ${action.title || action.actionCode || "Untitled"}`, link_tab: "actions", target_roles: ["admin", "safety_manager"] });
       setToast({ message: `${action.actionCode} created`, level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: "#4ADE80" } }); setTimeout(() => setToast(null), 4000);
     }
   }, [profile, isOnline]);
@@ -2359,6 +2381,31 @@ export default function PVTAIRFrat() {
     }
   }, [profile, isOnline, actions, hazards]);
 
+  // ── Notification mark-read handlers ──
+  const onMarkNotifRead = useCallback(async (notifId) => {
+    if (!session?.user?.id) return;
+    await markNotificationRead(notifId, session.user.id);
+    setNotifReads(prev => [...prev, notifId]);
+  }, [session]);
+
+  const onMarkAllNotifsRead = useCallback(async () => {
+    if (!session?.user?.id) return;
+    const userRole = profile?.role || "pilot";
+    const userId = profile?.id;
+    const readSet = new Set(notifReads);
+    const unread = notifications.filter(n => {
+      if (readSet.has(n.id)) return false;
+      if (n.target_user_id && n.target_user_id !== userId) return false;
+      if (n.target_roles && n.target_roles.length > 0 && !n.target_roles.includes(userRole)) {
+        if (n.target_user_id === userId) return true;
+        return false;
+      }
+      return true;
+    });
+    await Promise.all(unread.map(n => markNotificationRead(n.id, session.user.id)));
+    setNotifReads(prev => [...prev, ...unread.map(n => n.id)]);
+  }, [session, profile, notifications, notifReads]);
+
   // ── Admin: Update Role ──
   const onUpdateRole = useCallback(async (profileId, role) => {
     if (isOnline && profile) {
@@ -2375,6 +2422,7 @@ export default function PVTAIRFrat() {
       if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchPolicies(profile.org_id);
       setPolicies(data || []);
+      createNotification(profile.org_id, { type: "policy_published", title: "New Policy Published", body: `${policy.title} has been published`, link_tab: "policy", target_roles: null });
       setToast({ message: "Document added", level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: "#4ADE80" } }); setTimeout(() => setToast(null), 3000);
     }
   }, [profile, session, isOnline]);
@@ -2607,9 +2655,10 @@ export default function PVTAIRFrat() {
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {pendingSync > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: YELLOW, background: "rgba(250,204,21,0.15)", border: "1px solid rgba(250,204,21,0.3)", padding: "2px 8px", borderRadius: 10, cursor: "pointer" }} onClick={() => flushQueue()} title="Click to retry sync">{pendingSync} pending</span>}
             {isOnline && session && (<>
+              <NotificationCenter notifications={notifications} reads={notifReads} onMarkRead={onMarkNotifRead} onMarkAllRead={onMarkAllNotifsRead} profile={profile} onNavigate={setCv} />
               <span style={{ fontSize: 11, color: MUTED }}>{userName}</span>
               <div style={{ width: 32, height: 32, borderRadius: 50, background: BORDER, display: "flex", alignItems: "center", justifyContent: "center", color: WHITE, fontSize: 12, fontWeight: 700 }}>{(userName || "?").split(" ").map(n => n[0]).join("").slice(0, 2)}</div>
-              <button onClick={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }}
+              <button onClick={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); setNotifications([]); setNotifReads([]); }}
                 style={{ fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 10px", cursor: "pointer" }}>Log out</button>
             </>)}
           </div>
