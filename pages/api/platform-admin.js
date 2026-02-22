@@ -149,15 +149,14 @@ export default async function handler(req, res) {
     const claims = verifyToken(token);
     if (!claims) return res.status(401).json({ error: 'Unauthorized' });
     const { org_id } = req.body;
-    const [frats, flights, reports, hazards, actions, crew] = await Promise.all([
+    const [frats, flights, reports, hazards, actions] = await Promise.all([
       sb.from('frat_submissions').select('id', { count: 'exact', head: true }).eq('org_id', org_id),
       sb.from('flights').select('id', { count: 'exact', head: true }).eq('org_id', org_id),
       sb.from('safety_reports').select('id', { count: 'exact', head: true }).eq('org_id', org_id),
       sb.from('hazard_register').select('id', { count: 'exact', head: true }).eq('org_id', org_id),
       sb.from('corrective_actions').select('id', { count: 'exact', head: true }).eq('org_id', org_id),
-      sb.from('crew_members').select('id', { count: 'exact', head: true }).eq('org_id', org_id),
     ]);
-    return res.status(200).json({ stats: { frats: frats.count || 0, flights: flights.count || 0, reports: reports.count || 0, hazards: hazards.count || 0, actions: actions.count || 0, crew: crew.count || 0 } });
+    return res.status(200).json({ stats: { frats: frats.count || 0, flights: flights.count || 0, reports: reports.count || 0, hazards: hazards.count || 0, actions: actions.count || 0 } });
   }
 
   // ── UPDATE ORG ──
@@ -204,7 +203,6 @@ export default async function handler(req, res) {
     await sb.from('policy_documents').delete().eq('org_id', org_id);
     await sb.from('training_requirements').delete().eq('org_id', org_id);
     await sb.from('training_records').delete().eq('org_id', org_id);
-    await sb.from('crew_members').delete().eq('org_id', org_id);
     await sb.from('notification_contacts').delete().eq('org_id', org_id);
     await sb.from('frat_templates').delete().eq('org_id', org_id);
     await sb.from('sms_manuals').delete().eq('org_id', org_id);

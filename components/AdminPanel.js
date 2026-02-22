@@ -38,7 +38,6 @@ const TIER_DEFS = {
 const FEATURE_LABELS_MAP = {
   frat: "Flight Risk Assessment (FRAT)",
   flight_following: "Flight Following",
-  crew_roster: "Crew Roster & Tracking",
   safety_reporting: "Safety Reporting",
   hazard_register: "Hazard Register",
   corrective_actions: "Corrective Actions",
@@ -76,9 +75,9 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout }) {
   const handleTierChange = (newTier) => {
     setSelectedTier(newTier);
     const tierFeatures = {
-      starter: { frat: true, flight_following: true, crew_roster: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: false, cbt_modules: false, role_permissions: false, approval_workflow: false, document_library: false, api_access: false, multi_base: false, custom_integrations: false, priority_support: false },
-      professional: { frat: true, flight_following: true, crew_roster: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: true, cbt_modules: true, role_permissions: true, approval_workflow: true, document_library: true, api_access: false, multi_base: false, custom_integrations: false, priority_support: true },
-      enterprise: { frat: true, flight_following: true, crew_roster: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: true, cbt_modules: true, role_permissions: true, approval_workflow: true, document_library: true, api_access: true, multi_base: true, custom_integrations: true, priority_support: true },
+      starter: { frat: true, flight_following: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: false, cbt_modules: false, role_permissions: false, approval_workflow: false, document_library: false, api_access: false, multi_base: false, custom_integrations: false, priority_support: false },
+      professional: { frat: true, flight_following: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: true, cbt_modules: true, role_permissions: true, approval_workflow: true, document_library: true, api_access: false, multi_base: false, custom_integrations: false, priority_support: true },
+      enterprise: { frat: true, flight_following: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: true, cbt_modules: true, role_permissions: true, approval_workflow: true, document_library: true, api_access: true, multi_base: true, custom_integrations: true, priority_support: true },
     };
     setLocalFlags(tierFeatures[newTier] || tierFeatures.starter);
   };
@@ -139,7 +138,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout }) {
           {/* Plan cards */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {[
-              { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster", "Safety Reporting", "Hazard Register", "Policy Library"] },
+              { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Safety Reporting", "Hazard Register", "Policy Library", "Training Records"] },
               { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
             ].map(p => {
               const price = billingInterval === "annual" ? p.annual : p.monthly;

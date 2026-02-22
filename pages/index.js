@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchCrewRecords, createCrewRecord, updateCrewRecord, deleteCrewRecord, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, fetchNotifications, createNotification, fetchNotificationReads, markNotificationRead, saveOnboardingStatus } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, fetchNotifications, createNotification, fetchNotificationReads, markNotificationRead, saveOnboardingStatus } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -9,7 +9,6 @@ const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), {
 const HazardRegister = dynamic(() => import("../components/HazardRegister"), { ssr: false });
 const CorrectiveActions = dynamic(() => import("../components/CorrectiveActions"), { ssr: false });
 const AdminPanel = dynamic(() => import("../components/AdminPanel"), { ssr: false });
-const CrewRoster = dynamic(() => import("../components/CrewRoster"), { ssr: false });
 const PolicyTraining = dynamic(() => import("../components/PolicyTraining"), { ssr: false });
 const FaaAuditLog = dynamic(() => import("../components/FaaAuditLog"), { ssr: false });
 const SmsManuals = dynamic(() => import("../components/SmsManuals"), { ssr: false });
@@ -56,11 +55,6 @@ const ONBOARDING_STEPS = [
   { id: "tour-flights", phase: "tour", tab: "flights", title: "Flight Following", feature: null, subSteps: [
     { target: "tour-flights-board", placement: "bottom", title: "Live Flight Board", desc: "Every submitted FRAT creates a live flight. Track departures and arrivals on an interactive route map with real-time aircraft position estimates.", descNonAdmin: "Every FRAT you submit creates a live flight. View your departures and arrivals on an interactive route map with real-time position estimates." },
     { target: "tour-flights-status", placement: "bottom", title: "Status Tracking", desc: "Filter by Active, Arrived, or All flights. Mark flights as arrived, delayed, or cancelled. Overdue flights automatically trigger email alerts to your notification contacts.", descNonAdmin: "Filter by Active, Arrived, or All flights. Update your flight status as arrived, delayed, or cancelled. Overdue flights automatically alert your safety team." },
-  ]},
-  { id: "tour-crew", phase: "tour", tab: "crew", title: "Crew Roster", feature: null, subSteps: [
-    { target: "tour-crew-header", placement: "bottom", title: "Manage Crew", titleNonAdmin: "Crew Overview", desc: "Add crew members and see at a glance how many have expiring certificates. Each crew member\u2019s FAR currency dates are tracked automatically.", descNonAdmin: "View your team and see at a glance who has expiring certificates. FAR currency dates are tracked automatically for every crew member." },
-    { target: "tour-crew-list", placement: "right", title: "Crew Cards", desc: "Each card shows FAR currency badges, type ratings, and certificate status. Click any crew member to see their full detail panel.", descNonAdmin: "Each card shows FAR currency badges, type ratings, and certificate status. Click your own card to see your full detail panel." },
-    { target: null, placement: "top-right", title: "Detail Panel", desc: "The detail panel auto-calculates medical, flight review, IPC, and checkride expirations per FAR. Add training records, type ratings, and upload documents.", adminOnly: true },
   ]},
   { id: "tour-reports", phase: "tour", tab: "reports", title: "Safety Reporting", feature: null, subSteps: [
     { target: "tour-reports-new-btn", placement: "bottom", title: "Submit Reports", desc: "Pilots and crew can submit anonymous or confidential hazard and safety reports \u2014 the backbone of a just-culture SMS.", descNonAdmin: "Submit anonymous or confidential hazard and safety reports here. This is the backbone of a just-culture SMS \u2014 your reports help keep everyone safe." },
@@ -497,7 +491,6 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   const icons = {
     submit: I(<><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></>),
     flights: I(<><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="none"/><path d="M2 18h4l2-2 3 4 3-6 2 4h4" strokeDasharray="2 2" opacity="0.5"/></>),
-    crew: I(<><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></>),
     reports: I(<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>),
     hazards: I(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>),
     actions: I(<><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></>),
@@ -512,7 +505,6 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   const tabs = [
     { id: "submit", label: "FRAT", icon: icons.submit, p: false },
     { id: "flights", label: "Flight Following", icon: icons.flights, p: false },
-    { id: "crew", label: "Crew", icon: icons.crew, p: false },
     { id: "reports", label: "Reports", icon: icons.reports, p: false },
     { id: "hazards", label: "Investigations", icon: icons.hazards, p: false },
     { id: "actions", label: "Actions", icon: icons.actions, p: false },
@@ -1645,14 +1637,13 @@ function LandingPage() {
     { icon: "\u26A0", title: "Safety Reporting", desc: "Confidential hazard, incident, and near-miss reporting with status tracking." },
     { icon: "\u25B3", title: "Investigation Register", desc: "Structured safety investigation with severity/likelihood risk matrix scoring." },
     { icon: "\u2298", title: "Corrective Actions", desc: "Track risk controls from identification through completion with due dates." },
-    { icon: "\u25C9", title: "Crew Currency", desc: "Auto-calculated medical, flight review, IPC, and checkride expirations per FARs." },
     { icon: "\u25C7", title: "FAA Part 5 Audit Log", desc: "42-point compliance checklist mapped to every Part 5 requirement with evidence tracking." },
     { icon: "\u25C8", title: "Policy & Training", desc: "Document library with acknowledgment tracking and training record management." },
   ];
 
   return (
     <div style={{ minHeight: "100vh", background: DARK, color: WHITE, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <Head><title>PreflightSMS — Safety Management System for Part 135 Operators</title><meta name="description" content="FAA Part 5 compliant SMS for Part 135 operators. FRAT, flight following, hazard reporting, crew currency tracking, and audit compliance." /></Head>
+      <Head><title>PreflightSMS — Safety Management System for Part 135 Operators</title><meta name="description" content="FAA Part 5 compliant SMS for Part 135 operators. FRAT, flight following, hazard reporting, corrective actions, and audit compliance." /></Head>
 
       {/* Nav */}
       <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, background: DARK, zIndex: 100 }}>
@@ -1671,7 +1662,7 @@ function LandingPage() {
         <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 2, marginBottom: 16 }}>FAA Part 5 Compliant SMS</div>
         <h1 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.15, margin: "0 0 16px", fontFamily: "Georgia, serif" }}>Safety Management<br />Built for Part 135</h1>
         <p style={{ fontSize: 16, color: MUTED, lineHeight: 1.6, maxWidth: 560, margin: "0 auto 32px" }}>
-          FRAT submissions, flight following, hazard reporting, crew currency tracking, and full Part 5 audit compliance — in one platform your pilots will actually use.
+          FRAT submissions, flight following, hazard reporting, corrective actions, and full Part 5 audit compliance — in one platform your pilots will actually use.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={() => nav("signup")} style={{ padding: "14px 36px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: 0.3 }}>Start 14-Day Free Trial</button>
@@ -1713,7 +1704,7 @@ function LandingPage() {
         </div>
         <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {[
-            { name: "Starter", price: "$149", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Investigations", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
+            { name: "Starter", price: "$149", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Investigations", "Corrective Actions", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
             { name: "Professional", price: "$299", desc: "Full SMS with analytics & compliance", badge: "MOST POPULAR", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"] },
           ].map(p => (
             <div key={p.name} style={{ background: CARD, border: `1px solid ${p.badge ? WHITE+"44" : BORDER}`, borderRadius: 12, padding: "28px 24px", position: "relative" }}>
@@ -1958,7 +1949,7 @@ function SignupFlow({ onAuth }) {
               <p style={{ fontSize: 13, color: MUTED, margin: "0 0 24px" }}>Both include a full 14-day trial. Upgrade or downgrade anytime.</p>
               <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
                 {[
-                  { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Crew Roster & Currency", "Safety Reporting", "Investigation Register", "Policy Library"] },
+                  { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Safety Reporting", "Investigation Register", "Policy Library"] },
                   { id: "professional", name: "Professional", price: "$299", desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
                 ].map(p => (
                   <div key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ ...card, padding: "18px 16px", cursor: "pointer", position: "relative", transition: "all 0.2s", border: `2px solid ${selectedPlan === p.id ? (p.badge ? GREEN : WHITE) : BORDER}`, background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD }}>
@@ -2236,7 +2227,7 @@ function AuthScreen({ onAuth, initialMode }) {
   };
 
   const plans = [
-    { id: "starter", name: "Starter", price: "$149", period: "/mo", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Investigations", "Corrective Actions", "Crew Roster & Currency", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
+    { id: "starter", name: "Starter", price: "$149", period: "/mo", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Investigations", "Corrective Actions", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
     { id: "professional", name: "Professional", price: "$299", period: "/mo", desc: "Full SMS with analytics & compliance", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"] },
   ];
 
@@ -2471,11 +2462,6 @@ function buildTourSeedData(today, userName, fleet) {
       { id: "_seed_FLT002", dbId: "_seed_f2", pilot, aircraft: ac, tailNumber: tail, departure: "KBOI", destination: "KSEA", cruiseAlt: "FL270", etd: new Date(now.getTime() - 15 * 60 * 1000).toISOString(), ete: "1:30", eta: eta4h, fuelLbs: 2600, numCrew: 2, numPax: 5, score: 22, riskLevel: "MODERATE", status: "ACTIVE", timestamp: iso(0), arrivedAt: null, cancelled: false },
       { id: "_seed_FLT003", dbId: "_seed_f3", pilot, aircraft: ac, tailNumber: tail, departure: "KDEN", destination: "KASE", cruiseAlt: "FL250", etd: iso(-1), ete: "0:55", eta: iso(-1), fuelLbs: 2200, numCrew: 2, numPax: 4, score: 35, riskLevel: "HIGH", status: "ARRIVED", timestamp: iso(-1), arrivedAt: iso(-1), cancelled: false },
     ],
-    crewRecords: [
-      { id: "_seed_c1", org_id: "_seed", full_name: pilot, position: "PIC", status: "active", certificate_type: "ATP", certificate_number: "ATP-123456", certificate_issued: dateStr(-800), ratings: ["Instrument", "Multi-Engine Land"], type_ratings: [ac], medical_class: "First", medical_issued: dateStr(-150), birth_date: "1980-06-15", basicmed: false, last_ipc: dateStr(-60), last_recurrent: dateStr(-45), last_135_checkride: dateStr(-200), last_line_check: dateStr(-100), notes: "" },
-      { id: "_seed_c2", org_id: "_seed", full_name: "A. Johnson", position: "SIC", status: "active", certificate_type: "Commercial", certificate_number: "COM-789012", certificate_issued: dateStr(-400), ratings: ["Instrument", "Multi-Engine Land"], type_ratings: [ac], medical_class: "Second", medical_issued: dateStr(-335), birth_date: "1992-03-20", basicmed: false, last_ipc: "", last_recurrent: dateStr(-100), last_135_checkride: dateStr(-100), last_line_check: "", notes: "Medical expiring soon" },
-      { id: "_seed_c3", org_id: "_seed", full_name: "R. Thompson", position: "Check Airman", status: "active", certificate_type: "ATP", certificate_number: "ATP-654321", certificate_issued: dateStr(-1200), ratings: ["Instrument", "Multi-Engine Land"], type_ratings: [ac], medical_class: "First", medical_issued: dateStr(-90), birth_date: "1975-11-10", basicmed: false, last_ipc: dateStr(-90), last_recurrent: dateStr(-60), last_135_checkride: dateStr(-150), last_line_check: dateStr(-80), last_faa_observation: dateStr(-400), notes: "" },
-    ],
     reports: [
       { id: "_seed_rp1", org_id: "_seed", report_code: "RPT-SEED01", title: "Bird Strike on Departure", report_type: "hazard", description: "Large bird strike during initial climb out of KSFF runway 21. Minor leading edge dent, no engine ingestion.", reporter_id: "_seed_u1", anonymous: false, confidential: false, status: "open", severity: "medium", category: "wildlife", location: "KSFF", tail_number: tail, aircraft_type: ac, flight_phase: "climb", date_occurred: dateStr(-2), created_at: iso(-2) },
       { id: "_seed_rp2", org_id: "_seed", report_code: "RPT-SEED02", title: "Cabin Pressure Fluctuation", report_type: "incident", description: "Intermittent cabin pressure fluctuations noted between FL250-FL270 on KBOI-KSEA segment. Returned to normal after descent.", reporter_id: "_seed_u2", anonymous: false, confidential: false, status: "under_review", severity: "high", category: "mechanical", location: "KBOI", tail_number: tail, aircraft_type: ac, flight_phase: "cruise", date_occurred: dateStr(-5), created_at: iso(-5) },
@@ -2529,7 +2515,6 @@ export default function PVTAIRFrat() {
   const [reports, setReports] = useState([]);
   const [hazards, setHazards] = useState([]);
   const [actions, setActions] = useState([]);
-  const [crewRecords, setCrewRecords] = useState([]);
   const [fleetAircraft, setFleetAircraft] = useState([]);
   const [orgProfiles, setOrgProfiles] = useState([]);
   const [policies, setPolicies] = useState([]);
@@ -2668,7 +2653,6 @@ export default function PVTAIRFrat() {
     fetchReports(orgId).then(({ data }) => setReports(data || []));
     fetchHazards(orgId).then(({ data }) => setHazards(data || []));
     fetchActions(orgId).then(({ data }) => setActions(data || []));
-    fetchCrewRecords(orgId).then(({ data }) => setCrewRecords(data || []));
     fetchPolicies(orgId).then(({ data }) => setPolicies(data || []));
     fetchTrainingRequirements(orgId).then(({ data }) => setTrainingReqs(data || []));
     fetchTrainingRecords(orgId).then(({ data }) => setTrainingRecs(data || []));
@@ -3276,7 +3260,6 @@ export default function PVTAIRFrat() {
     const seed = buildTourSeedData(today, userName, fleetAircraft);
     setRecords(seed.records);
     setFlights(seed.flights);
-    setCrewRecords(seed.crewRecords);
     setReports(seed.reports);
     setHazards(seed.hazards);
     setActions(seed.actions);
@@ -3325,7 +3308,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "FLIGHT FOLLOWING" : cv === "crew" ? "CREW ROSTER" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "INVESTIGATIONS" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICIES" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
+              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "FLIGHT FOLLOWING" : cv === "reports" ? "SUBMIT HAZARD REPORT" : cv === "hazards" ? "INVESTIGATIONS" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICIES" : cv === "cbt" ? "TRAINING" : cv === "audit" ? "FAA PART 5 AUDIT" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -3360,21 +3343,6 @@ export default function PVTAIRFrat() {
           setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] })));
           setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
         }} />}
-        {cv === "crew" && <CrewRoster crewRecords={crewRecords} fleetAircraftTypes={[...new Set((fleetAircraft || []).map(a => a.type).filter(Boolean))]} canManage={!isReadOnly && ["admin", "safety_manager", "accountable_exec"].includes(profile?.role)} onAdd={roGuard(async (record) => {
-          const orgId = profile?.org_id;
-          if (!orgId) return;
-          await createCrewRecord(orgId, record);
-          const { data } = await fetchCrewRecords(orgId);
-          setCrewRecords(data || []);
-        })} onUpdate={roGuard(async (id, updates) => {
-          await updateCrewRecord(id, updates);
-          const { data } = await fetchCrewRecords(profile?.org_id);
-          setCrewRecords(data || []);
-        })} onDelete={roGuard(async (id) => {
-          await deleteCrewRecord(id);
-          const { data } = await fetchCrewRecords(profile?.org_id);
-          setCrewRecords(data || []);
-        })} />}
         {cv === "reports" && (() => { const canManageReports = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role); const visibleReports = canManageReports ? reports : reports.filter(r => r.reporter_id === session?.user?.id); return <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={visibleReports} onStatusChange={canManageReports ? roGuard(onReportStatusChange) : null} hazards={hazards} onCreateHazardFromReport={canManageReports ? (report) => { setHazardFromReport(report); setCv("hazards"); } : null} />; })()}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} actions={actions} onCreateAction={(hazard) => { setActionFromInvestigation(hazard); setCv("actions"); }} />}
         {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={roGuard(onCreateAction)} onUpdateAction={roGuard(onUpdateAction)} fromInvestigation={actionFromInvestigation} hazards={hazards} onClearFromInvestigation={() => setActionFromInvestigation(null)} />}
