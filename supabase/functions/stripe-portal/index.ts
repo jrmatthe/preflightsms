@@ -9,7 +9,7 @@
 //    Settings > Billing > Customer portal
 //    Enable: update payment, switch plans, cancel, view invoices
 
-import Stripe from "https://esm.sh/stripe@14.14.0?target=deno";
+import Stripe from "https://esm.sh/stripe@13.10.0?target=deno";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
