@@ -7,10 +7,10 @@
 // 1. Deploy: supabase functions deploy stripe-checkout --no-verify-jwt
 // 2. Set secrets:
 //    supabase secrets set STRIPE_SECRET_KEY=sk_test_...
-//    supabase secrets set STRIPE_STARTER_MONTHLY=price_1T2loBBbOwyCfgT4JiPVvS7d
-//    supabase secrets set STRIPE_STARTER_ANNUAL=price_1T2lnjBbOwyCfgT4uiMWNI33
-//    supabase secrets set STRIPE_PRO_MONTHLY=price_1T2lqMBbOwyCfgT4Xag4mrW3
-//    supabase secrets set STRIPE_PRO_ANNUAL=price_1T2lqfBbOwyCfgT4Hn9scVs6
+//    supabase secrets set STRIPE_STARTER_MONTHLY=price_1T3s2wBfO8VDPODhptEY2ZrB
+//    supabase secrets set STRIPE_STARTER_ANNUAL=price_1T3s3UBfO8VDPODhIcvPp2px
+//    supabase secrets set STRIPE_PRO_MONTHLY=price_1T3s3qBfO8VDPODhNZ5u8lTK
+//    supabase secrets set STRIPE_PRO_ANNUAL=price_1T3s4FBfO8VDPODhjBwP3UHp
 
 import Stripe from "https://esm.sh/stripe@14.14.0?target=deno";
 
