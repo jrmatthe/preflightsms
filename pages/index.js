@@ -1324,7 +1324,7 @@ function HistoryView({ records, onDelete }) {
             <button onClick={() => onDelete(r.id)} style={{ background: "none", border: "none", color: LIGHT_BORDER, cursor: "pointer", fontSize: 16, padding: 4 }}>×</button></div>); })}</div>);
 }
 
-function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight, isAdmin, onSelfDispatch }) {
+function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch }) {
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
@@ -1551,7 +1551,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "CANCEL"); }}
                           style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
                       </div>)}
-                    {f.status === "PENDING_APPROVAL" && isAdmin && onApproveFlight && (
+                    {f.status === "PENDING_APPROVAL" && canApprove && onApproveFlight && (
                       <div style={{ marginTop: 10 }}>
                         <div style={{ padding: "10px 14px", background: "rgba(250,204,21,0.08)", border: `1px solid rgba(250,204,21,0.25)`, borderRadius: 8, marginBottom: 10 }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: YELLOW, marginBottom: 4 }}>🔒 Supervisor Approval Required</div>
@@ -1564,7 +1564,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
                             style={{ padding: "10px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Reject</button>
                         </div>
                       </div>)}
-                    {f.status === "PENDING_APPROVAL" && !isAdmin && onSelfDispatch && (
+                    {f.status === "PENDING_APPROVAL" && !canApprove && onSelfDispatch && (
                       <div style={{ marginTop: 10 }}>
                         <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.08)", border: `1px solid rgba(245,158,11,0.25)`, borderRadius: 8, marginBottom: 10 }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: AMBER, marginBottom: 4 }}>⏳ Awaiting Supervisor Approval</div>
@@ -3403,7 +3403,7 @@ export default function PVTAIRFrat() {
           const { data: fl } = await fetchFlights(profile.org_id);
           setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] })));
           setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
-        }} isAdmin={isAdmin} onSelfDispatch={async (flightDbId, fratDbId) => {
+        }} canApprove={(profile?.permissions || []).includes("approver")} onSelfDispatch={async (flightDbId, fratDbId) => {
           await selfDispatchFlight(flightDbId);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "pilot_dispatched", "Pilot self-dispatched");
           const matchingFlight = flights.find(fl => fl.dbId === flightDbId);
