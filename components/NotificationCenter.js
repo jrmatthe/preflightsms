@@ -22,6 +22,7 @@ const TYPE_COLORS = {
   action_due_soon: AMBER,
   policy_published: CYAN,
   training_expiring: AMBER,
+  report_status_update: GREEN,
 };
 
 function timeAgo(dateStr) {
