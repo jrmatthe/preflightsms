@@ -2,6 +2,7 @@
 //
 // Creates a Stripe Checkout Session for subscription
 // Called from the frontend when user clicks Subscribe
+// Uses Stripe REST API directly (no SDK) for edge runtime compatibility
 //
 // SETUP:
 // 1. Deploy: supabase functions deploy stripe-checkout --no-verify-jwt
@@ -11,8 +12,6 @@
 //    supabase secrets set STRIPE_STARTER_ANNUAL=price_1T3s3UBfO8VDPODhIcvPp2px
 //    supabase secrets set STRIPE_PRO_MONTHLY=price_1T3s3qBfO8VDPODhNZ5u8lTK
 //    supabase secrets set STRIPE_PRO_ANNUAL=price_1T3s4FBfO8VDPODhjBwP3UHp
-
-import Stripe from "https://esm.sh/stripe@14?target=denonext";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,11 +31,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-
     const { plan, interval, orgId, orgName, email, returnUrl } = await req.json();
 
-    // Map plan + interval to price ID
     const priceMap: Record<string, string | undefined> = {
       "starter_monthly": Deno.env.get("STRIPE_STARTER_MONTHLY"),
       "starter_annual": Deno.env.get("STRIPE_STARTER_ANNUAL"),
@@ -51,29 +47,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      payment_method_types: ["card"],
-      line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: email,
-      success_url: `${returnUrl}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${returnUrl}?payment=canceled`,
-      metadata: {
-        org_id: orgId,
-        org_name: orgName,
-        plan: plan,
-        interval: interval,
+    const params = new URLSearchParams();
+    params.append("mode", "subscription");
+    params.append("payment_method_types[]", "card");
+    params.append("line_items[0][price]", priceId);
+    params.append("line_items[0][quantity]", "1");
+    params.append("customer_email", email);
+    params.append("success_url", `${returnUrl}?payment=success&session_id={CHECKOUT_SESSION_ID}`);
+    params.append("cancel_url", `${returnUrl}?payment=canceled`);
+    params.append("metadata[org_id]", orgId);
+    params.append("metadata[org_name]", orgName);
+    params.append("metadata[plan]", plan);
+    params.append("metadata[interval]", interval);
+    params.append("subscription_data[metadata][org_id]", orgId);
+    params.append("subscription_data[metadata][plan]", plan);
+
+    const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${stripeKey}`,
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      subscription_data: {
-        metadata: {
-          org_id: orgId,
-          plan: plan,
-        },
-      },
+      body: params.toString(),
     });
 
-    return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
+    const data = await res.json();
+
+    if (!res.ok) {
+      return new Response(JSON.stringify({ error: data.error?.message || "Stripe error" }), {
+        status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ url: data.url, sessionId: data.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
