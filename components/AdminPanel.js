@@ -13,20 +13,17 @@ const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 
 const inp = { width: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, background: BLACK, color: OFF_WHITE, boxSizing: "border-box" };
 
 const ROLES = [
-  { id: "pilot", label: "Pilot", desc: "Submit FRATs, reports, view flights" },
-  { id: "dispatcher", label: "Dispatcher", desc: "Create flights, view FRATs, monitor flight following" },
-  { id: "safety_manager", label: "Safety Manager", desc: "Full SMS access, investigate reports, manage hazards" },
-  { id: "chief_pilot", label: "Chief Pilot", desc: "View all data, assign actions" },
-  { id: "accountable_exec", label: "Accountable Executive", desc: "Dashboard summaries, approve closures" },
-  { id: "admin", label: "Admin", desc: "Full access including user management" },
+  { id: "pilot", label: "Pilot", desc: "Submit FRATs, file flight plans, submit safety reports" },
+  { id: "dispatcher", label: "Dispatcher", desc: "Create and monitor flights, view FRATs and reports" },
+  { id: "safety_manager", label: "Safety Manager", desc: "Full SMS access — investigate reports, manage hazards, approve FRATs, manage users" },
+  { id: "chief_pilot", label: "Chief Pilot", desc: "Approve FRATs, view all data, assign corrective actions, manage users" },
+  { id: "accountable_exec", label: "Accountable Executive", desc: "Approve FRATs, view dashboards and audit logs, manage users" },
+  { id: "admin", label: "Admin", desc: "Full access — all features, user management, billing, and org settings" },
 ];
 
 const PERMISSIONS = [
-  { id: "flight_follower", label: "Flight Follower", desc: "Receives overdue flight email notifications" },
-  { id: "approver", label: "FRAT Approver", desc: "Can approve/reject high-risk FRATs before departure" },
-  { id: "frat_reviewer", label: "FRAT Reviewer", desc: "Can review and comment on submitted FRATs" },
-  { id: "hazard_manager", label: "Hazard Manager", desc: "Can create and manage hazards" },
-  { id: "training_manager", label: "Training Manager", desc: "Can manage training requirements and records" },
+  { id: "flight_follower", label: "Flight Follower", desc: "Receives email alerts when a flight becomes overdue" },
+  { id: "approver", label: "FRAT Approver", desc: "Can approve or reject high/critical risk FRATs (for non-admin roles like Pilot or Dispatcher)" },
 ];
 
 const TIER_DEFS = {
