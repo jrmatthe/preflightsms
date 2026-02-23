@@ -1500,9 +1500,9 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
               <div style={{ fontSize: 10, color: MUTED }}>{isReviewOnly ? `This FRAT scored ${frat.score} (${frat.riskLevel}). The pilot has departed — please review.` : `This FRAT scored ${frat.score} (${frat.riskLevel}) which requires management approval.`}</div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => { if (flight && (flight.status === "PENDING_APPROVAL" || isReviewOnly)) { onApproveFlight(flight.dbId, flight.fratDbId); } else { onApproveFRAT(frat.dbId); } onClose(); }}
+              <button onClick={() => { if (flight && (flight.status === "PENDING_APPROVAL" || flight.approvalStatus === "pending" || isReviewOnly)) { onApproveFlight(flight.dbId, flight.fratDbId); } else { onApproveFRAT(frat.dbId); } onClose(); }}
                 style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{isReviewOnly ? "MARK REVIEWED" : "APPROVE"}</button>
-              {!isReviewOnly && <button onClick={() => { if (flight && flight.status === "PENDING_APPROVAL") { onRejectFlight(flight.dbId, flight.fratDbId); } else { onRejectFRAT(frat.dbId); } onClose(); }}
+              {!isReviewOnly && <button onClick={() => { if (flight && (flight.status === "PENDING_APPROVAL" || flight.approvalStatus === "pending")) { onRejectFlight(flight.dbId, flight.fratDbId); } else { onRejectFRAT(frat.dbId); } onClose(); }}
                 style={{ padding: "10px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Reject</button>}
             </div>
           </div>)}
