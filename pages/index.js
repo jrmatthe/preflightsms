@@ -38,10 +38,10 @@ const RED = "#EF4444";
 const CYAN = "#22D3EE";
 
 const DEFAULT_RISK_LEVELS = {
-  LOW: { label: "LOW RISK", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", min: 0, max: 15, action: "Flight authorized — standard procedures" },
-  MODERATE: { label: "MODERATE RISK", color: YELLOW, bg: "rgba(250,204,21,0.08)", border: "rgba(250,204,21,0.25)", min: 16, max: 30, action: "Enhanced awareness — brief crew on elevated risk factors" },
-  HIGH: { label: "HIGH RISK", color: AMBER, bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.25)", min: 31, max: 45, action: "Requires management approval before departure" },
-  CRITICAL: { label: "CRITICAL RISK", color: RED, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", min: 46, max: 100, action: "Flight should not depart without risk mitigation and executive approval" },
+  LOW: { label: "LOW RISK", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", min: 0, max: 15, action: "Flight authorized — standard procedures", approval_mode: "none" },
+  MODERATE: { label: "MODERATE RISK", color: YELLOW, bg: "rgba(250,204,21,0.08)", border: "rgba(250,204,21,0.25)", min: 16, max: 30, action: "Enhanced awareness — brief crew on elevated risk factors", approval_mode: "none" },
+  HIGH: { label: "HIGH RISK", color: AMBER, bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.25)", min: 31, max: 45, action: "Requires management approval before departure", approval_mode: "required" },
+  CRITICAL: { label: "CRITICAL RISK", color: RED, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", min: 46, max: 100, action: "Flight should not depart without risk mitigation and executive approval", approval_mode: "required" },
 };
 
 const ONBOARDING_STEPS = [
@@ -156,7 +156,7 @@ function buildRiskLevels(thresholds) {
   const borderMap = { green: "rgba(74,222,128,0.25)", yellow: "rgba(250,204,21,0.25)", amber: "rgba(245,158,11,0.25)", red: "rgba(239,68,68,0.25)" };
   const result = {};
   thresholds.forEach(t => {
-    result[t.level] = { label: t.label, color: colorMap[t.color] || GREEN, bg: bgMap[t.color] || bgMap.green, border: borderMap[t.color] || borderMap.green, min: t.min, max: t.max, action: t.action };
+    result[t.level] = { label: t.label, color: colorMap[t.color] || GREEN, bg: bgMap[t.color] || bgMap.green, border: borderMap[t.color] || borderMap.green, min: t.min, max: t.max, action: t.action, approval_mode: t.approval_mode || "none" };
   });
   return result;
 }
@@ -1425,7 +1425,8 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
   const allFactors = (riskCategories || DEFAULT_RISK_CATEGORIES).flatMap(c => c.factors.map(f => ({ ...f, category: c.name })));
   const checkedFactors = allFactors.filter(f => frat.factors.includes(f.id));
   const flight = flights.find(f => f.id === fratId);
-  const needsApproval = frat.approvalStatus === "pending" || (flight && flight.status === "PENDING_APPROVAL");
+  const needsApproval = frat.approvalStatus === "pending" || frat.approvalStatus === "review" || (flight && flight.status === "PENDING_APPROVAL");
+  const isReviewOnly = frat.approvalStatus === "review" && (!flight || flight.status !== "PENDING_APPROVAL");
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
       <div style={{ ...card, padding: 0, maxWidth: 560, width: "100%", maxHeight: "90vh", overflow: "auto" }} onClick={e => e.stopPropagation()}>
@@ -1493,15 +1494,15 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
         {/* Approval section */}
         {needsApproval && canApprove && (
           <div style={{ padding: "16px 24px 0" }}>
-            <div style={{ padding: "10px 14px", background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", borderRadius: 8, marginBottom: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: YELLOW, marginBottom: 4 }}>Supervisor Approval Required</div>
-              <div style={{ fontSize: 10, color: MUTED }}>This FRAT scored {frat.score} ({frat.riskLevel}) which requires management approval.</div>
+            <div style={{ padding: "10px 14px", background: isReviewOnly ? "rgba(34,211,238,0.08)" : "rgba(250,204,21,0.08)", border: `1px solid ${isReviewOnly ? "rgba(34,211,238,0.25)" : "rgba(250,204,21,0.25)"}`, borderRadius: 8, marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: isReviewOnly ? CYAN : YELLOW, marginBottom: 4 }}>{isReviewOnly ? "Flagged for Review" : "Supervisor Approval Required"}</div>
+              <div style={{ fontSize: 10, color: MUTED }}>{isReviewOnly ? `This FRAT scored ${frat.score} (${frat.riskLevel}). The pilot has departed — please review.` : `This FRAT scored ${frat.score} (${frat.riskLevel}) which requires management approval.`}</div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => { if (flight && flight.status === "PENDING_APPROVAL") { onApproveFlight(flight.dbId, flight.fratDbId); } else { onApproveFRAT(frat.dbId); } onClose(); }}
-                style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>APPROVE</button>
+                style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{isReviewOnly ? "MARK REVIEWED" : "APPROVE"}</button>
               <button onClick={() => { if (flight && flight.status === "PENDING_APPROVAL") { onRejectFlight(flight.dbId, flight.fratDbId); } else { onRejectFRAT(frat.dbId); } onClose(); }}
-                style={{ padding: "10px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Reject</button>
+                style={{ padding: "10px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>{isReviewOnly ? "Flag Issue" : "Reject"}</button>
             </div>
           </div>)}
         <div style={{ height: 24 }} />
@@ -2949,30 +2950,32 @@ export default function PVTAIRFrat() {
 
   // ── Submit FRAT ──
   const onSubmit = useCallback(async entry => {
-    // Determine if approval is required based on score threshold (only if feature enabled)
-    const approvalThreshold = fratTemplate?.approval_threshold || 31;
-    const needsApproval = entry.score >= approvalThreshold;
+    // Determine approval mode from the matching risk level
+    const rl = getRiskLevel(entry.score, riskLevels);
+    const approvalMode = rl.approval_mode || "none";
+    const needsBlock = approvalMode === "required";
+    const needsNotify = approvalMode === "required" || approvalMode === "review";
 
     if (isOnline && profile) {
       const { data: fratData, error: fratErr } = await submitFRAT(profile.org_id, session.user.id, {
         ...entry,
-        approvalStatus: needsApproval ? "pending" : "auto_approved",
+        approvalStatus: approvalMode === "required" ? "pending" : approvalMode === "review" ? "review" : "auto_approved",
       }).catch(e => ({ data: null, error: e }));
       if (fratErr) {
         // Queue for offline sync
         enqueue({ type: "frat_submit", payload: { orgId: profile.org_id, userId: session.user.id, entry } });
         setPendingSync(getQueueCount());
-        const localFlight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsApproval ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null, pendingSync: true };
+        const localFlight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsBlock ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null, pendingSync: true };
         setFlights(prev => [localFlight, ...prev]);
         setRecords(prev => [entry, ...prev]);
         setToast({ message: `${entry.id} saved offline — will sync when connected`, level: { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" } }); setTimeout(() => setToast(null), 5000);
         return;
       }
-      const { error: flightErr } = await createFlight(profile.org_id, fratData.id, entry, needsApproval);
+      const { error: flightErr } = await createFlight(profile.org_id, fratData.id, entry, needsBlock);
       if (flightErr) console.error("Flight create error:", flightErr);
 
-      // Send approval request email if needed
-      if (needsApproval) {
+      // Send notification + email for "review" and "required" modes
+      if (needsNotify) {
         try {
           await fetch("/api/request-approval", {
             method: "POST",
@@ -2991,7 +2994,8 @@ export default function PVTAIRFrat() {
             }),
           });
         } catch (e) { console.error("Approval notification error:", e); }
-        createNotification(profile.org_id, { type: "frat_needs_approval", title: "FRAT Awaiting Approval", body: `${entry.pilot} — ${entry.riskLevel} risk — ${entry.departure} to ${entry.destination}`, link_tab: "flights", link_id: entry.id, target_roles: ["admin", "safety_manager"] });
+        const notifTitle = approvalMode === "required" ? "FRAT Awaiting Approval" : "FRAT Flagged for Review";
+        createNotification(profile.org_id, { type: "frat_needs_approval", title: notifTitle, body: `${entry.pilot} — ${entry.riskLevel} risk — ${entry.departure} to ${entry.destination}`, link_tab: "flights", link_id: entry.id, target_roles: ["admin", "safety_manager"] });
       }
 
       // Refresh data from server
@@ -3016,12 +3020,12 @@ export default function PVTAIRFrat() {
       })));
     } else {
       const nr = [entry, ...records]; saveLocal(nr);
-      const flight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsApproval ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null };
+      const flight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsBlock ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null };
       const nf = [flight, ...flights]; saveFlightsLocal(nf);
     }
-    const toastMsg = needsApproval ? `${entry.id} submitted — management notified` : `${entry.id} submitted — flight plan created`;
+    const toastMsg = approvalMode === "required" ? `${entry.id} submitted — management notified, awaiting approval` : approvalMode === "review" ? `${entry.id} submitted — management notified` : `${entry.id} submitted — flight plan created`;
     setToast({ message: toastMsg, level: getRiskLevel(entry.score, riskLevels) }); setTimeout(() => setToast(null), 4000);
-  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, fratTemplate]);
+  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, riskLevels]);
 
   // ── Update flight status ──
   const onUpdateFlight = useCallback(async (id, action) => {
