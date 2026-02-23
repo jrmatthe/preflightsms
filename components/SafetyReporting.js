@@ -46,7 +46,7 @@ function generateReportCode() {
   return `RPT-${Date.now().toString(36).toUpperCase()}`;
 }
 
-function ReportForm({ onSubmit, onCancel }) {
+function ReportForm({ onSubmit, onCancel, fleetAircraft }) {
   const [form, setForm] = useState({
     reportType: "hazard", title: "", description: "", dateOccurred: "",
     location: "", category: "other", severity: "low", flightPhase: "",
@@ -58,7 +58,8 @@ function ReportForm({ onSubmit, onCancel }) {
   const handleSubmit = () => {
     if (!form.title.trim()) return;
     if (!form.description.trim()) return;
-    onSubmit({ ...form, reportCode: generateReportCode() });
+    const tailNumber = form.tailNumber === "__other" ? (form.tailNumberCustom || "") : form.tailNumber;
+    onSubmit({ ...form, tailNumber, reportCode: generateReportCode() });
   };
 
   return (
@@ -136,7 +137,18 @@ function ReportForm({ onSubmit, onCancel }) {
         </div>
         <div>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Aircraft / Tail #</label>
-          <input value={form.tailNumber} onChange={e => set("tailNumber", e.target.value)} placeholder="N12345" style={inp} />
+          {fleetAircraft?.length ? (
+            <select value={form.tailNumber} onChange={e => set("tailNumber", e.target.value)} style={inp}>
+              <option value="">Select aircraft</option>
+              {fleetAircraft.map(a => <option key={a.id} value={a.tail_number}>{a.tail_number}{a.type ? ` — ${a.type}` : ""}</option>)}
+              <option value="__other">Other</option>
+            </select>
+          ) : (
+            <input value={form.tailNumber} onChange={e => set("tailNumber", e.target.value)} placeholder="N12345" style={inp} />
+          )}
+          {form.tailNumber === "__other" && (
+            <input value={form.tailNumberCustom || ""} onChange={e => set("tailNumberCustom", e.target.value)} placeholder="N12345" style={{ ...inp, marginTop: 6 }} />
+          )}
         </div>
       </div>
 
@@ -147,7 +159,7 @@ function ReportForm({ onSubmit, onCancel }) {
           <input type="checkbox" checked={form.confidential} onChange={e => { set("confidential", e.target.checked); if (e.target.checked) set("anonymous", false); }} />
           <div>
             <div style={{ fontSize: 12, color: OFF_WHITE }}>Confidential</div>
-            <div style={{ fontSize: 10, color: MUTED }}>Your name is visible only to the safety manager</div>
+            <div style={{ fontSize: 10, color: MUTED }}>Your name is visible only to administrators</div>
           </div>
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
@@ -242,7 +254,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard }) {
   );
 }
 
-export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport }) {
+export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft }) {
   const [view, setView] = useState("list"); // list | new
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
@@ -262,7 +274,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
 
   const filtered = useMemo(() => {
     let list = reports.filter(r => {
-      if (filter !== "all" && filter !== r.status && filter !== r.report_type) return false;
+      if (filter !== "all" && filter !== r.status) return false;
       if (search && !`${r.title} ${r.description} ${r.location} ${r.category}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
@@ -274,16 +286,15 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
   }, [reports, filter, search, sortBy]);
 
   const counts = useMemo(() => {
-    const c = { all: reports.length, open: 0, under_review: 0, investigation: 0, corrective_action: 0, closed: 0, hazard: 0, incident: 0, near_miss: 0 };
+    const c = { all: reports.length, open: 0, under_review: 0, investigation: 0, corrective_action: 0, closed: 0 };
     reports.forEach(r => {
       if (c[r.status] !== undefined) c[r.status]++;
-      if (c[r.report_type] !== undefined) c[r.report_type]++;
     });
     return c;
   }, [reports]);
 
   if (view === "new") {
-    return <ReportForm onSubmit={(report) => { onSubmitReport(report); setView("list"); }} onCancel={() => setView("list")} />;
+    return <ReportForm onSubmit={(report) => { onSubmitReport(report); setView("list"); }} onCancel={() => setView("list")} fleetAircraft={fleetAircraft} />;
   }
 
   return (
@@ -324,7 +335,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
         </select>
       </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        {["all", "open", "under_review", "investigation", "closed", "hazard", "incident", "near_miss"].map(f => (
+        {["all", "open", "under_review", "investigation", "closed"].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${filter === f ? WHITE : BORDER}`,
               background: filter === f ? WHITE : CARD, color: filter === f ? BLACK : MUTED,
