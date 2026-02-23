@@ -1793,7 +1793,13 @@ function SignupFlow({ onAuth }) {
     if (!agreedTos) { setError("Please agree to the Terms of Service and Privacy Policy"); return; }
     setError(""); setLoading(true);
     try {
-      // 1. Create org via API route (uses service role to bypass RLS)
+      // 1. Check email availability by attempting auth sign-up first (before creating org)
+      const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
+      if (authErr) { setError(authErr.message); setLoading(false); return; }
+      if (authData.user && (!authData.user.identities || authData.user.identities.length === 0)) {
+        setError("An account with this email already exists. Please log in or reset your password."); setLoading(false); return;
+      }
+      // 2. Create org via API route (uses service role to bypass RLS)
       const slug = orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       const tier = selectedPlan;
       const features = getTierFeatures(tier);
@@ -1804,10 +1810,11 @@ function SignupFlow({ onAuth }) {
       });
       const orgJson = await orgRes.json();
       if (!orgRes.ok || !orgJson.data) { setError(orgJson.error || "Failed to create organization"); setLoading(false); return; }
-      // 2. Sign up user with org
-      const { error: signupErr } = await signUp(email, password, name.trim(), orgJson.data.id);
-      if (signupErr) { setError(signupErr.message); setLoading(false); return; }
-      // 3. Sign in and set as admin
+      // 3. Create profile linked to org
+      if (authData.user) {
+        await supabase.from("profiles").insert({ id: authData.user.id, org_id: orgJson.data.id, full_name: name.trim(), email, role: "pilot" });
+      }
+      // 4. Sign in and set as admin
       const { data: session } = await signIn(email, password);
       if (session?.session) {
         await supabase.from("profiles").update({ role: "admin" }).eq("id", session.session.user.id);
