@@ -2299,7 +2299,13 @@ function AuthScreen({ onAuth, initialMode }) {
     setError(""); setLoading(true);
     try {
       if (mode === "signup") {
-        // 1. Create org via API route (uses service role to bypass RLS)
+        // 1. Validate email by attempting auth signup first (before creating org)
+        const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
+        if (authErr) { setError(authErr.message); setLoading(false); return; }
+        if (authData.user && (!authData.user.identities || authData.user.identities.length === 0)) {
+          setError("An account with this email already exists. Please log in or reset your password."); setLoading(false); return;
+        }
+        // 2. Create org via API route (uses service role to bypass RLS)
         const slug = orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
         const tier = selectedPlan;
         const features = getTierFeatures(tier);
@@ -2310,10 +2316,11 @@ function AuthScreen({ onAuth, initialMode }) {
         });
         const orgJson = await orgRes.json();
         if (!orgRes.ok || !orgJson.data) { setError(orgJson.error || "Failed to create organization"); setLoading(false); return; }
-        // 2. Sign up user with org
-        const { error: signupErr } = await signUp(email, password, name.trim(), orgJson.data.id);
-        if (signupErr) { setError(signupErr.message); setLoading(false); return; }
-        // 3. Sign in and set as admin
+        // 3. Create profile linked to org
+        if (authData.user) {
+          await supabase.from("profiles").insert({ id: authData.user.id, org_id: orgJson.data.id, full_name: name.trim(), email, role: "pilot" });
+        }
+        // 4. Sign in and set as admin
         const { data: session } = await signIn(email, password);
         if (session?.session) {
           await supabase.from("profiles").update({ role: "admin" }).eq("id", session.session.user.id);
@@ -2652,7 +2659,7 @@ export default function PVTAIRFrat() {
   const [invitations_list, setInvitationsList] = useState([]);
   const isOnline = !!supabase;
   const org = profile?.organizations || {};
-  const isAdmin = ["admin", "safety_manager", "accountable_exec"].includes(profile?.role);
+  const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [tourSubTabs, setTourSubTabs] = useState({});
 
@@ -3373,7 +3380,7 @@ export default function PVTAIRFrat() {
   const isTrialExpired = isTrial && trialDaysElapsed >= 14;
   const isTrialActive = isTrial && !isTrialExpired;
 
-  const isReadOnly = isCanceled || isSuspended || isTrialExpired;
+  const isReadOnly = isCanceled || isSuspended || isPastDue || isTrialExpired;
 
   // Fully blocked — suspended
   if (isSuspended) return (
@@ -3390,7 +3397,7 @@ export default function PVTAIRFrat() {
 
   // Trial expired — force admin users to subscription tab, block non-admins
   if (isTrialExpired) {
-    const isAdmin = ["admin", "safety_manager", "accountable_exec"].includes(profile?.role);
+    const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
     if (!isAdmin) return (
       <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ ...card, padding: 48, maxWidth: 440, textAlign: "center" }}>

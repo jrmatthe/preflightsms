@@ -34,25 +34,24 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Missing config" }), { status: 500 });
   }
 
+  if (!webhookSecret) {
+    console.error("STRIPE_WEBHOOK_SECRET not set — rejecting unverified webhook");
+    return new Response(JSON.stringify({ error: "Webhook secret not configured" }), { status: 500 });
+  }
+
   const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   let event: Stripe.Event;
 
-  // Verify webhook signature if secret is set
-  if (webhookSecret) {
-    const body = await req.text();
-    const sig = req.headers.get("stripe-signature");
-    try {
-      event = stripe.webhooks.constructEvent(body, sig!, webhookSecret);
-    } catch (err: any) {
-      console.error("Webhook signature verification failed:", err.message);
-      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 400 });
-    }
-  } else {
-    // No webhook secret — parse body directly (test mode)
-    const body = await req.json();
-    event = body as Stripe.Event;
+  // Verify webhook signature
+  const body = await req.text();
+  const sig = req.headers.get("stripe-signature");
+  try {
+    event = stripe.webhooks.constructEvent(body, sig!, webhookSecret);
+  } catch (err: any) {
+    console.error("Webhook signature verification failed:", err.message);
+    return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 400 });
   }
 
   console.log("Stripe event:", event.type);
@@ -84,10 +83,14 @@ Deno.serve(async (req) => {
             : sub.status === "canceled" ? "canceled"
             : sub.status === "unpaid" ? "suspended"
             : "active";
-          await supabase.from("organizations").update({
-            subscription_status: status,
-          }).eq("id", orgId);
-          console.log(`Org ${orgId} subscription updated: ${status}`);
+          const updateFields: Record<string, any> = { subscription_status: status };
+          // Sync tier from subscription metadata if present
+          const newTier = sub.metadata?.plan;
+          if (newTier && ["starter", "professional", "enterprise"].includes(newTier)) {
+            updateFields.tier = newTier;
+          }
+          await supabase.from("organizations").update(updateFields).eq("id", orgId);
+          console.log(`Org ${orgId} subscription updated: ${status}${newTier ? `, tier: ${newTier}` : ""}`);
         }
         break;
       }
@@ -113,7 +116,7 @@ Deno.serve(async (req) => {
             .from("organizations")
             .select("id")
             .eq("stripe_subscription_id", subId)
-            .single();
+            .maybeSingle();
           if (org) {
             await supabase.from("organizations").update({
               subscription_status: "past_due",
@@ -132,7 +135,7 @@ Deno.serve(async (req) => {
             .from("organizations")
             .select("id")
             .eq("stripe_subscription_id", subId)
-            .single();
+            .maybeSingle();
           if (org) {
             await supabase.from("organizations").update({
               subscription_status: "active",
