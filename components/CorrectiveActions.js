@@ -34,6 +34,9 @@ function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation, orgP
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const handleSubmit = () => {
     if (!form.title.trim()) return;
+    if (form.reportId) {
+      if (!confirm("This will update the linked report and notify the report submitter. Continue?")) return;
+    }
     onSubmit({ ...form, actionCode: `CA-${String(existingCount + 1).padStart(3, "0")}` });
   };
 
@@ -130,7 +133,13 @@ function ActionCard({ a, onUpdateAction, linkedInvestigation }) {
           <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Update Status</div>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {STATUSES.filter(s => s.id !== "overdue").map(s => (
-              <button key={s.id} onClick={() => onUpdateAction(a.id, { status: s.id, ...(s.id === "completed" ? { completed_at: new Date().toISOString() } : {}) })}
+              <button key={s.id} onClick={() => {
+                if (s.id === a.status) return;
+                if ((s.id === "completed" || s.id === "cancelled") && a.report_id) {
+                  if (!confirm("This will close the linked report and notify the report submitter. Continue?")) return;
+                }
+                onUpdateAction(a.id, { status: s.id, ...(s.id === "completed" ? { completed_at: new Date().toISOString() } : {}) });
+              }}
                 style={{ padding: "6px 14px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer",
                   background: a.status === s.id ? `${s.color}33` : "transparent",
                   color: a.status === s.id ? s.color : MUTED,

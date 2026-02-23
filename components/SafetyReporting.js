@@ -213,13 +213,22 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard, orgP
           {report.tail_number && <div style={{ fontSize: 10, color: MUTED, marginBottom: 4 }}>Aircraft: {report.tail_number} {report.aircraft_type}</div>}
           {report.flight_phase && <div style={{ fontSize: 10, color: MUTED, marginBottom: 4 }}>Phase: {report.flight_phase.replace(/_/g, " ")}</div>}
           {report.date_occurred && <div style={{ fontSize: 10, color: MUTED, marginBottom: 4 }}>Date occurred: {report.date_occurred}</div>}
-          {report.investigation_notes && <div style={{ fontSize: 10, color: MUTED, marginBottom: 4 }}>Investigation notes: {report.investigation_notes}</div>}
+          {report.investigation_notes && (
+            <div style={{ padding: "10px 14px", borderRadius: 6, background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.25)", marginBottom: 8, marginTop: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#A78BFA", marginBottom: 2 }}>Action Being Taken</div>
+              <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.5 }}>{report.investigation_notes}</div>
+            </div>
+          )}
           {report.root_cause && <div style={{ fontSize: 10, color: MUTED, marginBottom: 4 }}>Root cause: {report.root_cause}</div>}
 
           {onStatusChange && (
             <div style={{ display: "flex", gap: 4, marginTop: 10, flexWrap: "wrap" }}>
               {STATUSES.map(s => (
-                <button key={s.id} onClick={() => onStatusChange(report.id, s.id)}
+                <button key={s.id} onClick={() => {
+                  if (s.id === report.status) return;
+                  if (!confirm("This will notify the report submitter of the status change. Continue?")) return;
+                  onStatusChange(report.id, s.id);
+                }}
                   style={{ padding: "4px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer",
                     background: report.status === s.id ? `${s.color}33` : "transparent",
                     color: report.status === s.id ? s.color : MUTED,
@@ -242,7 +251,10 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard, orgP
                 <span style={{ fontSize: 9, color: CYAN, background: `${CYAN}22`, padding: "2px 8px", borderRadius: 8 }}>{linkedHazard.status}</span>
               </div>
             ) : onCreateHazard && (
-              <button onClick={() => onCreateHazard(report)}
+              <button onClick={() => {
+                if (!confirm("This will open an investigation and notify the report submitter. Continue?")) return;
+                onCreateHazard(report);
+              }}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 <span style={{ fontSize: 14 }}>△</span> Open Investigation
               </button>
