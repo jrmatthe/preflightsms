@@ -1009,7 +1009,7 @@ export default function CbtModules({
     setInitializing(false);
   };
 
-  const isAdmin = profile?.role === "admin" || profile?.role === "safety_manager";
+  const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const publishedCourses = courses.filter(c => c.status === "published" || isAdmin);
 
   // Admins see all org records; non-admins see only their own
