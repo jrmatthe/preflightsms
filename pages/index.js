@@ -2893,13 +2893,19 @@ export default function PVTAIRFrat() {
   }, [profile, session, isOnline]);
 
   // ── Update Report Status ──
+  const STATUS_LABELS = { open: "Open", under_review: "Under Review", investigation: "Investigation", corrective_action: "Corrective Action", closed: "Closed" };
   const onReportStatusChange = useCallback(async (reportId, newStatus) => {
     if (isOnline && profile) {
       await updateReport(reportId, { status: newStatus, closed_at: newStatus === "closed" ? new Date().toISOString() : null });
       const { data } = await fetchReports(profile.org_id);
       setReports(data || []);
+      // Notify reporter
+      const rpt = (data || []).find(r => r.id === reportId);
+      if (rpt?.reporter_id && rpt.reporter_id !== session.user.id) {
+        createNotification(profile.org_id, { type: "report_status_update", title: "Report Status Updated", body: `Your report ${rpt.report_code} is now: ${STATUS_LABELS[newStatus] || newStatus}`, link_tab: "reports", target_user_id: rpt.reporter_id });
+      }
     }
-  }, [profile, isOnline]);
+  }, [profile, session, isOnline]);
 
   // ── Create Hazard ──
   const onCreateHazard = useCallback(async (hazard) => {
@@ -2913,9 +2919,35 @@ export default function PVTAIRFrat() {
         await updateReport(hazard.relatedReportId, { status: "investigation" });
         const { data: rpts } = await fetchReports(profile.org_id);
         setReports(rpts || []);
+        const rpt = (rpts || []).find(r => r.id === hazard.relatedReportId);
+        if (rpt?.reporter_id && rpt.reporter_id !== session.user.id) {
+          createNotification(profile.org_id, { type: "report_status_update", title: "Report Status Updated", body: `Your report ${rpt.report_code} is now: Investigation`, link_tab: "reports", target_user_id: rpt.reporter_id });
+        }
       }
       createNotification(profile.org_id, { type: "investigation_created", title: "New Investigation", body: `Investigation opened: ${hazard.title || hazard.hazardCode || "Untitled"}`, link_tab: "hazards", target_roles: ["admin", "safety_manager"] });
       setToast({ message: `${hazard.hazardCode} registered`, level: { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" } }); setTimeout(() => setToast(null), 4000);
+    }
+  }, [profile, session, isOnline]);
+
+  // ── Update Hazard ──
+  const onUpdateHazard = useCallback(async (hazardId, updates) => {
+    if (isOnline && profile) {
+      await updateHazard(hazardId, updates);
+      const { data } = await fetchHazards(profile.org_id);
+      setHazards(data || []);
+      // If closing hazard, cascade-close linked report + notify reporter
+      if (updates.status === "closed") {
+        const hazard = (data || []).find(h => h.id === hazardId);
+        if (hazard?.related_report_id) {
+          await updateReport(hazard.related_report_id, { status: "closed", closed_at: new Date().toISOString() });
+          const { data: rpts } = await fetchReports(profile.org_id);
+          setReports(rpts || []);
+          const rpt = (rpts || []).find(r => r.id === hazard.related_report_id);
+          if (rpt?.reporter_id && rpt.reporter_id !== session.user.id) {
+            createNotification(profile.org_id, { type: "report_status_update", title: "Report Closed", body: `Your report ${rpt.report_code} has been closed`, link_tab: "reports", target_user_id: rpt.reporter_id });
+          }
+        }
+      }
     }
   }, [profile, session, isOnline]);
 
@@ -2931,6 +2963,10 @@ export default function PVTAIRFrat() {
         await updateReport(action.reportId, { status: "corrective_action" });
         const { data: rpts } = await fetchReports(profile.org_id);
         setReports(rpts || []);
+        const rpt = (rpts || []).find(r => r.id === action.reportId);
+        if (rpt?.reporter_id && rpt.reporter_id !== session.user.id) {
+          createNotification(profile.org_id, { type: "report_status_update", title: "Report Status Updated", body: `Your report ${rpt.report_code} is now: Corrective Action`, link_tab: "reports", target_user_id: rpt.reporter_id });
+        }
       }
       createNotification(profile.org_id, { type: "action_created", title: "New Corrective Action", body: `Corrective action created: ${action.title || action.actionCode || "Untitled"}`, link_tab: "actions", target_roles: ["admin", "safety_manager"] });
       setToast({ message: `${action.actionCode} created`, level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: "#4ADE80" } }); setTimeout(() => setToast(null), 4000);
@@ -2948,6 +2984,10 @@ export default function PVTAIRFrat() {
             await updateReport(hazard.related_report_id, { status: "closed", closed_at: new Date().toISOString() });
             const { data: rpts } = await fetchReports(profile.org_id);
             setReports(rpts || []);
+            const rpt = (rpts || []).find(r => r.id === hazard.related_report_id);
+            if (rpt?.reporter_id && rpt.reporter_id !== session.user.id) {
+              createNotification(profile.org_id, { type: "report_status_update", title: "Report Closed", body: `Your report ${rpt.report_code} has been closed`, link_tab: "reports", target_user_id: rpt.reporter_id });
+            }
           }
         }
       }
@@ -3351,7 +3391,7 @@ export default function PVTAIRFrat() {
           setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
         }} />}
         {cv === "reports" && (() => { const canManageReports = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role); const visibleReports = canManageReports ? reports : reports.filter(r => r.reporter_id === session?.user?.id); return <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={visibleReports} onStatusChange={canManageReports ? roGuard(onReportStatusChange) : null} hazards={hazards} onCreateHazardFromReport={canManageReports ? (report) => { setHazardFromReport(report); setCv("hazards"); } : null} fleetAircraft={fleetAircraft} />; })()}
-        {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} actions={actions} onCreateAction={(hazard) => { setActionFromInvestigation(hazard); setCv("actions"); }} />}
+        {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} onUpdateHazard={roGuard(onUpdateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} actions={actions} onCreateAction={(hazard) => { setActionFromInvestigation(hazard); setCv("actions"); }} />}
         {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={roGuard(onCreateAction)} onUpdateAction={roGuard(onUpdateAction)} fromInvestigation={actionFromInvestigation} hazards={hazards} onClearFromInvestigation={() => setActionFromInvestigation(null)} />}
         {cv === "policy" && <PolicyTraining tourTab={tourSubTabs.policy} profile={profile} session={session} policies={policies} onCreatePolicy={roGuard(onCreatePolicy)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} showManuals={hasFeature(org, "sms_manuals") && ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role)} templateVariables={templateVariables} signatures={smsSignatures} fleetAircraft={fleetAircraft} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} />}
         {cv === "cbt" && <CbtModules tourTab={tourSubTabs.cbt} profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}

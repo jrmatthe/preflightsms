@@ -211,7 +211,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
   );
 }
 
-function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, canManage }) {
+function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpdateHazard, canManage }) {
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
   const initScore = hazard.initial_risk_score || (hazard.initial_likelihood * hazard.initial_severity);
   const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
@@ -256,6 +256,23 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, canMa
           )}
           {hazard.source && <div style={{ fontSize: 10, color: MUTED }}>Source: {hazard.source.replace(/_/g, " ")}</div>}
           {hazard.review_date && <div style={{ fontSize: 10, color: MUTED }}>Next review: {hazard.review_date}</div>}
+          {onUpdateHazard && canManage && (
+            <div style={{ marginTop: 8, marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 6, letterSpacing: 1 }}>Update Status</div>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                {HAZARD_STATUSES.map(s => (
+                  <button key={s.id} onClick={() => { if (s.id !== hazard.status) onUpdateHazard(hazard.id, { status: s.id }); }}
+                    style={{ padding: "4px 10px", borderRadius: 12, border: `1px solid ${s.id === hazard.status ? s.color : BORDER}`,
+                      background: s.id === hazard.status ? `${s.color}22` : "transparent",
+                      color: s.id === hazard.status ? s.color : MUTED,
+                      fontSize: 10, fontWeight: 600, cursor: s.id === hazard.status ? "default" : "pointer", fontFamily: "inherit",
+                      opacity: s.id === hazard.status ? 1 : 0.7 }}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {linkedReport && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginTop: 8, background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
               <span style={{ fontSize: 10, color: CYAN, fontWeight: 700 }}>⚠</span>
@@ -294,7 +311,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, canMa
   );
 }
 
-export default function HazardRegister({ profile, session, onCreateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction }) {
+export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction }) {
   const [view, setView] = useState(fromReport ? "new" : "list");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -428,7 +445,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, hazar
       ) : (<>
         {filtered.slice(0, showCount).map(h => {
           const lr = h.related_report_id && reports ? reports.find(r => r.id === h.related_report_id) : null;
-          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} canManage={canManage} />;
+          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} onUpdateHazard={onUpdateHazard} canManage={canManage} />;
         })}
         {filtered.length > showCount && (
           <button onClick={() => setShowCount(c => c + 25)}
