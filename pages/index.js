@@ -3068,12 +3068,13 @@ export default function PVTAIRFrat() {
       setActions(data || []);
       // Auto-advance linked report to "corrective_action"
       if (action.reportId) {
-        await updateReport(action.reportId, { status: "corrective_action" });
+        const actionText = action.title || "Corrective action created";
+        await updateReport(action.reportId, { status: "corrective_action", investigation_notes: `Corrective action: ${actionText}` });
         const { data: rpts } = await fetchReports(profile.org_id);
         setReports(rpts || []);
         const rpt = (rpts || []).find(r => r.id === action.reportId);
         if (rpt?.reporter_id && rpt.reporter_id !== session.user.id) {
-          createNotification(profile.org_id, { type: "report_status_update", title: "Report Status Updated", body: `Your report ${rpt.report_code} is now: Corrective Action`, link_tab: "reports", target_user_id: rpt.reporter_id });
+          createNotification(profile.org_id, { type: "report_status_update", title: "Report Status Updated", body: `Your report ${rpt.report_code} is now: Corrective Action — ${actionText}`, link_tab: "reports", target_user_id: rpt.reporter_id });
         }
       }
       createNotification(profile.org_id, { type: "action_created", title: "New Corrective Action", body: `Corrective action created: ${action.title || action.actionCode || "Untitled"}`, link_tab: "actions", target_roles: ["admin", "safety_manager"] });

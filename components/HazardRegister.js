@@ -261,7 +261,13 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 6, letterSpacing: 1 }}>Update Status</div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 {HAZARD_STATUSES.map(s => (
-                  <button key={s.id} onClick={() => { if (s.id !== hazard.status) onUpdateHazard(hazard.id, { status: s.id }); }}
+                  <button key={s.id} onClick={() => {
+                    if (s.id === hazard.status) return;
+                    if (s.id === "closed" && hazard.related_report_id) {
+                      if (!confirm("This will close the linked report and notify the report submitter. Continue?")) return;
+                    }
+                    onUpdateHazard(hazard.id, { status: s.id });
+                  }}
                     style={{ padding: "4px 10px", borderRadius: 12, border: `1px solid ${s.id === hazard.status ? s.color : BORDER}`,
                       background: s.id === hazard.status ? `${s.color}22` : "transparent",
                       color: s.id === hazard.status ? s.color : MUTED,
