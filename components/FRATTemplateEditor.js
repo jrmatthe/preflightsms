@@ -94,6 +94,14 @@ function TemplateEditor({ template, onSave, saving, fleetAircraftTypes }) {
           </div>
         ))}
         <div style={{ color: SUBTLE, fontSize: 10, marginTop: 4 }}>Columns: Color · Label · Min · Max · Required Action · Approval Mode</div>
+        <div style={{ marginTop: 12, padding: "12px 14px", background: NEAR_BLACK, borderRadius: 8, border: `1px solid ${BORDER}` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Approval Mode Behaviors</div>
+          <div style={{ fontSize: 10, color: OFF_WHITE, lineHeight: 1.7 }}>
+            <div style={{ marginBottom: 6 }}><span style={{ fontWeight: 700, color: GREEN }}>No Approval</span> — Flight goes active immediately. No notifications sent.</div>
+            <div style={{ marginBottom: 6 }}><span style={{ fontWeight: 700, color: CYAN }}>Review After Flight</span> — Flight goes active. All FRAT approvers are notified to review. If an approver submits, no notification is sent.</div>
+            <div><span style={{ fontWeight: 700, color: YELLOW }}>Require Approval</span> — Flight is held on flight board until approved. All FRAT approvers are notified. If rejected, submitter is notified and flight is removed.</div>
+          </div>
+        </div>
       </div>
 
       {/* Risk Categories & Factors */}
