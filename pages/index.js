@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -1415,7 +1415,102 @@ function HistoryView({ records, onDelete }) {
             <button onClick={() => onDelete(r.id)} style={{ background: "none", border: "none", color: LIGHT_BORDER, cursor: "pointer", fontSize: 16, padding: 4 }}>×</button></div>); })}</div>);
 }
 
-function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight, onFlightSelected }) {
+function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove, onApproveFlight, onRejectFlight, onClose }) {
+  const frat = records.find(r => r.id === fratId);
+  if (!frat) return (<div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+    <div style={{ ...card, padding: 32, maxWidth: 480, width: "90%", textAlign: "center" }} onClick={e => e.stopPropagation()}>
+      <div style={{ color: MUTED, fontSize: 13 }}>FRAT record not found</div>
+      <button onClick={onClose} style={{ marginTop: 16, padding: "8px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Close</button>
+    </div></div>);
+  const rl = getRiskLevel(frat.score);
+  const allFactors = (riskCategories || DEFAULT_RISK_CATEGORIES).flatMap(c => c.factors.map(f => ({ ...f, category: c.name })));
+  const checkedFactors = allFactors.filter(f => frat.factors.includes(f.id));
+  const flight = flights.find(f => f.id === fratId);
+  const needsApproval = flight && flight.status === "PENDING_APPROVAL";
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div style={{ ...card, padding: 0, maxWidth: 560, width: "100%", maxHeight: "90vh", overflow: "auto" }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>{frat.departure} → {frat.destination}</div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{frat.id} · {frat.pilot} · {formatDateTime(frat.timestamp)}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: MUTED, fontSize: 20, cursor: "pointer", padding: 4 }}>×</button>
+        </div>
+        {/* Score banner */}
+        <div style={{ margin: "16px 24px", padding: "14px 18px", background: rl.bg, border: `1px solid ${rl.border}`, borderRadius: 10, display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 50, height: 50, borderRadius: 10, background: CARD, border: `1px solid ${rl.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontWeight: 800, color: rl.color, fontSize: 20, fontFamily: "Georgia,serif" }}>{frat.score}</span></div>
+          <div>
+            <div style={{ fontWeight: 700, color: rl.color, fontSize: 13 }}>{rl.label}</div>
+            {rl.action && <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{rl.action}</div>}
+          </div>
+        </div>
+        {/* Flight details grid */}
+        <div style={{ padding: "0 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 16px", fontSize: 11 }}>
+          {frat.aircraft && <div><span style={{ color: MUTED }}>Aircraft </span><span style={{ color: OFF_WHITE, fontWeight: 600 }}>{frat.aircraft}{frat.tailNumber ? ` (${frat.tailNumber})` : ""}</span></div>}
+          {frat.date && <div><span style={{ color: MUTED }}>Date </span><span style={{ color: OFF_WHITE, fontWeight: 600 }}>{frat.date}</span></div>}
+          {frat.etd && <div><span style={{ color: MUTED }}>ETD </span><span style={{ color: OFF_WHITE, fontWeight: 600 }}>{frat.etd}</span></div>}
+          {frat.ete && <div><span style={{ color: MUTED }}>ETE </span><span style={{ color: OFF_WHITE, fontWeight: 600 }}>{frat.ete}</span></div>}
+          {frat.cruiseAlt && <div><span style={{ color: MUTED }}>Cruise Alt </span><span style={{ color: OFF_WHITE, fontWeight: 600 }}>{frat.cruiseAlt}</span></div>}
+          {frat.fuelLbs && <div><span style={{ color: MUTED }}>Fuel </span><span style={{ color: OFF_WHITE, fontWeight: 600 }}>{frat.fuelLbs} lbs</span></div>}
+          {frat.numCrew && <div><span style={{ color: MUTED }}>Crew </span><span style={{ color: OFF_WHITE, fontWeight: 600 }}>{frat.numCrew}</span></div>}
+          {frat.numPax && <div><span style={{ color: MUTED }}>Pax </span><span style={{ color: OFF_WHITE, fontWeight: 600 }}>{frat.numPax}</span></div>}
+        </div>
+        {/* Risk factors */}
+        {checkedFactors.length > 0 && (
+          <div style={{ padding: "16px 24px 0" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Risk Factors ({checkedFactors.length})</div>
+            {checkedFactors.map(f => (
+              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", marginBottom: 4, background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${BORDER}` }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: AMBER, minWidth: 18, textAlign: "center" }}>+{f.score}</span>
+                <span style={{ fontSize: 10, color: OFF_WHITE, flex: 1 }}>{f.label}</span>
+                <span style={{ fontSize: 9, color: MUTED }}>{f.category}</span>
+              </div>))}
+          </div>)}
+        {/* Wx briefing */}
+        {frat.wxBriefing && (
+          <div style={{ padding: "12px 24px 0" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Weather Briefing</div>
+            <div style={{ fontSize: 10, color: OFF_WHITE, background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "8px 10px", whiteSpace: "pre-wrap" }}>{frat.wxBriefing}</div>
+          </div>)}
+        {/* Remarks */}
+        {frat.remarks && (
+          <div style={{ padding: "12px 24px 0" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Pilot Remarks</div>
+            <div style={{ fontSize: 10, color: OFF_WHITE, fontStyle: "italic" }}>"{frat.remarks}"</div>
+          </div>)}
+        {/* Attachments */}
+        {frat.attachments && frat.attachments.length > 0 && (
+          <div style={{ padding: "12px 24px 0" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, marginBottom: 6 }}>Attachments</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {frat.attachments.map((att, i) => (
+                <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", width: 56, height: 56, borderRadius: 6, overflow: "hidden", border: `1px solid ${BORDER}` }}>
+                  <img src={att.url} alt={att.name || "Attachment"} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></a>))}
+            </div>
+          </div>)}
+        {/* Approval section */}
+        {needsApproval && canApprove && (
+          <div style={{ padding: "16px 24px 0" }}>
+            <div style={{ padding: "10px 14px", background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", borderRadius: 8, marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: YELLOW, marginBottom: 4 }}>Supervisor Approval Required</div>
+              <div style={{ fontSize: 10, color: MUTED }}>This flight scored {frat.score} ({frat.riskLevel}) which requires management approval before departure.</div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { onApproveFlight(flight.dbId, flight.fratDbId); onClose(); }}
+                style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>APPROVE FLIGHT</button>
+              <button onClick={() => { onRejectFlight(flight.dbId, flight.fratDbId); onClose(); }}
+                style={{ padding: "10px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Reject</button>
+            </div>
+          </div>)}
+        <div style={{ height: 24 }} />
+      </div>
+    </div>);
+}
+
+function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight }) {
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
@@ -1428,10 +1523,6 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
   const [selectedFlight, setSelectedFlight] = useState(initialSelectedFlight || null);
   const [airportCoords, setAirportCoords] = useState({});
   const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    if (initialSelectedFlight) { setSelectedFlight(initialSelectedFlight); if (onFlightSelected) onFlightSelected(); }
-  }, [initialSelectedFlight]);
 
   // Update 'now' every 10 seconds so progress bar and map plane move
   useEffect(() => {
@@ -2628,7 +2719,7 @@ export default function PVTAIRFrat() {
     return "submit";
   });
   const [initialAdminTab] = useState(_initTab === "subscription" ? "subscription" : null);
-  const [notifFlightId, setNotifFlightId] = useState(null);
+  const [fratDetailId, setFratDetailId] = useState(null);
   useEffect(() => { if (_initTab && typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }, []);
   const [records, setRecords] = useState([]);
   const [flights, setFlights] = useState([]);
@@ -3553,7 +3644,7 @@ export default function PVTAIRFrat() {
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
     {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} onTourStart={handleTourStart} onSubTabChange={handleSubTabChange} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} userRole={profile?.role} />}
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId && tab === "flights") setNotifFlightId(linkId); setCv(tab); }} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { setFratDetailId(linkId); } else { setCv(tab); } }} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Top bar with user info */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
@@ -3565,7 +3656,7 @@ export default function PVTAIRFrat() {
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {pendingSync > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: YELLOW, background: "rgba(250,204,21,0.15)", border: "1px solid rgba(250,204,21,0.3)", padding: "2px 8px", borderRadius: 10, cursor: "pointer" }} onClick={() => flushQueue()} title="Click to retry sync">{pendingSync} pending</span>}
             {isOnline && session && (<>
-              <NotificationCenter notifications={notifications} reads={notifReads} onMarkRead={onMarkNotifRead} onMarkAllRead={onMarkAllNotifsRead} profile={profile} onNavigate={(tab, linkId) => { if (linkId && tab === "flights") setNotifFlightId(linkId); setCv(tab); }} />
+              <NotificationCenter notifications={notifications} reads={notifReads} onMarkRead={onMarkNotifRead} onMarkAllRead={onMarkAllNotifsRead} profile={profile} onNavigate={(tab, linkId) => { if (linkId) { setFratDetailId(linkId); } else { setCv(tab); } }} />
               <span style={{ fontSize: 11, color: MUTED }}>{userName}</span>
               <div style={{ width: 32, height: 32, borderRadius: 50, background: BORDER, display: "flex", alignItems: "center", justifyContent: "center", color: WHITE, fontSize: 12, fontWeight: 700 }}>{(userName || "?").split(" ").map(n => n[0]).join("").slice(0, 2)}</div>
               <button onClick={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); setNotifications([]); setNotifReads([]); }}
@@ -3575,6 +3666,7 @@ export default function PVTAIRFrat() {
         </div>
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         {nudgeFlight && <PostFlightNudge flight={nudgeFlight} onSubmitReport={onNudgeSubmitReport} onNothingToReport={onNudgeNothingToReport} onRemindLater={onNudgeRemindLater} onDismiss={onNudgeDismiss} />}
+        {fratDetailId && <FRATDetailModal fratId={fratDetailId} records={records} flights={flights} riskCategories={riskCategories} canApprove={["admin","safety_manager","chief_pilot"].includes(profile?.role) || (profile?.permissions || []).includes("approver")} onApproveFlight={async (flightDbId, fratDbId) => { await approveFlight(flightDbId, session.user.id); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: fl } = await fetchFlights(profile.org_id); setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] }))); setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); }} onRejectFlight={async (flightDbId, fratDbId) => { await rejectFlight(flightDbId); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: fl } = await fetchFlights(profile.org_id); setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] }))); setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onClose={() => setFratDetailId(null)} />}
         {isPastDue && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{"\u26A0"} Your subscription payment is past due. Update your payment method to restore access.</span>{isAdmin && <button onClick={async () => { const customerId = org?.stripe_customer_id; if (!customerId) return; const { data } = await supabase.functions.invoke('stripe-portal', { body: { customerId, returnUrl: window.location.origin } }); if (data?.url) window.location.href = data.url; }} style={{ background: "none", border: "1px solid currentColor", borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>Update Payment</button>}</div>}
         {isCanceled && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: RED, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>{"\u26D4"} Subscription canceled — this account is in read-only mode. Contact your administrator to restore full access.</div>}
         {isTrialActive && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: trialDaysRemaining <= 3 ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)", border: `1px solid ${trialDaysRemaining <= 3 ? "rgba(245,158,11,0.25)" : "rgba(34,211,238,0.25)"}`, color: trialDaysRemaining <= 3 ? AMBER : CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{trialDaysRemaining <= 3 ? "\u26A0" : "\u2139\uFE0F"} Free trial — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining</span><button onClick={() => { setCv("admin"); }} style={{ background: "none", border: `1px solid currentColor`, borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Subscribe</button></div>}
@@ -3582,15 +3674,19 @@ export default function PVTAIRFrat() {
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} fleetAircraft={fleetAircraft} />)}
-        {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} initialSelectedFlight={notifFlightId || (showOnboarding ? "_seed_FLT001" : null)} onFlightSelected={() => setNotifFlightId(null)} onApproveFlight={async (flightDbId, fratDbId) => {
+        {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} onApproveFlight={async (flightDbId, fratDbId) => {
           await approveFlight(flightDbId, session.user.id);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", "");
+          const matchedFlight = flights.find(fl => fl.dbId === flightDbId);
+          if (matchedFlight) { deleteNotificationByLinkId(profile.org_id, matchedFlight.id); setNotifications(prev => prev.filter(n => n.link_id !== matchedFlight.id)); }
           const { data: fl } = await fetchFlights(profile.org_id);
           setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] })));
           setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
         }} onRejectFlight={async (flightDbId, fratDbId) => {
           await rejectFlight(flightDbId);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", "");
+          const matchedFlight = flights.find(fl => fl.dbId === flightDbId);
+          if (matchedFlight) { deleteNotificationByLinkId(profile.org_id, matchedFlight.id); setNotifications(prev => prev.filter(n => n.link_id !== matchedFlight.id)); }
           const { data: fl } = await fetchFlights(profile.org_id);
           setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] })));
           setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
