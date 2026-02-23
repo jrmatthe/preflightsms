@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, fetchNotificationReads, markNotificationRead, saveOnboardingStatus } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -15,6 +15,7 @@ const SmsManuals = dynamic(() => import("../components/SmsManuals"), { ssr: fals
 const CbtModules = dynamic(() => import("../components/CbtModules"), { ssr: false });
 const FleetManagement = dynamic(() => import("../components/FleetManagement"), { ssr: false });
 const NotificationCenter = dynamic(() => import("../components/NotificationCenter"), { ssr: false });
+const PostFlightNudge = dynamic(() => import("../components/PostFlightNudge"), { ssr: false });
 
 const COMPANY_NAME = "PreflightSMS";
 const ADMIN_PASSWORD = "admin2026";
@@ -2662,6 +2663,9 @@ export default function PVTAIRFrat() {
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [tourSubTabs, setTourSubTabs] = useState({});
+  const [nudgeFlight, setNudgeFlight] = useState(null);
+  const [nudgeResponses, setNudgeResponses] = useState([]);
+  const [reportPrefill, setReportPrefill] = useState(null);
 
   // Derived template config
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
@@ -2810,6 +2814,7 @@ export default function PVTAIRFrat() {
     fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
     fetchNotifications(orgId).then(({ data }) => setNotifications(data || []));
     if (session?.user?.id) fetchNotificationReads(session.user.id).then(({ data }) => setNotifReads((data || []).map(r => r.notification_id)));
+    if (session?.user?.id) fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
     fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [profile]);
@@ -2973,9 +2978,83 @@ export default function PVTAIRFrat() {
       });
       saveFlightsLocal(nf);
     }
-    if (action === "ARRIVED") { setToast({ message: `${id} arrived safely`, level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: GREEN } }); }
+    if (action === "ARRIVED") {
+      setToast({ message: `${id} arrived safely`, level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: GREEN } });
+      const arrivedFlight = flights.find(f => f.id === id);
+      if (arrivedFlight?.dbId) {
+        const hasTerminal = nudgeResponses.some(
+          nr => nr.flight_id === arrivedFlight.dbId &&
+          ['submitted_report', 'nothing_to_report', 'dismissed'].includes(nr.response)
+        );
+        if (!hasTerminal) setTimeout(() => setNudgeFlight(arrivedFlight), 1500);
+      }
+    }
     setTimeout(() => setToast(null), 3000);
-  }, [flights, saveFlightsLocal, profile, isOnline]);
+  }, [flights, saveFlightsLocal, profile, isOnline, nudgeResponses]);
+
+  // ── Remind-later nudge check (every 5 min) ──
+  useEffect(() => {
+    if (!session?.user?.id || !profile) return;
+    const check = () => {
+      const now = new Date();
+      const pending = nudgeResponses.filter(nr =>
+        nr.response === 'remind_later' && nr.remind_at && new Date(nr.remind_at) <= now
+      );
+      if (!pending.length || nudgeFlight) return;
+      for (const nr of pending) {
+        const hasTerminal = nudgeResponses.some(
+          t => t.flight_id === nr.flight_id &&
+          ['submitted_report', 'nothing_to_report', 'dismissed'].includes(t.response)
+        );
+        if (!hasTerminal) {
+          const match = flights.find(f => f.dbId === nr.flight_id);
+          if (match) { setNudgeFlight(match); break; }
+        }
+      }
+    };
+    check();
+    const interval = setInterval(check, 300000);
+    return () => clearInterval(interval);
+  }, [nudgeResponses, flights, nudgeFlight, session, profile]);
+
+  // ── Nudge handlers ──
+  const onNudgeSubmitReport = useCallback(async () => {
+    if (!nudgeFlight || !profile || !session) return;
+    await createNudgeResponse(profile.org_id, session.user.id, { flightId: nudgeFlight.dbId, response: 'submitted_report' });
+    fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
+    setReportPrefill({
+      tailNumber: nudgeFlight.tailNumber || '',
+      aircraftType: nudgeFlight.aircraft || '',
+      flightPhase: 'post_flight',
+      location: nudgeFlight.destination || '',
+      dateOccurred: new Date().toISOString().split('T')[0],
+    });
+    setNudgeFlight(null);
+    setCv("reports");
+  }, [nudgeFlight, profile, session]);
+
+  const onNudgeNothingToReport = useCallback(async () => {
+    if (!nudgeFlight || !profile || !session) return;
+    await createNudgeResponse(profile.org_id, session.user.id, { flightId: nudgeFlight.dbId, response: 'nothing_to_report' });
+    fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
+    setNudgeFlight(null);
+  }, [nudgeFlight, profile, session]);
+
+  const onNudgeRemindLater = useCallback(async () => {
+    if (!nudgeFlight || !profile || !session) return;
+    const remindAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    await createNudgeResponse(profile.org_id, session.user.id, { flightId: nudgeFlight.dbId, response: 'remind_later', remindAt });
+    fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
+    setNudgeFlight(null);
+    setToast({ message: "We'll check back in 2 hours", level: { bg: "rgba(34,211,238,0.15)", border: "rgba(34,211,238,0.4)", color: "#22D3EE" } }); setTimeout(() => setToast(null), 4000);
+  }, [nudgeFlight, profile, session]);
+
+  const onNudgeDismiss = useCallback(async () => {
+    if (!nudgeFlight || !profile || !session) return;
+    await createNudgeResponse(profile.org_id, session.user.id, { flightId: nudgeFlight.dbId, response: 'dismissed' });
+    fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
+    setNudgeFlight(null);
+  }, [nudgeFlight, profile, session]);
 
   // ── Delete FRAT ──
   const onDelete = useCallback(async id => {
@@ -3490,6 +3569,7 @@ export default function PVTAIRFrat() {
           </div>
         </div>
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
+        {nudgeFlight && <PostFlightNudge flight={nudgeFlight} onSubmitReport={onNudgeSubmitReport} onNothingToReport={onNudgeNothingToReport} onRemindLater={onNudgeRemindLater} onDismiss={onNudgeDismiss} />}
         {isPastDue && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{"\u26A0"} Your subscription payment is past due. Update your payment method to restore access.</span>{isAdmin && <button onClick={async () => { const customerId = org?.stripe_customer_id; if (!customerId) return; const { data } = await supabase.functions.invoke('stripe-portal', { body: { customerId, returnUrl: window.location.origin } }); if (data?.url) window.location.href = data.url; }} style={{ background: "none", border: "1px solid currentColor", borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>Update Payment</button>}</div>}
         {isCanceled && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: RED, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>{"\u26D4"} Subscription canceled — this account is in read-only mode. Contact your administrator to restore full access.</div>}
         {isTrialActive && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: trialDaysRemaining <= 3 ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)", border: `1px solid ${trialDaysRemaining <= 3 ? "rgba(245,158,11,0.25)" : "rgba(34,211,238,0.25)"}`, color: trialDaysRemaining <= 3 ? AMBER : CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{trialDaysRemaining <= 3 ? "\u26A0" : "\u2139\uFE0F"} Free trial — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining</span><button onClick={() => { setCv("admin"); }} style={{ background: "none", border: `1px solid currentColor`, borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Subscribe</button></div>}
@@ -3518,7 +3598,7 @@ export default function PVTAIRFrat() {
           createNotification(profile.org_id, { type: "frat_self_dispatched", title: "Pilot Self-Dispatched", body: `${matchingFlight?.pilot || userName} self-dispatched ${matchingFlight?.id || "flight"} (${matchingFlight?.riskLevel || "HIGH"} risk) — ${matchingFlight?.departure || "?"} to ${matchingFlight?.destination || "?"}`, link_tab: "flights", target_roles: ["admin", "safety_manager"] });
           setToast({ message: "Flight self-dispatched — flagged for review", level: { bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.25)", color: AMBER } }); setTimeout(() => setToast(null), 3000);
         }} />}
-        {cv === "reports" && (() => { const canManageReports = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role); const visibleReports = canManageReports ? reports : reports.filter(r => r.reporter_id === session?.user?.id); return <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={visibleReports} onStatusChange={canManageReports ? roGuard(onReportStatusChange) : null} hazards={hazards} onCreateHazardFromReport={canManageReports ? (report) => { setHazardFromReport(report); setCv("hazards"); } : null} fleetAircraft={fleetAircraft} orgProfiles={orgProfiles} />; })()}
+        {cv === "reports" && (() => { const canManageReports = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role); const visibleReports = canManageReports ? reports : reports.filter(r => r.reporter_id === session?.user?.id); return <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={visibleReports} onStatusChange={canManageReports ? roGuard(onReportStatusChange) : null} hazards={hazards} onCreateHazardFromReport={canManageReports ? (report) => { setHazardFromReport(report); setCv("hazards"); } : null} fleetAircraft={fleetAircraft} orgProfiles={orgProfiles} reportPrefill={reportPrefill} onClearPrefill={() => setReportPrefill(null)} />; })()}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={roGuard(onCreateHazard)} onUpdateHazard={roGuard(onUpdateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} actions={actions} onCreateAction={(hazard) => { setActionFromInvestigation(hazard); setCv("actions"); }} />}
         {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={roGuard(onCreateAction)} onUpdateAction={roGuard(onUpdateAction)} fromInvestigation={actionFromInvestigation} hazards={hazards} onClearFromInvestigation={() => setActionFromInvestigation(null)} orgProfiles={orgProfiles} />}
         {cv === "policy" && <PolicyTraining tourTab={tourSubTabs.policy} profile={profile} session={session} policies={policies} onCreatePolicy={roGuard(onCreatePolicy)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} showManuals={hasFeature(org, "sms_manuals") && ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role)} templateVariables={templateVariables} signatures={smsSignatures} fleetAircraft={fleetAircraft} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} />}

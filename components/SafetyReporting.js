@@ -46,11 +46,16 @@ function generateReportCode() {
   return `RPT-${Date.now().toString(36).toUpperCase()}`;
 }
 
-function ReportForm({ onSubmit, onCancel, fleetAircraft }) {
+function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData }) {
   const [form, setForm] = useState({
-    reportType: "hazard", title: "", description: "", dateOccurred: "",
-    location: "", category: "other", severity: "low", flightPhase: "",
-    tailNumber: "", aircraftType: "", confidential: false, anonymous: false,
+    reportType: "hazard", title: "", description: "",
+    dateOccurred: initialData?.dateOccurred || "",
+    location: initialData?.location || "",
+    category: "other", severity: "low",
+    flightPhase: initialData?.flightPhase || "",
+    tailNumber: initialData?.tailNumber || "",
+    aircraftType: initialData?.aircraftType || "",
+    confidential: false, anonymous: false,
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -266,7 +271,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard, orgP
   );
 }
 
-export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles }) {
+export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles, reportPrefill, onClearPrefill }) {
   const [view, setView] = useState("list"); // list | new
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
@@ -274,6 +279,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
   const [showCount, setShowCount] = useState(25);
 
   useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
+  useEffect(() => { if (reportPrefill) setView("new"); }, [reportPrefill]);
 
   const canManage = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role);
 
@@ -306,7 +312,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
   }, [reports]);
 
   if (view === "new") {
-    return <ReportForm onSubmit={(report) => { onSubmitReport(report); setView("list"); }} onCancel={() => setView("list")} fleetAircraft={fleetAircraft} />;
+    return <ReportForm onSubmit={(report) => { onSubmitReport(report); setView("list"); if (onClearPrefill) onClearPrefill(); }} onCancel={() => { setView("list"); if (onClearPrefill) onClearPrefill(); }} fleetAircraft={fleetAircraft} initialData={reportPrefill} />;
   }
 
   return (
