@@ -61,11 +61,11 @@ const ONBOARDING_STEPS = [
   { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", feature: null, subSteps: [
     { target: "tour-frat-flight-info", placement: "bottom", title: "Flight Information", desc: "Enter flight details including PIC, aircraft, route, and times. Use ICAO airport codes to auto-fetch live weather data and flag risk factors.", descNonAdmin: "Enter your flight details including aircraft, route, and times. ICAO airport codes auto-fetch live weather data and flag risk factors for you." },
     { target: "tour-frat-risk-categories", placement: "right", title: "Risk Scoring", desc: "Five weighted risk categories \u2014 Weather, Pilot/Crew, Aircraft, Environment, and Operational. Check applicable factors; weather items are auto-detected from METAR/TAF data." },
-    { target: "tour-frat-score-panel", placement: "left", title: "Live Risk Score", desc: "The cumulative risk score updates in real time. Color-coded thresholds determine if the flight is authorized or requires management approval before departure.", descNonAdmin: "Your cumulative risk score updates in real time. Color-coded thresholds show whether the flight is authorized or requires additional consideration before flying." },
+    { target: "tour-frat-score-panel", placement: "left", title: "Live Risk Score", desc: "The cumulative risk score updates in real time. Color-coded thresholds determine if the flight is authorized or requires additional consideration before departure.", descNonAdmin: "Your cumulative risk score updates in real time. Color-coded thresholds show whether the flight is authorized or requires additional consideration before flying." },
   ]},
   { id: "tour-flights", phase: "tour", tab: "flights", title: "Flight Following", feature: null, subSteps: [
     { target: "tour-flights-board", placement: "bottom", title: "Live Flight Board", desc: "Every submitted FRAT creates a live flight. Track departures and arrivals on an interactive route map with real-time aircraft position estimates.", descNonAdmin: "Every FRAT you submit creates a live flight. View your departures and arrivals on an interactive route map with real-time position estimates." },
-    { target: "tour-flights-status", placement: "bottom", title: "Status Tracking", desc: "Filter by Active, Arrived, or All flights. Mark flights as arrived, delayed, or cancelled. Overdue flights automatically trigger email alerts to your notification contacts.", descNonAdmin: "Open a flight to see the Arrived button and update your status. Filter by Active, Arrived, or All. Overdue flights automatically alert your safety team." },
+    { target: "tour-flights-arrived", placement: "top", title: "Mark Arrived", desc: "When a flight lands, tap Mark Arrived to close it out. Overdue flights automatically trigger email alerts to your notification contacts.", descNonAdmin: "When you land, tap Mark Arrived to close out your flight. Overdue flights automatically alert your safety team \u2014 so marking arrived on time matters." },
   ]},
   { id: "tour-reports", phase: "tour", tab: "reports", title: "Safety Reporting", feature: null, subSteps: [
     { target: "tour-reports-new-btn", placement: "bottom", title: "Submit Reports", desc: "Pilots and crew can submit anonymous or confidential hazard and safety reports \u2014 the backbone of a just-culture SMS.", descNonAdmin: "Submit anonymous or confidential hazard and safety reports here. This is the backbone of a just-culture SMS \u2014 your reports help keep everyone safe." },
@@ -81,7 +81,7 @@ const ONBOARDING_STEPS = [
     { target: null, placement: "top-right", title: "Status Workflow", desc: "Assign owners, set due dates, and track completion \u2014 closing the loop from hazard report all the way through to resolution." },
   ]},
   { id: "tour-policy", phase: "tour", tab: "policy", title: "Policies & SMS Manuals", feature: "policy_library", subSteps: [
-    { target: "tour-policy-tabs", placement: "bottom", title: "Policy Library", desc: "Publish company policies with version control and acknowledgment tracking. Ensure every team member has read and signed off on critical safety documents.", descNonAdmin: "Read and acknowledge your organization\u2019s safety policies here. You\u2019ll be notified when new policies are published that need your sign-off.", componentTab: { component: "policy", value: "policies" } },
+    { target: "tour-policy-tabs", placement: "bottom", title: "Policy Library", desc: "Publish company policies and track who has acknowledged them. See at a glance how many team members still need to sign off on each document.", descNonAdmin: "Read and acknowledge your organization\u2019s safety policies here. You\u2019ll be notified when new policies are published that need your sign-off.", componentTab: { component: "policy", value: "policies" } },
     { target: "tour-policy-tabs", placement: "bottom", title: "SMS Manual Templates", desc: "Build Part 5 manuals with guided autofill templates. Each section maps to FAA requirements \u2014 no starting from scratch.", adminOnly: true, componentTab: { component: "policy", value: "manuals" } },
   ]},
   { id: "tour-cbt", phase: "tour", tab: "cbt", title: "Training & CBT", feature: "cbt_modules", subSteps: [
@@ -1415,7 +1415,7 @@ function HistoryView({ records, onDelete }) {
             <button onClick={() => onDelete(r.id)} style={{ background: "none", border: "none", color: LIGHT_BORDER, cursor: "pointer", fontSize: 16, padding: 4 }}>×</button></div>); })}</div>);
 }
 
-function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch }) {
+function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight }) {
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
@@ -1425,7 +1425,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
   };
   const [filter, setFilter] = useState("ACTIVE");
   const [search, setSearch] = useState("");
-  const [selectedFlight, setSelectedFlight] = useState(null);
+  const [selectedFlight, setSelectedFlight] = useState(initialSelectedFlight || null);
   const [airportCoords, setAirportCoords] = useState({});
   const [now, setNow] = useState(Date.now());
 
@@ -1636,7 +1636,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
                       </div>
                     )}
                     {f.status === "ACTIVE" && (
-                      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <div data-tour="tour-flights-arrived" style={{ display: "flex", gap: 8, marginTop: 10 }}>
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "ARRIVED"); }}
                           style={{ flex: 1, padding: "10px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "CANCEL"); }}
@@ -3460,7 +3460,7 @@ export default function PVTAIRFrat() {
   const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: isTrialExpired ? "Your trial has expired — subscribe to continue" : "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/icon-192.png" /></Head>
-    {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} onTourStart={isAdmin ? handleTourStart : undefined} onSubTabChange={handleSubTabChange} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} userRole={profile?.role} />}
+    {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} onTourStart={handleTourStart} onSubTabChange={handleSubTabChange} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} userRole={profile?.role} />}
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} />
       <div className="main-content" style={{ marginLeft: 140 }}>
@@ -3490,7 +3490,7 @@ export default function PVTAIRFrat() {
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} fleetAircraft={fleetAircraft} />)}
-        {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} onApproveFlight={async (flightDbId, fratDbId) => {
+        {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} onApproveFlight={async (flightDbId, fratDbId) => {
           await approveFlight(flightDbId, session.user.id);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", "");
           const { data: fl } = await fetchFlights(profile.org_id);
