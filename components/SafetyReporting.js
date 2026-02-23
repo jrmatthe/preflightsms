@@ -199,7 +199,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard }) {
           <div style={{ color: MUTED, fontSize: 10 }}>
             {report.category.replace(/_/g, " ")} · {new Date(report.created_at).toLocaleDateString()}
             {report.location && ` · ${report.location}`}
-            {report.anonymous && " · Anonymous"}
+            {report.anonymous ? " · Anonymous" : report.reporter?.full_name ? ` · ${report.reporter.full_name}` : ""}
             {report.confidential && " · Confidential"}
           </div>
         </div>
