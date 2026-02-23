@@ -23,11 +23,11 @@ const STATUSES = [
   { id: "cancelled", label: "Cancelled", color: MUTED },
 ];
 
-function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation }) {
+function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation, orgProfiles }) {
   const [form, setForm] = useState({
     title: fromInvestigation ? `Action for: ${fromInvestigation.title}` : "",
     description: fromInvestigation ? `Source investigation: ${fromInvestigation.hazard_code}\n\n${fromInvestigation.description || ""}` : "",
-    assignedToName: "", dueDate: "", priority: "medium",
+    assignedTo: "", assignedToName: "", dueDate: "", priority: "medium",
     hazardId: fromInvestigation?.id || null,
     reportId: fromInvestigation?.related_report_id || null,
   });
@@ -68,7 +68,10 @@ function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }} className="report-grid">
         <div>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Assigned To</label>
-          <input value={form.assignedToName} onChange={e => set("assignedToName", e.target.value)} placeholder="Name" style={inp} />
+          <select value={form.assignedTo} onChange={e => { const p = orgProfiles?.find(p => p.id === e.target.value); set("assignedTo", e.target.value); set("assignedToName", p?.full_name || ""); }} style={inp}>
+            <option value="">— Select —</option>
+            {(orgProfiles || []).map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+          </select>
         </div>
         <div>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Due Date</label>
@@ -142,7 +145,7 @@ function ActionCard({ a, onUpdateAction, linkedInvestigation }) {
   );
 }
 
-export default function CorrectiveActions({ actions, onCreateAction, onUpdateAction, fromInvestigation, hazards, onClearFromInvestigation }) {
+export default function CorrectiveActions({ actions, onCreateAction, onUpdateAction, fromInvestigation, hazards, onClearFromInvestigation, orgProfiles }) {
   const [view, setView] = useState(fromInvestigation ? "new" : "list");
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
@@ -203,7 +206,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
   }, [processed]);
 
   if (view === "new") {
-    return <ActionForm existingCount={actions.length} fromInvestigation={fromInvestigation}
+    return <ActionForm existingCount={actions.length} fromInvestigation={fromInvestigation} orgProfiles={orgProfiles}
       onSubmit={a => { onCreateAction(a); setView("list"); if (onClearFromInvestigation) onClearFromInvestigation(); }}
       onCancel={() => { setView("list"); if (onClearFromInvestigation) onClearFromInvestigation(); }} />;
   }
