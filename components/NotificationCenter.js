@@ -76,7 +76,7 @@ export default function NotificationCenter({ notifications, reads, onMarkRead, o
 
   const handleClick = (n) => {
     if (!readSet.has(n.id)) onMarkRead(n.id);
-    if (n.link_tab) onNavigate(n.link_tab);
+    if (n.link_tab) onNavigate(n.link_tab, n.link_id || null);
     setOpen(false);
   };
 
