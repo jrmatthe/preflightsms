@@ -140,7 +140,7 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft }) {
           {fleetAircraft?.length ? (
             <select value={form.tailNumber} onChange={e => set("tailNumber", e.target.value)} style={inp}>
               <option value="">Select aircraft</option>
-              {fleetAircraft.map(a => <option key={a.id} value={a.tail_number}>{a.tail_number}{a.type ? ` — ${a.type}` : ""}</option>)}
+              {fleetAircraft.map(a => <option key={a.id} value={a.registration}>{a.registration}{a.type ? ` — ${a.type}` : ""}</option>)}
               <option value="__other">Other</option>
             </select>
           ) : (
