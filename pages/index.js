@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -1502,8 +1502,8 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => { if (flight && (flight.status === "PENDING_APPROVAL" || isReviewOnly)) { onApproveFlight(flight.dbId, flight.fratDbId); } else { onApproveFRAT(frat.dbId); } onClose(); }}
                 style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{isReviewOnly ? "MARK REVIEWED" : "APPROVE"}</button>
-              <button onClick={() => { if (flight && (flight.status === "PENDING_APPROVAL" || isReviewOnly)) { onRejectFlight(flight.dbId, flight.fratDbId); } else { onRejectFRAT(frat.dbId); } onClose(); }}
-                style={{ padding: "10px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>{isReviewOnly ? "Flag Issue" : "Reject"}</button>
+              {!isReviewOnly && <button onClick={() => { if (flight && flight.status === "PENDING_APPROVAL") { onRejectFlight(flight.dbId, flight.fratDbId); } else { onRejectFRAT(frat.dbId); } onClose(); }}
+                style={{ padding: "10px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Reject</button>}
             </div>
           </div>)}
         <div style={{ height: 24 }} />
@@ -1519,6 +1519,9 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
     PENDING_APPROVAL: { label: "AWAITING APPROVAL", color: YELLOW, bg: "rgba(250,204,21,0.08)", border: "rgba(250,204,21,0.25)" },
     REJECTED: { label: "REJECTED", color: RED, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)" },
   };
+  // Pending approval = DB status is ACTIVE but approval_status is "pending" (or legacy client-side PENDING_APPROVAL status)
+  const isPending = (f) => f.status === "PENDING_APPROVAL" || (f.status === "ACTIVE" && f.approvalStatus === "pending");
+  const isActiveOrPending = (f) => f.status === "ACTIVE" || f.status === "PENDING_APPROVAL";
   const [filter, setFilter] = useState("ACTIVE");
   const [search, setSearch] = useState("");
   const [selectedFlight, setSelectedFlight] = useState(initialSelectedFlight || null);
@@ -1544,26 +1547,26 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
   }, [flights]);
 
   const recent = useMemo(() => flights.filter(f => {
-    if (f.status === "ACTIVE" || f.status === "PENDING_APPROVAL") return true;
+    if (isActiveOrPending(f)) return true;
     const completedAt = f.arrivedAt || f.timestamp;
     if (!completedAt) return false;
     return (now - new Date(completedAt).getTime()) < 24 * 3600000;
   }), [flights, now]);
   const flightCounts = useMemo(() => {
     let active = 0, arrived = 0;
-    recent.forEach(f => { if (f.status === "ACTIVE" || f.status === "PENDING_APPROVAL") active++; else arrived++; });
+    recent.forEach(f => { if (isActiveOrPending(f)) active++; else arrived++; });
     return { ACTIVE: active, ARRIVED: arrived, ALL: recent.length };
   }, [recent]);
   const displayed = (() => {
-    let list = filter === "ACTIVE" ? recent.filter(f => f.status === "ACTIVE" || f.status === "PENDING_APPROVAL") : filter === "ARRIVED" ? recent.filter(f => f.status !== "ACTIVE" && f.status !== "PENDING_APPROVAL") : recent;
+    let list = filter === "ACTIVE" ? recent.filter(f => isActiveOrPending(f)) : filter === "ARRIVED" ? recent.filter(f => !isActiveOrPending(f)) : recent;
     const q = search.toLowerCase().trim();
     if (q) list = list.filter(f => `${f.pilot || ""} ${f.departure || ""} ${f.destination || ""} ${f.aircraft || ""} ${f.id || ""}`.toLowerCase().includes(q));
     return list;
   })();
-  const activeFlights = flights.filter(f => f.status === "ACTIVE" || f.status === "PENDING_APPROVAL");
+  const activeFlights = flights.filter(f => isActiveOrPending(f));
 
   const isOverdue = (f) => {
-    if (f.status !== "ACTIVE" || !f.eta) return false;
+    if (f.status !== "ACTIVE" || isPending(f) || !f.eta) return false;
     // If flight was held for approval, recalculate ETA from approved_at + ete
     if (f.approvedAt) {
       const eteMins = parseETE(f.ete);
@@ -1578,16 +1581,18 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
 
   const getProgress = (f) => {
     if (f.status === "ARRIVED") return 100;
-    if (f.status === "PENDING_APPROVAL") return 0;
+    if (isPending(f)) return 0;
     if (!f.eta) return -1;
     const end = new Date(f.eta).getTime();
     const eteMins = parseETE(f.ete);
-    // If flight was approved (had PENDING_APPROVAL), use approved_at as departure time
+    // If flight was approved, use max(approvedAt, planned ETD) as start
     if (f.approvedAt) {
-      const start = new Date(f.approvedAt).getTime();
-      const adjustedEnd = start + eteMins * 60000;
-      if (isNaN(start) || isNaN(adjustedEnd) || adjustedEnd <= start) return 0;
-      const pct = ((now - start) / (adjustedEnd - start)) * 100;
+      const approvedAtMs = new Date(f.approvedAt).getTime();
+      const plannedEtdMs = eteMins > 0 ? end - eteMins * 60000 : approvedAtMs;
+      const actualStart = Math.max(approvedAtMs, plannedEtdMs);
+      const adjustedEnd = actualStart + eteMins * 60000;
+      if (isNaN(actualStart) || isNaN(adjustedEnd) || adjustedEnd <= actualStart) return 0;
+      const pct = ((now - actualStart) / (adjustedEnd - actualStart)) * 100;
       return Math.max(0, Math.min(pct, 95));
     }
     // Compute actual departure time from eta minus ete (more accurate than created_at)
@@ -1649,7 +1654,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
                 <circle cx={ex} cy={ey} r="3" fill={MUTED} />
                 {pos && (
                   <g transform={`translate(${toX(pos.lon)},${toY(pos.lat)}) rotate(${angle})`}>
-                    <text textAnchor="middle" dominantBaseline="central" fill={f.status === "PENDING_APPROVAL" ? YELLOW : WHITE} fontSize="16" fontFamily="sans-serif">&#9992;</text>
+                    <text textAnchor="middle" dominantBaseline="central" fill={isPending(f) ? YELLOW : WHITE} fontSize="16" fontFamily="sans-serif">&#9992;</text>
                   </g>
                 )}
               </g>);
@@ -1687,13 +1692,14 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
             if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
             return new Date(b.timestamp) - new Date(a.timestamp);
           }).map(f => {
-            const st = STATUSES[f.status] || STATUSES.ACTIVE;
+            const pending = isPending(f);
+            const st = pending ? STATUSES.PENDING_APPROVAL : (STATUSES[f.status] || STATUSES.ACTIVE);
             const overdue = isOverdue(f);
             const progress = getProgress(f);
             const statusLabel = overdue ? "OVERDUE" : st.label;
             const statusColor = overdue ? RED : st.color;
             return (
-              <div key={f.id} style={{ ...card, padding: "18px 22px", marginBottom: 12, borderRadius: 10, border: `1px solid ${overdue ? RED + "44" : BORDER}`, cursor: "pointer" }}
+              <div key={f.id} style={{ ...card, padding: "18px 22px", marginBottom: 12, borderRadius: 10, border: `1px solid ${pending ? RED + "44" : overdue ? RED + "44" : BORDER}`, cursor: "pointer" }}
                 onClick={() => setSelectedFlight(selectedFlight === f.id ? null : f.id)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>{f.tailNumber || f.aircraft}</span>
@@ -1703,9 +1709,9 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42 }}>{f.departure}</span>
                   <div style={{ flex: 1, position: "relative", height: 4, background: BORDER, borderRadius: 2 }}>
-                    <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${Math.max(progress, 0)}%`, background: overdue ? RED : GREEN, borderRadius: 2, transition: "width 2s linear" }} />
-                    {(f.status === "ACTIVE" || f.status === "PENDING_APPROVAL") && progress >= 0 && (
-                      <div style={{ position: "absolute", top: -4, left: `${Math.max(progress, 0)}%`, width: 12, height: 12, borderRadius: "50%", background: f.status === "PENDING_APPROVAL" ? YELLOW : WHITE, border: `2px solid ${f.status === "PENDING_APPROVAL" ? YELLOW : overdue ? RED : GREEN}`, transform: "translateX(-6px)", transition: "left 2s linear" }} />
+                    <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${Math.max(progress, 0)}%`, background: pending ? RED : overdue ? RED : GREEN, borderRadius: 2, transition: "width 2s linear" }} />
+                    {isActiveOrPending(f) && progress >= 0 && (
+                      <div style={{ position: "absolute", top: -4, left: `${Math.max(progress, 0)}%`, width: 12, height: 12, borderRadius: "50%", background: pending ? YELLOW : WHITE, border: `2px solid ${pending ? YELLOW : overdue ? RED : GREEN}`, transform: "translateX(-6px)", transition: "left 2s linear" }} />
                     )}
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 700, color: WHITE, minWidth: 42, textAlign: "right" }}>{f.destination}</span>
@@ -1748,14 +1754,14 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
                         ))}
                       </div>
                     )}
-                    {f.status === "ACTIVE" && (
+                    {f.status === "ACTIVE" && !pending && (
                       <div data-tour="tour-flights-arrived" style={{ display: "flex", gap: 8, marginTop: 10 }}>
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "ARRIVED"); }}
                           style={{ flex: 1, padding: "10px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "CANCEL"); }}
                           style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
                       </div>)}
-                    {f.status === "PENDING_APPROVAL" && canApprove && onApproveFlight && (
+                    {pending && canApprove && onApproveFlight && (
                       <div style={{ marginTop: 10 }}>
                         <div style={{ padding: "10px 14px", background: "rgba(250,204,21,0.08)", border: `1px solid rgba(250,204,21,0.25)`, borderRadius: 8, marginBottom: 10 }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: YELLOW, marginBottom: 4 }}>🔒 Supervisor Approval Required</div>
@@ -1768,7 +1774,7 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
                             style={{ padding: "10px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Reject</button>
                         </div>
                       </div>)}
-                    {f.status === "PENDING_APPROVAL" && !canApprove && onSelfDispatch && (
+                    {pending && !canApprove && onSelfDispatch && (
                       <div style={{ marginTop: 10 }}>
                         <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.08)", border: `1px solid rgba(245,158,11,0.25)`, borderRadius: 8, marginBottom: 10 }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: AMBER, marginBottom: 4 }}>⏳ Awaiting Supervisor Approval</div>
@@ -2797,7 +2803,7 @@ export default function PVTAIRFrat() {
         etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs,
         numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
         status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED",
-        approvedAt: f.approved_at, attachments: f.attachments || [],
+        approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [],
       })));
       const { data: frats } = await fetchFRATs(orgId);
       if (frats) setRecords(frats.map(r => ({
@@ -2805,7 +2811,7 @@ export default function PVTAIRFrat() {
         departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt,
         date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs,
         numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
-        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status,
+        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id,
       })));
       setPendingSync(getQueueCount());
     };
@@ -2868,7 +2874,7 @@ export default function PVTAIRFrat() {
         date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs,
         numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
         factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [],
-        timestamp: r.created_at, approvalStatus: r.approval_status,
+        timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id,
       })));
     });
     fetchFlights(orgId).then(({ data }) => {
@@ -2878,8 +2884,8 @@ export default function PVTAIRFrat() {
         etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs,
         numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
         status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at,
-        cancelled: f.status === "CANCELLED", approvedAt: f.approved_at,
-        attachments: f.attachments || [],
+        cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status,
+        fratDbId: f.frat_id, attachments: f.attachments || [],
       })));
     });
     fetchReports(orgId).then(({ data }) => setReports(data || []));
@@ -2915,8 +2921,8 @@ export default function PVTAIRFrat() {
           etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs,
           numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
           status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at,
-          cancelled: f.status === "CANCELLED", approvedAt: f.approved_at,
-          attachments: f.attachments || [],
+          cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status,
+          fratDbId: f.frat_id, attachments: f.attachments || [],
         })));
       });
     });
@@ -2970,13 +2976,36 @@ export default function PVTAIRFrat() {
   const onSubmit = useCallback(async entry => {
     // Use approval mode determined by FRATForm (from the template the pilot actually used)
     const approvalMode = entry.approvalMode || "none";
+    const isApprover = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role) || (profile?.permissions || []).includes("approver");
     const needsBlock = approvalMode === "required";
-    const needsNotify = approvalMode === "required" || approvalMode === "review";
+    // Determine approval status and notification behavior based on submitter + mode
+    let fratApprovalStatus = "auto_approved";
+    let shouldNotify = false;
+    let toastMsg = "";
+    if (approvalMode === "review" && isApprover) {
+      // Scenario 3: Approver + review → auto-approved, no notifications
+      fratApprovalStatus = "auto_approved";
+      shouldNotify = false;
+      toastMsg = `${entry.riskLevel} FRAT submitted`;
+    } else if (approvalMode === "review" && !isApprover) {
+      // Scenario 1: Non-approver + review → review status, notify approvers
+      fratApprovalStatus = "review";
+      shouldNotify = true;
+      toastMsg = `${entry.riskLevel} FRAT submitted, all FRAT approvers notified`;
+    } else if (approvalMode === "required") {
+      // Scenarios 2 & 4: Required → pending, notify approvers (regardless of submitter)
+      fratApprovalStatus = "pending";
+      shouldNotify = true;
+      toastMsg = `${entry.riskLevel} FRAT submitted, management approval required`;
+    } else {
+      // Scenario: none → auto-approved, no notifications
+      toastMsg = `${entry.id} submitted — flight plan created`;
+    }
 
     if (isOnline && profile) {
       const { data: fratData, error: fratErr } = await submitFRAT(profile.org_id, session.user.id, {
         ...entry,
-        approvalStatus: approvalMode === "required" ? "pending" : approvalMode === "review" ? "review" : "auto_approved",
+        approvalStatus: fratApprovalStatus,
       }).catch(e => ({ data: null, error: e }));
       if (fratErr) {
         // Queue for offline sync
@@ -2991,8 +3020,8 @@ export default function PVTAIRFrat() {
       const { error: flightErr } = await createFlight(profile.org_id, fratData.id, entry, needsBlock);
       if (flightErr) console.error("Flight create error:", flightErr);
 
-      // Send notification + email for "review" and "required" modes
-      if (needsNotify) {
+      // Send notification + email for applicable modes
+      if (shouldNotify) {
         try {
           await fetch("/api/request-approval", {
             method: "POST",
@@ -3023,7 +3052,7 @@ export default function PVTAIRFrat() {
         date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs,
         numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
         factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at,
-        approvalStatus: r.approval_status,
+        approvalStatus: r.approval_status, userId: r.user_id,
       })));
       const { data: fl } = await fetchFlights(profile.org_id);
       setFlights(fl.map(f => ({
@@ -3040,7 +3069,6 @@ export default function PVTAIRFrat() {
       const flight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsBlock ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null };
       const nf = [flight, ...flights]; saveFlightsLocal(nf);
     }
-    const toastMsg = approvalMode === "required" ? `${entry.id} submitted — management notified, awaiting approval` : approvalMode === "review" ? `${entry.id} submitted — management notified` : `${entry.id} submitted — flight plan created`;
     setToast({ message: toastMsg, level: getRiskLevel(entry.score, riskLevels) }); setTimeout(() => setToast(null), 4000);
   }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline]);
 
@@ -3060,7 +3088,7 @@ export default function PVTAIRFrat() {
             etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs,
             numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
             status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED",
-            approvedAt: f.approved_at, attachments: f.attachments || [],
+            approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [],
           })));
         } catch (e) {
           // Queue for offline sync
@@ -3182,7 +3210,7 @@ export default function PVTAIRFrat() {
         departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt,
         date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs,
         numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
-        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status,
+        factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id,
       })));
     } else {
       saveLocal(records.filter(r => r.id !== id));
@@ -3685,7 +3713,7 @@ export default function PVTAIRFrat() {
         </div>
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         {nudgeFlight && <PostFlightNudge flight={nudgeFlight} onSubmitReport={onNudgeSubmitReport} onNothingToReport={onNudgeNothingToReport} onRemindLater={onNudgeRemindLater} onDismiss={onNudgeDismiss} />}
-        {fratDetailId && <FRATDetailModal fratId={fratDetailId} records={records} flights={flights} riskCategories={riskCategories} canApprove={["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role) || (profile?.permissions || []).includes("approver")} onApproveFlight={async (flightDbId, fratDbId) => { await approveFlight(flightDbId, session.user.id); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: fl } = await fetchFlights(profile.org_id); setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] }))); setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); }} onRejectFlight={async (flightDbId, fratDbId) => { await rejectFlight(flightDbId); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: fl } = await fetchFlights(profile.org_id); setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] }))); setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onApproveFRAT={async (fratDbId) => { await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status }))); setToast({ message: "FRAT approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); }} onRejectFRAT={async (fratDbId) => { await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status }))); setToast({ message: "FRAT rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onClose={() => setFratDetailId(null)} />}
+        {fratDetailId && <FRATDetailModal fratId={fratDetailId} records={records} flights={flights} riskCategories={riskCategories} canApprove={["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role) || (profile?.permissions || []).includes("approver")} onApproveFlight={async (flightDbId, fratDbId) => { await approveFlight(flightDbId, session.user.id); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: fl } = await fetchFlights(profile.org_id); setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] }))); setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); }} onRejectFlight={async (flightDbId, fratDbId) => { const fratRecord = fratDbId ? records.find(r => r.dbId === fratDbId) : null; await deleteFlight(flightDbId); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); if (fratRecord?.userId) { createNotification(profile.org_id, { type: "frat_rejected", title: "FRAT Rejected", body: `Your FRAT ${fratDetailId} was rejected`, target_user_id: fratRecord.userId, link_tab: "submit" }); } const { data: fl } = await fetchFlights(profile.org_id); setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] }))); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "Flight rejected and removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onApproveFRAT={async (fratDbId) => { await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "FRAT approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); }} onRejectFRAT={async (fratDbId) => { await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "FRAT rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onClose={() => setFratDetailId(null)} />}
         {isPastDue && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{"\u26A0"} Your subscription payment is past due. Update your payment method to restore access.</span>{isAdmin && <button onClick={async () => { const customerId = org?.stripe_customer_id; if (!customerId) return; const { data } = await supabase.functions.invoke('stripe-portal', { body: { customerId, returnUrl: window.location.origin } }); if (data?.url) window.location.href = data.url; }} style={{ background: "none", border: "1px solid currentColor", borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>Update Payment</button>}</div>}
         {isCanceled && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: RED, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>{"\u26D4"} Subscription canceled — this account is in read-only mode. Contact your administrator to restore full access.</div>}
         {isTrialActive && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: trialDaysRemaining <= 3 ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)", border: `1px solid ${trialDaysRemaining <= 3 ? "rgba(245,158,11,0.25)" : "rgba(34,211,238,0.25)"}`, color: trialDaysRemaining <= 3 ? AMBER : CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{trialDaysRemaining <= 3 ? "\u26A0" : "\u2139\uFE0F"} Free trial — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining</span><button onClick={() => { setCv("admin"); }} style={{ background: "none", border: `1px solid currentColor`, borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Subscribe</button></div>}
@@ -3702,13 +3730,19 @@ export default function PVTAIRFrat() {
           setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] })));
           setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
         }} onRejectFlight={async (flightDbId, fratDbId) => {
-          await rejectFlight(flightDbId);
-          if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", "");
           const matchedFlight = flights.find(fl => fl.dbId === flightDbId);
+          const fratRecord = fratDbId ? records.find(r => r.dbId === fratDbId) : null;
+          await deleteFlight(flightDbId);
+          if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", "");
           if (matchedFlight) { deleteNotificationByLinkId(profile.org_id, matchedFlight.id); setNotifications(prev => prev.filter(n => n.link_id !== matchedFlight.id)); }
+          if (fratRecord?.userId) {
+            createNotification(profile.org_id, { type: "frat_rejected", title: "FRAT Rejected", body: `Your FRAT ${matchedFlight?.id || ""} was rejected`, target_user_id: fratRecord.userId, link_tab: "submit" });
+          }
           const { data: fl } = await fetchFlights(profile.org_id);
           setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [] })));
-          setToast({ message: "Flight rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
+          const { data: frats } = await fetchFRATs(profile.org_id);
+          setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id })));
+          setToast({ message: "Flight rejected and removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
         }} canApprove={["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role) || (profile?.permissions || []).includes("approver")} onSelfDispatch={async (flightDbId, fratDbId) => {
           await selfDispatchFlight(flightDbId);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "pilot_dispatched", "Pilot self-dispatched");
