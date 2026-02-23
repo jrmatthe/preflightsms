@@ -355,7 +355,6 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
   };
 
   const pending = invitations.filter(i => i.status === "pending");
-  const accepted = invitations.filter(i => i.status === "accepted");
   const expired = invitations.filter(i => i.status === "expired" || (i.status === "pending" && new Date(i.expires_at) < new Date()));
 
   if (!canManage) return null;
@@ -425,21 +424,8 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
         </div>
       )}
 
-      {/* Recently accepted */}
-      {accepted.length > 0 && (
-        <div>
-          <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Accepted ({accepted.length})</div>
-          {accepted.slice(0, 5).map(inv => (
-            <div key={inv.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 12px", marginBottom: 2 }}>
-              <span style={{ fontSize: 11, color: OFF_WHITE }}>{inv.email}</span>
-              <span style={{ fontSize: 10, color: GREEN }}>✓ Joined {new Date(inv.accepted_at).toLocaleDateString()}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {invitations.length === 0 && !showForm && (
-        <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No invitations sent yet. Click "Invite User" to add team members.</div>
+      {pending.length === 0 && !showForm && (
+        <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No pending invitations. Click &quot;+ Invite User&quot; to add team members.</div>
       )}
     </div>
   );
