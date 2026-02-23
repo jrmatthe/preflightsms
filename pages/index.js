@@ -2747,7 +2747,8 @@ export default function PVTAIRFrat() {
   const onSubmit = useCallback(async entry => {
     // Determine if approval is required based on score threshold (only if feature enabled)
     const approvalThreshold = fratTemplate?.approval_threshold || 31;
-    const needsApproval = hasFeature(org, "approval_workflow") && entry.score >= approvalThreshold;
+    const submitterIsApprover = (profile?.permissions || []).includes("approver");
+    const needsApproval = hasFeature(org, "approval_workflow") && entry.score >= approvalThreshold && !submitterIsApprover;
 
     if (isOnline && profile) {
       const { data: fratData, error: fratErr } = await submitFRAT(profile.org_id, session.user.id, {
