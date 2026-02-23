@@ -47,6 +47,17 @@ const ONBOARDING_STEPS = [
   { id: "welcome", phase: "setup", title: "Welcome to PreflightSMS", desc: "Let\u2019s get your safety management system set up in about 3 minutes.", descNonAdmin: "Here\u2019s a quick tour of your organization\u2019s safety management system." },
   { id: "fleet", phase: "setup", adminOnly: true, title: "Add Your Fleet", desc: "Register the aircraft your organization operates." },
   { id: "invite", phase: "setup", adminOnly: true, title: "Invite Your Team", desc: "Bring your pilots and safety officers on board." },
+  // Overview phase — one step per nav tab with brief description
+  { id: "ov-frat", phase: "overview", tab: "submit", target: "nav-submit", placement: "right", title: "FRAT", feature: null, desc: "Submit Flight Risk Assessment Tools before every departure to quantify and manage operational risk.", descNonAdmin: "Submit a risk assessment before each flight to flag hazards and get departure authorization." },
+  { id: "ov-flights", phase: "overview", tab: "flights", target: "nav-flights", placement: "right", title: "Flight Following", feature: null, desc: "Track live flights from departure to arrival with automatic overdue alerts.", descNonAdmin: "Track your flights from departure to arrival and update your status in real time." },
+  { id: "ov-reports", phase: "overview", tab: "reports", target: "nav-reports", placement: "right", title: "Safety Reporting", feature: null, desc: "Receive and manage anonymous hazard and safety reports from your team.", descNonAdmin: "Submit anonymous or confidential safety reports to help your organization improve." },
+  { id: "ov-hazards", phase: "overview", tab: "hazards", target: "nav-hazards", placement: "right", title: "Investigations", adminOnly: true, feature: "hazard_register", desc: "Investigate escalated safety reports with risk-scored severity tracking." },
+  { id: "ov-actions", phase: "overview", tab: "actions", target: "nav-actions", placement: "right", title: "Corrective Actions", adminOnly: true, feature: "corrective_actions", desc: "Assign and track corrective and preventative actions through to resolution." },
+  { id: "ov-policy", phase: "overview", tab: "policy", target: "nav-policy", placement: "right", title: "Policies & Manuals", feature: "policy_library", desc: "Publish policies with acknowledgment tracking and build Part 5 SMS manuals.", descNonAdmin: "Read and acknowledge your organization\u2019s safety policies and SMS manuals." },
+  { id: "ov-cbt", phase: "overview", tab: "cbt", target: "nav-cbt", placement: "right", title: "Training", feature: "cbt_modules", desc: "Create training courses, set requirements, and monitor crew compliance.", descNonAdmin: "Complete assigned training courses and track your certification requirements." },
+  { id: "ov-audit", phase: "overview", tab: "audit", target: "nav-audit", placement: "right", title: "FAA Audit Log", adminOnly: true, feature: "faa_audit_log", desc: "A live 42-point Part 5 compliance checklist that syncs automatically across the platform." },
+  { id: "ov-dashboard", phase: "overview", tab: "dashboard", target: "nav-dashboard", placement: "right", title: "Safety Dashboard", adminOnly: true, feature: "dashboard_basic", desc: "KPI cards, trend charts, and an overall SMS Health Score for your organization." },
+  { id: "ov-admin", phase: "overview", tab: "admin", target: "nav-admin", placement: "right", title: "Admin Panel", adminOnly: true, feature: null, desc: "Organization settings, fleet, FRAT templates, user management, and billing." },
   { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", feature: null, subSteps: [
     { target: "tour-frat-flight-info", placement: "bottom", title: "Flight Information", desc: "Enter flight details including PIC, aircraft, route, and times. Use ICAO airport codes to auto-fetch live weather data and flag risk factors.", descNonAdmin: "Enter your flight details including aircraft, route, and times. ICAO airport codes auto-fetch live weather data and flag risk factors for you." },
     { target: "tour-frat-risk-categories", placement: "right", title: "Risk Scoring", desc: "Five weighted risk categories \u2014 Weather, Pilot/Crew, Aircraft, Environment, and Operational. Check applicable factors; weather items are auto-detected from METAR/TAF data." },
@@ -526,7 +537,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     return true;
   });
   const sideTab = (t) => (
-    <button key={t.id} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
+    <button key={t.id} data-tour={`nav-${t.id}`} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
       title={t.label}
       style={{
         width: "100%", height: 40, display: "flex", alignItems: "center", gap: 8, paddingLeft: 14,
@@ -616,8 +627,11 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
 
   const current = steps[step] || steps[0];
   const setupSteps = steps.filter(s => s.phase === "setup");
+  const overviewSteps = steps.filter(s => s.phase === "overview");
   const tourSteps = steps.filter(s => s.phase === "tour");
   const isSetup = current.phase === "setup";
+  const isOverview = current.phase === "overview";
+  const overviewIdx = overviewSteps.indexOf(current);
   const tourIdx = tourSteps.indexOf(current);
   // Filter sub-steps by role (remove adminOnly sub-steps for non-admins)
   const filterSubs = useCallback((subs) => subs ? subs.filter(s => !s.adminOnly || isAdminRole) : null, [isAdminRole]);
@@ -633,9 +647,9 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
   }, [tourIdx, subStep, tourSteps, filterSubs]);
   const isLastGlobal = tourIdx === tourSteps.length - 1 && (!filteredSubSteps || subStep === filteredSubSteps.length - 1);
 
-  // Navigate to the tab when entering a tour step (only when tab-level step changes)
+  // Navigate to the tab when entering a tour or overview step (only when tab-level step changes)
   useEffect(() => {
-    if (current.phase === "tour" && current.tab && step !== prevStepRef.current) {
+    if ((current.phase === "tour" || current.phase === "overview") && current.tab && step !== prevStepRef.current) {
       setCv(current.tab);
     }
     prevStepRef.current = step;
@@ -644,6 +658,19 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
       onSubTabChange(currentSub.componentTab.component, currentSub.componentTab.value);
     }
   }, [step, subStep, current, currentSub]);
+
+  // Highlight ring for overview phase — target the nav button
+  const [overviewHighlight, setOverviewHighlight] = useState(null);
+  useEffect(() => {
+    if (!isOverview || !current.target) { setOverviewHighlight(null); return; }
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-tour="${current.target}"]`);
+      if (!el) { setOverviewHighlight(null); return; }
+      const rect = el.getBoundingClientRect();
+      setOverviewHighlight({ top: rect.top - 4, left: rect.left - 4, width: rect.width + 8, height: rect.height + 8 });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [step, isOverview, current]);
 
   // Position calculation for tour card
   useEffect(() => {
@@ -708,7 +735,7 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
     }
     const nextIdx = step + 1;
     if (nextIdx < steps.length) {
-      if (current.phase === "setup" && steps[nextIdx].phase === "tour" && onTourStart) onTourStart();
+      if (current.phase === "overview" && steps[nextIdx].phase === "tour" && onTourStart) onTourStart();
       setStep(nextIdx); setSubStep(0);
     } else onComplete();
   };
@@ -720,6 +747,15 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
       const prevSubs = filterSubs(prevStep.subSteps);
       setStep(step - 1);
       setSubStep(prevSubs ? prevSubs.length - 1 : 0);
+    }
+  };
+
+  const skipToTour = () => {
+    const firstTourIdx = steps.findIndex(s => s.phase === "tour");
+    if (firstTourIdx >= 0) {
+      if (onTourStart) onTourStart();
+      setStep(firstTourIdx);
+      setSubStep(0);
     }
   };
 
@@ -870,6 +906,57 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
     );
   }
 
+  // Overview phase — centered modal with nav highlight ring
+  if (isOverview) {
+    const ovDesc = !isAdminRole && current.descNonAdmin ? current.descNonAdmin : current.desc;
+    // Find the icon for this tab from the tabs array context
+    const TAB_ICONS = { submit: "\u{1F4CB}", flights: "\u{1F4CD}", reports: "\u26A0\uFE0F", hazards: "\u{1F50D}", actions: "\u2705", policy: "\u{1F4C4}", cbt: "\u{1F393}", audit: "\u{1F6E1}\uFE0F", dashboard: "\u{1F4CA}", admin: "\u2699\uFE0F" };
+    const tabIcon = TAB_ICONS[current.tab] || "\u2708\uFE0F";
+    return (
+      <>
+        <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ ...card, maxWidth: 480, width: "100%", padding: "36px 32px", position: "relative" }}>
+            {/* Segmented progress bar */}
+            <div style={{ display: "flex", gap: 3, marginBottom: 24 }}>
+              {overviewSteps.map((s, i) => (
+                <div key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i < overviewIdx ? WHITE : i === overviewIdx ? CYAN : BORDER, transition: "background 0.2s" }} />
+              ))}
+            </div>
+
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>{tabIcon}</div>
+              <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>{current.title}</h2>
+              <p style={{ color: OFF_WHITE, fontSize: 13, lineHeight: 1.6, margin: "0 0 24px" }}>{ovDesc}</p>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <button onClick={goBack} disabled={overviewIdx === 0} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12, opacity: overviewIdx === 0 ? 0.3 : 1 }}>Back</button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button onClick={skipToTour} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>Skip to tour</button>
+                <button onClick={goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>Next</button>
+              </div>
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: 16, fontSize: 10, color: SUBTLE }}>
+              Step {overviewIdx + 1} of {overviewSteps.length}
+            </div>
+          </div>
+        </div>
+
+        {/* Highlight ring on nav button */}
+        {overviewHighlight && (
+          <div style={{
+            position: "fixed", top: overviewHighlight.top, left: overviewHighlight.left,
+            width: overviewHighlight.width, height: overviewHighlight.height,
+            borderRadius: 6, pointerEvents: "none", zIndex: 2001,
+            boxShadow: "0 0 0 3px #FFFFFF, 0 0 16px rgba(255,255,255,0.2)",
+            animation: "tourPulse 2s ease-in-out infinite",
+          }} />
+        )}
+      </>
+    );
+  }
+
   // Tour phase — dynamic positioned card with highlight ring
   const subSteps = filteredSubSteps || [];
   const subTitle = currentSub ? (!isAdminRole && currentSub.titleNonAdmin ? currentSub.titleNonAdmin : currentSub.title) : current.title;
@@ -927,7 +1014,7 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
         <h3 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 6px", fontSize: 17 }}>{subTitle}</h3>
         <p style={{ color: OFF_WHITE, fontSize: 13, lineHeight: 1.6, margin: "0 0 20px" }}>{subDesc}</p>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button onClick={goBack} disabled={step === setupSteps.length && subStep === 0} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12, opacity: (step === setupSteps.length && subStep === 0) ? 0.3 : 1 }}>Back</button>
+          <button onClick={goBack} disabled={tourIdx === 0 && subStep === 0} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12, opacity: (tourIdx === 0 && subStep === 0) ? 0.3 : 1 }}>Back</button>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button onClick={onDismiss} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>Skip tour</button>
             <button onClick={isLastGlobal ? onComplete : goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>
