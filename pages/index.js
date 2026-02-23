@@ -735,7 +735,7 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
     }
     const nextIdx = step + 1;
     if (nextIdx < steps.length) {
-      if (current.phase === "overview" && steps[nextIdx].phase === "tour" && onTourStart) onTourStart();
+      if (current.phase === "setup" && steps[nextIdx].phase !== "setup" && onTourStart) onTourStart();
       setStep(nextIdx); setSubStep(0);
     } else onComplete();
   };
@@ -753,7 +753,6 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
   const skipToTour = () => {
     const firstTourIdx = steps.findIndex(s => s.phase === "tour");
     if (firstTourIdx >= 0) {
-      if (onTourStart) onTourStart();
       setStep(firstTourIdx);
       setSubStep(0);
     }
