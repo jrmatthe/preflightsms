@@ -179,7 +179,7 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft }) {
   );
 }
 
-function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard }) {
+function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard, orgProfiles }) {
   const type = REPORT_TYPES.find(t => t.id === report.report_type) || REPORT_TYPES[0];
   const severity = SEVERITIES.find(s => s.id === report.severity) || SEVERITIES[1];
   const status = STATUSES.find(s => s.id === report.status) || STATUSES[0];
@@ -199,7 +199,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard }) {
           <div style={{ color: MUTED, fontSize: 10 }}>
             {report.category.replace(/_/g, " ")} · {new Date(report.created_at).toLocaleDateString()}
             {report.location && ` · ${report.location}`}
-            {report.anonymous ? " · Anonymous" : report.reporter?.full_name ? ` · ${report.reporter.full_name}` : ""}
+            {report.anonymous ? " · Anonymous" : (() => { const rp = orgProfiles?.find(p => p.id === report.reporter_id); return rp?.full_name ? ` · ${rp.full_name}` : ""; })()}
             {report.confidential && " · Confidential"}
           </div>
         </div>
@@ -254,7 +254,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard }) {
   );
 }
 
-export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft }) {
+export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles }) {
   const [view, setView] = useState("list"); // list | new
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
@@ -356,7 +356,8 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
         {filtered.slice(0, showCount).map(r => (
           <ReportCard key={r.id} report={r} onStatusChange={canManage ? onStatusChange : null}
             linkedHazard={canManage ? linkedHazards[r.id] : null}
-            onCreateHazard={canManage && onCreateHazardFromReport ? (report) => onCreateHazardFromReport(report) : null} />
+            onCreateHazard={canManage && onCreateHazardFromReport ? (report) => onCreateHazardFromReport(report) : null}
+            orgProfiles={orgProfiles} />
         ))}
         {filtered.length > showCount && (
           <button onClick={() => setShowCount(c => c + 25)}
