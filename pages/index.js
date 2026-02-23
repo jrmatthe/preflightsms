@@ -61,11 +61,11 @@ const ONBOARDING_STEPS = [
   { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", feature: null, subSteps: [
     { target: "tour-frat-flight-info", placement: "bottom", title: "Flight Information", desc: "Enter flight details including PIC, aircraft, route, and times. Use ICAO airport codes to auto-fetch live weather data and flag risk factors.", descNonAdmin: "Enter your flight details including aircraft, route, and times. ICAO airport codes auto-fetch live weather data and flag risk factors for you." },
     { target: "tour-frat-risk-categories", placement: "right", title: "Risk Scoring", desc: "Five weighted risk categories \u2014 Weather, Pilot/Crew, Aircraft, Environment, and Operational. Check applicable factors; weather items are auto-detected from METAR/TAF data." },
-    { target: "tour-frat-score-panel", placement: "left", title: "Live Risk Score", desc: "The cumulative risk score updates in real time. Color-coded thresholds determine if the flight is authorized or requires management approval before departure.", descNonAdmin: "Your cumulative risk score updates in real time. Color-coded thresholds show whether the flight is authorized or needs management approval before departure." },
+    { target: "tour-frat-score-panel", placement: "left", title: "Live Risk Score", desc: "The cumulative risk score updates in real time. Color-coded thresholds determine if the flight is authorized or requires management approval before departure.", descNonAdmin: "Your cumulative risk score updates in real time. Color-coded thresholds show whether the flight is authorized or requires additional consideration before flying." },
   ]},
   { id: "tour-flights", phase: "tour", tab: "flights", title: "Flight Following", feature: null, subSteps: [
     { target: "tour-flights-board", placement: "bottom", title: "Live Flight Board", desc: "Every submitted FRAT creates a live flight. Track departures and arrivals on an interactive route map with real-time aircraft position estimates.", descNonAdmin: "Every FRAT you submit creates a live flight. View your departures and arrivals on an interactive route map with real-time position estimates." },
-    { target: "tour-flights-status", placement: "bottom", title: "Status Tracking", desc: "Filter by Active, Arrived, or All flights. Mark flights as arrived, delayed, or cancelled. Overdue flights automatically trigger email alerts to your notification contacts.", descNonAdmin: "Filter by Active, Arrived, or All flights. Update your flight status as arrived, delayed, or cancelled. Overdue flights automatically alert your safety team." },
+    { target: "tour-flights-status", placement: "bottom", title: "Status Tracking", desc: "Filter by Active, Arrived, or All flights. Mark flights as arrived, delayed, or cancelled. Overdue flights automatically trigger email alerts to your notification contacts.", descNonAdmin: "Open a flight to see the Arrived button and update your status. Filter by Active, Arrived, or All. Overdue flights automatically alert your safety team." },
   ]},
   { id: "tour-reports", phase: "tour", tab: "reports", title: "Safety Reporting", feature: null, subSteps: [
     { target: "tour-reports-new-btn", placement: "bottom", title: "Submit Reports", desc: "Pilots and crew can submit anonymous or confidential hazard and safety reports \u2014 the backbone of a just-culture SMS.", descNonAdmin: "Submit anonymous or confidential hazard and safety reports here. This is the backbone of a just-culture SMS \u2014 your reports help keep everyone safe." },
@@ -82,7 +82,7 @@ const ONBOARDING_STEPS = [
   ]},
   { id: "tour-policy", phase: "tour", tab: "policy", title: "Policies & SMS Manuals", feature: "policy_library", subSteps: [
     { target: "tour-policy-tabs", placement: "bottom", title: "Policy Library", desc: "Publish company policies with version control and acknowledgment tracking. Ensure every team member has read and signed off on critical safety documents.", descNonAdmin: "Read and acknowledge your organization\u2019s safety policies here. You\u2019ll be notified when new policies are published that need your sign-off.", componentTab: { component: "policy", value: "policies" } },
-    { target: "tour-policy-tabs", placement: "bottom", title: "SMS Manual Templates", desc: "Build Part 5 manuals with guided autofill templates. Each section maps to FAA requirements \u2014 no starting from scratch.", descNonAdmin: "Your organization\u2019s SMS manuals live here. Reference them anytime for standard operating procedures and safety guidelines.", componentTab: { component: "policy", value: "manuals" } },
+    { target: "tour-policy-tabs", placement: "bottom", title: "SMS Manual Templates", desc: "Build Part 5 manuals with guided autofill templates. Each section maps to FAA requirements \u2014 no starting from scratch.", adminOnly: true, componentTab: { component: "policy", value: "manuals" } },
   ]},
   { id: "tour-cbt", phase: "tour", tab: "cbt", title: "Training & CBT", feature: "cbt_modules", subSteps: [
     { target: "tour-cbt-tabs", placement: "bottom", title: "CBT Courses", desc: "Create and assign video-based training courses with quizzes and completion tracking. Enroll crew members and monitor progress.", descNonAdmin: "Complete your assigned training courses here. Each course includes video lessons and quizzes \u2014 your progress is tracked automatically.", componentTab: { component: "cbt", value: "cbt" } },
@@ -914,8 +914,23 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
     const tabIcon = TAB_ICONS[current.tab] || "\u2708\uFE0F";
     return (
       <>
-        <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ ...card, maxWidth: 480, width: "100%", padding: "36px 32px", position: "relative" }}>
+        {/* Light dim overlay so nav is visible */}
+        <div style={{ position: "fixed", inset: 0, zIndex: 1998, background: "rgba(0,0,0,0.4)", pointerEvents: "none" }} />
+
+        {/* Highlight ring on nav button */}
+        {overviewHighlight && (
+          <div style={{
+            position: "fixed", top: overviewHighlight.top, left: overviewHighlight.left,
+            width: overviewHighlight.width, height: overviewHighlight.height,
+            borderRadius: 6, pointerEvents: "none", zIndex: 1999,
+            boxShadow: "0 0 0 3px #FFFFFF, 0 0 20px rgba(255,255,255,0.35)",
+            animation: "tourPulse 2s ease-in-out infinite",
+          }} />
+        )}
+
+        {/* Centered card */}
+        <div style={{ position: "fixed", inset: 0, zIndex: 2001, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, pointerEvents: "none" }}>
+          <div style={{ ...card, maxWidth: 480, width: "100%", padding: "36px 32px", position: "relative", pointerEvents: "auto", boxShadow: "0 16px 48px rgba(0,0,0,0.6)" }}>
             {/* Segmented progress bar */}
             <div style={{ display: "flex", gap: 3, marginBottom: 24 }}>
               {overviewSteps.map((s, i) => (
@@ -942,17 +957,6 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
             </div>
           </div>
         </div>
-
-        {/* Highlight ring on nav button */}
-        {overviewHighlight && (
-          <div style={{
-            position: "fixed", top: overviewHighlight.top, left: overviewHighlight.left,
-            width: overviewHighlight.width, height: overviewHighlight.height,
-            borderRadius: 6, pointerEvents: "none", zIndex: 2001,
-            boxShadow: "0 0 0 3px #FFFFFF, 0 0 16px rgba(255,255,255,0.2)",
-            animation: "tourPulse 2s ease-in-out infinite",
-          }} />
-        )}
       </>
     );
   }
