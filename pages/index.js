@@ -1186,8 +1186,20 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
   };
 
   const handleSubmit = async () => {
-    if (!fi.pilot || !fi.departure || !fi.destination) { alert("Please fill in pilot name, departure, and destination."); return; }
-    if (!fi.etd || !fi.ete) { alert("Please fill in estimated departure time (ETD) and estimated time enroute (ETE) for flight following."); return; }
+    const missing = [];
+    if (!fi.pilot) missing.push("Pilot in Command");
+    if (!fi.aircraft) missing.push("Aircraft Type");
+    if (!fi.tailNumber) missing.push("Tail Number");
+    if (!fi.departure) missing.push("Departure");
+    if (!fi.destination) missing.push("Destination");
+    if (!fi.cruiseAlt) missing.push("Cruise Altitude");
+    if (!fi.date) missing.push("Flight Date");
+    if (!fi.etd) missing.push("Est. Departure");
+    if (!fi.ete) missing.push("Est. Time Enroute");
+    if (!fi.fuelLbs) missing.push("Fuel Onboard");
+    if (!fi.numCrew) missing.push("Number of Crew");
+    if (!fi.numPax) missing.push("Number of Passengers");
+    if (missing.length > 0) { alert(`Please fill in all flight information fields:\n\n${missing.join(", ")}`); return; }
     
     // Upload photos first
     const fratId = generateId();
@@ -1339,10 +1351,6 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
                   </span>
                   <span style={{ fontWeight: 700, fontSize: 10, color: ic ? (isAuto ? CYAN : rl.color) : SUBTLE, minWidth: 22, textAlign: "right" }}>+{f.score}</span>
                 </div>); })}</div>); })}
-          <div style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10 }}>
-            <h3 style={{ margin: "0 0 10px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Remarks / Mitigations</h3>
-            <textarea placeholder="Note any mitigations applied..." value={fi.remarks} onChange={e => setFi(p => ({ ...p, remarks: e.target.value }))}
-              style={{ width: "100%", minHeight: 60, padding: 10, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", color: OFF_WHITE, background: NEAR_BLACK }} /></div>
         </div>
 
         <div className="score-panel-desktop" data-tour="tour-frat-score-panel" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
