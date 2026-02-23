@@ -24,6 +24,7 @@ const TYPE_COLORS = {
   training_expiring: AMBER,
   report_status_update: GREEN,
   action_assigned: CYAN,
+  frat_self_dispatched: AMBER,
 };
 
 function timeAgo(dateStr) {
