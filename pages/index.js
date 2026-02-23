@@ -1202,7 +1202,8 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     }
 
     const eta = calcArrivalTime(fi.date, fi.etd, fi.ete, depTz?.tz);
-    onSubmit({ id: fratId, ...fi, depTz: depTz?.tz || "America/Los_Angeles", destTz: destTz?.tz || "America/Los_Angeles", eta: eta ? eta.toISOString() : "", score, riskLevel: getRL(score).label, factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
+    const matchedRL = getRL(score);
+    onSubmit({ id: fratId, ...fi, depTz: depTz?.tz || "America/Los_Angeles", destTz: destTz?.tz || "America/Los_Angeles", eta: eta ? eta.toISOString() : "", score, riskLevel: matchedRL.label, approvalMode: matchedRL.approval_mode || "none", factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
       wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls });
     if (onNavigate) onNavigate("flights");
   };
@@ -2950,9 +2951,8 @@ export default function PVTAIRFrat() {
 
   // ── Submit FRAT ──
   const onSubmit = useCallback(async entry => {
-    // Determine approval mode from the matching risk level
-    const rl = getRiskLevel(entry.score, riskLevels);
-    const approvalMode = rl.approval_mode || "none";
+    // Use approval mode determined by FRATForm (from the template the pilot actually used)
+    const approvalMode = entry.approvalMode || "none";
     const needsBlock = approvalMode === "required";
     const needsNotify = approvalMode === "required" || approvalMode === "review";
 
@@ -3025,7 +3025,7 @@ export default function PVTAIRFrat() {
     }
     const toastMsg = approvalMode === "required" ? `${entry.id} submitted — management notified, awaiting approval` : approvalMode === "review" ? `${entry.id} submitted — management notified` : `${entry.id} submitted — flight plan created`;
     setToast({ message: toastMsg, level: getRiskLevel(entry.score, riskLevels) }); setTimeout(() => setToast(null), 4000);
-  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, riskLevels]);
+  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline]);
 
   // ── Update flight status ──
   const onUpdateFlight = useCallback(async (id, action) => {
