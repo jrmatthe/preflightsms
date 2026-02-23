@@ -12,7 +12,7 @@
 //    supabase secrets set STRIPE_PRO_MONTHLY=price_1T3s3qBfO8VDPODhNZ5u8lTK
 //    supabase secrets set STRIPE_PRO_ANNUAL=price_1T3s4FBfO8VDPODhjBwP3UHp
 
-import Stripe from "npm:stripe@17.4.0";
+import Stripe from "https://esm.sh/stripe@14?target=denonext";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
