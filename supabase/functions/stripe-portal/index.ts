@@ -2,14 +2,13 @@
 //
 // Creates a Stripe Billing Portal session for managing subscriptions
 // Called from the frontend when user clicks "Manage Subscription" or "Update Payment"
+// Uses Stripe REST API directly (no SDK) for edge runtime compatibility
 //
 // SETUP:
 // 1. Deploy: supabase functions deploy stripe-portal --no-verify-jwt
 // 2. Configure Customer Portal in Stripe Dashboard:
 //    Settings > Billing > Customer portal
 //    Enable: update payment, switch plans, cancel, view invoices
-
-import Stripe from "https://esm.sh/stripe@14?target=denonext";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,8 +28,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-
     const { customerId, returnUrl } = await req.json();
 
     if (!customerId) {
@@ -39,12 +36,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    const session = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: returnUrl,
+    const params = new URLSearchParams();
+    params.append("customer", customerId);
+    params.append("return_url", returnUrl);
+
+    const res = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${stripeKey}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    const data = await res.json();
+
+    if (!res.ok) {
+      return new Response(JSON.stringify({ error: data.error?.message || "Stripe error" }), {
+        status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ url: data.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
