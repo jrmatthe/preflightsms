@@ -14,10 +14,10 @@ const colorMap = { green: GREEN, yellow: YELLOW, amber: AMBER, red: RED };
 function genId(prefix) { return `${prefix}_${Date.now().toString(36)}`; }
 
 const DEFAULT_THRESHOLDS = [
-  { level: "LOW", label: "LOW RISK", min: 0, max: 15, color: "green", action: "Flight authorized \u2014 standard procedures" },
-  { level: "MODERATE", label: "MODERATE RISK", min: 16, max: 30, color: "yellow", action: "Enhanced awareness \u2014 brief crew on elevated risk factors" },
-  { level: "HIGH", label: "HIGH RISK", min: 31, max: 45, color: "amber", action: "Requires management approval before departure" },
-  { level: "CRITICAL", label: "CRITICAL RISK", min: 46, max: 100, color: "red", action: "Flight should not depart without risk mitigation and executive approval" },
+  { level: "LOW", label: "LOW RISK", min: 0, max: 15, color: "green", action: "Flight authorized \u2014 standard procedures", approval_mode: "none" },
+  { level: "MODERATE", label: "MODERATE RISK", min: 16, max: 30, color: "yellow", action: "Enhanced awareness \u2014 brief crew on elevated risk factors", approval_mode: "none" },
+  { level: "HIGH", label: "HIGH RISK", min: 31, max: 45, color: "amber", action: "Requires management approval before departure", approval_mode: "required" },
+  { level: "CRITICAL", label: "CRITICAL RISK", min: 46, max: 100, color: "red", action: "Flight should not depart without risk mitigation and executive approval", approval_mode: "required" },
 ];
 
 // ── SINGLE TEMPLATE EDITOR ─────────────────────────────────────
@@ -80,15 +80,20 @@ function TemplateEditor({ template, onSave, saving, fleetAircraftTypes }) {
       <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
         <div style={sectionLabel}>Risk Thresholds</div>
         {thresholds.map((t, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "12px 120px 60px 60px 1fr", gap: 10, alignItems: "center", marginBottom: 10 }} className="frat-threshold-grid">
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "12px 120px 60px 60px 1fr 150px", gap: 10, alignItems: "center", marginBottom: 10 }} className="frat-threshold-grid">
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: colorMap[t.color] || GREEN }} />
             <input value={t.label} onChange={e => updateThreshold(i, "label", e.target.value)} style={{ ...inp, fontSize: 11, padding: "6px 8px" }} />
             <input type="number" value={t.min} onChange={e => updateThreshold(i, "min", e.target.value)} style={{ ...inp, fontSize: 11, padding: "6px 8px", textAlign: "center" }} />
             <input type="number" value={t.max} onChange={e => updateThreshold(i, "max", e.target.value)} style={{ ...inp, fontSize: 11, padding: "6px 8px", textAlign: "center" }} />
             <input value={t.action} onChange={e => updateThreshold(i, "action", e.target.value)} style={{ ...inp, fontSize: 11, padding: "6px 8px" }} placeholder="Action required..." />
+            <select value={t.approval_mode || "none"} onChange={e => updateThreshold(i, "approval_mode", e.target.value)} style={{ ...inp, fontSize: 11, padding: "6px 8px" }}>
+              <option value="none">No Approval</option>
+              <option value="review">Review After Flight</option>
+              <option value="required">Require Approval</option>
+            </select>
           </div>
         ))}
-        <div style={{ color: SUBTLE, fontSize: 10, marginTop: 4 }}>Columns: Color · Label · Min · Max · Required Action</div>
+        <div style={{ color: SUBTLE, fontSize: 10, marginTop: 4 }}>Columns: Color · Label · Min · Max · Required Action · Approval Mode</div>
       </div>
 
       {/* Risk Categories & Factors */}
