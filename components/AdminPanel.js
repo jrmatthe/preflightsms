@@ -55,7 +55,7 @@ const FEATURE_LABELS_MAP = {
   priority_support: "Priority Support",
 };
 
-function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout }) {
+function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillingPortal }) {
   const tier = orgData?.tier || "starter";
   const tierDef = TIER_DEFS[tier] || TIER_DEFS.starter;
   const flags = orgData?.feature_flags || {};
@@ -66,6 +66,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout }) {
   const [selectedTier, setSelectedTier] = useState(tier);
   const [billingInterval, setBillingInterval] = useState("monthly");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const handleSaveFlags = () => {
     if (onUpdateOrg) onUpdateOrg({ feature_flags: localFlags, tier: selectedTier });
@@ -173,11 +174,22 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout }) {
         </div>
       )}
 
-      {/* Manage subscription (active with Stripe) */}
-      {canManage && isActive && hasStripe && (
+      {/* Manage subscription (active/past_due/canceled with Stripe) */}
+      {canManage && hasStripe && (status === "active" || status === "past_due" || status === "canceled") && (
         <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 8 }}>Manage Subscription</div>
-          <div style={{ fontSize: 11, color: MUTED, marginBottom: 14 }}>Your subscription is active and managed through Stripe. To change plans, update payment method, or cancel, contact <a href="mailto:support@preflightsms.com" style={{ color: CYAN }}>support@preflightsms.com</a>.</div>
+          {status === "past_due" && (
+            <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 11, fontWeight: 600, marginBottom: 14 }}>
+              {"\u26A0\uFE0F"} Your payment is past due. Update your payment method to restore full access.
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: MUTED, marginBottom: 14 }}>
+            Use the Stripe portal to update your payment method, change plans, view invoices, or cancel.
+          </div>
+          <button onClick={async () => { setPortalLoading(true); try { await onBillingPortal?.(); } finally { setPortalLoading(false); } }} disabled={portalLoading}
+            style={{ padding: "10px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: portalLoading ? "wait" : "pointer", opacity: portalLoading ? 0.6 : 1 }}>
+            {portalLoading ? "Opening..." : status === "past_due" ? "Update Payment Method" : "Manage Subscription"}
+          </button>
         </div>
       )}
 
@@ -431,7 +443,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -561,7 +573,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
 
       {/* Subscription */}
       {activeTab === "subscription" && (<>
-        <SubscriptionTab orgData={orgData} onUpdateOrg={onUpdateOrg} canManage={canManage} onCheckout={onCheckout} />
+        <SubscriptionTab orgData={orgData} onUpdateOrg={onUpdateOrg} canManage={canManage} onCheckout={onCheckout} onBillingPortal={onBillingPortal} />
       </>)}
     </div>
   );
