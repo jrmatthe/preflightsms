@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import DeclarationWizard from "./DeclarationWizard";
 
 const BLACK="#000000",NEAR_BLACK="#0A0A0A",CARD="#222222",BORDER="#2E2E2E",LIGHT_BORDER="#3A3A3A";
 const WHITE="#FFFFFF",OFF_WHITE="#E0E0E0",MUTED="#777777";
@@ -311,13 +312,14 @@ const MANUAL_LABELS = {
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals }) {
+export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals, declarations, onSaveDeclaration, onUpdateDeclaration, onUploadPdf, session }) {
   const [expandedSubpart, setExpandedSubpart] = useState("B");
   const [expandedReq, setExpandedReq] = useState(null);
   const [manualOverrides, setManualOverrides] = useState(() => {
     try { const s = typeof window !== "undefined" && localStorage.getItem("audit_overrides"); return s ? JSON.parse(s) : {}; } catch { return {}; }
   });
   const [filterStatus, setFilterStatus] = useState("all");
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const updateOverrides = (fn) => {
     setManualOverrides(prev => {
@@ -434,7 +436,26 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>FAA Part 5 Audit Log</div>
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR Part 5 SMS Compliance for Part 135 Operations</div>
         </div>
+        <button onClick={() => setWizardOpen(true)}
+          style={{ padding: "8px 16px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", background: `${CYAN}22`, color: CYAN, border: `1px solid ${CYAN}44`, whiteSpace: "nowrap" }}>
+          Declaration of Compliance
+        </button>
       </div>
+
+      {wizardOpen && (
+        <DeclarationWizard
+          org={org} session={session} profiles={profiles} frats={frats} flights={flights}
+          reports={reports} hazards={hazards} actions={actions} policies={policies}
+          trainingRecords={trainingRecords} smsManuals={smsManuals}
+          dataCtx={dataCtx} reqStatuses={reqStatuses} summary={summary}
+          subpartNames={SUBPART_NAMES} part5Requirements={PART5_REQUIREMENTS}
+          subpartGroups={subpartGroups} manualStatuses={manualStatuses}
+          declarations={declarations} onSave={onSaveDeclaration} onUpdate={onUpdateDeclaration}
+          onUploadPdf={onUploadPdf} onClose={() => setWizardOpen(false)}
+        />
+      )}
+
+      {wizardOpen ? null : <>
 
       {/* Summary cards */}
       <div data-tour="tour-audit-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
@@ -615,6 +636,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
           Manual overrides are saved locally on this device. Per § 5.9, Part 135 operators must be fully compliant by May 28, 2027.
         </div>
       </div>
+      </>}
     </div>
   );
 }
