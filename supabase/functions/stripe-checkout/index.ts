@@ -31,7 +31,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { plan, interval, orgId, orgName, email, returnUrl } = await req.json();
+    const body = await req.json();
+    const { plan, interval, orgId, orgName, email, returnUrl } = body;
+    console.log("Request body:", JSON.stringify({ plan, interval, orgId, orgName, email, returnUrl }));
 
     const priceMap: Record<string, string | undefined> = {
       "starter_monthly": Deno.env.get("STRIPE_STARTER_MONTHLY"),
@@ -40,9 +42,11 @@ Deno.serve(async (req) => {
       "professional_annual": Deno.env.get("STRIPE_PRO_ANNUAL"),
     };
 
-    const priceId = priceMap[`${plan}_${interval}`];
+    const key = `${plan}_${interval}`;
+    const priceId = priceMap[key];
+    console.log("Price lookup:", key, "→", priceId || "NOT FOUND");
     if (!priceId) {
-      return new Response(JSON.stringify({ error: "Invalid plan/interval" }), {
+      return new Response(JSON.stringify({ error: `Invalid plan/interval: ${key}` }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -74,6 +78,7 @@ Deno.serve(async (req) => {
     const data = await res.json();
 
     if (!res.ok) {
+      console.error("Stripe API error:", JSON.stringify(data));
       return new Response(JSON.stringify({ error: data.error?.message || "Stripe error" }), {
         status: res.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -84,6 +89,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (err: any) {
+    console.error("Function error:", err.message, err.stack);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
