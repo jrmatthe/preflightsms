@@ -389,6 +389,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab || "org");
   useEffect(() => { if (tourTab) setActiveTab(tourTab); }, [tourTab]);
+  useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
 
   const handleSaveTemplate = async (templateData) => {
     setSavingTemplate(true);
