@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -1053,7 +1053,7 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, fleetAircraft }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight }) {
   // Template switching: find template assigned to selected aircraft
   const [activeTemplateId, setActiveTemplateId] = useState(null);
   const resolveTemplate = useCallback((aircraft) => {
@@ -1083,6 +1083,23 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       setFi(p => ({ ...p, aircraft: firstType, tailNumber: matches.length === 1 ? matches[0].registration : "" }));
     }
   }, [fleetList]);
+  // ForeFlight pre-population
+  useEffect(() => {
+    if (!selectedFfFlight) return;
+    const ff = selectedFfFlight;
+    const etdStr = ff.etd ? new Date(ff.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
+    const dateStr = ff.etd ? new Date(ff.etd).toISOString().split("T")[0] : getLocalDate();
+    setFi(p => ({
+      ...p,
+      departure: ff.departure_icao || p.departure,
+      destination: ff.destination_icao || p.destination,
+      tailNumber: ff.tail_number || p.tailNumber,
+      aircraft: ff.aircraft_type || p.aircraft,
+      pilot: ff.pilot_name || p.pilot,
+      date: dateStr,
+      etd: etdStr || p.etd,
+    }));
+  }, [selectedFfFlight]);
   const [attachments, setAttachments] = useState([]); // { file, preview, uploading, url }
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [checked, setChecked] = useState({});
@@ -1216,7 +1233,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     const eta = calcArrivalTime(fi.date, fi.etd, fi.ete, depTz?.tz);
     const matchedRL = getRL(score);
     onSubmit({ id: fratId, ...fi, depTz: depTz?.tz || "America/Los_Angeles", destTz: destTz?.tz || "America/Los_Angeles", eta: eta ? eta.toISOString() : "", score, riskLevel: matchedRL.label, approvalMode: matchedRL.approval_mode || "none", factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
-      wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls });
+      wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls, foreflightFlightId: selectedFfFlight?.id || null });
     if (onNavigate) onNavigate("flights");
   };
   const defaultAircraft = fleetList.length > 0 ? fleetList[0].type : "";
@@ -1235,6 +1252,33 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      {/* ForeFlight pending flights selector */}
+      {pendingFfFlights && pendingFfFlights.length > 0 && !selectedFfFlight && (
+        <div style={{ ...card, padding: "16px 20px", marginBottom: 14, borderLeft: `4px solid ${CYAN}` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>ForeFlight Dispatch Flights</div>
+          {pendingFfFlights.map(ff => (
+            <div key={ff.id} onClick={() => onSelectFfFlight(ff)}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 6, cursor: "pointer" }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = CYAN + "66"} onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>{ff.departure_icao} → {ff.destination_icao}</span>
+                {ff.tail_number && <span style={{ fontSize: 11, color: MUTED }}>| {ff.tail_number}</span>}
+              </div>
+              <span style={{ fontSize: 10, color: MUTED }}>{ff.etd ? new Date(ff.etd).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "No ETD"}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* ForeFlight pre-populated banner */}
+      {selectedFfFlight && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", marginBottom: 14, borderRadius: 8, background: "rgba(34,211,238,0.08)", border: `1px solid rgba(34,211,238,0.25)` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: CYAN }}>Pre-populated from ForeFlight Dispatch</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: BLACK, background: CYAN, padding: "2px 8px", borderRadius: 3 }}>{selectedFfFlight.departure_icao} → {selectedFfFlight.destination_icao}</span>
+          </div>
+          <button onClick={onClearFfFlight} style={{ background: "none", border: "none", color: MUTED, fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>{"\u00D7"}</button>
+        </div>
+      )}
       <div data-tour="tour-frat-flight-info" style={{ ...card, padding: "24px 28px 28px", marginBottom: 18 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 16 }}>Flight Information</div>
         <div className="flight-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, minWidth: 0 }}>
@@ -1519,7 +1563,7 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
     </div>);
 }
 
-function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight }) {
+function FlightBoard({ flights, foreflightFlights, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight }) {
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
@@ -1710,7 +1754,12 @@ function FlightBoard({ flights, onUpdateFlight, onApproveFlight, onRejectFlight,
               <div key={f.id} style={{ ...card, padding: "18px 22px", marginBottom: 12, borderRadius: 10, border: `1px solid ${pending ? RED + "44" : overdue ? RED + "44" : BORDER}`, cursor: "pointer" }}
                 onClick={() => setSelectedFlight(selectedFlight === f.id ? null : f.id)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>{f.tailNumber || f.aircraft}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>{f.tailNumber || f.aircraft}</span>
+                    {foreflightFlights?.some(ff => ff.flight_id === f.dbId) && (
+                      <span style={{ fontSize: 8, fontWeight: 700, color: CYAN, background: `${CYAN}18`, padding: "2px 6px", borderRadius: 3, border: `1px solid ${CYAN}33` }}>ForeFlight</span>
+                    )}
+                  </div>
                   <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
                 </div>
                 {/* Progress bar */}
@@ -2792,6 +2841,10 @@ export default function PVTAIRFrat() {
   const [tourSubTabs, setTourSubTabs] = useState({});
   const [nudgeFlight, setNudgeFlight] = useState(null);
   const [nudgeResponses, setNudgeResponses] = useState([]);
+  const [foreflightConfig, setForeflightConfig] = useState(null);
+  const [foreflightFlights, setForeflightFlights] = useState([]);
+  const [pendingFfFlights, setPendingFfFlights] = useState([]);
+  const [selectedFfFlight, setSelectedFfFlight] = useState(null);
   const [reportPrefill, setReportPrefill] = useState(null);
 
   // Derived template config
@@ -2943,6 +2996,12 @@ export default function PVTAIRFrat() {
     if (session?.user?.id) fetchNotificationReads(session.user.id).then(({ data }) => setNotifReads((data || []).map(r => r.notification_id)));
     if (session?.user?.id) fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
     fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
+    // ForeFlight integration (only if feature enabled)
+    if (hasFeature(profile?.organizations, "foreflight_integration")) {
+      fetchForeflightConfig(orgId).then(({ data }) => setForeflightConfig(data));
+      fetchForeflightFlights(orgId).then(({ data }) => setForeflightFlights(data || []));
+      fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || []));
+    }
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [profile]);
 
@@ -3024,8 +3083,27 @@ export default function PVTAIRFrat() {
         setToast({ message: `${entry.id} saved offline — will sync when connected`, level: { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" } }); setTimeout(() => setToast(null), 5000);
         return;
       }
-      const { error: flightErr } = await createFlight(profile.org_id, fratData.id, entry, needsBlock);
+      const { data: flightData, error: flightErr } = await createFlight(profile.org_id, fratData.id, entry, needsBlock);
       if (flightErr) console.error("Flight create error:", flightErr);
+
+      // ForeFlight linking — update FF flight and optionally push FRAT PDF
+      if (entry.foreflightFlightId && flightData) {
+        try {
+          await updateForeflightFlight(entry.foreflightFlightId, {
+            frat_id: fratData.id,
+            flight_id: flightData.id,
+            status: "frat_created",
+          });
+          if (foreflightConfig?.push_frat_enabled) {
+            supabase.functions.invoke("foreflight-push-frat", {
+              body: { orgId: profile.org_id, fratId: fratData.id, foreflightFlightId: entry.foreflightFlightId },
+            }).catch(e => console.error("ForeFlight push error:", e));
+          }
+          setSelectedFfFlight(null);
+          fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || []));
+          fetchForeflightFlights(profile.org_id).then(({ data }) => setForeflightFlights(data || []));
+        } catch (e) { console.error("ForeFlight link error:", e); }
+      }
 
       // Send notification + email for applicable modes
       if (shouldNotify) {
@@ -3077,7 +3155,7 @@ export default function PVTAIRFrat() {
       const nf = [flight, ...flights]; saveFlightsLocal(nf);
     }
     setToast({ message: toastMsg, level: getRiskLevel(entry.score, riskLevels) }); setTimeout(() => setToast(null), 4000);
-  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline]);
+  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, foreflightConfig]);
 
   // ── Update flight status ──
   const onUpdateFlight = useCallback(async (id, action) => {
@@ -3727,8 +3805,8 @@ export default function PVTAIRFrat() {
         <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} fleetAircraft={fleetAircraft} />)}
-        {cv === "flights" && <FlightBoard flights={flights} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} onApproveFlight={async (flightDbId, fratDbId) => {
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} />)}
+        {cv === "flights" && <FlightBoard flights={flights} foreflightFlights={foreflightFlights} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} onApproveFlight={async (flightDbId, fratDbId) => {
           await approveFlight(flightDbId, session.user.id);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", "");
           const matchedFlight = flights.find(fl => fl.dbId === flightDbId);
@@ -3902,6 +3980,46 @@ export default function PVTAIRFrat() {
           await deleteAircraft(id);
           const { data } = await fetchAircraft(profile?.org_id);
           setFleetAircraft(data || []);
+        })} foreflightConfig={foreflightConfig} onSaveForeflightConfig={roGuard(async (configData) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          const { data, error } = await upsertForeflightConfig(orgId, configData);
+          if (!error && data) {
+            setForeflightConfig(data);
+            setToast({ message: "ForeFlight configuration saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+            setTimeout(() => setToast(null), 3000);
+          } else {
+            setToast({ message: "Failed to save: " + (error?.message || "Unknown error"), level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
+            setTimeout(() => setToast(null), 5000);
+          }
+        })} onTestForeflightConnection={async (apiKey, apiSecret) => {
+          try {
+            const { data, error } = await supabase.functions.invoke('foreflight-test-connection', {
+              body: { apiKey, apiSecret },
+            });
+            if (error) return { success: false, error: error.message };
+            return data;
+          } catch (e) { return { success: false, error: e.message }; }
+        }} onForeflightSyncNow={roGuard(async () => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          try {
+            await supabase.functions.invoke('foreflight-sync', {
+              body: { orgId, manual: true },
+            });
+            // Refresh data after sync
+            const { data: cfg } = await fetchForeflightConfig(orgId);
+            if (cfg) setForeflightConfig(cfg);
+            const { data: ff } = await fetchForeflightFlights(orgId);
+            setForeflightFlights(ff || []);
+            const { data: pff } = await fetchPendingForeflightFlights(orgId);
+            setPendingFfFlights(pff || []);
+            setToast({ message: "ForeFlight sync complete", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+            setTimeout(() => setToast(null), 3000);
+          } catch (e) {
+            setToast({ message: "Sync failed: " + e.message, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
+            setTimeout(() => setToast(null), 5000);
+          }
         })} />}
       </main>
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
