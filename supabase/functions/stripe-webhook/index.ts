@@ -12,8 +12,36 @@
 //    Events: checkout.session.completed, customer.subscription.updated,
 //            customer.subscription.deleted, invoice.payment_failed, invoice.paid
 
-import Stripe from "https://esm.sh/stripe@14.14.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Manual signature verification using Web Crypto API (works reliably in Deno)
+async function verifySignature(payload: string, sigHeader: string, secret: string): Promise<boolean> {
+  const parts: Record<string, string> = {};
+  for (const item of sigHeader.split(",")) {
+    const [key, value] = item.split("=");
+    parts[key.trim()] = value;
+  }
+  const timestamp = parts["t"];
+  const signature = parts["v1"];
+  if (!timestamp || !signature) return false;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`${timestamp}.${payload}`),
+  );
+  const expected = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return expected === signature;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,49 +53,51 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (!stripeKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
     return new Response(JSON.stringify({ error: "Missing config" }), { status: 500 });
   }
 
   if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET not set — rejecting unverified webhook");
+    console.error("STRIPE_WEBHOOK_SECRET not set");
     return new Response(JSON.stringify({ error: "Webhook secret not configured" }), { status: 500 });
   }
 
-  const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-  let event: Stripe.Event;
-
-  // Verify webhook signature
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
-  try {
-    event = stripe.webhooks.constructEvent(body, sig!, webhookSecret);
-  } catch (err: any) {
-    console.error("Webhook signature verification failed:", err.message);
+
+  if (!sig) {
+    console.error("No stripe-signature header");
+    return new Response(JSON.stringify({ error: "Missing signature" }), { status: 400 });
+  }
+
+  const valid = await verifySignature(body, sig, webhookSecret);
+  if (!valid) {
+    console.error("Webhook signature verification failed");
     return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 400 });
   }
+
+  const event = JSON.parse(body);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   console.log("Stripe event:", event.type);
 
   try {
     switch (event.type) {
       case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
+        const session = event.data.object;
         const orgId = session.metadata?.org_id;
         const plan = session.metadata?.plan || "starter";
         if (orgId) {
           await supabase.from("organizations").update({
             subscription_status: "active",
             tier: plan,
-            stripe_customer_id: session.customer as string,
-            stripe_subscription_id: session.subscription as string,
+            stripe_customer_id: session.customer,
+            stripe_subscription_id: session.subscription,
           }).eq("id", orgId);
           console.log(`Org ${orgId} activated: ${plan}`);
         }
@@ -75,7 +105,7 @@ Deno.serve(async (req) => {
       }
 
       case "customer.subscription.updated": {
-        const sub = event.data.object as Stripe.Subscription;
+        const sub = event.data.object;
         const orgId = sub.metadata?.org_id;
         if (orgId) {
           const status = sub.status === "active" ? "active"
@@ -84,7 +114,6 @@ Deno.serve(async (req) => {
             : sub.status === "unpaid" ? "suspended"
             : "active";
           const updateFields: Record<string, any> = { subscription_status: status };
-          // Sync tier from subscription metadata if present
           const newTier = sub.metadata?.plan;
           if (newTier && ["starter", "professional", "enterprise"].includes(newTier)) {
             updateFields.tier = newTier;
@@ -96,7 +125,7 @@ Deno.serve(async (req) => {
       }
 
       case "customer.subscription.deleted": {
-        const sub = event.data.object as Stripe.Subscription;
+        const sub = event.data.object;
         const orgId = sub.metadata?.org_id;
         if (orgId) {
           await supabase.from("organizations").update({
@@ -108,10 +137,9 @@ Deno.serve(async (req) => {
       }
 
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subId = invoice.subscription as string;
+        const invoice = event.data.object;
+        const subId = invoice.subscription;
         if (subId) {
-          // Find org by stripe_subscription_id
           const { data: org } = await supabase
             .from("organizations")
             .select("id")
@@ -128,8 +156,8 @@ Deno.serve(async (req) => {
       }
 
       case "invoice.paid": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subId = invoice.subscription as string;
+        const invoice = event.data.object;
+        const subId = invoice.subscription;
         if (subId) {
           const { data: org } = await supabase
             .from("organizations")
