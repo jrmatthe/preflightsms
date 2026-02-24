@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 const FRATTemplateEditor = dynamic(() => import("./FRATTemplateEditor"), { ssr: false });
-const NotificationContacts = dynamic(() => import("./NotificationContacts"), { ssr: false });
 const FleetManagement = dynamic(() => import("./FleetManagement"), { ssr: false });
 
 const CARD = "#161616", NEAR_BLACK = "#111111";
@@ -58,27 +57,9 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
   const flags = orgData?.feature_flags || {};
   const status = orgData?.subscription_status || "trial";
   const trialEnds = orgData?.trial_ends_at;
-  const [editingFlags, setEditingFlags] = useState(false);
-  const [localFlags, setLocalFlags] = useState(flags);
-  const [selectedTier, setSelectedTier] = useState(tier);
-  const [billingInterval, setBillingInterval] = useState("monthly");
+  const [billingInterval, setBillingInterval] = useState("annual");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
-
-  const handleSaveFlags = () => {
-    if (onUpdateOrg) onUpdateOrg({ feature_flags: localFlags, tier: selectedTier });
-    setEditingFlags(false);
-  };
-
-  const handleTierChange = (newTier) => {
-    setSelectedTier(newTier);
-    const tierFeatures = {
-      starter: { frat: true, flight_following: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: false, cbt_modules: false, role_permissions: false, approval_workflow: false, document_library: false, api_access: false, multi_base: false, custom_integrations: false, priority_support: false },
-      professional: { frat: true, flight_following: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: true, cbt_modules: true, role_permissions: true, approval_workflow: true, document_library: true, api_access: false, multi_base: false, custom_integrations: false, priority_support: true },
-      enterprise: { frat: true, flight_following: true, safety_reporting: true, hazard_register: true, corrective_actions: true, policy_library: true, training_records: true, dashboard_analytics: true, custom_frat_template: true, cbt_modules: true, role_permissions: true, approval_workflow: true, document_library: true, api_access: true, multi_base: true, custom_integrations: true, priority_support: true },
-    };
-    setLocalFlags(tierFeatures[newTier] || tierFeatures.starter);
-  };
 
   const handleCheckout = async (plan) => {
     setCheckoutLoading(true);
@@ -136,8 +117,8 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
           {/* Plan cards */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {[
-              { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Safety Reporting", "Hazard Register", "Policy Library", "Training Records"] },
               { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
+              { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Safety Reporting", "Hazard Register", "Policy Library", "Training Records"] },
             ].map(p => {
               const price = billingInterval === "annual" ? p.annual : p.monthly;
               const perMonth = billingInterval === "annual" ? Math.round(p.annual / 12) : p.monthly;
@@ -190,46 +171,18 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
         </div>
       )}
 
-      {/* Feature flags */}
+      {/* Plan features */}
       <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Active Features</div>
-          {canManage && (
-            <button onClick={() => { if (editingFlags) handleSaveFlags(); else { setLocalFlags(flags); setSelectedTier(tier); setEditingFlags(true); } }}
-              style={{ padding: "5px 14px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer",
-                background: editingFlags ? GREEN : "transparent", color: editingFlags ? BLACK : MUTED,
-                border: `1px solid ${editingFlags ? GREEN : BORDER}` }}>
-              {editingFlags ? "Save Changes" : "Edit Features"}
-            </button>
-          )}
-        </div>
-
-        {editingFlags && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {Object.entries(TIER_DEFS).map(([id, def]) => (
-              <button key={id} onClick={() => handleTierChange(id)}
-                style={{ flex: 1, padding: "10px 12px", borderRadius: 8, cursor: "pointer", textAlign: "center",
-                  background: selectedTier === id ? `${def.color}22` : "transparent",
-                  border: `1px solid ${selectedTier === id ? def.color + "44" : BORDER}`,
-                  color: selectedTier === id ? def.color : MUTED }}>
-                <div style={{ fontSize: 11, fontWeight: 700 }}>{def.name}</div>
-                <div style={{ fontSize: 9, marginTop: 2 }}>{def.price}</div>
-              </button>
-            ))}
-          </div>
-        )}
-
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 14 }}>Plan Features</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {Object.entries(FEATURE_LABELS_MAP).map(([key, label]) => {
-            const enabled = editingFlags ? localFlags[key] : flags[key];
+            const enabled = flags[key];
             return (
               <div key={key}
-                onClick={() => { if (editingFlags) setLocalFlags(prev => ({ ...prev, [key]: !prev[key] })); }}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 6,
-                  cursor: editingFlags ? "pointer" : "default",
                   background: enabled ? "rgba(74,222,128,0.06)" : "transparent",
                   border: `1px solid ${enabled ? "rgba(74,222,128,0.15)" : BORDER}`,
-                  opacity: editingFlags ? 1 : (enabled ? 1 : 0.4) }}>
+                  opacity: enabled ? 1 : 0.4 }}>
                 <div style={{ width: 16, height: 16, borderRadius: 3, flexShrink: 0,
                   border: `2px solid ${enabled ? GREEN : BORDER}`,
                   background: enabled ? GREEN : "transparent",
@@ -237,23 +190,11 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
                   {enabled && <span style={{ color: BLACK, fontSize: 10, fontWeight: 700 }}>✓</span>}
                 </div>
                 <span style={{ fontSize: 10, color: enabled ? OFF_WHITE : MUTED }}>{label}</span>
+                {!enabled && <span style={{ fontSize: 8, color: MUTED, marginLeft: "auto" }}>Upgrade</span>}
               </div>
             );
           })}
         </div>
-
-        {editingFlags && (
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <button onClick={handleSaveFlags}
-              style={{ padding: "8px 20px", background: GREEN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
-              Save Changes
-            </button>
-            <button onClick={() => { setEditingFlags(false); setLocalFlags(flags); setSelectedTier(tier); }}
-              style={{ padding: "8px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>
-              Cancel
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -475,7 +416,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Admin tabs */}
       <div className="admin-tabs" data-tour="tour-admin-tabs" style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-        {[{ id: "org", label: "Organization" }, { id: "fleet", label: "Fleet" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "notifications", label: "Notifications", feat: "approval_workflow" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
+        {[{ id: "org", label: "Organization" }, { id: "fleet", label: "Fleet" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
           if (!t.feat) return true;
           const flags = orgData?.feature_flags || {};
           return flags[t.feat] !== false; // Show if true or undefined
@@ -491,10 +432,6 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
       {/* FRAT Template Editor */}
       {activeTab === "frat" && canManage && (
         <FRATTemplateEditor template={fratTemplate} templates={fratTemplates} onSave={handleSaveTemplate} onCreateTemplate={onCreateTemplate} onDeleteTemplate={onDeleteTemplate} onSetActive={onSetActiveTemplate} saving={savingTemplate} fleetAircraftTypes={[...new Set((fleetAircraft || []).map(a => a.type))]} />
-      )}
-
-      {activeTab === "notifications" && canManage && (
-        <NotificationContacts contacts={notificationContacts || []} onAdd={onAddContact} onUpdate={onUpdateContact} onDelete={onDeleteContact} />
       )}
 
       {activeTab === "fleet" && canManage && (
