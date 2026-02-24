@@ -98,7 +98,7 @@ const ttStyle = { borderRadius: 6, border: `1px solid ${BORDER}`, background: CA
 // ════════════════════════════════════════════════════════════════
 // OVERVIEW TAB — high-level SMS health across all modules
 // ════════════════════════════════════════════════════════════════
-function OverviewDashboard({ records, flights, reports, hazards, actions }) {
+function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills }) {
   const stats = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 86400000;
@@ -148,8 +148,15 @@ function OverviewDashboard({ records, flights, reports, hazards, actions }) {
     if (r30.length === 0 && f30 > 0) compliance -= 20; // flights without FRATs
     compliance = Math.max(0, Math.min(100, compliance));
 
-    return { avgScore, highCritical30, activeFlights, f30, openReports, r30Reports, openHazards, criticalHazards, openActions, overdueActions, weeklyData, compliance, totalFrats: records.length, totalReports: reports.length, r7Count: r7.length };
-  }, [records, flights, reports, hazards, actions]);
+    // ERP stats
+    const activePlans = (erpPlans || []).filter(p => p.is_active).length;
+    const erpNeedsReview = (erpPlans || []).filter(p => !p.last_reviewed_at || (now - new Date(p.last_reviewed_at).getTime()) > 365 * 86400000).length;
+    const completedDrills = (erpDrills || []).filter(d => d.status === 'completed');
+    const lastDrill = completedDrills.sort((a,b) => new Date(b.completed_date) - new Date(a.completed_date))[0] || null;
+    const nextDrill = (erpDrills || []).filter(d => d.status === 'scheduled').sort((a,b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))[0] || null;
+
+    return { avgScore, highCritical30, activeFlights, f30, openReports, r30Reports, openHazards, criticalHazards, openActions, overdueActions, weeklyData, compliance, totalFrats: records.length, totalReports: reports.length, r7Count: r7.length, activePlans, erpNeedsReview, lastDrill, nextDrill };
+  }, [records, flights, reports, hazards, actions, erpPlans, erpDrills]);
 
   const compColor = stats.compliance >= 80 ? GREEN : stats.compliance >= 60 ? YELLOW : RED;
 
@@ -230,6 +237,31 @@ function OverviewDashboard({ records, flights, reports, hazards, actions }) {
           ))}
         </div>
       </div>
+
+      {/* ERP Status */}
+      {(stats.activePlans > 0 || (erpPlans || []).length > 0) && (
+        <div style={{ ...card, padding: 18, marginTop: 16 }}>
+          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>ERP Status</h3>
+          <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: WHITE }}>{stats.activePlans}</div>
+              <div style={{ fontSize: 10, color: MUTED }}>Active Plans</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: stats.erpNeedsReview > 0 ? AMBER : WHITE }}>{stats.erpNeedsReview}</div>
+              <div style={{ fontSize: 10, color: MUTED }}>Needs Review</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{stats.lastDrill ? new Date(stats.lastDrill.completed_date).toLocaleDateString() : "—"}</div>
+              <div style={{ fontSize: 10, color: MUTED }}>Last Drill</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{stats.nextDrill ? new Date(stats.nextDrill.scheduled_date).toLocaleDateString() : "—"}</div>
+              <div style={{ fontSize: 10, color: MUTED }}>Next Drill</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -621,14 +653,14 @@ function SafetyMetrics({ reports, hazards, actions }) {
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
   const h = hazards || [];
   const a = actions || [];
 
-  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} />;
+  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} />;
   if (view === "frat") return <FRATAnalytics records={r} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;
 
