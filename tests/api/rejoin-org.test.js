@@ -143,21 +143,42 @@ describe('POST /api/rejoin-org', () => {
       body: { email: 'test@test.com', password: 'newpass', orgId: 'org-1', invitationToken: 'valid-token' },
     });
     await handler(req, res);
+    // FIXED: listUsers now uses filtered lookup instead of fetching all users
+    expect(mockListUsers).toHaveBeenCalledWith({ page: 1, perPage: 1, filter: 'test@test.com' });
     expect(mockUpdateUserById).toHaveBeenCalledWith('user-1', { password: 'newpass' });
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  it('returns 404 when user not found after valid invitation', async () => {
+  it('returns 404 when user not found after valid invitation (empty result)', async () => {
     mockInvitationQuery.mockResolvedValue({
       data: { id: 'inv-1', email: 'missing@test.com', org_id: 'org-1', status: 'pending' },
       error: null,
     });
+    // FIXED: With filtered listUsers, an unknown email returns empty array
     mockListUsers.mockResolvedValue({
-      data: { users: [{ id: 'other', email: 'other@test.com' }] },
+      data: { users: [] },
       error: null,
     });
     const { req, res } = createMockReqRes({
       body: { email: 'missing@test.com', password: 'pass', orgId: 'org-1', invitationToken: 'valid-token' },
+    });
+    await handler(req, res);
+    expect(mockListUsers).toHaveBeenCalledWith({ page: 1, perPage: 1, filter: 'missing@test.com' });
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it('returns 404 when filtered user email does not exactly match', async () => {
+    mockInvitationQuery.mockResolvedValue({
+      data: { id: 'inv-1', email: 'partial@test.com', org_id: 'org-1', status: 'pending' },
+      error: null,
+    });
+    // Filter might return a partial match; code checks exact email equality
+    mockListUsers.mockResolvedValue({
+      data: { users: [{ id: 'other', email: 'partial-match@test.com' }] },
+      error: null,
+    });
+    const { req, res } = createMockReqRes({
+      body: { email: 'partial@test.com', password: 'pass', orgId: 'org-1', invitationToken: 'valid-token' },
     });
     await handler(req, res);
     expect(res.status).toHaveBeenCalledWith(404);

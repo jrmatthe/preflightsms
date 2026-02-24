@@ -6,6 +6,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
   const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
   if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -27,10 +29,8 @@ export default async function handler(req, res) {
   try {
     const now = new Date();
 
-    // Reset mode for testing
     if (req.query.reset === "true") {
-      await supabase.from("training_records").update({ expiry_notified_at: null }).not("expiry_notified_at", "is", null);
-      return res.status(200).json({ message: "Reset all expiry_notified_at flags" });
+      return res.status(403).json({ error: "reset=true is disabled — use the platform admin panel to reset notification flags" });
     }
 
     // Find records expiring within 30 days or already expired, not yet notified

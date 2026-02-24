@@ -124,25 +124,27 @@ describe('POST /api/check-overdue', () => {
     }));
   });
 
-  // BUG: Does not validate HTTP method - accepts GET, POST, PUT, etc.
-  it('BUG: accepts any HTTP method (no method validation)', async () => {
+  // FIXED: Now rejects non-POST methods with 405
+  it('FIXED: rejects non-POST methods', async () => {
     const { req, res } = createMockReqRes({
       method: 'GET',
       headers: { 'x-cron-secret': 'test-cron-secret' },
     });
     await handler(req, res);
-    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.status).toHaveBeenCalledWith(405);
   });
 
-  // BUG: Reset query param allows clearing all overdue_notified_at flags
-  it('BUG: reset=true clears all overdue notifications without extra auth', async () => {
+  // FIXED: reset=true is now disabled and returns 403
+  it('FIXED: reset=true returns 403 instead of resetting', async () => {
     const { req, res } = createMockReqRes({
       query: { secret: 'test-cron-secret', reset: 'true' },
       headers: {},
     });
     await handler(req, res);
-    // The reset operation runs with only the cron secret check
-    // No additional confirmation or safeguard
-    expect(mockUpdate).toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: expect.stringContaining('disabled'),
+    }));
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 });

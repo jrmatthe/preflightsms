@@ -80,16 +80,26 @@ describe('POST /api/check-training', () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
-  // BUG: reset=true is destructive without additional safeguard
-  it('reset=true clears all expiry_notified_at flags', async () => {
+  // FIXED: Now rejects non-POST methods with 405
+  it('FIXED: rejects non-POST methods', async () => {
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      headers: { 'x-cron-secret': 'test-cron-secret' },
+    });
+    await handler(req, res);
+    expect(res.status).toHaveBeenCalledWith(405);
+  });
+
+  // FIXED: reset=true is now disabled and returns 403
+  it('FIXED: reset=true returns 403 instead of resetting', async () => {
     const { req, res } = createMockReqRes({
       query: { secret: 'test-cron-secret', reset: 'true' },
       headers: {},
     });
     await handler(req, res);
-    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      message: expect.stringContaining('Reset'),
+      error: expect.stringContaining('disabled'),
     }));
   });
 });

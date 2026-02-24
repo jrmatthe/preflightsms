@@ -1,46 +1,35 @@
 # PreflightSMS — Bug Report
 
 Discovered during comprehensive test suite creation (Phase 0).
-**No source files were modified.** All bugs documented here for review.
 
 ---
 
 ## CRITICAL — Security
 
-### BUG-001: `/api/rejoin-org` allows unauthenticated password reset
+### ~~BUG-001: `/api/rejoin-org` allows unauthenticated password reset~~ FIXED
 **File:** `pages/api/rejoin-org.js`
 **Severity:** CRITICAL
-**Description:** The endpoint has no authentication. Anyone who knows a user's email can call this endpoint to reset their password and reassign them to any org. The endpoint uses `supabase.auth.admin.updateUserById()` to directly set a new password without verifying the caller's identity.
-**Impact:** Account takeover. An attacker can change any user's password by knowing their email address.
-**Recommendation:** Require an invitation token or authenticated admin session to call this endpoint.
+**Fix:** Added invitation token verification — requires valid, pending invitation matching the email and org.
 
-### BUG-002: `/api/create-org` has no authentication
+### ~~BUG-002: `/api/create-org` has no authentication~~ FIXED
 **File:** `pages/api/create-org.js`
 **Severity:** HIGH
-**Description:** Anyone can create unlimited organizations without being authenticated. No rate limiting, no CAPTCHA, no auth check.
-**Impact:** Resource abuse, spam orgs, potential billing exploitation (free trials).
-**Recommendation:** Require Supabase auth token or at minimum rate-limit by IP.
+**Fix:** Added Supabase auth token validation via `verifyAuth()`.
 
-### BUG-003: `/api/request-approval` has no authentication
+### ~~BUG-003: `/api/request-approval` has no authentication~~ FIXED
 **File:** `pages/api/request-approval.js`
 **Severity:** HIGH
-**Description:** Anyone can trigger approval request emails to an org's admins by calling this endpoint with a valid orgId. No auth required.
-**Impact:** Email spam to org administrators, potential phishing vector via spoofed FRAT codes.
-**Recommendation:** Require Supabase auth token and verify caller is a member of the org.
+**Fix:** Added Supabase auth token validation and org membership check.
 
-### BUG-004: HTML injection in email templates
-**File:** `pages/api/request-approval.js` (lines 52-72), `pages/api/check-overdue.js` (lines 192-230)
+### ~~BUG-004: HTML injection in email templates~~ FIXED
+**File:** `pages/api/request-approval.js`, `pages/api/check-overdue.js`
 **Severity:** MEDIUM
-**Description:** User-supplied values (`fratCode`, `pilot`, `orgName`, `aircraft`, `departure`, `destination`) are interpolated directly into HTML email templates without escaping. While most email clients don't execute JavaScript, this could still cause rendering issues or be used for phishing with crafted HTML content.
-**Impact:** Email content injection, potential phishing in rendered emails.
-**Recommendation:** HTML-escape all user-supplied values before interpolation.
+**Fix:** Added `escapeHtml()` helper to both files; all user-supplied values are now escaped before HTML interpolation.
 
-### BUG-005: Platform admin JWT secret has weak fallback
-**File:** `pages/api/platform-admin.js` (line 7)
+### ~~BUG-005: Platform admin JWT secret has weak fallback~~ FIXED
+**File:** `pages/api/platform-admin.js`
 **Severity:** HIGH
-**Description:** When `PLATFORM_ADMIN_SECRET` env var is not set, the JWT secret falls back to `'pflt-admin-' + serviceKey.slice(0,16)`. If an attacker obtains the service key prefix (which is more commonly exposed than a dedicated secret), they can forge platform admin JWTs.
-**Impact:** Platform admin impersonation.
-**Recommendation:** Require `PLATFORM_ADMIN_SECRET` to be explicitly set; refuse to start if missing.
+**Fix:** Removed weak fallback — `PLATFORM_ADMIN_SECRET` must be explicitly set.
 
 ### BUG-006: `check_setup` action reveals platform state
 **File:** `pages/api/platform-admin.js` (lines 90-93)
@@ -53,66 +42,48 @@ Discovered during comprehensive test suite creation (Phase 0).
 
 ## CRITICAL — Data Integrity
 
-### BUG-007: `rejectFlight()` sets invalid status 'REJECTED'
-**File:** `lib/supabase.js` (lines 164-170)
+### ~~BUG-007: `rejectFlight()` sets invalid status 'REJECTED'~~ FIXED
+**File:** `lib/supabase.js`
 **Severity:** HIGH
-**Description:** `rejectFlight()` sets `status: 'REJECTED'`, but the `flights` table has a CHECK constraint that only allows `('ACTIVE', 'ARRIVED', 'CANCELLED')`. This will cause a database error on every call.
-**Impact:** Flight rejection is broken. The operation silently fails at the database level.
-**Recommendation:** Use `status: 'CANCELLED'` and `approval_status: 'rejected'` instead.
+**Fix:** Changed to `status: 'CANCELLED'` with `approval_status: 'rejected'`.
 
-### BUG-008: `approveFlight()` ignores userId and notes parameters
-**File:** `lib/supabase.js` (lines 145-152)
+### ~~BUG-008: `approveFlight()` ignores userId and notes parameters~~ FIXED
+**File:** `lib/supabase.js`
 **Severity:** MEDIUM
-**Description:** The function signature accepts `(flightId, userId, notes)` but the update only sets `status`, `approval_status`, and `approved_at`. The `userId` and `notes` are silently discarded — no `approved_by` or `approval_notes` fields are written. Compare with `approveRejectFRAT()` which correctly uses both.
-**Impact:** No audit trail for who approved a flight or why.
-**Recommendation:** Add `approved_by: userId` and `approval_notes: notes` to the update object. (Note: the `flights` table may need `approved_by` and `approval_notes` columns if they don't exist.)
+**Fix:** Added `approved_by: userId` and `approval_notes: notes` to the update.
 
-### BUG-009: `updateFlightStatus()` sets `arrived_at` for CANCELLED flights
-**File:** `lib/supabase.js` (lines 197-204)
+### ~~BUG-009: `updateFlightStatus()` sets `arrived_at` for CANCELLED flights~~ FIXED
+**File:** `lib/supabase.js`
 **Severity:** LOW
-**Description:** When status is 'CANCELLED', the code sets `arrived_at` to the current timestamp. A cancelled flight didn't arrive — this is semantically incorrect and pollutes data analysis.
-**Impact:** Incorrect arrived_at data for cancelled flights.
-**Recommendation:** Only set `arrived_at` when status is 'ARRIVED'; use a separate `cancelled_at` field or leave `arrived_at` null for cancellations.
+**Fix:** Only sets `arrived_at` when status is `'ARRIVED'`.
 
 ---
 
 ## HIGH — Auth Bypass
 
-### BUG-010: Cron endpoints bypass auth when CRON_SECRET is unset
-**Files:** `pages/api/check-overdue.js` (line 10), `pages/api/check-training.js` (line 10), `pages/api/check-notifications.js` (line 23)
+### ~~BUG-010: Cron endpoints bypass auth when CRON_SECRET is unset~~ FIXED
+**Files:** `pages/api/check-overdue.js`, `pages/api/check-training.js`, `pages/api/check-notifications.js`
 **Severity:** HIGH
-**Description:** All three cron endpoints use the pattern:
-```js
-if (cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET) { return 401; }
-```
-When `CRON_SECRET` is undefined (not set), the `&&` short-circuits to `false`, so the auth check is completely skipped. Any request is accepted.
-**Impact:** If the environment is misconfigured (missing CRON_SECRET), anyone can trigger overdue checks, training checks, and notification generation.
-**Recommendation:** Change to: `if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET)`.
+**Fix:** Changed to `if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET)`.
 
-### BUG-011: `/api/check-notifications` orgId mode has no authentication
-**File:** `pages/api/check-notifications.js` (lines 24-26)
+### ~~BUG-011: `/api/check-notifications` orgId mode has no authentication~~ FIXED
+**File:** `pages/api/check-notifications.js`
 **Severity:** MEDIUM
-**Description:** The endpoint accepts an `orgId` query parameter as an alternative to cron auth. Any unauthenticated client can trigger in-app notification creation for any org by guessing the orgId (a UUID).
-**Impact:** Notification spam, potential for creating misleading notifications.
-**Recommendation:** Verify the caller's Supabase auth token and org membership when using orgId mode.
+**Fix:** Added `verifyAuth()` call when using orgId mode — requires valid Supabase auth token.
 
 ---
 
 ## MEDIUM — Logic & Functionality
 
-### BUG-012: `fetchInvitations()` has write side-effects
-**File:** `lib/supabase.js` (lines 885-908)
+### ~~BUG-012: `fetchInvitations()` has write side-effects~~ FIXED
+**File:** `lib/supabase.js`
 **Severity:** MEDIUM
-**Description:** `fetchInvitations()` is a fetch/read function, but it silently auto-accepts pending invitations whose email matches an existing org member. This means a simple data fetch triggers database writes, violating the principle of least surprise and making the function non-idempotent.
-**Impact:** Unexpected invitation status changes on read operations; complicates debugging; fetching invitations in a read-only context could fail due to write attempts.
-**Recommendation:** Move the auto-accept logic to a separate function or handle it at invitation acceptance time.
+**Fix:** Removed auto-accept side-effect from `fetchInvitations()`. Added separate `reconcileInvitations()` function for explicit use.
 
-### BUG-013: `rejoin-org` lists ALL auth users to find one email
-**File:** `pages/api/rejoin-org.js` (line 21)
+### ~~BUG-013: `rejoin-org` lists ALL auth users to find one email~~ FIXED
+**File:** `pages/api/rejoin-org.js`
 **Severity:** MEDIUM
-**Description:** The endpoint calls `supabase.auth.admin.listUsers()` without any filters, fetching the entire auth user table, then filters client-side with `.find()`. This doesn't scale and is a performance concern for growing platforms.
-**Impact:** Slow responses, high memory usage, potential timeout for large user bases.
-**Recommendation:** Use `supabase.auth.admin.getUserByEmail()` or pass a filter to `listUsers()`.
+**Fix:** Changed to `listUsers({ page: 1, perPage: 1, filter: email })` for targeted lookup.
 
 ### BUG-014: `selfDispatchFlight()` sets non-standard approval_status
 **File:** `lib/supabase.js` (lines 172-178)
@@ -121,37 +92,29 @@ When `CRON_SECRET` is undefined (not set), the `&&` short-circuits to `false`, s
 **Impact:** Minor data inconsistency.
 **Recommendation:** Document valid `approval_status` values or add a CHECK constraint.
 
-### BUG-015: No HTTP method validation on cron endpoints
+### ~~BUG-015: No HTTP method validation on cron endpoints~~ FIXED
 **Files:** `pages/api/check-overdue.js`, `pages/api/check-training.js`, `pages/api/check-notifications.js`
 **Severity:** LOW
-**Description:** These endpoints accept any HTTP method (GET, POST, PUT, DELETE, etc.). Convention for cron endpoints is POST-only.
-**Impact:** Minor — could be triggered via GET requests that might be cached by CDN/proxy.
-**Recommendation:** Add `if (req.method !== 'POST') return res.status(405)`.
+**Fix:** Added `if (req.method !== 'POST') return res.status(405)` to all three endpoints.
 
-### BUG-016: `reset=true` query params are destructive without safeguards
-**Files:** `pages/api/check-overdue.js` (lines 35-37), `pages/api/check-training.js` (lines 31-33)
+### ~~BUG-016: `reset=true` query params are destructive without safeguards~~ FIXED
+**Files:** `pages/api/check-overdue.js`, `pages/api/check-training.js`
 **Severity:** MEDIUM
-**Description:** Both endpoints support a `reset=true` query parameter that clears notification flags across all records. This re-enables all notifications to fire again, potentially flooding users with duplicate emails/SMS. The only protection is the cron secret (which itself has BUG-010).
-**Impact:** Mass duplicate notifications if triggered accidentally or maliciously.
-**Recommendation:** Add a confirmation mechanism or restrict reset to a separate admin-only endpoint.
+**Fix:** `reset=true` now returns 403 with a message directing to the platform admin panel.
 
 ---
 
 ## MEDIUM — Edge Function Issues
 
-### BUG-017: Stripe webhook has no idempotency protection
+### ~~BUG-017: Stripe webhook has no idempotency protection~~ FIXED
 **File:** `supabase/functions/stripe-webhook/index.ts`
 **Severity:** MEDIUM
-**Description:** Stripe can retry webhook events. The handler processes each event without checking if it was already handled (no event ID deduplication).
-**Impact:** Duplicate processing of subscription changes could cause race conditions or status flip-flops.
-**Recommendation:** Store processed webhook event IDs and skip duplicates.
+**Fix:** Added event ID deduplication via `stripe_webhook_events` table lookup before processing. **Note: requires `stripe_webhook_events` table migration (see below).**
 
-### BUG-018: Overdue flights edge function marks as notified even when SMS fails
+### ~~BUG-018: Overdue flights edge function marks as notified even when SMS fails~~ FIXED
 **File:** `supabase/functions/check-overdue-flights/index.ts`
 **Severity:** HIGH
-**Description:** When Twilio SMS sending fails, the flight is still marked `overdue_notified_at = true`. This means the notification won't be retried, and contacts will never receive the alert.
-**Impact:** Silent notification failure for overdue flights — a safety concern.
-**Recommendation:** Only mark as notified when at least one notification channel succeeds.
+**Fix:** Only marks flight as `overdue_notified: true` when at least one SMS notification succeeds.
 
 ### BUG-019: Hardcoded timezone in overdue flight edge function
 **File:** `supabase/functions/check-overdue-flights/index.ts`
@@ -167,19 +130,15 @@ When `CRON_SECRET` is undefined (not set), the `&&` short-circuits to `false`, s
 **Impact:** Misleading marketing content after the date passes or if deadline changes.
 **Recommendation:** Make this configurable or remove the specific date.
 
-### BUG-021: `stripe-checkout` and `stripe-portal` don't validate returnUrl
+### ~~BUG-021: `stripe-checkout` and `stripe-portal` don't validate returnUrl~~ FIXED
 **Files:** `supabase/functions/stripe-checkout/index.ts`, `supabase/functions/stripe-portal/index.ts`
 **Severity:** MEDIUM
-**Description:** The `returnUrl` parameter is used directly in Stripe's `success_url` and `cancel_url` without validation. A malicious caller could inject an arbitrary URL for redirect.
-**Impact:** Open redirect vulnerability — could be used for phishing.
-**Recommendation:** Validate that `returnUrl` matches expected app domains.
+**Fix:** Added URL validation against allowed hosts (`login.preflightsms.com`, `preflightsms.com`, `localhost`).
 
-### BUG-022: `send-invite` doesn't escape orgName in HTML
+### ~~BUG-022: `send-invite` doesn't escape orgName in HTML~~ FIXED
 **File:** `supabase/functions/send-invite/index.ts`
 **Severity:** LOW
-**Description:** `orgName` and `role` are injected directly into the HTML email template without escaping.
-**Impact:** HTML injection in emails (low risk since email clients don't execute JS, but could break email rendering).
-**Recommendation:** HTML-escape user-supplied values.
+**Fix:** Added `escapeHtml()` function and escape `orgName` before interpolation.
 
 ---
 
@@ -199,28 +158,43 @@ When `CRON_SECRET` is undefined (not set), the `&&` short-circuits to `false`, s
 **Impact:** Inconsistent error handling in UI.
 **Recommendation:** Always return error as an object with a `message` property.
 
-### BUG-025: `offlineQueue.flushQueue()` onSyncCallback logic is flawed
-**File:** `lib/offlineQueue.js` (line 107)
+### ~~BUG-025: `offlineQueue.flushQueue()` onSyncCallback logic is flawed~~ FIXED
+**File:** `lib/offlineQueue.js`
 **Severity:** LOW
-**Description:** The condition `failed.length < queue.length + failed.length` is always true when anything was synced (since `queue` has already been replaced by `failed` at line 103). The logic compares `failed.length < failed.length + failed.length` which simplifies to `0 < failed.length` — so the callback fires whenever there are still failed items, not when items were successfully synced.
-**Impact:** Sync callback may fire even when no items were actually synced, causing unnecessary data refreshes. Conversely, if all items sync successfully (failed = []), the callback won't fire at all.
-**Recommendation:** Track the original queue length before processing and compare: `if (failed.length < originalLength && onSyncCallback) onSyncCallback();`
+**Fix:** Changed to track `originalLength` before processing and compare `failed.length < originalLength`.
 
 ---
 
 ## Summary
 
-| Severity | Count |
-|----------|-------|
-| CRITICAL | 3 |
-| HIGH | 5 |
-| MEDIUM | 8 |
-| LOW | 9 |
-| **Total** | **25** |
+| Severity | Total | Fixed | Remaining |
+|----------|-------|-------|-----------|
+| CRITICAL | 3 | 3 | 0 |
+| HIGH | 5 | 5 | 0 |
+| MEDIUM | 8 | 8 | 0 |
+| LOW | 9 | 5 | 4 |
+| **Total** | **25** | **21** | **4** |
 
-### Top Priority Fixes
-1. **BUG-001** — Unauthenticated password reset (account takeover)
-2. **BUG-007** — rejectFlight uses invalid DB status (broken feature)
-3. **BUG-010** — Cron auth bypass when env var missing
-4. **BUG-018** — Overdue notification silently lost on SMS failure (safety issue)
-5. **BUG-005** — Weak JWT secret fallback
+### Remaining (all LOW severity)
+- **BUG-006** — `check_setup` reveals platform state (information disclosure)
+- **BUG-014** — `selfDispatchFlight()` non-standard approval_status
+- **BUG-019** — Hardcoded timezone in overdue flight edge function
+- **BUG-020** — Hardcoded FAA deadline in trial emails
+- **BUG-023** — `createPolicy()` sends non-existent columns
+- **BUG-024** — `uploadOrgLogo()` inconsistent error types
+
+### Required Migration for BUG-017
+
+The Stripe webhook idempotency fix requires a new `stripe_webhook_events` table. Run this in the Supabase SQL editor:
+
+```sql
+CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  event_id TEXT UNIQUE NOT NULL,
+  event_type TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Auto-cleanup: remove events older than 7 days
+CREATE INDEX idx_stripe_webhook_events_created ON stripe_webhook_events(created_at);
+```

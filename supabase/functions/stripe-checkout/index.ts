@@ -35,6 +35,21 @@ Deno.serve(async (req) => {
     const { plan, interval, orgId, orgName, email, returnUrl } = body;
     console.log("Request body:", JSON.stringify({ plan, interval, orgId, orgName, email, returnUrl }));
 
+    // Validate returnUrl to prevent open redirect
+    const ALLOWED_HOSTS = ["login.preflightsms.com", "preflightsms.com", "localhost"];
+    try {
+      const urlObj = new URL(returnUrl);
+      if (!ALLOWED_HOSTS.some(h => urlObj.hostname === h || urlObj.hostname.endsWith("." + h))) {
+        return new Response(JSON.stringify({ error: "Invalid return URL" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid return URL" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const priceMap: Record<string, string | undefined> = {
       "starter_monthly": Deno.env.get("STRIPE_STARTER_MONTHLY"),
       "starter_annual": Deno.env.get("STRIPE_STARTER_ANNUAL"),

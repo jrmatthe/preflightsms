@@ -30,6 +30,21 @@ Deno.serve(async (req) => {
 
     const { customerId, returnUrl } = await req.json();
 
+    // Validate returnUrl to prevent open redirect
+    const ALLOWED_HOSTS = ["login.preflightsms.com", "preflightsms.com", "localhost"];
+    try {
+      const urlObj = new URL(returnUrl);
+      if (!ALLOWED_HOSTS.some(h => urlObj.hostname === h || urlObj.hostname.endsWith("." + h))) {
+        return new Response(JSON.stringify({ error: "Invalid return URL" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid return URL" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!customerId) {
       return new Response(JSON.stringify({ error: "Customer ID required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

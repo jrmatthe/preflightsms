@@ -5,7 +5,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
   const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
   if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -33,7 +40,7 @@ export default async function handler(req, res) {
     const now = new Date().toISOString();
 
     if (req.query.reset === "true") {
-      await supabase.from("flights").update({ overdue_notified_at: null }).eq("status", "ACTIVE");
+      return res.status(403).json({ error: "reset=true is disabled — use the platform admin panel to reset notification flags" });
     }
 
     const { data: overdueFlights, error: flightErr } = await supabase
@@ -102,15 +109,15 @@ export default async function handler(req, res) {
 
       const orgName = flight.organizations?.name || "Your organization";
       const f = {
-        code: flight.frat_code,
-        aircraft: flight.tail_number || flight.aircraft,
-        pilot: flight.pilot,
-        dep: flight.departure,
-        dest: flight.destination,
+        code: escapeHtml(flight.frat_code),
+        aircraft: escapeHtml(flight.tail_number || flight.aircraft),
+        pilot: escapeHtml(flight.pilot),
+        dep: escapeHtml(flight.departure),
+        dest: escapeHtml(flight.destination),
         eta: etaLocal,
         date: dateLocal,
         mins: minsOverdue,
-        org: orgName,
+        org: escapeHtml(orgName),
       };
 
       const flightResults = { flight: flight.frat_code, emails: 0, sms: 0, errors: [] };

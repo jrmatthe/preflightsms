@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMockReqRes } from '../mocks/supabase.js';
 
+vi.mock('../../lib/apiAuth', () => ({
+  verifyAuth: vi.fn().mockResolvedValue({ user: { id: 'user-1' }, error: null }),
+}));
+
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
     from: vi.fn(() => {
@@ -54,23 +58,36 @@ describe('/api/check-notifications', () => {
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  it('accepts orgId parameter for single-org check', async () => {
+  // FIXED: Now rejects non-POST methods with 405
+  it('FIXED: rejects non-POST methods', async () => {
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      headers: { 'x-cron-secret': 'test-cron-secret' },
+    });
+    await handler(req, res);
+    expect(res.status).toHaveBeenCalledWith(405);
+  });
+
+  it('accepts orgId parameter with valid auth for single-org check', async () => {
     const { req, res } = createMockReqRes({
       query: { orgId: 'org-123' },
+      headers: { authorization: 'Bearer valid-token' },
     });
     await handler(req, res);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  // BUG: orgId parameter has no authentication — any client can trigger
-  // notifications for any org by guessing the orgId
-  it('BUG: orgId mode has no authentication', async () => {
+  // FIXED: orgId mode now requires Supabase auth token
+  it('FIXED: orgId mode rejects unauthenticated requests', async () => {
+    const { verifyAuth } = await import('../../lib/apiAuth');
+    verifyAuth.mockResolvedValueOnce({ user: null, error: 'Unauthorized' });
+
     const { req, res } = createMockReqRes({
       query: { orgId: 'org-123' },
       headers: {}, // No auth
     });
     await handler(req, res);
-    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 
   it('returns result counts', async () => {

@@ -6,6 +6,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyAuth } from "../../lib/apiAuth";
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
@@ -23,7 +28,14 @@ export default async function handler(req, res) {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { orgId, fratCode, pilot, aircraft, tailNumber, departure, destination, score, riskLevel, orgName } = req.body;
+    const { orgId, score, riskLevel } = req.body;
+    const fratCode = escapeHtml(req.body.fratCode);
+    const pilot = escapeHtml(req.body.pilot);
+    const aircraft = escapeHtml(req.body.aircraft);
+    const tailNumber = escapeHtml(req.body.tailNumber);
+    const departure = escapeHtml(req.body.departure);
+    const destination = escapeHtml(req.body.destination);
+    const orgName = escapeHtml(req.body.orgName);
 
     // Verify the caller belongs to the org they're requesting approval for
     const { data: callerProfile, error: profileErr } = await supabase

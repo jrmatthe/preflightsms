@@ -130,6 +130,8 @@ Deno.serve(async (req) => {
           `ETA was ${etaLocal} (${minutesOverdue} min ago)\n` +
           `FRAT: ${flight.frat_code} | Score: ${flight.score || "N/A"}`;
 
+        let anySucceeded = false;
+
         for (const contact of contacts) {
           try {
             // Send SMS via Twilio
@@ -164,6 +166,7 @@ Deno.serve(async (req) => {
 
             if (twilioRes.ok) {
               totalNotifications++;
+              anySucceeded = true;
               console.log(
                 `SMS sent to ${contact.name} (${contact.phone}) for flight ${flight.frat_code}`
               );
@@ -178,11 +181,13 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Mark flight as notified
-        await supabase
-          .from("flights")
-          .update({ overdue_notified: true })
-          .eq("id", flight.id);
+        // Only mark flight as notified if at least one notification succeeded
+        if (anySucceeded) {
+          await supabase
+            .from("flights")
+            .update({ overdue_notified: true })
+            .eq("id", flight.id);
+        }
       }
     }
 

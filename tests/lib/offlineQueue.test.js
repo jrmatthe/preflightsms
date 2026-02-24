@@ -139,6 +139,39 @@ describe('flushQueue()', () => {
   });
 });
 
+describe('flushQueue() sync callback', () => {
+  it('FIXED: calls onSyncCallback when at least one operation succeeds', async () => {
+    // This tests the fix for BUG-025: the comparison now uses originalLength
+    // instead of the broken queue.length + failed.length
+    const syncCallback = vi.fn();
+    offlineQueue.initOfflineQueue(syncCallback);
+
+    // Mock navigator.onLine
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+
+    // Enqueue an operation that will succeed
+    offlineQueue.enqueue({ type: 'flight_status', payload: { flightDbId: 'f1', status: 'ARRIVED' } });
+
+    // Mock the dynamic imports inside flushQueue
+    // We need to mock the supabase module that flushQueue imports
+    vi.doMock('../../lib/supabase', () => ({
+      supabase: {
+        from: vi.fn(() => ({
+          select: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          then: (resolve) => resolve({ error: null }),
+        })),
+      },
+      updateFlightStatus: vi.fn().mockResolvedValue({ error: null }),
+    }));
+
+    await offlineQueue.flushQueue();
+
+    // With the fix, failed.length (0) < originalLength (1) triggers callback
+    expect(syncCallback).toHaveBeenCalled();
+  });
+});
+
 describe('stopRetryLoop()', () => {
   it('stops the retry interval', () => {
     offlineQueue.initOfflineQueue(() => {});

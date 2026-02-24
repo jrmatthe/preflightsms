@@ -17,7 +17,13 @@ const corsHeaders = {
 const LOGO_URL = "https://login.preflightsms.com/logo.png";
 const APP_URL = "https://login.preflightsms.com";
 
+function escapeHtml(str: string): string {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function inviteEmailHtml(orgName: string, role: string, inviteUrl: string): string {
+  orgName = escapeHtml(orgName);
   const roleLabel = role === "admin" ? "Administrator" :
     role === "safety_manager" ? "Safety Manager" :
     role === "chief_pilot" ? "Chief Pilot" :

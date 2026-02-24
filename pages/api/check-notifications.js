@@ -9,21 +9,30 @@
 // Required env vars: SUPABASE_SERVICE_KEY
 
 import { createClient } from "@supabase/supabase-js";
+import { verifyAuth } from "../../lib/apiAuth";
 
 export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
   if (!supabaseUrl || !supabaseServiceKey) {
     return res.status(500).json({ error: "Supabase not configured" });
   }
 
-  // Auth: either cron secret OR orgId param
+  // Auth: either cron secret OR authenticated user with orgId param
   const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
   const orgIdParam = req.query.orgId;
   const isCron = !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
 
   if (!isCron && !orgIdParam) {
     return res.status(401).json({ error: "Unauthorized — provide secret or orgId" });
+  }
+
+  // When using orgId mode, require a valid Supabase auth token
+  if (!isCron && orgIdParam) {
+    const { user, error: authError } = await verifyAuth(req);
+    if (authError || !user) return res.status(401).json({ error: authError || "Unauthorized" });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);

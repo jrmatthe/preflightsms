@@ -459,10 +459,7 @@ describe('Invitation system', () => {
   });
 
   describe('fetchInvitations()', () => {
-    it('auto-accepts invitations for existing members (side effect in fetch)', async () => {
-      // This is a behavioral test - fetchInvitations has a side effect of
-      // auto-accepting pending invitations whose email matches an existing org member.
-      // This is a code smell / potential bug: fetch operations shouldn't have write side effects.
+    it('FIXED: returns invitations without auto-accepting side effects', async () => {
       const queryChain = chainable();
       queryChain.then = (resolve) => resolve({
         data: [
@@ -472,8 +469,56 @@ describe('Invitation system', () => {
       });
       mockFrom.mockReturnValue(queryChain);
 
-      // The function will try to auto-accept - just verify it doesn't crash
-      await supabaseModule.fetchInvitations('org-1');
+      const result = await supabaseModule.fetchInvitations('org-1');
+      expect(mockFrom).toHaveBeenCalledWith('invitations');
+      expect(result.data).toHaveLength(1);
+      // fetchInvitations should only read — no update calls
+      expect(queryChain.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reconcileInvitations()', () => {
+    it('auto-accepts pending invitations whose email matches an existing member', async () => {
+      // First call: fetch pending invitations
+      // Second call: fetch org members (profiles)
+      // Third call: update invitation status
+      let callCount = 0;
+      mockFrom.mockImplementation((table) => {
+        callCount++;
+        if (table === 'invitations' && callCount === 1) {
+          const chain = chainable();
+          chain.then = (resolve) => resolve({
+            data: [{ id: 'inv-1', email: 'existing@test.com', status: 'pending' }],
+            error: null,
+          });
+          return chain;
+        }
+        if (table === 'profiles') {
+          const chain = chainable();
+          chain.then = (resolve) => resolve({
+            data: [{ email: 'existing@test.com' }],
+            error: null,
+          });
+          return chain;
+        }
+        // update call for invitations
+        return chainable();
+      });
+
+      await supabaseModule.reconcileInvitations('org-1');
+      // Should have called from('invitations') and from('profiles')
+      expect(mockFrom).toHaveBeenCalledWith('invitations');
+      expect(mockFrom).toHaveBeenCalledWith('profiles');
+    });
+
+    it('does nothing when there are no pending invitations', async () => {
+      const queryChain = chainable();
+      queryChain.then = (resolve) => resolve({ data: [], error: null });
+      mockFrom.mockReturnValue(queryChain);
+
+      await supabaseModule.reconcileInvitations('org-1');
+      // Should only query invitations, not profiles
+      expect(mockFrom).toHaveBeenCalledTimes(1);
       expect(mockFrom).toHaveBeenCalledWith('invitations');
     });
   });

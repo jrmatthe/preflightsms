@@ -31,12 +31,12 @@ export default async function handler(req, res) {
   if (invitation.email.toLowerCase() !== email.toLowerCase().trim()) return res.status(401).json({ error: "Email does not match invitation" });
   if (invitation.org_id !== orgId) return res.status(401).json({ error: "Organization does not match invitation" });
 
-  // Find the existing auth user by email
-  const { data: { users }, error: listErr } = await supabase.auth.admin.listUsers();
+  // Find the existing auth user by email (paginated to avoid fetching all users)
+  const { data: { users }, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1, filter: email.toLowerCase().trim() });
   if (listErr) return res.status(500).json({ error: listErr.message });
 
-  const user = users.find(u => u.email === email.toLowerCase().trim());
-  if (!user) return res.status(404).json({ error: "User not found" });
+  const user = users?.[0];
+  if (!user || user.email !== email.toLowerCase().trim()) return res.status(404).json({ error: "User not found" });
 
   // Update their password to the new one they entered
   const { error: updateErr } = await supabase.auth.admin.updateUserById(user.id, { password });

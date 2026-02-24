@@ -84,7 +84,24 @@ Deno.serve(async (req) => {
   const event = JSON.parse(body);
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  console.log("Stripe event:", event.type);
+  console.log("Stripe event:", event.type, event.id);
+
+  // Idempotency: skip already-processed events
+  if (event.id) {
+    const { data: existing } = await supabase
+      .from("stripe_webhook_events")
+      .select("id")
+      .eq("event_id", event.id)
+      .maybeSingle();
+    if (existing) {
+      console.log(`Skipping duplicate event: ${event.id}`);
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    // Record this event ID (best-effort — don't fail the webhook if insert fails)
+    await supabase.from("stripe_webhook_events").insert({ event_id: event.id, event_type: event.type }).catch(() => {});
+  }
 
   try {
     switch (event.type) {
