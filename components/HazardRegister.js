@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { hasFeature } from "../lib/tiers";
 
 const BLACK = "#000000", DARK = "#0A0A0A", NEAR_BLACK = "#111111", CARD = "#141414";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888";
@@ -211,7 +212,9 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
   );
 }
 
-function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpdateHazard, canManage }) {
+function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpdateHazard, canManage, org, onAiInvestigate }) {
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
   const initScore = hazard.initial_risk_score || (hazard.initial_likelihood * hazard.initial_severity);
   const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
@@ -305,6 +308,71 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               })}
             </div>
           )}
+          {/* AI Investigation Analysis */}
+          {onAiInvestigate && canManage && hasFeature(org, "safety_trend_alerts") && !aiAnalysis && (
+            <button onClick={async () => {
+              setAiLoading(true);
+              try {
+                const result = await onAiInvestigate(hazard.id);
+                if (result) setAiAnalysis(result);
+              } catch { /* handled by parent */ }
+              setAiLoading(false);
+            }} disabled={aiLoading}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 8, background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1 }}>
+              <span style={{ fontSize: 14 }}>🤖</span> {aiLoading ? "Analyzing..." : "AI Investigation Analysis"}
+            </button>
+          )}
+          {aiAnalysis && (
+            <div style={{ marginTop: 8, padding: "14px 16px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: CYAN }}>🤖 AI Investigation Analysis</div>
+                <button onClick={() => setAiAnalysis(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>Dismiss</button>
+              </div>
+              {aiAnalysis.root_causes?.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Root Causes</div>
+                  {aiAnalysis.root_causes.map((rc, i) => (
+                    <div key={i} style={{ fontSize: 11, color: OFF_WHITE, padding: "4px 0", paddingLeft: 8, borderLeft: `2px solid ${CYAN}44`, marginBottom: 4 }}>
+                      {rc.cause} <span style={{ fontSize: 9, color: MUTED }}>({Math.round((rc.confidence || 0) * 100)}%)</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {aiAnalysis.recommended_actions?.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Recommended Actions</div>
+                  {aiAnalysis.recommended_actions.map((ra, i) => {
+                    const pColor = ra.priority === "high" ? RED : ra.priority === "medium" ? YELLOW : GREEN;
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 0" }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{ra.title}</div>
+                          <div style={{ fontSize: 10, color: MUTED }}>{ra.description}</div>
+                        </div>
+                        <span style={{ fontSize: 9, color: pColor, background: `${pColor}22`, padding: "2px 8px", borderRadius: 8, whiteSpace: "nowrap" }}>{ra.priority}</span>
+                        {onCreateAction && (
+                          <button onClick={() => onCreateAction({ ...hazard, _prefill: { title: ra.title, description: ra.description, priority: ra.priority } })}
+                            style={{ background: "none", border: `1px solid ${GREEN}44`, borderRadius: 4, color: GREEN, fontSize: 9, fontWeight: 600, padding: "2px 8px", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
+                            Accept
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {aiAnalysis.similar_patterns?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Similar Patterns</div>
+                  {aiAnalysis.similar_patterns.map((sp, i) => (
+                    <div key={i} style={{ fontSize: 10, color: MUTED, padding: "2px 0" }}>
+                      <span style={{ color: OFF_WHITE, fontWeight: 600 }}>{sp.hazard_code}</span> — {sp.similarity}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {onCreateAction && canManage && (
             <button onClick={() => onCreateAction(hazard)}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 8, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
@@ -317,7 +385,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
   );
 }
 
-export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction }) {
+export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, org, onAiInvestigate }) {
   const [view, setView] = useState(fromReport ? "new" : "list");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -451,7 +519,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
       ) : (<>
         {filtered.slice(0, showCount).map(h => {
           const lr = h.related_report_id && reports ? reports.find(r => r.id === h.related_report_id) : null;
-          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} onUpdateHazard={onUpdateHazard} canManage={canManage} />;
+          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} onUpdateHazard={onUpdateHazard} canManage={canManage} org={org} onAiInvestigate={onAiInvestigate} />;
         })}
         {filtered.length > showCount && (
           <button onClick={() => setShowCount(c => c + 25)}

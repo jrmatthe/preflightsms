@@ -98,7 +98,7 @@ const ttStyle = { borderRadius: 6, border: `1px solid ${BORDER}`, background: CA
 // ════════════════════════════════════════════════════════════════
 // OVERVIEW TAB — high-level SMS health across all modules
 // ════════════════════════════════════════════════════════════════
-function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements }) {
+function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert }) {
   const stats = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 86400000;
@@ -303,6 +303,44 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Trend Alerts (AI Intelligence) ── */}
+      {trendAlerts && trendAlerts.filter(a => !a.acknowledged_by).length > 0 && (
+        <div style={{ ...card, padding: "18px 22px", marginTop: 14, borderRadius: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: CYAN }}>⚡</span> Trend Alerts
+            <span style={{ fontSize: 10, color: MUTED, fontWeight: 400 }}>Anomalies detected in safety metrics</span>
+          </div>
+          {trendAlerts
+            .filter(a => !a.acknowledged_by)
+            .sort((a, b) => { const sev = { critical: 0, warning: 1, info: 2 }; return (sev[a.severity] ?? 3) - (sev[b.severity] ?? 3); })
+            .map(alert => {
+              const sevColor = alert.severity === "critical" ? RED : alert.severity === "warning" ? AMBER : CYAN;
+              const direction = alert.change_percentage > 0 ? "↑" : "↓";
+              return (
+                <div key={alert.id} style={{ ...card, padding: "12px 16px", marginBottom: 8, borderRadius: 8, borderLeft: `3px solid ${sevColor}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: sevColor, background: `${sevColor}22`, padding: "2px 8px", borderRadius: 8, textTransform: "uppercase" }}>{alert.severity}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{alert.metric_name}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: MUTED }}>
+                        {direction} {Math.abs(Math.round(alert.change_percentage))}% change — {Math.round((alert.baseline_value || 0) * 10) / 10} → {Math.round((alert.current_value || 0) * 10) / 10}
+                      </div>
+                    </div>
+                    {onAcknowledgeTrendAlert && (
+                      <button onClick={() => onAcknowledgeTrendAlert(alert.id)}
+                        style={{ padding: "4px 10px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 4, color: MUTED, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                        Acknowledge
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
         </div>
       )}
     </div>
@@ -696,14 +734,14 @@ function SafetyMetrics({ reports, hazards, actions }) {
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
   const h = hazards || [];
   const a = actions || [];
 
-  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} />;
+  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} />;
   if (view === "frat") return <FRATAnalytics records={r} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;
 

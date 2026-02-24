@@ -27,6 +27,7 @@ const TYPE_COLORS = {
   frat_self_dispatched: AMBER,
   audit_due: AMBER,
   audit_overdue: RED,
+  trend_alert: CYAN,
 };
 
 function timeAgo(dateStr) {

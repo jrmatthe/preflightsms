@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { hasFeature } from "../lib/tiers";
 
 const BLACK = "#000000", DARK = "#0A0A0A", NEAR_BLACK = "#111111", CARD = "#141414";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", SUBTLE = "#555555";
@@ -271,12 +272,17 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard, orgP
   );
 }
 
-export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles, reportPrefill, onClearPrefill }) {
+export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles, reportPrefill, onClearPrefill, org, onAiSearch }) {
   const [view, setView] = useState("list"); // list | new
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [showCount, setShowCount] = useState(25);
+
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiFilters, setAiFilters] = useState(null);
+  const [aiInterpretation, setAiInterpretation] = useState("");
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
 
   useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
   useEffect(() => { if (reportPrefill) setView("new"); }, [reportPrefill]);
@@ -294,6 +300,20 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
     let list = reports.filter(r => {
       if (filter !== "all" && filter !== r.status) return false;
       if (search && !`${r.title} ${r.description} ${r.location} ${r.category}`.toLowerCase().includes(search.toLowerCase())) return false;
+      // Apply AI filters
+      if (aiFilters) {
+        if (aiFilters.category && r.category !== aiFilters.category) return false;
+        if (aiFilters.severity && r.severity !== aiFilters.severity) return false;
+        if (aiFilters.status && r.status !== aiFilters.status) return false;
+        if (aiFilters.keyword && !`${r.title} ${r.description} ${r.location}`.toLowerCase().includes(aiFilters.keyword.toLowerCase())) return false;
+        if (aiFilters.airport && !`${r.location} ${r.description}`.toLowerCase().includes(aiFilters.airport.toLowerCase())) return false;
+        if (aiFilters.flight_phase && r.flight_phase !== aiFilters.flight_phase) return false;
+        if (aiFilters.date_range) {
+          const created = new Date(r.created_at);
+          if (aiFilters.date_range.start && created < new Date(aiFilters.date_range.start)) return false;
+          if (aiFilters.date_range.end && created > new Date(aiFilters.date_range.end)) return false;
+        }
+      }
       return true;
     });
     list.sort((a, b) => {
@@ -301,7 +321,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
       return new Date(b.created_at) - new Date(a.created_at);
     });
     return list;
-  }, [reports, filter, search, sortBy]);
+  }, [reports, filter, search, sortBy, aiFilters]);
 
   const counts = useMemo(() => {
     const c = { all: reports.length, open: 0, under_review: 0, investigation: 0, corrective_action: 0, closed: 0 };
@@ -343,6 +363,49 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
           </div>
         ))}
       </div>
+
+      {/* AI Search */}
+      {onAiSearch && hasFeature(org, "safety_trend_alerts") && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ color: CYAN, fontSize: 16 }}>🤖</span>
+            <input
+              placeholder="Search with AI — e.g. 'bird strikes during takeoff last 6 months'"
+              value={aiQuery}
+              onChange={e => setAiQuery(e.target.value)}
+              onKeyDown={async (e) => {
+                if (e.key === "Enter" && aiQuery.trim() && !aiSearchLoading) {
+                  setAiSearchLoading(true);
+                  try {
+                    const result = await onAiSearch(aiQuery.trim());
+                    if (result?.filters) { setAiFilters(result.filters); setAiInterpretation(result.interpreted_as || ""); }
+                  } catch { /* handled by parent */ }
+                  setAiSearchLoading(false);
+                }
+              }}
+              disabled={aiSearchLoading}
+              style={{ ...inp, flex: 1, fontSize: 13, borderColor: `${CYAN}44`, background: `${CYAN}06` }}
+            />
+          </div>
+          {aiSearchLoading && <div style={{ fontSize: 10, color: CYAN, marginTop: 4 }}>Searching...</div>}
+          {aiFilters && (
+            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+              {aiInterpretation && <span style={{ fontSize: 10, color: MUTED, marginRight: 4 }}>Searched for:</span>}
+              {Object.entries(aiFilters).filter(([, v]) => v && (typeof v !== "object" || Object.keys(v).length > 0)).map(([key, val]) => (
+                <span key={key} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", background: `${CYAN}15`, border: `1px solid ${CYAN}33`, borderRadius: 12, fontSize: 10, color: CYAN }}>
+                  <span style={{ color: MUTED }}>{key}:</span> {typeof val === "object" ? JSON.stringify(val) : String(val)}
+                  <button onClick={() => { const next = { ...aiFilters }; delete next[key]; setAiFilters(Object.keys(next).length > 0 ? next : null); }}
+                    style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 10, padding: 0, fontFamily: "inherit" }}>×</button>
+                </span>
+              ))}
+              <button onClick={() => { setAiFilters(null); setAiInterpretation(""); setAiQuery(""); }}
+                style={{ background: "none", border: "none", color: MUTED, fontSize: 10, cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>
+                Clear all
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
