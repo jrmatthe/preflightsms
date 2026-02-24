@@ -98,7 +98,7 @@ const ttStyle = { borderRadius: 6, border: `1px solid ${BORDER}`, background: CA
 // ════════════════════════════════════════════════════════════════
 // OVERVIEW TAB — high-level SMS health across all modules
 // ════════════════════════════════════════════════════════════════
-function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills }) {
+function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements }) {
   const stats = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 86400000;
@@ -155,8 +155,20 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
     const lastDrill = completedDrills.sort((a,b) => new Date(b.completed_date) - new Date(a.completed_date))[0] || null;
     const nextDrill = (erpDrills || []).filter(d => d.status === 'scheduled').sort((a,b) => new Date(a.scheduled_date) - new Date(b.scheduled_date))[0] || null;
 
-    return { avgScore, highCritical30, activeFlights, f30, openReports, r30Reports, openHazards, criticalHazards, openActions, overdueActions, weeklyData, compliance, totalFrats: records.length, totalReports: reports.length, r7Count: r7.length, activePlans, erpNeedsReview, lastDrill, nextDrill };
-  }, [records, flights, reports, hazards, actions, erpPlans, erpDrills]);
+    // SPI health stats
+    const spiList = spis || [];
+    const spiM = spiMeasurements || [];
+    const spiHealth = { green: 0, yellow: 0, red: 0, noData: 0 };
+    for (const s of spiList.filter(s => s.is_active)) {
+      const latest = spiM.filter(m => m.spi_id === s.id).sort((a, b) => new Date(b.period_end) - new Date(a.period_end))[0];
+      if (!latest || !latest.status) spiHealth.noData++;
+      else if (latest.status === 'on_target') spiHealth.green++;
+      else if (latest.status === 'approaching_threshold') spiHealth.yellow++;
+      else if (latest.status === 'breached') spiHealth.red++;
+    }
+
+    return { avgScore, highCritical30, activeFlights, f30, openReports, r30Reports, openHazards, criticalHazards, openActions, overdueActions, weeklyData, compliance, totalFrats: records.length, totalReports: reports.length, r7Count: r7.length, activePlans, erpNeedsReview, lastDrill, nextDrill, spiHealth, spiCount: spiList.filter(s => s.is_active).length };
+  }, [records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements]);
 
   const compColor = stats.compliance >= 80 ? GREEN : stats.compliance >= 60 ? YELLOW : RED;
 
@@ -259,6 +271,37 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
               <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{stats.nextDrill ? new Date(stats.nextDrill.scheduled_date).toLocaleDateString() : "—"}</div>
               <div style={{ fontSize: 10, color: MUTED }}>Next Drill</div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* SPI Health */}
+      {stats.spiCount > 0 && (
+        <div style={{ ...card, padding: 18, marginTop: 16 }}>
+          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>SPI Health</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 12, height: 12, borderRadius: "50%", background: GREEN, display: "inline-block" }} />
+              <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>{stats.spiHealth.green}</span>
+              <span style={{ fontSize: 11, color: MUTED }}>On Target</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 12, height: 12, borderRadius: "50%", background: AMBER, display: "inline-block" }} />
+              <span style={{ fontSize: 18, fontWeight: 800, color: stats.spiHealth.yellow > 0 ? AMBER : WHITE }}>{stats.spiHealth.yellow}</span>
+              <span style={{ fontSize: 11, color: MUTED }}>Approaching</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 12, height: 12, borderRadius: "50%", background: RED, display: "inline-block" }} />
+              <span style={{ fontSize: 18, fontWeight: 800, color: stats.spiHealth.red > 0 ? RED : WHITE }}>{stats.spiHealth.red}</span>
+              <span style={{ fontSize: 11, color: MUTED }}>Breached</span>
+            </div>
+            {stats.spiHealth.noData > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 12, height: 12, borderRadius: "50%", background: SUBTLE, display: "inline-block" }} />
+                <span style={{ fontSize: 18, fontWeight: 800, color: MUTED }}>{stats.spiHealth.noData}</span>
+                <span style={{ fontSize: 11, color: MUTED }}>No Data</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -653,14 +696,14 @@ function SafetyMetrics({ reports, hazards, actions }) {
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
   const h = hazards || [];
   const a = actions || [];
 
-  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} />;
+  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} />;
   if (view === "frat") return <FRATAnalytics records={r} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;
 

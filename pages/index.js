@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -17,6 +17,7 @@ const FleetManagement = dynamic(() => import("../components/FleetManagement"), {
 const NotificationCenter = dynamic(() => import("../components/NotificationCenter"), { ssr: false });
 const PostFlightNudge = dynamic(() => import("../components/PostFlightNudge"), { ssr: false });
 const EmergencyResponsePlan = dynamic(() => import("../components/EmergencyResponsePlan"), { ssr: false });
+const SafetyPerformanceIndicators = dynamic(() => import("../components/SafetyPerformanceIndicators"), { ssr: false });
 
 const COMPANY_NAME = "PreflightSMS";
 const ADMIN_PASSWORD = "admin2026";
@@ -1875,9 +1876,10 @@ function ExportView({ records, orgName }) {
           <div style={{ fontSize: 11, color: MUTED }}><strong style={{ color: OFF_WHITE }}>§5.97 Recordkeeping:</strong> SRM records must be retained as long as controls remain relevant. Current records: <strong style={{ color: WHITE }}>{records.length}</strong></div></div></div></div>);
 }
 
-function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills }) {
+function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills, profile, session, spis, spiMeasurements, onCreateSpi, onUpdateSpi, onDeleteSpi, onLoadTargets, onCreateTarget, onUpdateTarget, onDeleteTarget, onLoadMeasurements, onCreateMeasurement, onInitSpiDefaults }) {
   const [sub, setSub] = useState("analytics");
   const hasAnalytics = hasFeature(org, "dashboard_analytics");
+  const hasSpi = hasFeature(org, "dashboard_analytics"); // SPIs require Professional+ (same gate as analytics)
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -1886,8 +1888,8 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
           <div style={{ fontSize: 11, color: MUTED }}>Safety analytics, trends, and compliance status</div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-        {[["analytics", "Overview"], ...(hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ["history", "FRAT History"], ["export", "Export"]].map(([id, label]) => (
+      <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
+        {[["analytics", "Overview"], ...(hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(hasSpi ? [["performance", "Performance"]] : []), ["history", "FRAT History"], ["export", "Export"]].map(([id, label]) => (
           <button key={id} onClick={() => setSub(id)}
             style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${sub === id ? WHITE : BORDER}`,
               background: sub === id ? WHITE : "transparent", color: sub === id ? BLACK : MUTED,
@@ -1899,9 +1901,10 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
           </div>
         )}
       </div>
-      {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} />}
+      {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} />}
       {sub === "frat" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "safety" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" erpPlans={erpPlans} erpDrills={erpDrills} />}
+      {sub === "performance" && hasSpi && <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />}
       {sub === "history" && <HistoryView records={records} onDelete={onDelete} />}
       {sub === "export" && <ExportView records={records} orgName={org?.name} />}
     </div>
@@ -2849,6 +2852,8 @@ export default function PVTAIRFrat() {
   const [pendingFfFlights, setPendingFfFlights] = useState([]);
   const [erpPlans, setErpPlans] = useState([]);
   const [erpDrills, setErpDrills] = useState([]);
+  const [spis, setSpis] = useState([]);
+  const [spiMeasurements, setSpiMeasurements] = useState([]);
   const [selectedFfFlight, setSelectedFfFlight] = useState(null);
   const [reportPrefill, setReportPrefill] = useState(null);
 
@@ -2972,6 +2977,8 @@ export default function PVTAIRFrat() {
     fetchSmsManuals(orgId).then(({ data }) => setSmsManuals(data || []));
     fetchErpPlans(orgId).then(({ data }) => setErpPlans(data || []));
     fetchErpDrills(orgId).then(({ data }) => setErpDrills(data || []));
+    fetchSpis(orgId).then(({ data }) => setSpis(data || []));
+    fetchAllSpiMeasurements(orgId).then(({ data }) => setSpiMeasurements(data || []));
   };
 
   // ── Load data from Supabase when profile is available ──
@@ -3852,7 +3859,7 @@ export default function PVTAIRFrat() {
         {cv === "cbt" && <CbtModules tourTab={tourSubTabs.cbt} profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
         {cv === "audit" && <FaaAuditLog frats={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} profiles={orgProfiles} trainingRecords={trainingRecs} org={profile?.organizations} smsManuals={smsManuals} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
-        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} />}
+        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} />}
         {cv === "admin" && (isAuthed || isOnline) && <AdminPanel tourTab={tourSubTabs.admin} profile={profile} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
