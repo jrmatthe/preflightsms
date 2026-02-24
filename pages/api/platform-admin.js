@@ -174,7 +174,6 @@ export default async function handler(req, res) {
     if (!org_id) return res.status(400).json({ error: 'org_id required' });
     // Only send columns that exist — filter out nulls/undefined
     const cleanUpdates = {};
-    if (updates.tier !== undefined) cleanUpdates.tier = updates.tier;
     if (updates.feature_flags !== undefined) cleanUpdates.feature_flags = updates.feature_flags;
     if (updates.subscription_status !== undefined) cleanUpdates.subscription_status = updates.subscription_status;
     if (updates.max_aircraft !== undefined) cleanUpdates.max_aircraft = updates.max_aircraft;

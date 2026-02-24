@@ -7,7 +7,7 @@ vi.mock("next/head", () => ({ default: ({ children }) => <>{children}</> }));
 vi.mock("next/image", () => ({ default: (props) => <img {...props} /> }));
 
 // Do NOT mock tiers — use the real module
-import { TIERS, FEATURE_LABELS, getTierFeatures } from "../../lib/tiers";
+import { FEATURE_LABELS, getTierFeatures } from "../../lib/tiers";
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -479,17 +479,6 @@ describe("Organizations tab", () => {
     });
   });
 
-  it("OrgDetail shows tier selector with starter/professional/enterprise options", async () => {
-    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
-
-    await waitFor(() => {
-      expect(screen.getByText("Subscription Tier")).toBeInTheDocument();
-      expect(screen.getByText("Starter")).toBeInTheDocument();
-      expect(screen.getByText("Professional")).toBeInTheDocument();
-      expect(screen.getByText("Enterprise")).toBeInTheDocument();
-    });
-  });
-
   it("OrgDetail shows status selector with trial/active/past_due/canceled", async () => {
     await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
 
@@ -561,7 +550,6 @@ describe("Organizations tab", () => {
     const updateBody = JSON.parse(updateCall[1].body);
     expect(updateBody.org_id).toBe("org-1");
     expect(updateBody.updates).toBeDefined();
-    expect(updateBody.updates.tier).toBe("professional");
   });
 
   it("Danger zone: Delete Organization requires 2-step confirmation", async () => {
@@ -618,22 +606,6 @@ describe("Organizations tab", () => {
     expect(deleteBody.org_id).toBe("org-1");
   });
 
-  it("clicking a tier option applies tier defaults", async () => {
-    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
-
-    await waitFor(() => {
-      expect(screen.getByText("Enterprise")).toBeInTheDocument();
-    });
-
-    // Click Enterprise tier
-    fireEvent.click(screen.getByText("Enterprise"));
-
-    // Max aircraft input should now reflect enterprise tier (999)
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("999")).toBeInTheDocument();
-    });
-  });
-
   it('feature flags "All On" button enables all flags', async () => {
     await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
 
@@ -647,26 +619,6 @@ describe("Organizations tab", () => {
     // Check that the checkmark count matches total feature count.
     const checkmarks = screen.getAllByText("\u2713");
     expect(checkmarks.length).toBe(Object.keys(FEATURE_LABELS).length);
-  });
-
-  it('"Reset to Tier" button resets flags to tier defaults', async () => {
-    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
-
-    await waitFor(() => {
-      expect(screen.getByText("All On")).toBeInTheDocument();
-    });
-
-    // Turn all on first
-    fireEvent.click(screen.getByText("All On"));
-
-    // Then reset
-    fireEvent.click(screen.getByText("Reset to Tier"));
-
-    // Should match professional tier defaults
-    const proFeatures = getTierFeatures("professional");
-    const enabledCount = Object.values(proFeatures).filter(v => v).length;
-    const checkmarks = screen.getAllByText("\u2713");
-    expect(checkmarks.length).toBe(enabledCount);
   });
 
   it("toggling a feature flag updates its state", async () => {
@@ -881,62 +833,6 @@ describe("api() helper behavior", () => {
     const body = JSON.parse(firstCall[1].body);
     expect(body.action).toBe("check_setup");
     expect(body.token).toBeNull();
-  });
-});
-
-// ═══════════════════════════════════════════════════════════════
-// TIER LOGIC (with real tiers module)
-// ═══════════════════════════════════════════════════════════════
-
-describe("Tier logic with real tiers module", () => {
-  beforeEach(async () => {
-    localStorage.setItem("pa_token", "valid-token");
-    mockApiResponse({
-      verify: { admin: ADMIN },
-      fetch_orgs: { orgs: [ORG_1] },
-      list_admins: { admins: [ADMIN] },
-      fetch_org_users: { users: [] },
-      fetch_org_stats: { stats: {} },
-    });
-    await act(async () => { render(<PlatformAdmin />); });
-    await waitFor(() => {
-      expect(screen.getByText("Acme Aviation")).toBeInTheDocument();
-    });
-    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
-    await waitFor(() => {
-      expect(screen.getByText("Subscription Tier")).toBeInTheDocument();
-    });
-  });
-
-  it("displays all three tier cards with name, price, and aircraft info", () => {
-    expect(screen.getByText("Starter")).toBeInTheDocument();
-    expect(screen.getByText("$149/mo")).toBeInTheDocument();
-    expect(screen.getByText("Professional")).toBeInTheDocument();
-    expect(screen.getByText("$299/mo")).toBeInTheDocument();
-    expect(screen.getByText("Enterprise")).toBeInTheDocument();
-    expect(screen.getByText("Custom")).toBeInTheDocument();
-  });
-
-  it("switching to starter tier updates max aircraft to 5", async () => {
-    fireEvent.click(screen.getByText("Starter"));
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("5")).toBeInTheDocument();
-    });
-  });
-
-  it("switching to enterprise tier updates max aircraft to 999", async () => {
-    fireEvent.click(screen.getByText("Enterprise"));
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("999")).toBeInTheDocument();
-    });
-  });
-
-  it("all feature labels from FEATURE_LABELS are rendered in the feature flags section", () => {
-    Object.values(FEATURE_LABELS).forEach((label) => {
-      expect(screen.getByText(label)).toBeInTheDocument();
-    });
   });
 });
 
@@ -1215,90 +1111,6 @@ describe("Edge cases", () => {
 
     // Resolve and verify loading completes
     await act(async () => { resolveStats(); });
-  });
-
-  it("tier change shows confirmation when flags are customized", async () => {
-    localStorage.setItem("pa_token", "valid-token");
-    mockApiResponse({
-      verify: { admin: ADMIN },
-      fetch_orgs: { orgs: [ORG_1] },
-      list_admins: { admins: [ADMIN] },
-      fetch_org_users: { users: [] },
-      fetch_org_stats: { stats: {} },
-    });
-
-    await act(async () => { render(<PlatformAdmin />); });
-    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
-    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
-    await waitFor(() => { expect(screen.getByText("All On")).toBeInTheDocument(); });
-
-    // Customize flags (turn all on — different from professional defaults)
-    fireEvent.click(screen.getByText("All On"));
-
-    // Now try to switch tier — should show confirmation
-    fireEvent.click(screen.getByText("Starter"));
-
-    expect(screen.getByText(/will reset your custom feature flags/)).toBeInTheDocument();
-    expect(screen.getByText("Reset Flags")).toBeInTheDocument();
-    expect(screen.getByText("Keep Current Flags")).toBeInTheDocument();
-  });
-
-  it("tier change confirmation 'Reset Flags' applies new tier", async () => {
-    localStorage.setItem("pa_token", "valid-token");
-    mockApiResponse({
-      verify: { admin: ADMIN },
-      fetch_orgs: { orgs: [ORG_1] },
-      list_admins: { admins: [ADMIN] },
-      fetch_org_users: { users: [] },
-      fetch_org_stats: { stats: {} },
-    });
-
-    await act(async () => { render(<PlatformAdmin />); });
-    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
-    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
-    await waitFor(() => { expect(screen.getByText("All On")).toBeInTheDocument(); });
-
-    // Customize and switch tier
-    fireEvent.click(screen.getByText("All On"));
-    fireEvent.click(screen.getByText("Starter"));
-
-    // Confirm reset
-    fireEvent.click(screen.getByText("Reset Flags"));
-
-    // Should apply starter defaults (max aircraft = 5)
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("5")).toBeInTheDocument();
-      expect(screen.queryByText(/will reset your custom feature flags/)).not.toBeInTheDocument();
-    });
-  });
-
-  it("tier change confirmation 'Keep Current Flags' cancels tier switch", async () => {
-    localStorage.setItem("pa_token", "valid-token");
-    mockApiResponse({
-      verify: { admin: ADMIN },
-      fetch_orgs: { orgs: [ORG_1] },
-      list_admins: { admins: [ADMIN] },
-      fetch_org_users: { users: [] },
-      fetch_org_stats: { stats: {} },
-    });
-
-    await act(async () => { render(<PlatformAdmin />); });
-    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
-    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
-    await waitFor(() => { expect(screen.getByText("All On")).toBeInTheDocument(); });
-
-    // Customize and switch tier
-    fireEvent.click(screen.getByText("All On"));
-    fireEvent.click(screen.getByText("Starter"));
-
-    // Cancel — keep current flags
-    fireEvent.click(screen.getByText("Keep Current Flags"));
-
-    // Max aircraft should still be 15 (professional), confirmation gone
-    await waitFor(() => {
-      expect(screen.getByDisplayValue("15")).toBeInTheDocument();
-      expect(screen.queryByText(/will reset your custom feature flags/)).not.toBeInTheDocument();
-    });
   });
 
   it("max aircraft input accepts numeric changes", async () => {

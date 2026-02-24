@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
-import { TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
+import { FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 
 export const getServerSideProps = async () => ({ props: {} });
 
@@ -96,7 +96,6 @@ export default function PlatformAdmin() {
   const [orgUsers, setOrgUsers] = useState([]);
   const [orgStats, setOrgStats] = useState({});
   const [editFlags, setEditFlags] = useState(null);
-  const [editTier, setEditTier] = useState(null);
   const [editStatus, setEditStatus] = useState(null);
   const [editMaxAircraft, setEditMaxAircraft] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -136,7 +135,6 @@ export default function PlatformAdmin() {
   useEffect(() => { if (state === "app") { loadOrgs(); loadAdmins(); } }, [state, loadOrgs, loadAdmins]);
 
   const isDirty = selectedOrg && (
-    editTier !== (selectedOrg.tier || "starter") ||
     editStatus !== (selectedOrg.subscription_status || "trial") ||
     editMaxAircraft !== (selectedOrg.max_aircraft || 5) ||
     JSON.stringify(editFlags) !== JSON.stringify(selectedOrg.feature_flags || getTierFeatures(selectedOrg.tier || "starter"))
@@ -152,7 +150,6 @@ export default function PlatformAdmin() {
   const doSelectOrg = async (org) => {
     setSelectedOrg(org);
     setEditFlags(org.feature_flags || getTierFeatures(org.tier || "starter"));
-    setEditTier(org.tier || "starter");
     setEditStatus(org.subscription_status || "trial");
     setEditMaxAircraft(org.max_aircraft || 5);
     setOrgUsers([]); setOrgStats({}); setOrgLoading(true);
@@ -168,7 +165,7 @@ export default function PlatformAdmin() {
 
   const saveChanges = async () => {
     if (!selectedOrg) return; setSaving(true);
-    const res = await callApi({ action: "update_org", org_id: selectedOrg.id, updates: { tier: editTier, feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft } });
+    const res = await callApi({ action: "update_org", org_id: selectedOrg.id, updates: { feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft } });
     if (res.error) { showToast("Error: " + res.error, true); setSaving(false); return; }
     // Refresh orgs list and update selected org from fresh data
     const orgsRes = await callApi({ action: "fetch_orgs" });
@@ -177,24 +174,11 @@ export default function PlatformAdmin() {
     const updated = freshOrgs.find(o => o.id === selectedOrg.id);
     if (updated) {
       setSelectedOrg(updated);
-      setEditTier(updated.tier || "starter");
       setEditFlags(updated.feature_flags || getTierFeatures(updated.tier || "starter"));
       setEditStatus(updated.subscription_status || "trial");
       setEditMaxAircraft(updated.max_aircraft || 5);
     }
     setSaving(false); showToast("Changes saved");
-  };
-
-  const [pendingTier, setPendingTier] = useState(null);
-  const applyTierDefaults = (t) => {
-    const newFlags = getTierFeatures(t);
-    const hasCustomFlags = editFlags && JSON.stringify(editFlags) !== JSON.stringify(getTierFeatures(editTier));
-    if (hasCustomFlags && t !== editTier) { setPendingTier(t); return; }
-    setEditTier(t); setEditFlags(newFlags); setEditMaxAircraft(TIERS[t]?.maxAircraft || 5);
-  };
-  const confirmTierChange = () => {
-    if (!pendingTier) return;
-    setEditTier(pendingTier); setEditFlags(getTierFeatures(pendingTier)); setEditMaxAircraft(TIERS[pendingTier]?.maxAircraft || 5); setPendingTier(null);
   };
 
   const handleAddAdmin = async () => {
@@ -265,7 +249,7 @@ export default function PlatformAdmin() {
         )}
 
         {view === "admins" && <AdminsView admins={admins} admin={admin} newAdmin={newAdmin} setNewAdmin={setNewAdmin} addingAdmin={addingAdmin} onAdd={handleAddAdmin} onRemove={handleRemoveAdmin} />}
-        {view === "orgs" && <OrgsView orgs={filteredOrgs} selectedOrg={selectedOrg} selectOrg={selectOrg} search={search} setSearch={setSearch} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} pendingTier={pendingTier} setPendingTier={setPendingTier} confirmTierChange={confirmTierChange} saveChanges={saveChanges} saving={saving} onDeleteOrg={handleDeleteOrg} isDirty={isDirty} />}
+        {view === "orgs" && <OrgsView orgs={filteredOrgs} selectedOrg={selectedOrg} selectOrg={selectOrg} search={search} setSearch={setSearch} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} saveChanges={saveChanges} saving={saving} onDeleteOrg={handleDeleteOrg} isDirty={isDirty} />}
 
         {toast && <div style={{ position: "fixed", bottom: 24, right: 24, padding: "10px 20px", background: toast.isError ? `${RED}22` : `${GREEN}22`, border: `1px solid ${toast.isError ? RED + "44" : GREEN + "44"}`, borderRadius: 8, color: toast.isError ? RED : GREEN, fontSize: 12, fontWeight: 600 }}>{toast.msg}</div>}
       </div>
@@ -314,7 +298,7 @@ function AdminsView({ admins, admin, newAdmin, setNewAdmin, addingAdmin, onAdd, 
   );
 }
 
-function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, orgStats, orgLoading, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, pendingTier, setPendingTier, confirmTierChange, saveChanges, saving, onDeleteOrg, isDirty }) {
+function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, orgStats, orgLoading, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, saveChanges, saving, onDeleteOrg, isDirty }) {
   return (
     <div className="pa-orgs-layout" style={{ display: "grid", gridTemplateColumns: "360px 1fr", minHeight: "calc(100vh - 90px)" }}>
       <div className="pa-sidebar" style={{ borderRight: `1px solid ${BORDER}`, padding: 16, overflowY: "auto" }}>
@@ -342,14 +326,14 @@ function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, o
             <div style={{ textAlign: "center" }}><div style={{ fontSize: 48, marginBottom: 12 }}>🏢</div><div style={{ fontSize: 14, fontWeight: 600 }}>Select an organization</div></div>
           </div>
         ) : (
-          <OrgDetail key={selectedOrg.id} org={selectedOrg} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} pendingTier={pendingTier} setPendingTier={setPendingTier} confirmTierChange={confirmTierChange} saveChanges={saveChanges} saving={saving} onDeleteOrg={onDeleteOrg} isDirty={isDirty} />
+          <OrgDetail key={selectedOrg.id} org={selectedOrg} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} saveChanges={saveChanges} saving={saving} onDeleteOrg={onDeleteOrg} isDirty={isDirty} />
         )}
       </div>
     </div>
   );
 }
 
-function OrgDetail({ org, orgUsers, orgStats, orgLoading, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, pendingTier, setPendingTier, confirmTierChange, saveChanges, saving, onDeleteOrg, isDirty }) {
+function OrgDetail({ org, orgUsers, orgStats, orgLoading, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, saveChanges, saving, onDeleteOrg, isDirty }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   return (
     <div style={{ maxWidth: 800 }}>
@@ -383,28 +367,6 @@ function OrgDetail({ org, orgUsers, orgStats, orgLoading, editTier, editStatus, 
         ))}
       </div>
 
-      <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>Subscription Tier</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-          {Object.entries(TIERS).map(([id, tier]) => (
-            <div key={id} onClick={() => applyTierDefaults(id)} style={{ padding: "14px 16px", borderRadius: 8, cursor: "pointer", textAlign: "center", background: editTier === id ? `${TIER_COLORS[id]}15` : "transparent", border: `2px solid ${editTier === id ? TIER_COLORS[id] : BORDER}` }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: editTier === id ? TIER_COLORS[id] : MUTED }}>{tier.name}</div>
-              <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{tier.price ? `$${tier.price}/mo` : "Custom"}</div>
-              <div style={{ fontSize: 10, color: SUBTLE, marginTop: 2 }}>Up to {tier.maxAircraft === 999 ? "∞" : tier.maxAircraft} aircraft</div>
-            </div>
-          ))}
-        </div>
-        {pendingTier && (
-          <div style={{ marginTop: 10, padding: "10px 14px", background: `${AMBER}15`, border: `1px solid ${AMBER}44`, borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: AMBER, marginBottom: 8 }}>Switching to <strong>{TIERS[pendingTier]?.name}</strong> will reset your custom feature flags to tier defaults.</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={confirmTierChange} style={{ padding: "6px 16px", background: AMBER, color: BLACK, border: "none", borderRadius: 4, fontWeight: 700, fontSize: 10, cursor: "pointer" }}>Reset Flags</button>
-              <button onClick={() => setPendingTier(null)} style={{ padding: "6px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 4, fontWeight: 600, fontSize: 10, cursor: "pointer" }}>Keep Current Flags</button>
-            </div>
-          </div>
-        )}
-      </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <div style={{ ...card, padding: "16px 20px" }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 10 }}>Status</div>
@@ -423,10 +385,7 @@ function OrgDetail({ org, orgUsers, orgStats, orgLoading, editTier, editStatus, 
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Feature Flags</div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => { const a = {}; Object.keys(FEATURE_LABELS).forEach(k => a[k] = true); setEditFlags(a); }} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 9, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${BORDER}`, color: GREEN }}>All On</button>
-            <button onClick={() => applyTierDefaults(editTier)} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 9, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${BORDER}`, color: MUTED }}>Reset to Tier</button>
-          </div>
+          <button onClick={() => { const a = {}; Object.keys(FEATURE_LABELS).forEach(k => a[k] = true); setEditFlags(a); }} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 9, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${BORDER}`, color: GREEN }}>All On</button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {Object.entries(FEATURE_LABELS).map(([key, label]) => {
