@@ -76,8 +76,8 @@ describe('POST /api/check-overdue', () => {
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  // BUG: When CRON_SECRET is not set, any request is accepted
-  it('BUG: bypasses auth when CRON_SECRET env var is empty', async () => {
+  // FIXED: When CRON_SECRET is not set, requests are now rejected
+  it('FIXED: rejects requests when CRON_SECRET env var is empty', async () => {
     delete process.env.CRON_SECRET;
     vi.resetModules();
     const mod = await import('../../pages/api/check-overdue.js');
@@ -85,9 +85,7 @@ describe('POST /api/check-overdue', () => {
       headers: { 'x-cron-secret': 'anything' },
     });
     await mod.default(req, res);
-    // Succeeds because condition is: cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET
-    // When CRON_SECRET is undefined, the && short-circuits to false, so auth is skipped
-    expect(res.status).not.toHaveBeenCalledWith(401);
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 
   it('returns 500 when Supabase not configured', async () => {

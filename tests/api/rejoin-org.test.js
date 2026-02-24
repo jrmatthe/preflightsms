@@ -4,14 +4,24 @@ import { createMockReqRes } from '../mocks/supabase.js';
 const mockListUsers = vi.fn();
 const mockUpdateUserById = vi.fn();
 const mockUpsert = vi.fn();
-const mockSelect = vi.fn();
-const mockSingle = vi.fn();
+const mockInvitationQuery = vi.fn();
 
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      upsert: (...args) => { mockUpsert(...args); return { then: (r) => r({ error: null }) }; },
-    })),
+    from: vi.fn((table) => {
+      if (table === 'invitations') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: mockInvitationQuery,
+            }),
+          }),
+        };
+      }
+      return {
+        upsert: (...args) => { mockUpsert(...args); return { then: (r) => r({ error: null }) }; },
+      };
+    }),
     auth: {
       admin: {
         listUsers: mockListUsers,
@@ -50,19 +60,79 @@ describe('POST /api/rejoin-org', () => {
     }));
   });
 
-  it('returns 404 when user not found', async () => {
-    mockListUsers.mockResolvedValue({
-      data: { users: [{ id: 'other', email: 'other@test.com' }] },
+  it('returns 401 when no invitation token provided', async () => {
+    const { req, res } = createMockReqRes({
+      body: { email: 'test@test.com', password: 'pass', orgId: 'org-1' },
+    });
+    await handler(req, res);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: 'Missing invitation token',
+    }));
+  });
+
+  it('returns 401 when invitation token is invalid', async () => {
+    mockInvitationQuery.mockResolvedValue({ data: null, error: { message: 'Not found' } });
+    const { req, res } = createMockReqRes({
+      body: { email: 'test@test.com', password: 'pass', orgId: 'org-1', invitationToken: 'bad-token' },
+    });
+    await handler(req, res);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: 'Invalid invitation token',
+    }));
+  });
+
+  it('returns 401 when invitation is not pending', async () => {
+    mockInvitationQuery.mockResolvedValue({
+      data: { id: 'inv-1', email: 'test@test.com', org_id: 'org-1', status: 'accepted' },
       error: null,
     });
     const { req, res } = createMockReqRes({
-      body: { email: 'missing@test.com', password: 'pass', orgId: 'org-1' },
+      body: { email: 'test@test.com', password: 'pass', orgId: 'org-1', invitationToken: 'some-token' },
     });
     await handler(req, res);
-    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: 'Invitation is no longer pending',
+    }));
   });
 
-  it('finds user by email (case-insensitive match)', async () => {
+  it('returns 401 when email does not match invitation', async () => {
+    mockInvitationQuery.mockResolvedValue({
+      data: { id: 'inv-1', email: 'other@test.com', org_id: 'org-1', status: 'pending' },
+      error: null,
+    });
+    const { req, res } = createMockReqRes({
+      body: { email: 'test@test.com', password: 'pass', orgId: 'org-1', invitationToken: 'valid-token' },
+    });
+    await handler(req, res);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: 'Email does not match invitation',
+    }));
+  });
+
+  it('returns 401 when org does not match invitation', async () => {
+    mockInvitationQuery.mockResolvedValue({
+      data: { id: 'inv-1', email: 'test@test.com', org_id: 'org-2', status: 'pending' },
+      error: null,
+    });
+    const { req, res } = createMockReqRes({
+      body: { email: 'test@test.com', password: 'pass', orgId: 'org-1', invitationToken: 'valid-token' },
+    });
+    await handler(req, res);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: 'Organization does not match invitation',
+    }));
+  });
+
+  it('proceeds when invitation is valid and matching', async () => {
+    mockInvitationQuery.mockResolvedValue({
+      data: { id: 'inv-1', email: 'test@test.com', org_id: 'org-1', status: 'pending' },
+      error: null,
+    });
     mockListUsers.mockResolvedValue({
       data: { users: [{ id: 'user-1', email: 'test@test.com' }] },
       error: null,
@@ -70,17 +140,31 @@ describe('POST /api/rejoin-org', () => {
     mockUpdateUserById.mockResolvedValue({ error: null });
 
     const { req, res } = createMockReqRes({
-      body: { email: '  Test@TEST.com  ', password: 'newpass', orgId: 'org-1' },
+      body: { email: 'test@test.com', password: 'newpass', orgId: 'org-1', invitationToken: 'valid-token' },
     });
     await handler(req, res);
-    // BUG: The code does user.email === email.toLowerCase().trim()
-    // But listUsers returns the stored email. If stored email has mixed case,
-    // the comparison fails because it compares stored email against lowercased input.
-    // This works only if Supabase stores emails lowercase.
+    expect(mockUpdateUserById).toHaveBeenCalledWith('user-1', { password: 'newpass' });
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  // BUG: No authentication — anyone who knows an email can reset their password
-  it('BUG: unauthenticated endpoint allows password reset for any known email', async () => {
+  it('returns 404 when user not found after valid invitation', async () => {
+    mockInvitationQuery.mockResolvedValue({
+      data: { id: 'inv-1', email: 'missing@test.com', org_id: 'org-1', status: 'pending' },
+      error: null,
+    });
+    mockListUsers.mockResolvedValue({
+      data: { users: [{ id: 'other', email: 'other@test.com' }] },
+      error: null,
+    });
+    const { req, res } = createMockReqRes({
+      body: { email: 'missing@test.com', password: 'pass', orgId: 'org-1', invitationToken: 'valid-token' },
+    });
+    await handler(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  // FIXED: Unauthenticated password reset is now blocked
+  it('FIXED: blocks unauthenticated password reset without invitation token', async () => {
     mockListUsers.mockResolvedValue({
       data: { users: [{ id: 'user-1', email: 'victim@test.com' }] },
       error: null,
@@ -89,24 +173,11 @@ describe('POST /api/rejoin-org', () => {
 
     const { req, res } = createMockReqRes({
       body: { email: 'victim@test.com', password: 'hacked123', orgId: 'org-1' },
-      headers: {}, // No auth
+      headers: {},
     });
     await handler(req, res);
-    // Successfully changes the user's password without any verification
-    expect(mockUpdateUserById).toHaveBeenCalled();
-  });
-
-  // BUG: listUsers() fetches ALL users from auth — expensive and doesn't scale
-  it('BUG: listUsers fetches entire user table to find one user', async () => {
-    mockListUsers.mockResolvedValue({
-      data: { users: [] },
-      error: null,
-    });
-    const { req, res } = createMockReqRes({
-      body: { email: 'test@test.com', password: 'pass', orgId: 'org-1' },
-    });
-    await handler(req, res);
-    // Calls listUsers() without any filter — fetches all users
-    expect(mockListUsers).toHaveBeenCalledWith();
+    // Now blocked — requires invitationToken
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(mockUpdateUserById).not.toHaveBeenCalled();
   });
 });

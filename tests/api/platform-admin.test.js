@@ -186,23 +186,25 @@ describe('POST /api/platform-admin', () => {
 
   // ── SECURITY ──
   describe('Security', () => {
-    // BUG: JWT_SECRET has a weak fallback when PLATFORM_ADMIN_SECRET is not set
-    it('BUG: JWT_SECRET fallback is deterministic from service key', async () => {
-      // When PLATFORM_ADMIN_SECRET is not set, JWT_SECRET = 'pflt-admin-' + serviceKey.slice(0,16)
-      // This means anyone who knows the service key can forge admin JWTs
-      // The fallback pattern is: 'pflt-admin-' + predictable_prefix
+    // FIXED: When PLATFORM_ADMIN_SECRET is not set, authenticated actions are rejected
+    it('FIXED: rejects authenticated actions when PLATFORM_ADMIN_SECRET is not set', async () => {
       delete process.env.PLATFORM_ADMIN_SECRET;
       vi.resetModules();
-      // Just documenting the issue - the fallback is weak
+      const mod = await import('../../pages/api/platform-admin.js');
+      const { req, res } = createMockReqRes({
+        body: { action: 'verify', token: 'any-token' },
+      });
+      await mod.default(req, res);
+      // verifyToken returns null when JWT_SECRET is not set
+      expect(res.status).toHaveBeenCalledWith(401);
     });
 
-    // BUG: check_setup and check action don't require any authentication
-    it('BUG: check_setup is unauthenticated — reveals if platform has admins', async () => {
+    // check_setup is intentionally unauthenticated (it's the bootstrap check)
+    it('check_setup is unauthenticated — reveals if platform has admins', async () => {
       const { req, res } = createMockReqRes({
         body: { action: 'check_setup' },
       });
       await handler(req, res);
-      // Anyone can call this to determine if the platform admin system is initialized
       expect(res.status).toHaveBeenCalledWith(200);
     });
   });

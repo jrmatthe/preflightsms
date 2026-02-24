@@ -302,15 +302,12 @@ describe('Flight operations', () => {
       }));
     });
 
-    it('sets arrived_at when status is CANCELLED', async () => {
+    it('FIXED: does not set arrived_at when status is CANCELLED', async () => {
       const updateChain = chainable();
       mockFrom.mockReturnValue(updateChain);
 
       await supabaseModule.updateFlightStatus('flight-1', 'CANCELLED');
-      expect(updateChain.update).toHaveBeenCalledWith(expect.objectContaining({
-        status: 'CANCELLED',
-        arrived_at: expect.any(String),
-      }));
+      expect(updateChain.update).toHaveBeenCalledWith({ status: 'CANCELLED' });
     });
 
     it('does not set arrived_at for ACTIVE status', async () => {
@@ -323,34 +320,30 @@ describe('Flight operations', () => {
   });
 
   describe('rejectFlight()', () => {
-    it('sets status to REJECTED (BUG: violates DB constraint)', async () => {
+    it('FIXED: sets status to CANCELLED with approval_status rejected', async () => {
       const updateChain = chainable();
       mockFrom.mockReturnValue(updateChain);
 
       await supabaseModule.rejectFlight('flight-1');
-      // BUG: 'REJECTED' is not a valid flights.status value per the DB constraint
-      // which only allows ('ACTIVE', 'ARRIVED', 'CANCELLED')
       expect(updateChain.update).toHaveBeenCalledWith(expect.objectContaining({
-        status: 'REJECTED',
+        status: 'CANCELLED',
+        approval_status: 'rejected',
       }));
     });
   });
 
   describe('approveFlight()', () => {
-    it('does not use the userId parameter (BUG: unused param)', async () => {
+    it('FIXED: includes approved_by and approval_notes in update', async () => {
       const updateChain = chainable();
       mockFrom.mockReturnValue(updateChain);
 
       await supabaseModule.approveFlight('flight-1', 'user-1', 'LGTM');
-      // BUG: userId and notes params are accepted but never used in the update
       expect(updateChain.update).toHaveBeenCalledWith(expect.objectContaining({
         status: 'ACTIVE',
         approval_status: 'approved',
+        approved_by: 'user-1',
+        approval_notes: 'LGTM',
       }));
-      // Verify notes is NOT included
-      const updateArg = updateChain.update.mock.calls[0][0];
-      expect(updateArg).not.toHaveProperty('approval_notes');
-      expect(updateArg).not.toHaveProperty('approved_by');
     });
   });
 

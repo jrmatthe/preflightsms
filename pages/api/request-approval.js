@@ -1,11 +1,17 @@
 // /api/request-approval
 // Called when a FRAT score exceeds the approval threshold
 // Sends email to users with 'approver' permission
+// Requires a valid Supabase auth token and org membership
 
 import { createClient } from "@supabase/supabase-js";
+import { verifyAuth } from "../../lib/apiAuth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+  // Verify the caller has a valid Supabase session
+  const { user, error: authError } = await verifyAuth(req);
+  if (authError || !user) return res.status(401).json({ error: authError || "Unauthorized" });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
@@ -18,6 +24,18 @@ export default async function handler(req, res) {
 
   try {
     const { orgId, fratCode, pilot, aircraft, tailNumber, departure, destination, score, riskLevel, orgName } = req.body;
+
+    // Verify the caller belongs to the org they're requesting approval for
+    const { data: callerProfile, error: profileErr } = await supabase
+      .from("profiles")
+      .select("id, org_id")
+      .eq("id", user.id)
+      .eq("org_id", orgId)
+      .single();
+
+    if (profileErr || !callerProfile) {
+      return res.status(403).json({ error: "You are not a member of this organization" });
+    }
 
     // Get approvers: users with 'approver' permission OR admin/safety_manager/chief_pilot roles
     const { data: profiles } = await supabase

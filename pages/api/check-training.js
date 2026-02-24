@@ -7,7 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export default async function handler(req, res) {
   const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
-  if (cronSecret !== process.env.CRON_SECRET && process.env.CRON_SECRET) {
+  if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 

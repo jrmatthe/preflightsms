@@ -2022,7 +2022,7 @@ function SignupFlow({ onAuth }) {
       const tier = selectedPlan;
       const features = getTierFeatures(tier);
       const orgRes = await fetch("/api/create-org", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${authData.session?.access_token}` },
         body: JSON.stringify({ name: orgName.trim(), slug, tier, feature_flags: features,
           subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 15 : 5 }),
       });
@@ -2265,7 +2265,7 @@ function InviteAcceptScreen({ token, onAuth }) {
         const res = await fetch("/api/rejoin-org", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, fullName: name.trim(), orgId: invite.org_id, role: invite.role }),
+          body: JSON.stringify({ email, password, fullName: name.trim(), orgId: invite.org_id, role: invite.role, invitationToken: invite.token }),
         });
         const result = await res.json();
         if (!res.ok) { setError(result.error || "Failed to rejoin organization"); setSubmitting(false); return; }
@@ -2437,7 +2437,7 @@ function AuthScreen({ onAuth, initialMode }) {
         const tier = selectedPlan;
         const features = getTierFeatures(tier);
         const orgRes = await fetch("/api/create-org", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${authData.session?.access_token}` },
           body: JSON.stringify({ name: orgName.trim(), slug, tier, feature_flags: features,
             subscription_status: "trial", max_aircraft: tier === "enterprise" ? 999 : tier === "professional" ? 15 : 5 }),
         });
@@ -3032,7 +3032,7 @@ export default function PVTAIRFrat() {
         try {
           await fetch("/api/request-approval", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
             body: JSON.stringify({
               orgId: profile.org_id,
               fratCode: entry.id,

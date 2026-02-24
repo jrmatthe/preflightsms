@@ -68,8 +68,8 @@ describe('POST /api/check-training', () => {
     }));
   });
 
-  // BUG: Same auth bypass as check-overdue when CRON_SECRET is not set
-  it('BUG: bypasses auth when CRON_SECRET env var is empty', async () => {
+  // FIXED: Rejects requests when CRON_SECRET is not set
+  it('FIXED: rejects requests when CRON_SECRET env var is empty', async () => {
     delete process.env.CRON_SECRET;
     vi.resetModules();
     const mod = await import('../../pages/api/check-training.js');
@@ -77,7 +77,7 @@ describe('POST /api/check-training', () => {
       headers: { 'x-cron-secret': 'anything' },
     });
     await mod.default(req, res);
-    expect(res.status).not.toHaveBeenCalledWith(401);
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 
   // BUG: reset=true is destructive without additional safeguard

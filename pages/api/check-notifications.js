@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   // Auth: either cron secret OR orgId param
   const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
   const orgIdParam = req.query.orgId;
-  const isCron = cronSecret === process.env.CRON_SECRET && process.env.CRON_SECRET;
+  const isCron = !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
 
   if (!isCron && !orgIdParam) {
     return res.status(401).json({ error: "Unauthorized — provide secret or orgId" });

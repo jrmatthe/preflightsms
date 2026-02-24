@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-const JWT_SECRET = process.env.PLATFORM_ADMIN_SECRET || 'pflt-admin-' + (supabaseServiceKey || '').slice(0, 16);
+const JWT_SECRET = process.env.PLATFORM_ADMIN_SECRET;
 
 function getServiceClient() {
   if (!supabaseUrl || !supabaseServiceKey) return null;
@@ -12,6 +12,7 @@ function getServiceClient() {
 }
 
 function signToken(admin) {
+  if (!JWT_SECRET) return null;
   return jwt.sign(
     { id: admin.id, email: admin.email, name: admin.name },
     JWT_SECRET,
@@ -20,6 +21,7 @@ function signToken(admin) {
 }
 
 function verifyToken(token) {
+  if (!JWT_SECRET) return null;
   try {
     return jwt.verify(token, JWT_SECRET);
   } catch {
