@@ -25,6 +25,8 @@ const TYPE_COLORS = {
   report_status_update: GREEN,
   action_assigned: CYAN,
   frat_self_dispatched: AMBER,
+  audit_due: AMBER,
+  audit_overdue: RED,
 };
 
 function timeAgo(dateStr) {
