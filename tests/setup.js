@@ -15,9 +15,9 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock });
 
-// Mock navigator.onLine
+// Mock navigator — keep userAgent so react-dom doesn't throw, add onLine
 Object.defineProperty(globalThis, 'navigator', {
-  value: { onLine: true },
+  value: { onLine: true, userAgent: '' },
   writable: true,
   configurable: true,
 });
