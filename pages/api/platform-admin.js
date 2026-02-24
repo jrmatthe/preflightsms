@@ -89,9 +89,10 @@ export default async function handler(req, res) {
   }
 
   // ── CHECK IF SETUP NEEDED ──
+  // Rate-limited: only returns a boolean, no sensitive data.
   if (action === 'check_setup') {
-    const { data } = await sb.from('platform_admins').select('id').limit(1);
-    return res.status(200).json({ needs_setup: !data || data.length === 0 });
+    const { count } = await sb.from('platform_admins').select('id', { count: 'exact', head: true });
+    return res.status(200).json({ needs_setup: (count || 0) === 0 });
   }
 
   // ── LIST ADMINS ──

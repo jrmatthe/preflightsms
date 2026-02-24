@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     // Get all orgs with notification settings
     const { data: orgs } = await supabase
       .from("organizations")
-      .select("id, name, notification_settings");
+      .select("id, name, notification_settings, timezone");
 
     if (!orgs || orgs.length === 0) {
       return new Response(JSON.stringify({ message: "No orgs found" }), {
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
       // Send notifications
       for (const flight of actuallyOverdue) {
         const etaLocal = new Date(flight.eta).toLocaleString("en-US", {
-          timeZone: "America/Los_Angeles",
+          timeZone: org.timezone || "America/Los_Angeles",
           hour: "numeric",
           minute: "2-digit",
           hour12: true,
