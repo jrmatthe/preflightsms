@@ -17,6 +17,9 @@ async function api(body) {
   try {
     const token = typeof window !== "undefined" ? localStorage.getItem("pa_token") : null;
     const res = await fetch("/api/platform-admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, token }) });
+    if (!res.ok) {
+      try { const j = await res.json(); return { ...j, _status: res.status }; } catch { return { error: `Server error (${res.status})`, _status: res.status }; }
+    }
     return res.json();
   } catch (e) {
     return { error: "Network error — check your connection" };
@@ -103,6 +106,7 @@ export default function PlatformAdmin() {
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
   const [addingAdmin, setAddingAdmin] = useState(false);
   const [orgLoading, setOrgLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -120,27 +124,54 @@ export default function PlatformAdmin() {
   const showToast = (msg, isError) => { setToast({ msg, isError }); setTimeout(() => setToast(null), 3000); };
   const logout = () => { localStorage.removeItem("pa_token"); setAdmin(null); setState("login"); };
 
-  const loadOrgs = useCallback(async () => { const res = await api({ action: "fetch_orgs" }); setOrgs(res.orgs || []); }, []);
-  const loadAdmins = useCallback(async () => { const res = await api({ action: "list_admins" }); setAdmins(res.admins || []); }, []);
+  const callApi = useCallback(async (body) => {
+    const res = await api(body);
+    if (res._status === 401) { localStorage.removeItem("pa_token"); setAdmin(null); setState("login"); showToast("Session expired — please sign in again", true); return res; }
+    return res;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadOrgs = useCallback(async () => { const res = await callApi({ action: "fetch_orgs" }); if (!res._status) setOrgs(res.orgs || []); }, [callApi]);
+  const loadAdmins = useCallback(async () => { const res = await callApi({ action: "list_admins" }); if (!res._status) setAdmins(res.admins || []); }, [callApi]);
   useEffect(() => { if (state === "app") { loadOrgs(); loadAdmins(); } }, [state, loadOrgs, loadAdmins]);
 
-  const selectOrg = async (org) => {
+  const isDirty = selectedOrg && (
+    editTier !== (selectedOrg.tier || "starter") ||
+    editStatus !== (selectedOrg.subscription_status || "trial") ||
+    editMaxAircraft !== (selectedOrg.max_aircraft || 5) ||
+    JSON.stringify(editFlags) !== JSON.stringify(selectedOrg.feature_flags || getTierFeatures(selectedOrg.tier || "starter"))
+  );
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  const doSelectOrg = async (org) => {
     setSelectedOrg(org);
     setEditFlags(org.feature_flags || getTierFeatures(org.tier || "starter"));
     setEditTier(org.tier || "starter");
     setEditStatus(org.subscription_status || "trial");
     setEditMaxAircraft(org.max_aircraft || 5);
     setOrgUsers([]); setOrgStats({}); setOrgLoading(true);
-    const [u, s] = await Promise.all([api({ action: "fetch_org_users", org_id: org.id }), api({ action: "fetch_org_stats", org_id: org.id })]);
+    const [u, s] = await Promise.all([callApi({ action: "fetch_org_users", org_id: org.id }), callApi({ action: "fetch_org_stats", org_id: org.id })]);
+    if (u._status || s._status) return;
     setOrgUsers(u.users || []); setOrgStats(s.stats || {}); setOrgLoading(false);
+  };
+
+  const selectOrg = (org) => {
+    if (isDirty) { setPendingAction({ type: "selectOrg", org }); return; }
+    doSelectOrg(org);
   };
 
   const saveChanges = async () => {
     if (!selectedOrg) return; setSaving(true);
-    const res = await api({ action: "update_org", org_id: selectedOrg.id, updates: { tier: editTier, feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft } });
+    const res = await callApi({ action: "update_org", org_id: selectedOrg.id, updates: { tier: editTier, feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft } });
     if (res.error) { showToast("Error: " + res.error, true); setSaving(false); return; }
     // Refresh orgs list and update selected org from fresh data
-    const orgsRes = await api({ action: "fetch_orgs" });
+    const orgsRes = await callApi({ action: "fetch_orgs" });
     const freshOrgs = orgsRes.orgs || [];
     setOrgs(freshOrgs);
     const updated = freshOrgs.find(o => o.id === selectedOrg.id);
@@ -168,8 +199,9 @@ export default function PlatformAdmin() {
 
   const handleAddAdmin = async () => {
     if (!newAdmin.name || !newAdmin.email || !newAdmin.password) { showToast("All fields required", true); return; }
+    if (newAdmin.password.length < 8) { showToast("Password must be at least 8 characters", true); return; }
     setAddingAdmin(true);
-    const res = await api({ action: "add_admin", name: newAdmin.name, email: newAdmin.email, password: newAdmin.password });
+    const res = await callApi({ action: "add_admin", name: newAdmin.name, email: newAdmin.email, password: newAdmin.password });
     setAddingAdmin(false);
     if (res.error) { showToast("Error: " + res.error, true); return; }
     setNewAdmin({ name: "", email: "", password: "" }); loadAdmins(); showToast("Admin added");
@@ -177,13 +209,13 @@ export default function PlatformAdmin() {
 
   const handleRemoveAdmin = async (id) => {
     if (id === admin?.id) { showToast("Can't remove yourself", true); return; }
-    const res = await api({ action: "remove_admin", admin_id: id });
+    const res = await callApi({ action: "remove_admin", admin_id: id });
     if (res.error) { showToast("Error: " + res.error, true); return; }
     loadAdmins(); showToast("Admin deactivated");
   };
 
   const handleDeleteOrg = async (orgId) => {
-    const res = await api({ action: "delete_org", org_id: orgId });
+    const res = await callApi({ action: "delete_org", org_id: orgId });
     if (res.error) { showToast("Error: " + res.error, true); return; }
     setSelectedOrg(null); loadOrgs();
     showToast(`Organization deleted (${res.deleted_users} user${res.deleted_users !== 1 ? "s" : ""} removed)`);
@@ -214,21 +246,36 @@ export default function PlatformAdmin() {
         </div>
         <div style={{ display: "flex", gap: 4, padding: "10px 24px", borderBottom: `1px solid ${BORDER}`, background: DARK }}>
           {[["orgs", "Organizations"], ["admins", "Platform Admins"]].map(([id, label]) => (
-            <button key={id} onClick={() => setView(id)} style={{ padding: "6px 16px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", background: view === id ? WHITE : "transparent", color: view === id ? BLACK : MUTED, border: `1px solid ${view === id ? WHITE : BORDER}` }}>{label}</button>
+            <button key={id} onClick={() => {
+              if (isDirty && view === "orgs" && id !== "orgs") { setPendingAction({ type: "switchTab", tab: id }); return; }
+              setView(id);
+            }} style={{ padding: "6px 16px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", background: view === id ? WHITE : "transparent", color: view === id ? BLACK : MUTED, border: `1px solid ${view === id ? WHITE : BORDER}` }}>{label}</button>
           ))}
         </div>
 
+        {pendingAction && (
+          <div style={{ padding: "10px 24px", background: `${AMBER}15`, borderBottom: `1px solid ${AMBER}44`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: AMBER, fontWeight: 600 }}>You have unsaved changes</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={async () => { await saveChanges(); const a = pendingAction; setPendingAction(null); if (a.type === "selectOrg") doSelectOrg(a.org); else if (a.type === "switchTab") setView(a.tab); }} style={{ padding: "6px 14px", background: GREEN, color: BLACK, border: "none", borderRadius: 4, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Save & Continue</button>
+              <button onClick={() => { const a = pendingAction; setPendingAction(null); if (a.type === "selectOrg") doSelectOrg(a.org); else if (a.type === "switchTab") setView(a.tab); }} style={{ padding: "6px 14px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 4, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Discard</button>
+              <button onClick={() => setPendingAction(null)} style={{ padding: "6px 14px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 4, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
         {view === "admins" && <AdminsView admins={admins} admin={admin} newAdmin={newAdmin} setNewAdmin={setNewAdmin} addingAdmin={addingAdmin} onAdd={handleAddAdmin} onRemove={handleRemoveAdmin} />}
-        {view === "orgs" && <OrgsView orgs={filteredOrgs} selectedOrg={selectedOrg} selectOrg={selectOrg} search={search} setSearch={setSearch} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} pendingTier={pendingTier} setPendingTier={setPendingTier} confirmTierChange={confirmTierChange} saveChanges={saveChanges} saving={saving} onDeleteOrg={handleDeleteOrg} />}
+        {view === "orgs" && <OrgsView orgs={filteredOrgs} selectedOrg={selectedOrg} selectOrg={selectOrg} search={search} setSearch={setSearch} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} pendingTier={pendingTier} setPendingTier={setPendingTier} confirmTierChange={confirmTierChange} saveChanges={saveChanges} saving={saving} onDeleteOrg={handleDeleteOrg} isDirty={isDirty} />}
 
         {toast && <div style={{ position: "fixed", bottom: 24, right: 24, padding: "10px 20px", background: toast.isError ? `${RED}22` : `${GREEN}22`, border: `1px solid ${toast.isError ? RED + "44" : GREEN + "44"}`, borderRadius: 8, color: toast.isError ? RED : GREEN, fontSize: 12, fontWeight: 600 }}>{toast.msg}</div>}
       </div>
-      <style>{`*{box-sizing:border-box}input:focus{outline:none;border-color:${WHITE} !important}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}`}</style>
+      <style>{`*{box-sizing:border-box}input:focus{outline:none;border-color:${WHITE} !important}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}@media(max-width:768px){.pa-orgs-layout{grid-template-columns:1fr !important;min-height:auto !important}.pa-sidebar{border-right:none !important;border-bottom:1px solid ${BORDER};max-height:40vh;overflow-y:auto}.pa-stats-grid{grid-template-columns:repeat(3,1fr) !important}}@media(max-width:480px){.pa-stats-grid{grid-template-columns:repeat(2,1fr) !important}}`}</style>
     </>
   );
 }
 
 function AdminsView({ admins, admin, newAdmin, setNewAdmin, addingAdmin, onAdd, onRemove }) {
+  const [confirmDeactivate, setConfirmDeactivate] = useState(null);
   return (
     <div style={{ padding: 24, maxWidth: 600, margin: "0 auto" }}>
       <div style={{ fontSize: 18, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Platform Admins</div>
@@ -241,10 +288,16 @@ function AdminsView({ admins, admin, newAdmin, setNewAdmin, addingAdmin, onAdd, 
               <div style={{ fontSize: 13, fontWeight: 600, color: WHITE }}>{a.name}</div>
               <div style={{ fontSize: 10, color: MUTED }}>{a.email} · Last login: {a.last_login_at ? new Date(a.last_login_at).toLocaleDateString() : "Never"}</div>
             </div>
-            <button onClick={() => onRemove(a.id)} disabled={a.id === admin?.id}
-              style={{ padding: "4px 12px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: a.id === admin?.id ? "default" : "pointer", background: "transparent", border: `1px solid ${a.id === admin?.id ? BORDER : RED + "44"}`, color: a.id === admin?.id ? SUBTLE : RED, opacity: a.id === admin?.id ? 0.5 : 1 }}>
-              {a.id === admin?.id ? "You" : "Deactivate"}
-            </button>
+            {a.id === admin?.id ? (
+              <button disabled style={{ padding: "4px 12px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "default", background: "transparent", border: `1px solid ${BORDER}`, color: SUBTLE, opacity: 0.5 }}>You</button>
+            ) : confirmDeactivate === a.id ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => { onRemove(a.id); setConfirmDeactivate(null); }} style={{ padding: "4px 12px", borderRadius: 4, fontSize: 10, fontWeight: 700, cursor: "pointer", background: RED, color: WHITE, border: "none" }}>Confirm</button>
+                <button onClick={() => setConfirmDeactivate(null)} style={{ padding: "4px 12px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", color: MUTED, border: `1px solid ${BORDER}` }}>Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmDeactivate(a.id)} style={{ padding: "4px 12px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${RED}44`, color: RED }}>Deactivate</button>
+            )}
           </div>
         ))}
       </div>
@@ -261,10 +314,10 @@ function AdminsView({ admins, admin, newAdmin, setNewAdmin, addingAdmin, onAdd, 
   );
 }
 
-function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, orgStats, orgLoading, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, pendingTier, setPendingTier, confirmTierChange, saveChanges, saving, onDeleteOrg }) {
+function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, orgStats, orgLoading, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, pendingTier, setPendingTier, confirmTierChange, saveChanges, saving, onDeleteOrg, isDirty }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", minHeight: "calc(100vh - 90px)" }}>
-      <div style={{ borderRight: `1px solid ${BORDER}`, padding: 16, overflowY: "auto" }}>
+    <div className="pa-orgs-layout" style={{ display: "grid", gridTemplateColumns: "360px 1fr", minHeight: "calc(100vh - 90px)" }}>
+      <div className="pa-sidebar" style={{ borderRight: `1px solid ${BORDER}`, padding: 16, overflowY: "auto" }}>
         <div style={{ marginBottom: 12 }}><input placeholder="Search organizations..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", ...inp }} /></div>
         <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 600, marginBottom: 8 }}>{orgs.length} Organization{orgs.length !== 1 ? "s" : ""}</div>
         {orgs.map(o => (
@@ -289,14 +342,14 @@ function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, o
             <div style={{ textAlign: "center" }}><div style={{ fontSize: 48, marginBottom: 12 }}>🏢</div><div style={{ fontSize: 14, fontWeight: 600 }}>Select an organization</div></div>
           </div>
         ) : (
-          <OrgDetail key={selectedOrg.id} org={selectedOrg} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} pendingTier={pendingTier} setPendingTier={setPendingTier} confirmTierChange={confirmTierChange} saveChanges={saveChanges} saving={saving} onDeleteOrg={onDeleteOrg} />
+          <OrgDetail key={selectedOrg.id} org={selectedOrg} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} pendingTier={pendingTier} setPendingTier={setPendingTier} confirmTierChange={confirmTierChange} saveChanges={saveChanges} saving={saving} onDeleteOrg={onDeleteOrg} isDirty={isDirty} />
         )}
       </div>
     </div>
   );
 }
 
-function OrgDetail({ org, orgUsers, orgStats, orgLoading, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, pendingTier, setPendingTier, confirmTierChange, saveChanges, saving, onDeleteOrg }) {
+function OrgDetail({ org, orgUsers, orgStats, orgLoading, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, pendingTier, setPendingTier, confirmTierChange, saveChanges, saving, onDeleteOrg, isDirty }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   return (
     <div style={{ maxWidth: 800 }}>
@@ -308,10 +361,10 @@ function OrgDetail({ org, orgUsers, orgStats, orgLoading, editTier, editStatus, 
             <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{org.slug} · Created {new Date(org.created_at).toLocaleDateString()}</div>
           </div>
         </div>
-        <button onClick={saveChanges} disabled={saving} style={{ padding: "8px 24px", background: GREEN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
+        <button onClick={saveChanges} disabled={saving || !isDirty} style={{ padding: "8px 24px", background: isDirty ? GREEN : SUBTLE, color: isDirty ? BLACK : MUTED, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: isDirty ? "pointer" : "default", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : isDirty ? "Save Changes" : "No Changes"}</button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20, opacity: orgLoading ? 0.4 : 1, transition: "opacity 0.2s" }}>
+      <div className="pa-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20, opacity: orgLoading ? 0.4 : 1, transition: "opacity 0.2s" }}>
         {[["FRATs", orgStats.frats], ["Flights", orgStats.flights], ["Reports", orgStats.reports], ["Hazards", orgStats.hazards], ["Actions", orgStats.actions]].map(([l, v]) => (
           <div key={l} style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
             <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{l}</div>
@@ -390,7 +443,7 @@ function OrgDetail({ org, orgUsers, orgStats, orgLoading, editTier, editStatus, 
         </div>
       </div>
 
-      <button onClick={saveChanges} disabled={saving} style={{ padding: "10px 32px", background: GREEN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
+      <button onClick={saveChanges} disabled={saving || !isDirty} style={{ padding: "10px 32px", background: isDirty ? GREEN : SUBTLE, color: isDirty ? BLACK : MUTED, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: isDirty ? "pointer" : "default", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : isDirty ? "Save Changes" : "No Changes"}</button>
 
       <div style={{ ...card, padding: "16px 20px", marginTop: 24, borderColor: `${RED}33` }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: RED, marginBottom: 8 }}>Danger Zone</div>

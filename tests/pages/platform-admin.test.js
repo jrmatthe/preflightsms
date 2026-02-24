@@ -536,6 +536,14 @@ describe("Organizations tab", () => {
     await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
 
     await waitFor(() => {
+      expect(screen.getByText("Max Aircraft")).toBeInTheDocument();
+    });
+
+    // Make a change so isDirty becomes true
+    const maxInput = screen.getByDisplayValue("15");
+    fireEvent.change(maxInput, { target: { value: "20" } });
+
+    await waitFor(() => {
       expect(screen.getAllByText("Save Changes").length).toBeGreaterThanOrEqual(1);
     });
 
@@ -732,8 +740,14 @@ describe("Platform Admins tab", () => {
     expect(screen.getByText("Deactivate")).toBeInTheDocument();
   });
 
-  it("clicking Deactivate calls remove_admin API for other admin", async () => {
-    await act(async () => { fireEvent.click(screen.getByText("Deactivate")); });
+  it("clicking Deactivate shows confirm/cancel, then Confirm calls remove_admin API", async () => {
+    fireEvent.click(screen.getByText("Deactivate"));
+
+    // Confirm and Cancel buttons should appear
+    expect(screen.getByText("Confirm")).toBeInTheDocument();
+    expect(screen.getByText("Cancel")).toBeInTheDocument();
+
+    await act(async () => { fireEvent.click(screen.getByText("Confirm")); });
 
     const calls = globalThis.fetch.mock.calls;
     const removeCall = calls.find(([, opts]) => {
@@ -1055,6 +1069,12 @@ describe("Edge cases", () => {
     await act(async () => { render(<PlatformAdmin />); });
     await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
     await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getByText("Max Aircraft")).toBeInTheDocument(); });
+
+    // Make a change so Save Changes is enabled
+    const maxInput = screen.getByDisplayValue("15");
+    fireEvent.change(maxInput, { target: { value: "20" } });
+
     await waitFor(() => { expect(screen.getAllByText("Save Changes").length).toBeGreaterThanOrEqual(1); });
     await act(async () => { fireEvent.click(screen.getAllByText("Save Changes")[0]); });
 
@@ -1080,6 +1100,12 @@ describe("Edge cases", () => {
     await act(async () => { render(<PlatformAdmin />); });
     await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
     await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getByText("Max Aircraft")).toBeInTheDocument(); });
+
+    // Make a change so Save Changes is enabled
+    const maxInput = screen.getByDisplayValue("15");
+    fireEvent.change(maxInput, { target: { value: "20" } });
+
     await waitFor(() => { expect(screen.getAllByText("Save Changes").length).toBeGreaterThanOrEqual(1); });
     await act(async () => { fireEvent.click(screen.getAllByText("Save Changes")[0]); });
 
@@ -1132,7 +1158,9 @@ describe("Edge cases", () => {
     fireEvent.click(screen.getByText("Platform Admins"));
     await waitFor(() => { expect(screen.getByText("Deactivate")).toBeInTheDocument(); });
 
-    await act(async () => { fireEvent.click(screen.getByText("Deactivate")); });
+    // Click Deactivate, then Confirm
+    fireEvent.click(screen.getByText("Deactivate"));
+    await act(async () => { fireEvent.click(screen.getByText("Confirm")); });
 
     await waitFor(() => {
       expect(screen.getByText("Error: Cannot remove last admin")).toBeInTheDocument();
@@ -1297,5 +1325,178 @@ describe("Edge cases", () => {
     const maxInput = screen.getByDisplayValue("15");
     fireEvent.change(maxInput, { target: { value: "25" } });
     expect(screen.getByDisplayValue("25")).toBeInTheDocument();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// NEW BEHAVIORS
+// ═══════════════════════════════════════════════════════════════
+
+describe("Unsaved changes warning", () => {
+  beforeEach(async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1, ORG_2] },
+      list_admins: { admins: [ADMIN, ADMIN_2] },
+      fetch_org_users: { users: ORG_USERS },
+      fetch_org_stats: { stats: ORG_STATS },
+      update_org: { success: true },
+    });
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
+    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getByText("Max Aircraft")).toBeInTheDocument(); });
+  });
+
+  it('shows "No Changes" when org is unmodified', () => {
+    const btns = screen.getAllByText("No Changes");
+    expect(btns.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('Save button is disabled when no changes', () => {
+    const btns = screen.getAllByText("No Changes");
+    expect(btns[0].disabled).toBe(true);
+  });
+
+  it('shows "Save Changes" after modifying a field', () => {
+    const maxInput = screen.getByDisplayValue("15");
+    fireEvent.change(maxInput, { target: { value: "20" } });
+    const btns = screen.getAllByText("Save Changes");
+    expect(btns.length).toBeGreaterThanOrEqual(1);
+    expect(btns[0].disabled).toBe(false);
+  });
+
+  it("shows unsaved changes bar when switching orgs with dirty state", async () => {
+    const maxInput = screen.getByDisplayValue("15");
+    fireEvent.change(maxInput, { target: { value: "20" } });
+
+    fireEvent.click(screen.getByText("Beta Flights"));
+
+    expect(screen.getByText("You have unsaved changes")).toBeInTheDocument();
+    expect(screen.getByText("Save & Continue")).toBeInTheDocument();
+    expect(screen.getByText("Discard")).toBeInTheDocument();
+    expect(screen.getByText("Cancel")).toBeInTheDocument();
+  });
+
+  it("Cancel dismisses the unsaved changes bar without switching", () => {
+    const maxInput = screen.getByDisplayValue("15");
+    fireEvent.change(maxInput, { target: { value: "20" } });
+
+    fireEvent.click(screen.getByText("Beta Flights"));
+    fireEvent.click(screen.getByText("Cancel"));
+
+    expect(screen.queryByText("You have unsaved changes")).not.toBeInTheDocument();
+    // Still on original org
+    expect(screen.getByDisplayValue("20")).toBeInTheDocument();
+  });
+
+  it("Discard discards changes and switches org", async () => {
+    const maxInput = screen.getByDisplayValue("15");
+    fireEvent.change(maxInput, { target: { value: "20" } });
+
+    fireEvent.click(screen.getByText("Beta Flights"));
+    await act(async () => { fireEvent.click(screen.getByText("Discard")); });
+
+    expect(screen.queryByText("You have unsaved changes")).not.toBeInTheDocument();
+  });
+
+  it("shows unsaved changes bar when switching tabs with dirty state", () => {
+    const maxInput = screen.getByDisplayValue("15");
+    fireEvent.change(maxInput, { target: { value: "20" } });
+
+    fireEvent.click(screen.getByText("Platform Admins"));
+
+    expect(screen.getByText("You have unsaved changes")).toBeInTheDocument();
+  });
+});
+
+describe("Admin deactivate confirmation", () => {
+  beforeEach(async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1] },
+      list_admins: { admins: [ADMIN, ADMIN_2] },
+      remove_admin: { success: true },
+    });
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Platform Admins")).toBeInTheDocument(); });
+    fireEvent.click(screen.getByText("Platform Admins"));
+  });
+
+  it("Deactivate button shows Confirm/Cancel on click", () => {
+    fireEvent.click(screen.getByText("Deactivate"));
+    expect(screen.getByText("Confirm")).toBeInTheDocument();
+    expect(screen.getByText("Cancel")).toBeInTheDocument();
+    expect(screen.queryByText("Deactivate")).not.toBeInTheDocument();
+  });
+
+  it("Cancel returns to Deactivate button", () => {
+    fireEvent.click(screen.getByText("Deactivate"));
+    fireEvent.click(screen.getByText("Cancel"));
+    expect(screen.getByText("Deactivate")).toBeInTheDocument();
+    expect(screen.queryByText("Confirm")).not.toBeInTheDocument();
+  });
+});
+
+describe("Password validation on Add Admin", () => {
+  beforeEach(async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1] },
+      list_admins: { admins: [ADMIN] },
+      add_admin: { success: true },
+    });
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Platform Admins")).toBeInTheDocument(); });
+    fireEvent.click(screen.getByText("Platform Admins"));
+  });
+
+  it("shows error toast when password is less than 8 characters", async () => {
+    const fullNameInputs = screen.getAllByPlaceholderText("Full name");
+    const emailInputs = screen.getAllByPlaceholderText("Email");
+    const passwordInputs = screen.getAllByPlaceholderText("Password");
+
+    fireEvent.change(fullNameInputs[fullNameInputs.length - 1], { target: { value: "New Admin" } });
+    fireEvent.change(emailInputs[emailInputs.length - 1], { target: { value: "new@test.com" } });
+    fireEvent.change(passwordInputs[passwordInputs.length - 1], { target: { value: "short" } });
+
+    await act(async () => { fireEvent.click(screen.getByText("Add Admin")); });
+
+    await waitFor(() => {
+      expect(screen.getByText("Password must be at least 8 characters")).toBeInTheDocument();
+    });
+  });
+});
+
+describe("Non-JSON error response handling", () => {
+  it("api() handles non-ok responses with JSON body", async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    globalThis.fetch = vi.fn().mockImplementation(async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      if (body.action === "verify") return { ok: true, json: async () => ({ admin: ADMIN }) };
+      if (body.action === "fetch_orgs") return { ok: true, json: async () => ({ orgs: [ORG_1] }) };
+      if (body.action === "list_admins") return { ok: true, json: async () => ({ admins: [ADMIN] }) };
+      if (body.action === "fetch_org_users") return { ok: true, json: async () => ({ users: [] }) };
+      if (body.action === "fetch_org_stats") return { ok: true, json: async () => ({ stats: {} }) };
+      if (body.action === "update_org") return { ok: false, status: 500, json: async () => ({ error: "DB error" }) };
+      return { ok: true, json: async () => ({}) };
+    });
+
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
+    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getByText("Max Aircraft")).toBeInTheDocument(); });
+
+    // Make a change and save
+    const maxInput = screen.getByDisplayValue("15");
+    fireEvent.change(maxInput, { target: { value: "20" } });
+    await act(async () => { fireEvent.click(screen.getAllByText("Save Changes")[0]); });
+
+    await waitFor(() => {
+      expect(screen.getByText("Error: DB error")).toBeInTheDocument();
+    });
   });
 });

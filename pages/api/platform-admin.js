@@ -40,6 +40,7 @@ export default async function handler(req, res) {
   // ── SETUP: Create first admin (only works if no admins exist) ──
   if (action === 'setup') {
     if (!email || !password || !name) return res.status(400).json({ error: 'Email, password, and name required' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
     const { data: existing } = await sb.from('platform_admins').select('id').limit(1);
     if (existing && existing.length > 0) {
@@ -108,6 +109,7 @@ export default async function handler(req, res) {
     const claims = verifyToken(token);
     if (!claims) return res.status(401).json({ error: 'Unauthorized' });
     if (!email || !password || !name) return res.status(400).json({ error: 'Email, password, and name required' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
     const hash = await bcrypt.hash(password, 12);
     const { data, error } = await sb.from('platform_admins').insert({
@@ -126,6 +128,8 @@ export default async function handler(req, res) {
     if (!claims) return res.status(401).json({ error: 'Unauthorized' });
     const { admin_id } = req.body;
     if (admin_id === claims.id) return res.status(400).json({ error: "Can't remove yourself" });
+    const { count } = await sb.from('platform_admins').select('id', { count: 'exact', head: true }).eq('is_active', true).neq('id', admin_id);
+    if ((count || 0) < 1) return res.status(400).json({ error: "Can't deactivate — this is the last active admin" });
     await sb.from('platform_admins').update({ is_active: false }).eq('id', admin_id);
     return res.status(200).json({ success: true });
   }
@@ -198,6 +202,8 @@ export default async function handler(req, res) {
     );
     await sb.from('cbt_courses').delete().eq('org_id', org_id);
     await sb.from('policy_acknowledgments').delete().in('user_id', userIds);
+    await sb.from('nudge_responses').delete().eq('org_id', org_id);
+    await sb.from('overdue_notifications').delete().eq('org_id', org_id);
     await sb.from('flights').delete().eq('org_id', org_id);
     await sb.from('frat_submissions').delete().eq('org_id', org_id);
     await sb.from('safety_reports').delete().eq('org_id', org_id);
@@ -206,11 +212,15 @@ export default async function handler(req, res) {
     await sb.from('policy_documents').delete().eq('org_id', org_id);
     await sb.from('training_requirements').delete().eq('org_id', org_id);
     await sb.from('training_records').delete().eq('org_id', org_id);
+    await sb.from('notification_reads').delete().in('user_id', userIds);
+    await sb.from('notifications').delete().eq('org_id', org_id);
     await sb.from('notification_contacts').delete().eq('org_id', org_id);
     await sb.from('frat_templates').delete().eq('org_id', org_id);
     await sb.from('sms_manuals').delete().eq('org_id', org_id);
     await sb.from('invitations').delete().eq('org_id', org_id);
     await sb.from('profiles').delete().eq('org_id', org_id);
+    await sb.from('aircraft').delete().eq('org_id', org_id);
+    await sb.from('trial_emails_sent').delete().eq('org_id', org_id);
     await sb.from('organizations').delete().eq('id', org_id);
 
     // Delete auth users

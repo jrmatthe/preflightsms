@@ -182,6 +182,30 @@ describe('POST /api/platform-admin', () => {
       await handler(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
     });
+
+    it('setup rejects password shorter than 8 characters', async () => {
+      mockFromData.platform_admins = { data: [], error: null };
+      const { req, res } = createMockReqRes({
+        body: { action: 'setup', email: 'admin@test.com', password: 'short', name: 'Admin' },
+      });
+      await handler(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        error: expect.stringContaining('8 characters'),
+      }));
+    });
+
+    it('add_admin rejects password shorter than 8 characters', async () => {
+      mockJwtVerify.mockReturnValue({ id: 'admin-1', email: 'a@b.com', name: 'A' });
+      const { req, res } = createMockReqRes({
+        body: { action: 'add_admin', token: 'valid', email: 'new@test.com', password: 'short', name: 'New' },
+      });
+      await handler(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        error: expect.stringContaining('8 characters'),
+      }));
+    });
   });
 
   // ── SECURITY ──
