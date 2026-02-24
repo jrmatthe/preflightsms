@@ -14,9 +14,13 @@ const STATUS_COLORS = { active: GREEN, trial: YELLOW, canceled: RED, past_due: A
 const inp = { padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" };
 
 async function api(body) {
-  const token = typeof window !== "undefined" ? localStorage.getItem("pa_token") : null;
-  const res = await fetch("/api/platform-admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, token }) });
-  return res.json();
+  try {
+    const token = typeof window !== "undefined" ? localStorage.getItem("pa_token") : null;
+    const res = await fetch("/api/platform-admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, token }) });
+    return res.json();
+  } catch (e) {
+    return { error: "Network error — check your connection" };
+  }
 }
 
 function SetupScreen({ onComplete }) {
@@ -98,6 +102,7 @@ export default function PlatformAdmin() {
   const [admins, setAdmins] = useState([]);
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
   const [addingAdmin, setAddingAdmin] = useState(false);
+  const [orgLoading, setOrgLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -112,7 +117,7 @@ export default function PlatformAdmin() {
     })();
   }, []);
 
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+  const showToast = (msg, isError) => { setToast({ msg, isError }); setTimeout(() => setToast(null), 3000); };
   const logout = () => { localStorage.removeItem("pa_token"); setAdmin(null); setState("login"); };
 
   const loadOrgs = useCallback(async () => { const res = await api({ action: "fetch_orgs" }); setOrgs(res.orgs || []); }, []);
@@ -125,14 +130,15 @@ export default function PlatformAdmin() {
     setEditTier(org.tier || "starter");
     setEditStatus(org.subscription_status || "trial");
     setEditMaxAircraft(org.max_aircraft || 5);
+    setOrgUsers([]); setOrgStats({}); setOrgLoading(true);
     const [u, s] = await Promise.all([api({ action: "fetch_org_users", org_id: org.id }), api({ action: "fetch_org_stats", org_id: org.id })]);
-    setOrgUsers(u.users || []); setOrgStats(s.stats || {});
+    setOrgUsers(u.users || []); setOrgStats(s.stats || {}); setOrgLoading(false);
   };
 
   const saveChanges = async () => {
     if (!selectedOrg) return; setSaving(true);
     const res = await api({ action: "update_org", org_id: selectedOrg.id, updates: { tier: editTier, feature_flags: editFlags, subscription_status: editStatus, max_aircraft: editMaxAircraft } });
-    if (res.error) { showToast("Error: " + res.error); setSaving(false); return; }
+    if (res.error) { showToast("Error: " + res.error, true); setSaving(false); return; }
     // Refresh orgs list and update selected org from fresh data
     const orgsRes = await api({ action: "fetch_orgs" });
     const freshOrgs = orgsRes.orgs || [];
@@ -148,25 +154,37 @@ export default function PlatformAdmin() {
     setSaving(false); showToast("Changes saved");
   };
 
-  const applyTierDefaults = (t) => { setEditTier(t); setEditFlags(getTierFeatures(t)); setEditMaxAircraft(TIERS[t]?.maxAircraft || 5); };
+  const [pendingTier, setPendingTier] = useState(null);
+  const applyTierDefaults = (t) => {
+    const newFlags = getTierFeatures(t);
+    const hasCustomFlags = editFlags && JSON.stringify(editFlags) !== JSON.stringify(getTierFeatures(editTier));
+    if (hasCustomFlags && t !== editTier) { setPendingTier(t); return; }
+    setEditTier(t); setEditFlags(newFlags); setEditMaxAircraft(TIERS[t]?.maxAircraft || 5);
+  };
+  const confirmTierChange = () => {
+    if (!pendingTier) return;
+    setEditTier(pendingTier); setEditFlags(getTierFeatures(pendingTier)); setEditMaxAircraft(TIERS[pendingTier]?.maxAircraft || 5); setPendingTier(null);
+  };
 
   const handleAddAdmin = async () => {
-    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) { showToast("All fields required"); return; }
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) { showToast("All fields required", true); return; }
     setAddingAdmin(true);
     const res = await api({ action: "add_admin", name: newAdmin.name, email: newAdmin.email, password: newAdmin.password });
     setAddingAdmin(false);
-    if (res.error) { showToast("Error: " + res.error); return; }
+    if (res.error) { showToast("Error: " + res.error, true); return; }
     setNewAdmin({ name: "", email: "", password: "" }); loadAdmins(); showToast("Admin added");
   };
 
   const handleRemoveAdmin = async (id) => {
-    if (id === admin?.id) { showToast("Can't remove yourself"); return; }
-    await api({ action: "remove_admin", admin_id: id }); loadAdmins(); showToast("Admin deactivated");
+    if (id === admin?.id) { showToast("Can't remove yourself", true); return; }
+    const res = await api({ action: "remove_admin", admin_id: id });
+    if (res.error) { showToast("Error: " + res.error, true); return; }
+    loadAdmins(); showToast("Admin deactivated");
   };
 
   const handleDeleteOrg = async (orgId) => {
     const res = await api({ action: "delete_org", org_id: orgId });
-    if (res.error) { showToast("Error: " + res.error); return; }
+    if (res.error) { showToast("Error: " + res.error, true); return; }
     setSelectedOrg(null); loadOrgs();
     showToast(`Organization deleted (${res.deleted_users} user${res.deleted_users !== 1 ? "s" : ""} removed)`);
   };
@@ -201,9 +219,9 @@ export default function PlatformAdmin() {
         </div>
 
         {view === "admins" && <AdminsView admins={admins} admin={admin} newAdmin={newAdmin} setNewAdmin={setNewAdmin} addingAdmin={addingAdmin} onAdd={handleAddAdmin} onRemove={handleRemoveAdmin} />}
-        {view === "orgs" && <OrgsView orgs={filteredOrgs} selectedOrg={selectedOrg} selectOrg={selectOrg} search={search} setSearch={setSearch} orgUsers={orgUsers} orgStats={orgStats} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} saveChanges={saveChanges} saving={saving} onDeleteOrg={handleDeleteOrg} />}
+        {view === "orgs" && <OrgsView orgs={filteredOrgs} selectedOrg={selectedOrg} selectOrg={selectOrg} search={search} setSearch={setSearch} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} pendingTier={pendingTier} setPendingTier={setPendingTier} confirmTierChange={confirmTierChange} saveChanges={saveChanges} saving={saving} onDeleteOrg={handleDeleteOrg} />}
 
-        {toast && <div style={{ position: "fixed", bottom: 24, right: 24, padding: "10px 20px", background: `${GREEN}22`, border: `1px solid ${GREEN}44`, borderRadius: 8, color: GREEN, fontSize: 12, fontWeight: 600 }}>{toast}</div>}
+        {toast && <div style={{ position: "fixed", bottom: 24, right: 24, padding: "10px 20px", background: toast.isError ? `${RED}22` : `${GREEN}22`, border: `1px solid ${toast.isError ? RED + "44" : GREEN + "44"}`, borderRadius: 8, color: toast.isError ? RED : GREEN, fontSize: 12, fontWeight: 600 }}>{toast.msg}</div>}
       </div>
       <style>{`*{box-sizing:border-box}input:focus{outline:none;border-color:${WHITE} !important}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}`}</style>
     </>
@@ -243,7 +261,7 @@ function AdminsView({ admins, admin, newAdmin, setNewAdmin, addingAdmin, onAdd, 
   );
 }
 
-function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, orgStats, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, saveChanges, saving, onDeleteOrg }) {
+function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, orgStats, orgLoading, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, pendingTier, setPendingTier, confirmTierChange, saveChanges, saving, onDeleteOrg }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "360px 1fr", minHeight: "calc(100vh - 90px)" }}>
       <div style={{ borderRight: `1px solid ${BORDER}`, padding: 16, overflowY: "auto" }}>
@@ -271,14 +289,14 @@ function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, o
             <div style={{ textAlign: "center" }}><div style={{ fontSize: 48, marginBottom: 12 }}>🏢</div><div style={{ fontSize: 14, fontWeight: 600 }}>Select an organization</div></div>
           </div>
         ) : (
-          <OrgDetail org={selectedOrg} orgUsers={orgUsers} orgStats={orgStats} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} saveChanges={saveChanges} saving={saving} onDeleteOrg={onDeleteOrg} />
+          <OrgDetail key={selectedOrg.id} org={selectedOrg} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editTier={editTier} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} applyTierDefaults={applyTierDefaults} pendingTier={pendingTier} setPendingTier={setPendingTier} confirmTierChange={confirmTierChange} saveChanges={saveChanges} saving={saving} onDeleteOrg={onDeleteOrg} />
         )}
       </div>
     </div>
   );
 }
 
-function OrgDetail({ org, orgUsers, orgStats, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, saveChanges, saving, onDeleteOrg }) {
+function OrgDetail({ org, orgUsers, orgStats, orgLoading, editTier, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, applyTierDefaults, pendingTier, setPendingTier, confirmTierChange, saveChanges, saving, onDeleteOrg }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   return (
     <div style={{ maxWidth: 800 }}>
@@ -293,18 +311,18 @@ function OrgDetail({ org, orgUsers, orgStats, editTier, editStatus, editFlags, e
         <button onClick={saveChanges} disabled={saving} style={{ padding: "8px 24px", background: GREEN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20, opacity: orgLoading ? 0.4 : 1, transition: "opacity 0.2s" }}>
         {[["FRATs", orgStats.frats], ["Flights", orgStats.flights], ["Reports", orgStats.reports], ["Hazards", orgStats.hazards], ["Actions", orgStats.actions]].map(([l, v]) => (
           <div key={l} style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
             <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>{l}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif", marginTop: 2 }}>{v || 0}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif", marginTop: 2 }}>{orgLoading ? "–" : (v || 0)}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 10 }}>Users ({orgUsers.length})</div>
-        {orgUsers.length === 0 ? <div style={{ fontSize: 11, color: MUTED }}>No users</div> : orgUsers.map(u => (
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 16, opacity: orgLoading ? 0.4 : 1, transition: "opacity 0.2s" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 10 }}>Users ({orgLoading ? "…" : orgUsers.length})</div>
+        {orgLoading ? <div style={{ fontSize: 11, color: MUTED }}>Loading...</div> : orgUsers.length === 0 ? <div style={{ fontSize: 11, color: MUTED }}>No users</div> : orgUsers.map(u => (
           <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${BORDER}` }}>
             <div><span style={{ fontSize: 12, color: WHITE, fontWeight: 600, marginRight: 8 }}>{u.full_name || "No name"}</span><span style={{ fontSize: 10, color: MUTED }}>{u.id?.slice(0, 8)}</span></div>
             <span style={{ fontSize: 10, color: CYAN, fontWeight: 600, textTransform: "uppercase" }}>{u.role || "pilot"}</span>
@@ -323,6 +341,15 @@ function OrgDetail({ org, orgUsers, orgStats, editTier, editStatus, editFlags, e
             </div>
           ))}
         </div>
+        {pendingTier && (
+          <div style={{ marginTop: 10, padding: "10px 14px", background: `${AMBER}15`, border: `1px solid ${AMBER}44`, borderRadius: 8 }}>
+            <div style={{ fontSize: 11, color: AMBER, marginBottom: 8 }}>Switching to <strong>{TIERS[pendingTier]?.name}</strong> will reset your custom feature flags to tier defaults.</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={confirmTierChange} style={{ padding: "6px 16px", background: AMBER, color: BLACK, border: "none", borderRadius: 4, fontWeight: 700, fontSize: 10, cursor: "pointer" }}>Reset Flags</button>
+              <button onClick={() => setPendingTier(null)} style={{ padding: "6px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 4, fontWeight: 600, fontSize: 10, cursor: "pointer" }}>Keep Current Flags</button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>

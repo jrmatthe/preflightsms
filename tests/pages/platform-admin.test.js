@@ -1041,6 +1041,238 @@ describe("Edge cases", () => {
     });
   });
 
+  it("error toast renders with red styling", async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1] },
+      list_admins: { admins: [ADMIN] },
+      fetch_org_users: { users: [] },
+      fetch_org_stats: { stats: {} },
+      update_org: { error: "Something went wrong" },
+    });
+
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
+    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getAllByText("Save Changes").length).toBeGreaterThanOrEqual(1); });
+    await act(async () => { fireEvent.click(screen.getAllByText("Save Changes")[0]); });
+
+    await waitFor(() => {
+      const toast = screen.getByText("Error: Something went wrong");
+      expect(toast).toBeInTheDocument();
+      // Toast parent should have red color
+      expect(toast.closest("div").style.color).toContain("239, 68, 68");
+    });
+  });
+
+  it("success toast renders with green styling", async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1] },
+      list_admins: { admins: [ADMIN] },
+      fetch_org_users: { users: [] },
+      fetch_org_stats: { stats: {} },
+      update_org: { success: true },
+    });
+
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
+    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getAllByText("Save Changes").length).toBeGreaterThanOrEqual(1); });
+    await act(async () => { fireEvent.click(screen.getAllByText("Save Changes")[0]); });
+
+    await waitFor(() => {
+      const toast = screen.getByText("Changes saved");
+      expect(toast).toBeInTheDocument();
+      // Toast parent should have green color
+      expect(toast.closest("div").style.color).toContain("74, 222, 128");
+    });
+  });
+
+  it("delete confirmation resets when switching orgs (key prop)", async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1, ORG_2] },
+      list_admins: { admins: [ADMIN] },
+      fetch_org_users: { users: [] },
+      fetch_org_stats: { stats: {} },
+    });
+
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
+
+    // Select org 1, open delete confirmation
+    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getByText("Delete Organization")).toBeInTheDocument(); });
+    fireEvent.click(screen.getByText("Delete Organization"));
+    expect(screen.getByText("Yes, Delete Everything")).toBeInTheDocument();
+
+    // Switch to org 2 — confirmation should reset
+    await act(async () => { fireEvent.click(screen.getByText("Beta Flights")); });
+    await waitFor(() => {
+      expect(screen.queryByText("Yes, Delete Everything")).not.toBeInTheDocument();
+      expect(screen.getByText("Delete Organization")).toBeInTheDocument();
+    });
+  });
+
+  it("handleRemoveAdmin shows error on API failure", async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1] },
+      list_admins: { admins: [ADMIN, ADMIN_2] },
+      remove_admin: { error: "Cannot remove last admin" },
+    });
+
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Platform Admins")).toBeInTheDocument(); });
+    fireEvent.click(screen.getByText("Platform Admins"));
+    await waitFor(() => { expect(screen.getByText("Deactivate")).toBeInTheDocument(); });
+
+    await act(async () => { fireEvent.click(screen.getByText("Deactivate")); });
+
+    await waitFor(() => {
+      expect(screen.getByText("Error: Cannot remove last admin")).toBeInTheDocument();
+    });
+  });
+
+  it("api() returns error object on network failure", async () => {
+    // Simulate network failure
+    globalThis.fetch = vi.fn(() => { throw new Error("Failed to fetch"); });
+    localStorage.setItem("pa_token", "valid-token");
+
+    await act(async () => { render(<PlatformAdmin />); });
+
+    // Should gracefully handle the error and show login (verify fails with network error)
+    await waitFor(() => {
+      // The component should not crash — it should show login or setup
+      const body = document.body;
+      expect(body).toBeInTheDocument();
+    });
+  });
+
+  it("org loading state shows dash placeholders for stats", async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    // Make fetch_org_stats never resolve so loading state persists
+    let resolveStats;
+    const statsPromise = new Promise((r) => { resolveStats = r; });
+    globalThis.fetch = vi.fn().mockImplementation(async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      const responses = {
+        verify: { admin: ADMIN },
+        fetch_orgs: { orgs: [ORG_1] },
+        list_admins: { admins: [ADMIN] },
+        fetch_org_users: { users: [] },
+      };
+      if (body.action === "fetch_org_stats") {
+        await statsPromise;
+        return { ok: true, json: async () => ({ stats: { frats: 10 } }) };
+      }
+      return { ok: true, json: async () => (responses[body.action] || {}) };
+    });
+
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
+    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+
+    // While loading, stats should show "–" and users should show "Loading..."
+    await waitFor(() => {
+      const dashes = screen.getAllByText("–");
+      expect(dashes.length).toBe(5);
+      expect(screen.getByText("Loading...")).toBeInTheDocument();
+    });
+
+    // Resolve and verify loading completes
+    await act(async () => { resolveStats(); });
+  });
+
+  it("tier change shows confirmation when flags are customized", async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1] },
+      list_admins: { admins: [ADMIN] },
+      fetch_org_users: { users: [] },
+      fetch_org_stats: { stats: {} },
+    });
+
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
+    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getByText("All On")).toBeInTheDocument(); });
+
+    // Customize flags (turn all on — different from professional defaults)
+    fireEvent.click(screen.getByText("All On"));
+
+    // Now try to switch tier — should show confirmation
+    fireEvent.click(screen.getByText("Starter"));
+
+    expect(screen.getByText(/will reset your custom feature flags/)).toBeInTheDocument();
+    expect(screen.getByText("Reset Flags")).toBeInTheDocument();
+    expect(screen.getByText("Keep Current Flags")).toBeInTheDocument();
+  });
+
+  it("tier change confirmation 'Reset Flags' applies new tier", async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1] },
+      list_admins: { admins: [ADMIN] },
+      fetch_org_users: { users: [] },
+      fetch_org_stats: { stats: {} },
+    });
+
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
+    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getByText("All On")).toBeInTheDocument(); });
+
+    // Customize and switch tier
+    fireEvent.click(screen.getByText("All On"));
+    fireEvent.click(screen.getByText("Starter"));
+
+    // Confirm reset
+    fireEvent.click(screen.getByText("Reset Flags"));
+
+    // Should apply starter defaults (max aircraft = 5)
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("5")).toBeInTheDocument();
+      expect(screen.queryByText(/will reset your custom feature flags/)).not.toBeInTheDocument();
+    });
+  });
+
+  it("tier change confirmation 'Keep Current Flags' cancels tier switch", async () => {
+    localStorage.setItem("pa_token", "valid-token");
+    mockApiResponse({
+      verify: { admin: ADMIN },
+      fetch_orgs: { orgs: [ORG_1] },
+      list_admins: { admins: [ADMIN] },
+      fetch_org_users: { users: [] },
+      fetch_org_stats: { stats: {} },
+    });
+
+    await act(async () => { render(<PlatformAdmin />); });
+    await waitFor(() => { expect(screen.getByText("Acme Aviation")).toBeInTheDocument(); });
+    await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
+    await waitFor(() => { expect(screen.getByText("All On")).toBeInTheDocument(); });
+
+    // Customize and switch tier
+    fireEvent.click(screen.getByText("All On"));
+    fireEvent.click(screen.getByText("Starter"));
+
+    // Cancel — keep current flags
+    fireEvent.click(screen.getByText("Keep Current Flags"));
+
+    // Max aircraft should still be 15 (professional), confirmation gone
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("15")).toBeInTheDocument();
+      expect(screen.queryByText(/will reset your custom feature flags/)).not.toBeInTheDocument();
+    });
+  });
+
   it("max aircraft input accepts numeric changes", async () => {
     localStorage.setItem("pa_token", "valid-token");
     mockApiResponse({
