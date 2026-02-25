@@ -133,7 +133,7 @@ function PolicyForm({ onSubmit, onCancel }) {
 // ── MAIN COMPONENT ────────────────────────────────────────────
 export default function PolicyTraining({
   profile, session, policies, onCreatePolicy, onAcknowledgePolicy, orgProfiles,
-  smsManuals, showManuals, tourTab,
+  smsManuals, showManuals, readOnlyManuals, tourTab,
   // SMS Manuals props (passed through when showManuals is true)
   templateVariables, signatures, fleetAircraft,
   onSaveManual, onInitManuals, onSaveVariables, onSaveSignature,
@@ -214,9 +214,9 @@ export default function PolicyTraining({
         {renderTopTabs()}
         <SmsManuals profile={profile} session={session} smsManuals={smsManuals}
           templateVariables={templateVariables} signatures={signatures}
-          fleetAircraft={fleetAircraft} onSaveManual={onSaveManual}
-          onInitManuals={onInitManuals} onSaveVariables={onSaveVariables}
-          onSaveSignature={onSaveSignature} embedded />
+          fleetAircraft={fleetAircraft} onSaveManual={readOnlyManuals ? null : onSaveManual}
+          onInitManuals={readOnlyManuals ? null : onInitManuals} onSaveVariables={readOnlyManuals ? null : onSaveVariables}
+          onSaveSignature={readOnlyManuals ? null : onSaveSignature} embedded readOnly={readOnlyManuals} />
       </div>
     );
   }

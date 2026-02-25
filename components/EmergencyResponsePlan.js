@@ -224,8 +224,9 @@ export default function EmergencyResponsePlan({
 
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const tier = org?.subscription_tier || org?.tier || "starter";
+  const isFree = tier === "free";
   const isStarter = tier === "starter";
-  const atLimit = isStarter && (erpPlans || []).length >= 2;
+  const atLimit = isFree ? (erpPlans || []).length >= 1 : isStarter && (erpPlans || []).length >= 2;
 
   const plans = useMemo(() => {
     let list = erpPlans || [];
@@ -253,6 +254,11 @@ export default function EmergencyResponsePlan({
         </div>
 
         {/* Tier limit message */}
+        {isFree && atLimit && (
+          <div style={{ ...card, padding: 12, marginBottom: 12, borderLeft: `3px solid ${AMBER}` }}>
+            <span style={{ fontSize: 11, color: AMBER }}>Free plan: 1 read-only ERP plan. Upgrade to Starter for more.</span>
+          </div>
+        )}
         {isStarter && atLimit && (
           <div style={{ ...card, padding: 12, marginBottom: 12, borderLeft: `3px solid ${AMBER}` }}>
             <span style={{ fontSize: 11, color: AMBER }}>Starter plan: max 2 ERP plans. Upgrade for unlimited.</span>
@@ -347,10 +353,10 @@ export default function EmergencyResponsePlan({
   if (view === "detail" && selectedPlan) {
     return <PlanDetail
       plan={selectedPlan}
-      isAdmin={isAdmin}
+      isAdmin={isAdmin && !isFree}
       onBack={() => { setSelectedPlan(null); setView("list"); }}
-      onUpdatePlan={onUpdatePlan}
-      onDeletePlan={onDeletePlan}
+      onUpdatePlan={isFree ? null : onUpdatePlan}
+      onDeletePlan={isFree ? null : onDeletePlan}
       onLoadChecklist={onLoadChecklist}
       onSaveChecklist={onSaveChecklist}
       onLoadCallTree={onLoadCallTree}

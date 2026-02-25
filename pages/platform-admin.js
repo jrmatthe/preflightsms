@@ -9,8 +9,8 @@ const CARD = "#222222", BORDER = "#2E2E2E", LIGHT_BORDER = "#3A3A3A";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777", SUBTLE = "#555555";
 const GREEN = "#4ADE80", YELLOW = "#FACC15", AMBER = "#F59E0B", RED = "#EF4444", CYAN = "#22D3EE";
 const card = { background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` };
-const TIER_COLORS = { starter: MUTED, professional: GREEN, enterprise: CYAN };
-const STATUS_COLORS = { active: GREEN, trial: YELLOW, canceled: RED, past_due: AMBER };
+const TIER_COLORS = { free: "#22D3EE", starter: MUTED, professional: GREEN, enterprise: CYAN };
+const STATUS_COLORS = { free: CYAN, active: GREEN, trial: YELLOW, canceled: RED, past_due: AMBER };
 const inp = { padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" };
 
 async function api(body) {

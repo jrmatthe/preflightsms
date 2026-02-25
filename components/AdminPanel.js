@@ -26,6 +26,7 @@ const PERMISSIONS = [
 ];
 
 const TIER_DEFS = {
+  free: { name: "Free", price: "Free", aircraft: "1", color: CYAN },
   starter: { name: "Starter", price: "$149/mo", aircraft: "5", color: MUTED },
   professional: { name: "Professional", price: "$299/mo", aircraft: "15", color: GREEN },
   enterprise: { name: "Enterprise", price: "Custom", aircraft: "Unlimited", color: CYAN },
@@ -426,6 +427,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
 
   const isActive = status === "active";
   const isTrial = status === "trial";
+  const isFree = status === "free" || tier === "free";
   const hasStripe = !!orgData?.stripe_subscription_id;
 
   return (
@@ -440,10 +442,10 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
           </div>
           <div style={{ textAlign: "right" }}>
             <span style={{ padding: "4px 12px", borderRadius: 12, fontSize: 10, fontWeight: 700,
-              background: status === "active" ? `${GREEN}22` : status === "trial" ? `${YELLOW}22` : `${RED}22`,
-              color: status === "active" ? GREEN : status === "trial" ? YELLOW : RED,
-              border: `1px solid ${status === "active" ? GREEN + "44" : status === "trial" ? YELLOW + "44" : RED + "44"}`,
-              textTransform: "uppercase" }}>{status}</span>
+              background: status === "active" ? `${GREEN}22` : status === "trial" ? `${YELLOW}22` : isFree ? `${CYAN}22` : `${RED}22`,
+              color: status === "active" ? GREEN : status === "trial" ? YELLOW : isFree ? CYAN : RED,
+              border: `1px solid ${status === "active" ? GREEN + "44" : status === "trial" ? YELLOW + "44" : isFree ? CYAN + "44" : RED + "44"}`,
+              textTransform: "uppercase" }}>{isFree ? "FREE" : status}</span>
             {status === "trial" && trialEnds && (
               <div style={{ fontSize: 10, color: MUTED, marginTop: 6 }}>Trial ends {new Date(trialEnds).toLocaleDateString()}</div>
             )}
@@ -452,10 +454,10 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
       </div>
 
       {/* Subscribe / Change Plan */}
-      {canManage && (isTrial || !hasStripe) && (
+      {canManage && (isFree || isTrial || !hasStripe) && (
         <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 14 }}>
-            {isTrial ? "Subscribe to Continue After Trial" : "Subscribe"}
+            {isFree ? "Upgrade Your Plan" : isTrial ? "Subscribe to Continue After Trial" : "Subscribe"}
           </div>
 
           {/* Billing toggle */}
@@ -470,36 +472,49 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
           </div>
 
           {/* Plan cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
             {[
-              { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
-              { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Safety Reporting", "Hazard Register", "Policy Library", "Training Records"] },
+              { id: "free", name: "Free", monthly: 0, annual: 0, desc: "1 aircraft, 1 user", features: ["FRAT Submissions", "Safety Reporting", "5 Corrective Actions", "3 Policies", "Basic Dashboard"], noBilling: true },
+              { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft", badge: true, features: ["Everything in Free", "Flight Following", "Full Investigations", "Training Records", "Unlimited CAs & Policies"] },
+              { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 15 aircraft", features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
             ].map(p => {
               const price = billingInterval === "annual" ? p.annual : p.monthly;
               const perMonth = billingInterval === "annual" ? Math.round(p.annual / 12) : p.monthly;
-              const isCurrent = isActive && tier === p.id;
+              const isCurrent = (p.id === "free" && isFree) || (isActive && tier === p.id);
               return (
                 <div key={p.id} style={{ ...card, padding: "18px 16px", position: "relative", border: `1px solid ${isCurrent ? GREEN + "44" : BORDER}` }}>
                   {p.badge && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>RECOMMENDED</div>}
                   <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 2 }}>{p.name}</div>
                   <div style={{ fontSize: 10, color: MUTED, marginBottom: 8 }}>{p.desc}</div>
                   <div style={{ marginBottom: 12 }}>
-                    <span style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>${perMonth}</span>
-                    <span style={{ fontSize: 11, color: MUTED }}>/mo</span>
-                    {billingInterval === "annual" && <div style={{ fontSize: 10, color: GREEN, marginTop: 2 }}>Billed ${price}/year</div>}
+                    {p.noBilling ? (
+                      <span style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$0</span>
+                    ) : (<>
+                      <span style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>${perMonth}</span>
+                      <span style={{ fontSize: 11, color: MUTED }}>/mo</span>
+                      {billingInterval === "annual" && <div style={{ fontSize: 10, color: GREEN, marginTop: 2 }}>Billed ${price}/year</div>}
+                    </>)}
                   </div>
                   {p.features.map((f, i) => (
                     <div key={i} style={{ fontSize: 10, color: f.startsWith("Everything") ? CYAN : OFF_WHITE, padding: "2px 0", display: "flex", gap: 5 }}>
                       <span style={{ color: GREEN, flexShrink: 0 }}>{f.startsWith("Everything") ? "\u2605" : "\u2713"}</span>{f}
                     </div>
                   ))}
-                  <button onClick={() => handleCheckout(p.id)} disabled={checkoutLoading || isCurrent}
-                    style={{ width: "100%", marginTop: 14, padding: "10px 0", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: isCurrent ? "default" : checkoutLoading ? "wait" : "pointer",
-                      background: isCurrent ? `${GREEN}22` : WHITE, color: isCurrent ? GREEN : BLACK,
-                      border: isCurrent ? `1px solid ${GREEN}44` : "none",
-                      opacity: checkoutLoading ? 0.6 : 1 }}>
-                    {isCurrent ? "\u2713 Current Plan" : checkoutLoading ? "Redirecting..." : "Subscribe"}
-                  </button>
+                  {p.noBilling ? (
+                    <div style={{ width: "100%", marginTop: 14, padding: "10px 0", borderRadius: 6, fontWeight: 700, fontSize: 12, textAlign: "center",
+                      background: isCurrent ? `${GREEN}22` : "transparent", color: isCurrent ? GREEN : MUTED,
+                      border: `1px solid ${isCurrent ? GREEN + "44" : BORDER}` }}>
+                      {isCurrent ? "\u2713 Current Plan" : "Free Forever"}
+                    </div>
+                  ) : (
+                    <button onClick={() => handleCheckout(p.id)} disabled={checkoutLoading || isCurrent}
+                      style={{ width: "100%", marginTop: 14, padding: "10px 0", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: isCurrent ? "default" : checkoutLoading ? "wait" : "pointer",
+                        background: isCurrent ? `${GREEN}22` : WHITE, color: isCurrent ? GREEN : BLACK,
+                        border: isCurrent ? `1px solid ${GREEN}44` : "none",
+                        opacity: checkoutLoading ? 0.6 : 1 }}>
+                      {isCurrent ? "\u2713 Current Plan" : checkoutLoading ? "Redirecting..." : "Subscribe"}
+                    </button>
+                  )}
                 </div>
               );
             })}

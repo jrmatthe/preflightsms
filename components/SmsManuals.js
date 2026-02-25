@@ -391,6 +391,40 @@ function SignaturePad({ existingSignature, onSave }) {
 }
 
 // ══════════════════════════════════════════════════════
+// READ-ONLY SECTION VIEWER (Free tier)
+// ══════════════════════════════════════════════════════
+
+function ReadOnlySection({ section }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div style={{ ...card, marginBottom: 6, overflow: "hidden" }}>
+      <div onClick={() => setExpanded(!expanded)}
+        style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: expanded ? "rgba(255,255,255,0.02)" : "transparent" }}>
+        <span style={{ fontSize: 14, color: MUTED, fontWeight: 700, width: 20, textAlign: "center" }}>{"\u25CB"}</span>
+        <div style={{ flex: 1 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{section.title}</span>
+          <span style={{ fontSize: 10, color: CYAN, marginLeft: 8 }}>{section.cfr_ref}</span>
+        </div>
+        <span style={{ fontSize: 12, color: MUTED }}>{expanded ? "\u25B4" : "\u25BE"}</span>
+      </div>
+      {expanded && (
+        <div style={{ padding: "0 16px 16px 46px" }}>
+          {section.guidance && (
+            <div style={{ padding: "10px 14px", borderRadius: 6, background: NEAR_BLACK, marginBottom: 12 }}>
+              <div style={{ fontSize: 9, color: CYAN, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>FAA Guidance</div>
+              <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{section.guidance}</div>
+            </div>
+          )}
+          <div style={{ padding: "12px 16px", borderRadius: 6, background: NEAR_BLACK, border: `1px solid ${BORDER}`, whiteSpace: "pre-wrap", fontSize: 12, color: OFF_WHITE, lineHeight: 1.6 }}>
+            {section.content || "(Template content — upgrade to customize)"}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
 // 14 CFR PART 5 SMS MANUAL TEMPLATES
 // ══════════════════════════════════════════════════════
 
@@ -774,26 +808,45 @@ function ManualEditor({ manual, onSave, onBack, templateVariables, signatures, o
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function SmsManuals({ profile, session, smsManuals, onSaveManual, onInitManuals, templateVariables, signatures, onSaveVariables, onSaveSignature, fleetAircraft, embedded }) {
+export default function SmsManuals({ profile, session, smsManuals, onSaveManual, onInitManuals, templateVariables, signatures, onSaveVariables, onSaveSignature, fleetAircraft, embedded, readOnly }) {
   const [selectedManual, setSelectedManual] = useState(null);
   const [initializing, setInitializing] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // For free tier read-only mode: use templates as virtual manuals when none exist in DB
+  const displayManuals = useMemo(() => {
+    if (readOnly && smsManuals.length === 0) {
+      return SMS_MANUAL_TEMPLATES.map(t => ({
+        id: t.manualKey,
+        manual_key: t.manualKey,
+        title: t.title,
+        description: t.description,
+        cfr_references: t.cfrReferences,
+        status: "active",
+        version: "1.0",
+        sections: t.sections.map(s => ({ ...s, completed: false })),
+        _isTemplate: true,
+      }));
+    }
+    return smsManuals;
+  }, [readOnly, smsManuals]);
 
   // Stats
   const stats = useMemo(() => {
-    const total = smsManuals.length;
+    const total = displayManuals.length;
     let completed = 0, inProgress = 0, notStarted = 0;
-    smsManuals.forEach(m => {
+    displayManuals.forEach(m => {
       const secs = m.sections || [];
       const done = secs.filter(s => s.completed).length;
       if (done === secs.length && secs.length > 0) completed++;
       else if (done > 0) inProgress++;
       else notStarted++;
     });
-    const totalSections = smsManuals.reduce((n, m) => n + (m.sections || []).length, 0);
-    const completedSections = smsManuals.reduce((n, m) => n + (m.sections || []).filter(s => s.completed).length, 0);
+    const totalSections = displayManuals.reduce((n, m) => n + (m.sections || []).length, 0);
+    const completedSections = displayManuals.reduce((n, m) => n + (m.sections || []).filter(s => s.completed).length, 0);
     const overallPct = totalSections > 0 ? Math.round(completedSections / totalSections * 100) : 0;
     return { total, completed, inProgress, notStarted, totalSections, completedSections, overallPct };
-  }, [smsManuals]);
+  }, [displayManuals]);
 
   // Initialize templates
   const handleInit = async () => {
@@ -810,7 +863,140 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
     setInitializing(false);
   };
 
-  // Editor view
+  // PDF download for a single manual (read-only mode)
+  const handleDownloadPdf = async (manual) => {
+    setDownloadingPdf(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "letter" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 50;
+      const contentW = pageW - margin * 2;
+      let y = margin;
+
+      const addFooter = (pg) => {
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text("Created with PreflightSMS", pageW / 2, pageH - 25, { align: "center" });
+        doc.text(`Page ${pg}`, pageW - margin, pageH - 25, { align: "right" });
+      };
+
+      const checkPage = (needed) => {
+        if (y + needed > pageH - 50) {
+          addFooter(doc.getNumberOfPages());
+          doc.addPage();
+          y = margin;
+        }
+      };
+
+      // Title
+      doc.setFontSize(20);
+      doc.setTextColor(30);
+      doc.setFont(undefined, "bold");
+      doc.text(manual.title, margin, y);
+      y += 28;
+
+      // CFR refs
+      if (manual.cfr_references?.length) {
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.setFont(undefined, "normal");
+        doc.text(manual.cfr_references.map(r => `\u00A7 ${r}`).join("  |  "), margin, y);
+        y += 20;
+      }
+
+      // Description
+      doc.setFontSize(10);
+      doc.setTextColor(80);
+      const descLines = doc.splitTextToSize(manual.description || "", contentW);
+      doc.text(descLines, margin, y);
+      y += descLines.length * 14 + 16;
+
+      // Sections
+      const sections = manual.sections || [];
+      sections.forEach(sec => {
+        checkPage(60);
+        // Section title
+        doc.setFontSize(13);
+        doc.setTextColor(30);
+        doc.setFont(undefined, "bold");
+        doc.text(sec.title, margin, y);
+        y += 16;
+
+        if (sec.cfr_ref) {
+          doc.setFontSize(9);
+          doc.setTextColor(80);
+          doc.setFont(undefined, "normal");
+          doc.text(sec.cfr_ref, margin, y);
+          y += 14;
+        }
+
+        // Content
+        const content = sec.content || "(No content)";
+        doc.setFontSize(10);
+        doc.setTextColor(50);
+        doc.setFont(undefined, "normal");
+        const lines = doc.splitTextToSize(content, contentW);
+        lines.forEach(line => {
+          checkPage(14);
+          doc.text(line, margin, y);
+          y += 13;
+        });
+        y += 14;
+      });
+
+      addFooter(doc.getNumberOfPages());
+
+      const safeName = manual.title.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+      doc.save(`${safeName}_sms_manual.pdf`);
+    } catch (e) {
+      console.error("PDF generation failed:", e);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  // Read-only viewer
+  if (selectedManual && readOnly) {
+    const manual = displayManuals.find(m => m.id === selectedManual);
+    if (!manual) { setSelectedManual(null); return null; }
+    // Merge template content for display
+    const template = SMS_MANUAL_TEMPLATES.find(t => t.manualKey === manual.manual_key);
+    const viewSections = (manual.sections || []).map(sec => {
+      if (sec.content) return sec;
+      const tmplSec = template?.sections.find(ts => ts.id === sec.id);
+      return tmplSec?.content ? { ...sec, content: tmplSec.content } : sec;
+    });
+
+    return (
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={() => setSelectedManual(null)} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 10px", cursor: "pointer", color: MUTED, fontSize: 11 }}>&larr; Back</button>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>{manual.title}</div>
+              <div style={{ fontSize: 11, color: MUTED }}>{manual.cfr_references?.map(r => `\u00A7 ${r}`).join(", ")}</div>
+            </div>
+          </div>
+          <button onClick={() => handleDownloadPdf({ ...manual, sections: viewSections })} disabled={downloadingPdf}
+            style={{ padding: "8px 16px", background: CYAN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: downloadingPdf ? "default" : "pointer", opacity: downloadingPdf ? 0.5 : 1, display: "flex", alignItems: "center", gap: 6 }}>
+            {downloadingPdf ? "Generating..." : "Download PDF"}
+          </button>
+        </div>
+
+        <div style={{ ...card, padding: "10px 16px", marginBottom: 16, background: `${CYAN}08`, border: `1px solid ${CYAN}22` }}>
+          <div style={{ fontSize: 11, color: CYAN }}>Read-only preview — upgrade to edit and customize this manual for your operation.</div>
+        </div>
+
+        {viewSections.map(sec => (
+          <ReadOnlySection key={sec.id} section={sec} />
+        ))}
+      </div>
+    );
+  }
+
+  // Editor view (normal mode)
   if (selectedManual) {
     const manual = smsManuals.find(m => m.id === selectedManual);
     if (!manual) { setSelectedManual(null); return null; }
@@ -826,8 +1012,8 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
     );
   }
 
-  // Empty state
-  if (smsManuals.length === 0) {
+  // Empty state (only for non-read-only; read-only uses displayManuals with templates)
+  if (displayManuals.length === 0) {
     return (
       <div style={{ maxWidth: 600, margin: "60px auto", textAlign: "center" }}>
         <div style={{ ...card, padding: 40 }}>
@@ -850,7 +1036,7 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
 
   // Manual list view
   const listContent = (<>
-      {!embedded && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+      {!embedded && !readOnly && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>SMS Manuals</div>
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR Part 5 SMS Documentation Templates</div>
@@ -860,15 +1046,24 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
           {initializing ? "Reloading..." : "Reload Template Defaults"}
         </button>
       </div>}
-      {embedded && <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+      {!embedded && readOnly && <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>SMS Manuals</div>
+        <div style={{ fontSize: 11, color: MUTED }}>14 CFR Part 5 SMS Documentation — Read-Only Preview</div>
+      </div>}
+      {embedded && !readOnly && <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
         <button onClick={handleResetToDefaults} disabled={initializing}
           style={{ padding: "8px 16px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
           {initializing ? "Reloading..." : "Reload Template Defaults"}
         </button>
       </div>}
 
-      {/* Template Variables */}
-      <TemplateVariablesForm variables={templateVariables} fleetAircraft={fleetAircraft} onSave={async (vars) => {
+      {/* Read-only banner */}
+      {readOnly && <div style={{ ...card, padding: "10px 16px", marginBottom: 16, background: `${CYAN}08`, border: `1px solid ${CYAN}22` }}>
+        <div style={{ fontSize: 11, color: CYAN }}>Free plan — view and download these pre-filled SMS manual templates. Upgrade to edit and customize them for your operation.</div>
+      </div>}
+
+      {/* Template Variables (hidden in read-only mode) */}
+      {!readOnly && <TemplateVariablesForm variables={templateVariables} fleetAircraft={fleetAircraft} onSave={async (vars) => {
         // Merge template content into empty DB sections so variable replacement works
         const mergedManuals = smsManuals.map(m => {
           const template = SMS_MANUAL_TEMPLATES.find(t => t.manualKey === m.manual_key);
@@ -881,16 +1076,19 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
           return { ...m, sections: mergedSections };
         });
         await onSaveVariables(vars, mergedManuals);
-      }} />
+      }} />}
 
       {/* Summary stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
-        {[
+      <div style={{ display: "grid", gridTemplateColumns: readOnly ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+        {(readOnly ? [
+          { label: "Total Manuals", value: stats.total },
+          { label: "Total Sections", value: stats.totalSections },
+        ] : [
           { label: "Total Manuals", value: stats.total },
           { label: "Completed", value: stats.completed, dot: GREEN },
           { label: "In Progress", value: stats.inProgress, dot: YELLOW },
           { label: "Not Started", value: stats.notStarted, dot: MUTED },
-        ].map(s => (
+        ]).map(s => (
           <div key={s.label} style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{s.value}</div>
             <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
@@ -901,8 +1099,8 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
         ))}
       </div>
 
-      {/* Overall progress */}
-      <div style={{ ...card, padding: "12px 16px", marginBottom: 16 }}>
+      {/* Overall progress (hidden in read-only) */}
+      {!readOnly && <div style={{ ...card, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
           <span style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Overall Completion</span>
           <span style={{ fontSize: 11, color: WHITE, fontWeight: 700 }}>{stats.overallPct}% ({stats.completedSections}/{stats.totalSections} sections)</span>
@@ -910,15 +1108,15 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
         <div style={{ height: 8, background: NEAR_BLACK, borderRadius: 4, overflow: "hidden" }}>
           <div style={{ width: `${stats.overallPct}%`, height: "100%", background: stats.overallPct === 100 ? GREEN : CYAN, borderRadius: 4, transition: "width 0.3s" }} />
         </div>
-      </div>
+      </div>}
 
       {/* Manual cards */}
-      {smsManuals.map(m => {
+      {displayManuals.map(m => {
         const secs = m.sections || [];
         const done = secs.filter(s => s.completed).length;
         const pct = secs.length > 0 ? Math.round(done / secs.length * 100) : 0;
         const statusColor = m.status === "active" ? GREEN : m.status === "archived" ? MUTED : YELLOW;
-        const pctColor = pct === 100 ? GREEN : pct > 0 ? CYAN : MUTED;
+        const pctColor = readOnly ? CYAN : (pct === 100 ? GREEN : pct > 0 ? CYAN : MUTED);
 
         return (
           <div key={m.id} onClick={() => setSelectedManual(m.id)}
@@ -927,8 +1125,11 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{m.title}</span>
-                  <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{m.status}</span>
-                  <span style={{ background: BORDER, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{m.version}</span>
+                  {!readOnly && <>
+                    <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{m.status}</span>
+                    <span style={{ background: BORDER, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{m.version}</span>
+                  </>}
+                  {readOnly && <span style={{ background: `${CYAN}15`, color: CYAN, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 600 }}>Preview</span>}
                 </div>
                 <div style={{ fontSize: 11, color: MUTED, marginBottom: 6 }}>{m.description}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -937,13 +1138,17 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
                   ))}
                 </div>
               </div>
-              <div style={{ textAlign: "center", minWidth: 70 }}>
+              {!readOnly && <div style={{ textAlign: "center", minWidth: 70 }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: pctColor, fontFamily: "Georgia,serif" }}>{pct}%</div>
                 <div style={{ fontSize: 9, color: MUTED }}>{done}/{secs.length} sections</div>
                 <div style={{ width: 60, height: 4, background: NEAR_BLACK, borderRadius: 2, overflow: "hidden", marginTop: 4 }}>
                   <div style={{ width: `${pct}%`, height: "100%", background: pctColor, borderRadius: 2 }} />
                 </div>
-              </div>
+              </div>}
+              {readOnly && <div style={{ textAlign: "center", minWidth: 60 }}>
+                <div style={{ fontSize: 11, color: MUTED }}>{secs.length} sections</div>
+                <div style={{ fontSize: 9, color: CYAN, marginTop: 2 }}>View &rarr;</div>
+              </div>}
             </div>
           </div>
         );
@@ -951,9 +1156,9 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
 
       <div style={{ marginTop: 16, padding: "12px 16px", ...card, background: NEAR_BLACK }}>
         <div style={{ fontSize: 9, color: MUTED, lineHeight: 1.6 }}>
-          These manuals provide customizable templates aligned with 14 CFR Part 5 SMS requirements for Part 135 operators.
-          Complete each section with your organization's specific procedures, policies, and documentation.
-          Completed manuals are automatically reflected in the FAA Part 5 Audit Log compliance checks.
+          {readOnly
+            ? "These are pre-filled SMS manual templates aligned with 14 CFR Part 5 requirements. Upgrade to a paid plan to edit and customize them for your operation."
+            : "These manuals provide customizable templates aligned with 14 CFR Part 5 SMS requirements for Part 135 operators. Complete each section with your organization's specific procedures, policies, and documentation. Completed manuals are automatically reflected in the FAA Part 5 Audit Log compliance checks."}
         </div>
       </div>
   </>);
