@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchPilotEngagement, fetchOrgEngagement, upsertEngagementMetric, fetchSafetyRecognitions, fetchOrgRecognitions, awardRecognition, acknowledgeRecognition } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -21,6 +21,8 @@ const SafetyPerformanceIndicators = dynamic(() => import("../components/SafetyPe
 const InternalEvaluation = dynamic(() => import("../components/InternalEvaluation"), { ssr: false });
 const ManagementOfChange = dynamic(() => import("../components/ManagementOfChange"), { ssr: false });
 const SafetyCultureSurvey = dynamic(() => import("../components/SafetyCultureSurvey"), { ssr: false });
+const PilotEngagement = dynamic(() => import("../components/PilotEngagement").then(m => ({ default: m.PilotEngagementCard })), { ssr: false });
+const TeamEngagement = dynamic(() => import("../components/PilotEngagement").then(m => ({ default: m.TeamEngagementWidget })), { ssr: false });
 
 const COMPANY_NAME = "PreflightSMS";
 const ADMIN_PASSWORD = "admin2026";
@@ -2087,11 +2089,13 @@ function ExportView({ records, orgName }) {
           <div style={{ fontSize: 11, color: MUTED }}><strong style={{ color: OFF_WHITE }}>§5.97 Recordkeeping:</strong> SRM records must be retained as long as controls remain relevant. Current records: <strong style={{ color: WHITE }}>{records.length}</strong></div></div></div></div>);
 }
 
-function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills, profile, session, spis, spiMeasurements, onCreateSpi, onUpdateSpi, onDeleteSpi, onLoadTargets, onCreateTarget, onUpdateTarget, onDeleteTarget, onLoadMeasurements, onCreateMeasurement, onInitSpiDefaults, cultureSurveys, orgProfiles, onCreateSurvey, onUpdateSurvey, onDeleteSurvey, onFetchSurveyResponses, onSubmitSurveyResponse, onCheckUserSurveyResponse, onFetchSurveyResults, onUpsertSurveyResults, trendAlerts, onAcknowledgeTrendAlert }) {
+function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills, profile, session, spis, spiMeasurements, onCreateSpi, onUpdateSpi, onDeleteSpi, onLoadTargets, onCreateTarget, onUpdateTarget, onDeleteTarget, onLoadMeasurements, onCreateMeasurement, onInitSpiDefaults, cultureSurveys, orgProfiles, onCreateSurvey, onUpdateSurvey, onDeleteSurvey, onFetchSurveyResponses, onSubmitSurveyResponse, onCheckUserSurveyResponse, onFetchSurveyResults, onUpsertSurveyResults, trendAlerts, onAcknowledgeTrendAlert, pilotEngagement, safetyRecognitions, orgEngagement, orgRecognitions, onAcknowledgeRecognition }) {
   const [sub, setSub] = useState("analytics");
   const hasAnalytics = hasFeature(org, "dashboard_analytics");
   const hasSpi = hasFeature(org, "dashboard_analytics"); // SPIs require Professional+ (same gate as analytics)
   const hasCulture = hasFeature(org, "safety_culture_survey");
+  const gamificationOn = org?.gamification_enabled !== false;
+  const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -2100,6 +2104,18 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
           <div style={{ fontSize: 11, color: MUTED }}>Safety analytics, trends, and compliance status</div>
         </div>
       </div>
+      {/* Pilot Engagement Card */}
+      {gamificationOn && (
+        <div style={{ marginBottom: 16 }}>
+          <PilotEngagement engagement={pilotEngagement} recognitions={safetyRecognitions} onAcknowledge={onAcknowledgeRecognition} />
+        </div>
+      )}
+      {/* Team Engagement Widget (admin only) */}
+      {gamificationOn && isAdmin && (
+        <div style={{ marginBottom: 16 }}>
+          <TeamEngagement orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} orgProfiles={orgProfiles} records={records} reports={reports} />
+        </div>
+      )}
       <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
         {[["analytics", "Overview"], ...(hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ["history", "FRAT History"], ["export", "Export"]].map(([id, label]) => (
           <button key={id} onClick={() => setSub(id)}
@@ -3075,6 +3091,10 @@ export default function PVTAIRFrat() {
   const [declarations, setDeclarations] = useState([]);
   const [mocItems, setMocItems] = useState([]);
   const [cultureSurveys, setCultureSurveys] = useState([]);
+  const [pilotEngagement, setPilotEngagement] = useState([]);
+  const [orgEngagement, setOrgEngagement] = useState([]);
+  const [safetyRecognitions, setSafetyRecognitions] = useState([]);
+  const [orgRecognitions, setOrgRecognitions] = useState([]);
   const [selectedFfFlight, setSelectedFfFlight] = useState(null);
   const [reportPrefill, setReportPrefill] = useState(null);
 
@@ -3208,6 +3228,13 @@ export default function PVTAIRFrat() {
     fetchDeclarations(orgId).then(({ data }) => setDeclarations(data || []));
     fetchMocItems(orgId).then(({ data }) => setMocItems(data || []));
     fetchCultureSurveys(orgId).then(({ data }) => setCultureSurveys(data || []));
+    // Engagement data
+    if (session?.user?.id) {
+      fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
+      fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || []));
+    }
+    fetchOrgEngagement(orgId).then(({ data }) => setOrgEngagement(data || []));
+    fetchOrgRecognitions(orgId).then(({ data }) => setOrgRecognitions(data || []));
   };
 
   // ── Load data from Supabase when profile is available ──
@@ -3318,6 +3345,117 @@ export default function PVTAIRFrat() {
   // ── localStorage helpers (offline mode only) ──
   const saveLocal = useCallback(nr => { setRecords(nr); try { localStorage.setItem("pvtair_frat_records", JSON.stringify(nr)); } catch (e) {} }, []);
   const saveFlightsLocal = useCallback(nf => { setFlights(nf); try { localStorage.setItem("pvtair_flights", JSON.stringify(nf)); } catch (e) {} }, []);
+
+  // ── Engagement helpers ──
+  const gamificationOn = org?.gamification_enabled !== false; // default true
+  const updateEngagement = useCallback(async (metricType, newValue, bestValue) => {
+    if (!profile || !session?.user?.id || !gamificationOn) return;
+    await upsertEngagementMetric(session.user.id, profile.org_id, metricType, newValue, bestValue);
+    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
+    fetchOrgEngagement(profile.org_id).then(({ data }) => setOrgEngagement(data || []));
+  }, [profile, session, gamificationOn]);
+
+  const checkAndAwardRecognition = useCallback(async (recognitionType, title, description) => {
+    if (!profile || !session?.user?.id || !gamificationOn) return;
+    // Check if already awarded (except training_100pct which can re-award quarterly)
+    const existing = safetyRecognitions.find(r => r.recognition_type === recognitionType);
+    if (existing && recognitionType !== "training_100pct") return;
+    if (recognitionType === "training_100pct" && existing) {
+      const lastAwarded = new Date(existing.awarded_at);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      if (lastAwarded > threeMonthsAgo) return;
+    }
+    const { data: rec } = await awardRecognition(profile.org_id, session.user.id, recognitionType, title, description);
+    if (rec) {
+      createNotification(profile.org_id, {
+        type: "engagement_milestone",
+        title: `Recognition Earned: ${title}`,
+        body: `You earned "${title}"! Keep it up.`,
+        link_tab: "dashboard",
+        target_user_id: session.user.id,
+      });
+      fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || []));
+      fetchOrgRecognitions(profile.org_id).then(({ data }) => setOrgRecognitions(data || []));
+    }
+  }, [profile, session, safetyRecognitions, gamificationOn]);
+
+  const updateFratEngagement = useCallback(async () => {
+    if (!profile || !session?.user?.id || !gamificationOn) return;
+    // Get current engagement
+    const { data: metrics } = await fetchPilotEngagement(session.user.id);
+    const streakMetric = (metrics || []).find(m => m.metric_type === "frat_streak");
+    const totalMetric = (metrics || []).find(m => m.metric_type === "total_frats");
+
+    // Total FRATs
+    const newTotal = (totalMetric?.current_value || 0) + 1;
+    await upsertEngagementMetric(session.user.id, profile.org_id, "total_frats", newTotal, Math.max(newTotal, totalMetric?.best_value || 0));
+
+    // Streak: check if last FRAT was yesterday or today
+    const lastActivity = streakMetric?.last_activity_at ? new Date(streakMetric.last_activity_at) : null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    let newStreak = 1;
+    if (lastActivity) {
+      const lastDay = new Date(lastActivity); lastDay.setHours(0, 0, 0, 0);
+      if (lastDay.getTime() === today.getTime()) {
+        newStreak = streakMetric.current_value; // same day, keep streak
+      } else if (lastDay.getTime() === yesterday.getTime()) {
+        newStreak = (streakMetric.current_value || 0) + 1; // consecutive day
+      }
+      // else streak broken, reset to 1
+    }
+    const bestStreak = Math.max(newStreak, streakMetric?.best_value || 0);
+    await upsertEngagementMetric(session.user.id, profile.org_id, "frat_streak", newStreak, bestStreak);
+
+    // Refresh engagement state
+    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
+    fetchOrgEngagement(profile.org_id).then(({ data }) => setOrgEngagement(data || []));
+
+    // Check streak recognitions
+    if (newStreak >= 7) checkAndAwardRecognition("frat_streak_7", "7-Day FRAT Streak", "Submitted a FRAT every day for 7 consecutive days");
+    if (newStreak >= 30) checkAndAwardRecognition("frat_streak_30", "30-Day FRAT Streak", "Submitted a FRAT every day for 30 consecutive days");
+    if (newStreak >= 90) checkAndAwardRecognition("frat_streak_90", "90-Day FRAT Streak", "Submitted a FRAT every day for 90 consecutive days");
+  }, [profile, session, gamificationOn, checkAndAwardRecognition]);
+
+  const updateReportEngagement = useCallback(async () => {
+    if (!profile || !session?.user?.id || !gamificationOn) return;
+    const { data: metrics } = await fetchPilotEngagement(session.user.id);
+    const reportMetric = (metrics || []).find(m => m.metric_type === "reports_submitted");
+    const newCount = (reportMetric?.current_value || 0) + 1;
+    await upsertEngagementMetric(session.user.id, profile.org_id, "reports_submitted", newCount, Math.max(newCount, reportMetric?.best_value || 0));
+    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
+    fetchOrgEngagement(profile.org_id).then(({ data }) => setOrgEngagement(data || []));
+    // Check recognitions
+    if (newCount === 1) checkAndAwardRecognition("first_report", "First Safety Report", "Submitted your first safety report");
+    if (newCount >= 5) checkAndAwardRecognition("report_milestone_5", "5 Safety Reports", "Submitted 5 safety reports");
+    if (newCount >= 10) checkAndAwardRecognition("report_milestone_10", "10 Safety Reports", "Submitted 10 safety reports");
+  }, [profile, session, gamificationOn, checkAndAwardRecognition]);
+
+  const updateTrainingEngagement = useCallback(async () => {
+    if (!profile || !session?.user?.id || !gamificationOn) return;
+    // Check if all required training is current
+    const userEnrollments = (cbtEnrollments || []).filter(e => e.user_id === session.user.id);
+    const userProgress = (cbtProgress || []).filter(p => p.user_id === session.user.id);
+    const requiredCourses = (cbtCourses || []).filter(c => c.is_required);
+    const allComplete = requiredCourses.length > 0 && requiredCourses.every(c => {
+      const prog = userProgress.find(p => p.course_id === c.id);
+      return prog && prog.completed_at;
+    });
+    const trainingVal = allComplete ? 1 : 0;
+    await upsertEngagementMetric(session.user.id, profile.org_id, "training_current", trainingVal, trainingVal);
+    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
+    if (allComplete) checkAndAwardRecognition("training_100pct", "Training 100% Current", "All required training courses completed");
+  }, [profile, session, gamificationOn, cbtCourses, cbtProgress, cbtEnrollments, checkAndAwardRecognition]);
+
+  const updatePolicyEngagement = useCallback(async () => {
+    if (!profile || !session?.user?.id || !gamificationOn) return;
+    const { data: metrics } = await fetchPilotEngagement(session.user.id);
+    const policyMetric = (metrics || []).find(m => m.metric_type === "policy_ack");
+    const newCount = (policyMetric?.current_value || 0) + 1;
+    await upsertEngagementMetric(session.user.id, profile.org_id, "policy_ack", newCount, Math.max(newCount, policyMetric?.best_value || 0));
+    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
+  }, [profile, session, gamificationOn]);
 
   // ── Submit FRAT ──
   const onSubmit = useCallback(async entry => {
@@ -3454,8 +3592,10 @@ export default function PVTAIRFrat() {
       const flight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsBlock ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null };
       const nf = [flight, ...flights]; saveFlightsLocal(nf);
     }
+    // Update engagement metrics
+    updateFratEngagement().catch(e => console.error("Engagement update error:", e));
     setToast({ message: toastMsg, level: getRiskLevel(entry.score, riskLevels) }); setTimeout(() => setToast(null), 4000);
-  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, foreflightConfig]);
+  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, foreflightConfig, updateFratEngagement]);
 
   // ── Update flight status ──
   const onUpdateFlight = useCallback(async (id, action) => {
@@ -3610,9 +3750,10 @@ export default function PVTAIRFrat() {
       const { data } = await fetchReports(profile.org_id);
       setReports(data || []);
       createNotification(profile.org_id, { type: "report_submitted", title: "New Safety Report", body: `${profile.full_name} submitted a safety report`, link_tab: "reports", target_roles: ["admin", "safety_manager"] });
+      updateReportEngagement().catch(e => console.error("Engagement update error:", e));
       setToast({ message: `${report.reportCode} submitted`, level: { bg: "rgba(34,211,238,0.15)", border: "rgba(34,211,238,0.4)", color: "#22D3EE" } }); setTimeout(() => setToast(null), 4000);
     }
-  }, [profile, session, isOnline]);
+  }, [profile, session, isOnline, updateReportEngagement]);
 
   // ── Update Report Status ──
   const STATUS_LABELS = { open: "Open", under_review: "Under Review", investigation: "Investigation", corrective_action: "Corrective Action", closed: "Closed" };
@@ -3782,8 +3923,9 @@ export default function PVTAIRFrat() {
       await acknowledgePolicy(profile.org_id, policyId, session.user.id);
       const { data } = await fetchPolicies(profile.org_id);
       setPolicies(data || []);
+      updatePolicyEngagement().catch(e => console.error("Engagement update error:", e));
     }
-  }, [profile, session, isOnline]);
+  }, [profile, session, isOnline, updatePolicyEngagement]);
 
   // ── Training ──
   const onCreateRequirement = useCallback(async (req) => {
@@ -3801,9 +3943,10 @@ export default function PVTAIRFrat() {
       if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchTrainingRecords(profile.org_id);
       setTrainingRecs(data || []);
+      updateTrainingEngagement().catch(e => console.error("Engagement update error:", e));
       setToast({ message: "Training logged", level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: "#4ADE80" } }); setTimeout(() => setToast(null), 3000);
     }
-  }, [profile, session, isOnline]);
+  }, [profile, session, isOnline, updateTrainingEngagement]);
 
   const onDeleteTrainingRecord = useCallback(async (id) => {
     if (isOnline && profile) {
@@ -4147,7 +4290,7 @@ export default function PVTAIRFrat() {
         {cv === "cbt" && <CbtModules tourTab={tourSubTabs.cbt} profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
         {cv === "audit" && <FaaAuditLog frats={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} profiles={orgProfiles} trainingRecords={trainingRecs} org={profile?.organizations} smsManuals={smsManuals} declarations={declarations} session={session} onSaveDeclaration={async (data) => { const { data: newDecl } = await createDeclaration(profile.org_id, data); fetchDeclarations(profile.org_id).then(({ data: d }) => setDeclarations(d || [])); return { data: newDecl }; }} onUpdateDeclaration={async (id, updates) => { await updateDeclaration(id, updates); fetchDeclarations(profile.org_id).then(({ data: d }) => setDeclarations(d || [])); }} onUploadPdf={uploadDeclarationPdf} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
-        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} />}
+        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} pilotEngagement={pilotEngagement} safetyRecognitions={safetyRecognitions} orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} onAcknowledgeRecognition={async (recId) => { await acknowledgeRecognition(recId); if (session?.user?.id) fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || [])); }} />}
         {cv === "admin" && (isAuthed || isOnline) && <AdminPanel tourTab={tourSubTabs.admin} profile={profile} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
           if (!orgId) return;

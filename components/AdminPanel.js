@@ -642,6 +642,28 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
           </div>
         )}
       </div>
+
+      {/* Pilot Engagement Settings */}
+      {canManage && (
+        <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>Pilot Engagement</div>
+          {[
+            { label: "Enable Pilot Engagement", desc: "Show FRAT streaks, recognitions, and team engagement metrics on the dashboard", key: "gamification_enabled", val: orgData?.gamification_enabled !== false },
+            { label: "Monthly Engagement Email", desc: "Send each pilot a monthly safety summary with their stats, streak, and recognitions", key: "monthly_engagement_email", val: orgData?.monthly_engagement_email === true },
+          ].map(t => (
+            <div key={t.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{t.label}</div>
+                <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{t.desc}</div>
+              </div>
+              <button onClick={() => onUpdateOrg({ [t.key]: !t.val })}
+                style={{ width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: t.val ? GREEN : BORDER, transition: "background 0.2s", flexShrink: 0, marginLeft: 12 }}>
+                <div style={{ width: 16, height: 16, borderRadius: 8, background: WHITE, position: "absolute", top: 3, left: t.val ? 21 : 3, transition: "left 0.2s" }} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       </>)}
 
       {/* Users & Invitations */}
