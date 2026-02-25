@@ -2215,7 +2215,7 @@ function LandingPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: DARK, color: WHITE, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <Head><title>PreflightSMS — Safety Management System for Part 135 Operators</title><meta name="description" content="FAA Part 5 compliant SMS for Part 135 operators. FRAT, flight following, hazard reporting, corrective actions, and audit compliance." /></Head>
+      <Head><title>PreflightSMS — Safety Management System for Part 135 Operators</title><meta name="description" content="FAA Part 5 compliant SMS for Part 135 operators. FRAT, flight following, hazard reporting, corrective actions, and audit compliance." /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" /></Head>
 
       {/* Nav */}
       <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, background: DARK, zIndex: 100 }}>
