@@ -548,7 +548,361 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow }) {
+// ── API & WEBHOOK MANAGEMENT ─────────────────────────────────
+function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook, orgData }) {
+  const tier = orgData?.tier || "starter";
+  const ff = orgData?.feature_flags || {};
+  const apiAccessLevel = ff.api_access !== undefined ? ff.api_access : (tier === "enterprise" ? true : tier === "professional" ? "read_only" : false);
+  const isReadOnly = apiAccessLevel === "read_only";
+
+  const [showCreateKey, setShowCreateKey] = useState(false);
+  const [keyName, setKeyName] = useState("");
+  const [keyPerms, setKeyPerms] = useState(["frats:read", "reports:read", "fleet:read", "users:read", "training:read"]);
+  const [keyExpiry, setKeyExpiry] = useState("");
+  const [createdKey, setCreatedKey] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+
+  const [showCreateWh, setShowCreateWh] = useState(false);
+  const [whUrl, setWhUrl] = useState("");
+  const [whEvents, setWhEvents] = useState([]);
+  const [whDesc, setWhDesc] = useState("");
+  const [createdSecret, setCreatedSecret] = useState(null);
+  const [creatingWh, setCreatingWh] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
+  const [testing, setTesting] = useState(null);
+  const [testResults, setTestResults] = useState({});
+  const [confirmRevoke, setConfirmRevoke] = useState(null);
+  const [confirmDeleteWh, setConfirmDeleteWh] = useState(null);
+
+  const API_PERMS = [
+    { id: "frats:read", label: "FRATs (Read)" },
+    { id: "frats:write", label: "FRATs (Write)", writeOnly: true },
+    { id: "reports:read", label: "Reports (Read)" },
+    { id: "reports:write", label: "Reports (Write)", writeOnly: true },
+    { id: "fleet:read", label: "Fleet (Read)" },
+    { id: "users:read", label: "Users (Read)" },
+    { id: "training:read", label: "Training (Read)" },
+  ];
+
+  const EVENTS = [
+    { id: "frat.completed", label: "FRAT Completed" },
+    { id: "report.submitted", label: "Report Submitted" },
+    { id: "flight.overdue", label: "Flight Overdue" },
+    { id: "action.overdue", label: "Action Overdue" },
+  ];
+
+  const handleCreateKey = async () => {
+    if (!keyName.trim()) return;
+    setCreating(true);
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    const rawKey = "pflt_" + Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(rawKey));
+    const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+    const keyData = { name: keyName.trim(), key_hash: keyHash, key_prefix: rawKey.substring(0, 8), permissions: keyPerms };
+    if (keyExpiry) keyData.expires_at = new Date(keyExpiry).toISOString();
+    await onCreateApiKey(keyData);
+    setCreatedKey(rawKey);
+    setCreating(false);
+  };
+
+  const dismissKeyModal = () => {
+    setCreatedKey(null);
+    setCopiedKey(false);
+    setShowCreateKey(false);
+    setKeyName("");
+    setKeyPerms(["frats:read", "reports:read", "fleet:read", "users:read", "training:read"]);
+    setKeyExpiry("");
+  };
+
+  const handleCreateWebhook = async () => {
+    if (!whUrl.trim() || whEvents.length === 0) return;
+    setCreatingWh(true);
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const secret = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+    await onCreateWebhook({ url: whUrl.trim(), events: whEvents, secret, description: whDesc.trim() || null });
+    setCreatedSecret(secret);
+    setCreatingWh(false);
+  };
+
+  const dismissSecretModal = () => {
+    setCreatedSecret(null);
+    setCopiedSecret(false);
+    setShowCreateWh(false);
+    setWhUrl("");
+    setWhEvents([]);
+    setWhDesc("");
+  };
+
+  const handleTest = async (whId) => {
+    setTesting(whId);
+    setTestResults(prev => ({ ...prev, [whId]: null }));
+    const result = await onTestWebhook(whId);
+    setTestResults(prev => ({ ...prev, [whId]: result }));
+    setTesting(null);
+  };
+
+  const togglePerm = (permId) => {
+    setKeyPerms(prev => prev.includes(permId) ? prev.filter(p => p !== permId) : [...prev, permId]);
+  };
+
+  const toggleEvent = (eventId) => {
+    setWhEvents(prev => prev.includes(eventId) ? prev.filter(e => e !== eventId) : [...prev, eventId]);
+  };
+
+  const copyText = (text, setCopiedFn) => {
+    navigator.clipboard.writeText(text);
+    setCopiedFn(true);
+    setTimeout(() => setCopiedFn(false), 3000);
+  };
+
+  const relTime = (dateStr) => {
+    if (!dateStr) return "Never";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
+
+  return (
+    <div>
+      {isReadOnly && (
+        <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 11, fontWeight: 600, marginBottom: 16 }}>
+          Professional plan — read-only API access. Upgrade to Enterprise for write permissions.
+        </div>
+      )}
+
+      {/* ── API Keys ── */}
+      <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>API Keys</div>
+          {!showCreateKey && !createdKey && (
+            <button onClick={() => setShowCreateKey(true)} style={{ padding: "6px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Create API Key</button>
+          )}
+        </div>
+
+        {showCreateKey && !createdKey && (
+          <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 16, marginBottom: 14 }}>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Key Name</label>
+              <input value={keyName} onChange={e => setKeyName(e.target.value)} placeholder="e.g., Production Integration" style={{ ...inp }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Permissions</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {API_PERMS.map(p => {
+                  const disabled = isReadOnly && p.writeOnly;
+                  const checked = keyPerms.includes(p.id);
+                  return (
+                    <button key={p.id} onClick={() => !disabled && togglePerm(p.id)} disabled={disabled} title={disabled ? "Write permissions require Enterprise plan" : ""}
+                      style={{ padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer",
+                        background: checked ? `${GREEN}22` : "transparent", color: checked ? GREEN : disabled ? BORDER : MUTED,
+                        border: `1px solid ${checked ? GREEN + "44" : BORDER}`, opacity: disabled ? 0.4 : 1 }}>
+                      {checked ? "\u2713 " : ""}{p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Expiration (Optional)</label>
+              <input type="date" value={keyExpiry} onChange={e => setKeyExpiry(e.target.value)} style={{ ...inp, width: 200 }} />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleCreateKey} disabled={creating || !keyName.trim()}
+                style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: creating ? "wait" : "pointer", opacity: creating || !keyName.trim() ? 0.6 : 1 }}>
+                {creating ? "Creating..." : "Create Key"}</button>
+              <button onClick={() => { setShowCreateKey(false); setKeyName(""); setKeyExpiry(""); }}
+                style={{ padding: "8px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {createdKey && (
+          <div style={{ background: "rgba(74,222,128,0.06)", border: `1px solid ${GREEN}44`, borderRadius: 8, padding: 16, marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: GREEN, marginBottom: 8 }}>API Key Created</div>
+            <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 10 }}>Copy this key now. It will not be shown again.</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+              <code style={{ flex: 1, padding: "10px 12px", background: BLACK, borderRadius: 6, fontSize: 12, color: CYAN, fontFamily: "monospace", wordBreak: "break-all", border: `1px solid ${BORDER}` }}>{createdKey}</code>
+              <button onClick={() => copyText(createdKey, setCopiedKey)}
+                style={{ padding: "8px 14px", background: copiedKey ? GREEN : "transparent", color: copiedKey ? BLACK : CYAN, border: `1px solid ${copiedKey ? GREEN : CYAN}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
+                {copiedKey ? "Copied!" : "Copy"}</button>
+            </div>
+            <button onClick={dismissKeyModal}
+              style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Done</button>
+          </div>
+        )}
+
+        {apiKeys.length === 0 && !showCreateKey && !createdKey && (
+          <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 16 }}>No API keys yet. Create one to start using the API.</div>
+        )}
+        {apiKeys.map(k => (
+          <div key={k.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: k.is_active ? WHITE : MUTED }}>{k.name}</span>
+                <code style={{ fontSize: 10, color: MUTED, fontFamily: "monospace" }}>{k.key_prefix}...</code>
+                {!k.is_active && <span style={{ fontSize: 8, color: RED, background: `${RED}22`, padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>REVOKED</span>}
+              </div>
+              <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>
+                {(k.permissions || []).join(", ")} · Created {new Date(k.created_at).toLocaleDateString()} · Last used {relTime(k.last_used_at)}
+                {k.expires_at && ` · Expires ${new Date(k.expires_at).toLocaleDateString()}`}
+              </div>
+            </div>
+            {k.is_active && (
+              confirmRevoke === k.id ? (
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => { onRevokeApiKey(k.id); setConfirmRevoke(null); }}
+                    style={{ fontSize: 10, color: WHITE, background: RED, border: "none", borderRadius: 4, padding: "4px 10px", cursor: "pointer", fontWeight: 700 }}>Revoke</button>
+                  <button onClick={() => setConfirmRevoke(null)}
+                    style={{ fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 10px", cursor: "pointer" }}>Cancel</button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmRevoke(k.id)}
+                  style={{ fontSize: 10, color: RED, background: "none", border: `1px solid ${RED}44`, borderRadius: 4, padding: "4px 10px", cursor: "pointer" }}>Revoke</button>
+              )
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Webhooks ── */}
+      <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Webhooks</div>
+          {!showCreateWh && !createdSecret && (
+            <button onClick={() => setShowCreateWh(true)} style={{ padding: "6px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Webhook</button>
+          )}
+        </div>
+
+        {showCreateWh && !createdSecret && (
+          <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 16, marginBottom: 14 }}>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Endpoint URL</label>
+              <input value={whUrl} onChange={e => setWhUrl(e.target.value)} placeholder="https://your-app.com/webhooks/preflight" style={{ ...inp }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Events</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {EVENTS.map(e => {
+                  const checked = whEvents.includes(e.id);
+                  return (
+                    <button key={e.id} onClick={() => toggleEvent(e.id)}
+                      style={{ padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                        background: checked ? `${CYAN}22` : "transparent", color: checked ? CYAN : MUTED,
+                        border: `1px solid ${checked ? CYAN + "44" : BORDER}` }}>
+                      {checked ? "\u2713 " : ""}{e.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Description (Optional)</label>
+              <input value={whDesc} onChange={e => setWhDesc(e.target.value)} placeholder="e.g., Production alerting" style={{ ...inp }} />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleCreateWebhook} disabled={creatingWh || !whUrl.trim() || whEvents.length === 0}
+                style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: creatingWh ? "wait" : "pointer", opacity: creatingWh || !whUrl.trim() || whEvents.length === 0 ? 0.6 : 1 }}>
+                {creatingWh ? "Creating..." : "Create Webhook"}</button>
+              <button onClick={() => { setShowCreateWh(false); setWhUrl(""); setWhEvents([]); setWhDesc(""); }}
+                style={{ padding: "8px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {createdSecret && (
+          <div style={{ background: "rgba(74,222,128,0.06)", border: `1px solid ${GREEN}44`, borderRadius: 8, padding: 16, marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: GREEN, marginBottom: 8 }}>Webhook Created</div>
+            <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 10 }}>Copy this signing secret now. It will not be shown again. Use it to verify webhook signatures.</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+              <code style={{ flex: 1, padding: "10px 12px", background: BLACK, borderRadius: 6, fontSize: 12, color: CYAN, fontFamily: "monospace", wordBreak: "break-all", border: `1px solid ${BORDER}` }}>{createdSecret}</code>
+              <button onClick={() => copyText(createdSecret, setCopiedSecret)}
+                style={{ padding: "8px 14px", background: copiedSecret ? GREEN : "transparent", color: copiedSecret ? BLACK : CYAN, border: `1px solid ${copiedSecret ? GREEN : CYAN}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
+                {copiedSecret ? "Copied!" : "Copy"}</button>
+            </div>
+            <button onClick={dismissSecretModal}
+              style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Done</button>
+          </div>
+        )}
+
+        {webhooks.length === 0 && !showCreateWh && !createdSecret && (
+          <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 16 }}>No webhooks configured. Add one to receive event notifications.</div>
+        )}
+        {webhooks.map(wh => (
+          <div key={wh.id} style={{ padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <div style={{ width: 8, height: 8, borderRadius: 4, background: wh.is_active ? (wh.failure_count > 0 ? AMBER : GREEN) : RED, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: wh.is_active ? WHITE : MUTED, wordBreak: "break-all" }}>{wh.url}</div>
+                {wh.description && <div style={{ fontSize: 10, color: MUTED }}>{wh.description}</div>}
+              </div>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                {wh.is_active ? (
+                  <>
+                    <button onClick={() => handleTest(wh.id)} disabled={testing === wh.id}
+                      style={{ fontSize: 10, color: CYAN, background: "none", border: `1px solid ${CYAN}44`, borderRadius: 4, padding: "4px 10px", cursor: testing === wh.id ? "wait" : "pointer" }}>
+                      {testing === wh.id ? "Testing..." : "Test"}</button>
+                    {confirmDeleteWh === wh.id ? (
+                      <>
+                        <button onClick={() => { onDeleteWebhook(wh.id); setConfirmDeleteWh(null); }}
+                          style={{ fontSize: 10, color: WHITE, background: RED, border: "none", borderRadius: 4, padding: "4px 10px", cursor: "pointer", fontWeight: 700 }}>Delete</button>
+                        <button onClick={() => setConfirmDeleteWh(null)}
+                          style={{ fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 10px", cursor: "pointer" }}>Cancel</button>
+                      </>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteWh(wh.id)}
+                        style={{ fontSize: 10, color: RED, background: "none", border: `1px solid ${RED}44`, borderRadius: 4, padding: "4px 10px", cursor: "pointer" }}>Delete</button>
+                    )}
+                  </>
+                ) : (
+                  <button onClick={() => onUpdateWebhook(wh.id, { is_active: true, failure_count: 0 })}
+                    style={{ fontSize: 10, color: GREEN, background: "none", border: `1px solid ${GREEN}44`, borderRadius: 4, padding: "4px 10px", cursor: "pointer" }}>Reactivate</button>
+                )}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center", marginLeft: 18 }}>
+              {(wh.events || []).map(ev => (
+                <span key={ev} style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: `${CYAN}15`, color: CYAN, fontFamily: "monospace" }}>{ev}</span>
+              ))}
+              <span style={{ fontSize: 9, color: MUTED, marginLeft: 8 }}>
+                Last triggered: {relTime(wh.last_triggered_at)}
+                {wh.last_status_code > 0 && ` \u00B7 ${wh.last_status_code}`}
+                {wh.failure_count > 0 && <span style={{ color: wh.failure_count >= 5 ? RED : AMBER }}> · {wh.failure_count} failure{wh.failure_count !== 1 ? "s" : ""}</span>}
+                {!wh.is_active && <span style={{ color: RED }}> · Disabled (10+ failures)</span>}
+              </span>
+            </div>
+            {testResults[wh.id] !== undefined && testResults[wh.id] !== null && (
+              <div style={{ marginLeft: 18, marginTop: 6, fontSize: 10, color: testResults[wh.id]?.success ? GREEN : RED, fontWeight: 600 }}>
+                {testResults[wh.id]?.success ? `\u2713 Test successful (${testResults[wh.id]?.statusCode})` : `\u2717 Test failed: ${testResults[wh.id]?.error || "Non-2xx response"}`}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── API Documentation Link ── */}
+      <div style={{ ...card, padding: "16px 20px" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 8 }}>Documentation</div>
+        <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>
+          Full API documentation with endpoint references, authentication details, and webhook payload schemas.
+        </div>
+        <a href="/api-docs" target="_blank" rel="noopener noreferrer"
+          style={{ display: "inline-block", padding: "8px 16px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, textDecoration: "none", cursor: "pointer" }}>
+          View API Documentation \u2192
+        </a>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -584,7 +938,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Admin tabs */}
       <div className="admin-tabs" data-tour="tour-admin-tabs" style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-        {[{ id: "org", label: "Organization" }, { id: "fleet", label: "Fleet" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "integrations", label: "Integrations", feat: "foreflight_integration" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
+        {[{ id: "org", label: "Organization" }, { id: "fleet", label: "Fleet" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "integrations", label: "Integrations", feat: "foreflight_integration" }, { id: "api", label: "API & Webhooks", feat: "api_access" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
           if (!t.feat) return true;
           const flags = orgData?.feature_flags || {};
           return flags[t.feat] !== false; // Show if true or undefined
@@ -608,6 +962,10 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
 
       {activeTab === "integrations" && canManage && (
         <ForeflightIntegration config={foreflightConfig} onSave={onSaveForeflightConfig} onTestConnection={onTestForeflightConnection} onSyncNow={onForeflightSyncNow} />
+      )}
+
+      {activeTab === "api" && canManage && (
+        <ApiWebhookManagement apiKeys={apiKeys || []} webhooks={webhooks || []} onCreateApiKey={onCreateApiKey} onRevokeApiKey={onRevokeApiKey} onCreateWebhook={onCreateWebhook} onUpdateWebhook={onUpdateWebhook} onDeleteWebhook={onDeleteWebhook} onTestWebhook={onTestWebhook} orgData={orgData} />
       )}
 
       {activeTab === "org" && (<>
