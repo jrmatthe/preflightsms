@@ -113,7 +113,19 @@ export default function InternationalCompliance({
 
   // Tab button
   const tabBtn = (id, label) => (
-    <button key={id} onClick={() => { setView(id); setActiveFramework(null); setExpandedSection(null); }}
+    <button key={id} onClick={() => {
+      setView(id);
+      setExpandedSection(null);
+      if (id === "checklist") {
+        // Auto-select first active framework if none selected
+        if (!activeFramework) {
+          const first = activeFrameworks.find(f => f.framework !== "faa_part5");
+          if (first) setActiveFramework(first.framework);
+        }
+      } else {
+        setActiveFramework(null);
+      }
+    }}
       style={{ padding: "8px 20px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
         background: view === id ? "rgba(255,255,255,0.1)" : "transparent",
         border: view === id ? "1px solid rgba(255,255,255,0.2)" : "1px solid transparent",
