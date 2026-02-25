@@ -2646,7 +2646,7 @@ function InviteAcceptScreen({ token, onAuth }) {
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ ...card, padding: "32px 28px", maxWidth: 400, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 100, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
+          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 200, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} />
         </div>
 
         {step === "loading" && <div style={{ textAlign: "center", padding: 24, color: MUTED, fontSize: 13 }}>Loading invitation...</div>}
@@ -2821,7 +2821,7 @@ function AuthScreen({ onAuth, initialMode }) {
       <style>{`@media(max-width:768px){.auth-plan-grid{grid-template-columns:1fr !important}}`}</style>
       <div style={{ ...card, padding: "32px 28px", maxWidth: mode === "signup" && step === 3 ? 680 : 400, width: "100%", transition: "max-width 0.3s" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 100, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} /></div>
+          <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 200, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} /></div>
 
         {/* Mode tabs - only show on login/signup/join step 1 */}
         {(mode !== "signup" || step === 1) && mode !== "forgot" && mode !== "reset_password" && <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
