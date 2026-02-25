@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { hasFeature } from "../lib/tiers";
 const FRATTemplateEditor = dynamic(() => import("./FRATTemplateEditor"), { ssr: false });
 const FleetManagement = dynamic(() => import("./FleetManagement"), { ssr: false });
 
@@ -600,7 +599,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
 
       {/* FRAT Template Editor */}
       {activeTab === "frat" && canManage && (
-        <FRATTemplateEditor template={fratTemplate} templates={fratTemplates} onSave={handleSaveTemplate} onCreateTemplate={onCreateTemplate} onDeleteTemplate={onDeleteTemplate} onSetActive={onSetActiveTemplate} saving={savingTemplate} fleetAircraftTypes={[...new Set((fleetAircraft || []).map(a => a.type))]} enableFatigueOption={hasFeature(orgData, "fatigue_assessment")} />
+        <FRATTemplateEditor template={fratTemplate} templates={fratTemplates} onSave={handleSaveTemplate} onCreateTemplate={onCreateTemplate} onDeleteTemplate={onDeleteTemplate} onSetActive={onSetActiveTemplate} saving={savingTemplate} fleetAircraftTypes={[...new Set((fleetAircraft || []).map(a => a.type))]} />
       )}
 
       {activeTab === "fleet" && canManage && (
