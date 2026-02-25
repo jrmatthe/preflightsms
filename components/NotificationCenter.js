@@ -30,6 +30,7 @@ const TYPE_COLORS = {
   trend_alert: CYAN,
   moc_assigned: CYAN,
   moc_review_due: AMBER,
+  culture_survey_available: GREEN,
 };
 
 function timeAgo(dateStr) {
