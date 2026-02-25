@@ -1125,6 +1125,15 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     const sc = selectedScTrip;
     const etdStr = sc.etd ? new Date(sc.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
     const dateStr = sc.etd ? new Date(sc.etd).toISOString().split("T")[0] : getLocalDate();
+    let eteStr = "";
+    if (sc.etd && sc.eta) {
+      const diffMs = new Date(sc.eta).getTime() - new Date(sc.etd).getTime();
+      if (diffMs > 0) {
+        const h = Math.floor(diffMs / 3600000);
+        const m = Math.floor((diffMs % 3600000) / 60000);
+        eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
+      }
+    }
     setFi(p => ({
       ...p,
       departure: sc.departure_icao || p.departure,
@@ -1134,7 +1143,9 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       pilot: sc.pilot_name || p.pilot,
       date: dateStr,
       etd: etdStr || p.etd,
-      numPax: sc.passenger_count ? String(sc.passenger_count) : p.numPax,
+      ete: eteStr || p.ete,
+      numPax: sc.passenger_count != null ? String(sc.passenger_count) : p.numPax,
+      numCrew: p.numCrew || "1",
     }));
   }, [selectedScTrip]);
   const [attachments, setAttachments] = useState([]); // { file, preview, uploading, url }
