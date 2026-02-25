@@ -524,12 +524,13 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     erp: I(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>),
     audits: I(<><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></>),
     moc: I(<><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M16 21h5v-5"/><path d="M8 21H3v-5"/><path d="M21 21l-7-7"/><path d="M3 21l7-7"/></>),
+    asap: I(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></>),
   };
   const tabs = [
     { id: "submit", label: "FRAT", icon: icons.submit, p: false },
     { id: "flights", label: "Flight Following", icon: icons.flights, p: false },
     { id: "reports", label: "Reports", icon: icons.reports, p: false },
-    { id: "asap", label: "ASAP", icon: icons.reports, p: false },
+    { id: "asap", label: "ASAP", icon: icons.asap, p: false },
     { id: "erp", label: "ERP", icon: icons.erp, p: false },
     { id: "audits", label: "Audits", icon: icons.audits, p: false },
     { id: "moc", label: "Change Mgmt", icon: icons.moc, p: false },

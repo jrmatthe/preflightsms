@@ -137,6 +137,8 @@ export default function AsapProgram({
   const [dateRange, setDateRange] = useState(6);
   const [showCaForm, setShowCaForm] = useState(false);
   const [showMeetingForm, setShowMeetingForm] = useState(false);
+  const [newAcceptance, setNewAcceptance] = useState("");
+  const [newExclusion, setNewExclusion] = useState("");
 
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const userId = session?.user?.id;
@@ -902,9 +904,6 @@ export default function AsapProgram({
   // SETUP
   // ════════════════════════════════════════════════════════════════
   const renderSetup = () => {
-    const [newAcceptance, setNewAcceptance] = useState("");
-    const [newExclusion, setNewExclusion] = useState("");
-
     const handleSave = async () => {
       await onSaveConfig({
         program_name: configForm.program_name || "ASAP",
@@ -1029,34 +1028,28 @@ export default function AsapProgram({
     const filtered = reports.filter(r => new Date(r.created_at) >= cutoff);
 
     // Reports over time (monthly)
-    const monthlyData = useMemo(() => {
-      const months = {};
-      filtered.forEach(r => {
-        const d = new Date(r.created_at);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        months[key] = (months[key] || 0) + 1;
-      });
-      return Object.entries(months).sort().map(([k, v]) => ({ month: k, count: v }));
-    }, [filtered]);
+    const monthlyMonths = {};
+    filtered.forEach(r => {
+      const d = new Date(r.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      monthlyMonths[key] = (monthlyMonths[key] || 0) + 1;
+    });
+    const monthlyData = Object.entries(monthlyMonths).sort().map(([k, v]) => ({ month: k, count: v }));
 
     // By event type
-    const typeData = useMemo(() => {
-      const counts = {};
-      filtered.forEach(r => {
-        const label = (EVENT_TYPES.find(e => e.id === r.event_type) || {}).label || r.event_type || "Other";
-        counts[label] = (counts[label] || 0) + 1;
-      });
-      return Object.entries(counts).map(([name, value]) => ({ name, value }));
-    }, [filtered]);
+    const typeCounts = {};
+    filtered.forEach(r => {
+      const label = (EVENT_TYPES.find(e => e.id === r.event_type) || {}).label || r.event_type || "Other";
+      typeCounts[label] = (typeCounts[label] || 0) + 1;
+    });
+    const typeData = Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
 
     // By status
-    const statusData = useMemo(() => {
-      return Object.entries(STATUS_COLORS).map(([key, sc]) => ({
-        name: sc.label,
-        value: filtered.filter(r => r.status === key).length,
-        fill: sc.color,
-      })).filter(d => d.value > 0);
-    }, [filtered]);
+    const statusData = Object.entries(STATUS_COLORS).map(([key, sc]) => ({
+      name: sc.label,
+      value: filtered.filter(r => r.status === key).length,
+      fill: sc.color,
+    })).filter(d => d.value > 0);
 
     const PIE_COLORS = [ASAP_BLUE, CYAN, GREEN, AMBER, RED, MUTED];
 
