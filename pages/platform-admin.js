@@ -44,7 +44,7 @@ function SetupScreen({ onComplete }) {
     <div style={{ minHeight: "100vh", background: BLACK, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ ...card, padding: "40px 36px", maxWidth: 400, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <img src="/logo.png" alt="PreflightSMS" style={{ height: 96, objectFit: "contain", marginBottom: 8 }} onError={e => { e.target.style.display = "none"; }} />
+          <img src="/logo.png" alt="PreflightSMS" style={{ height: 200, objectFit: "contain", marginBottom: 8 }} onError={e => { e.target.style.display = "none"; }} />
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Platform Setup</div>
           <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>Create your platform admin account</div>
         </div>
@@ -74,7 +74,7 @@ function LoginScreen({ onLogin }) {
     <div style={{ minHeight: "100vh", background: BLACK, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ ...card, padding: "40px 36px", maxWidth: 380, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <img src="/logo.png" alt="PreflightSMS" style={{ height: 96, objectFit: "contain", marginBottom: 8 }} onError={e => { e.target.style.display = "none"; }} />
+          <img src="/logo.png" alt="PreflightSMS" style={{ height: 200, objectFit: "contain", marginBottom: 8 }} onError={e => { e.target.style.display = "none"; }} />
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Platform Admin</div>
           <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>Sign in with your admin credentials</div>
         </div>
