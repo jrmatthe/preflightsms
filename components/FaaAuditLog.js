@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import DeclarationWizard from "./DeclarationWizard";
+const InternationalCompliance = dynamic(() => import("./InternationalCompliance"), { ssr: false });
 
 const BLACK="#000000",NEAR_BLACK="#0A0A0A",CARD="#222222",BORDER="#2E2E2E",LIGHT_BORDER="#3A3A3A";
 const WHITE="#FFFFFF",OFF_WHITE="#E0E0E0",MUTED="#777777";
@@ -312,7 +314,8 @@ const MANUAL_LABELS = {
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals, declarations, onSaveDeclaration, onUpdateDeclaration, onUploadPdf, session }) {
+export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals, declarations, onSaveDeclaration, onUpdateDeclaration, onUploadPdf, session, hasIntlCompliance, complianceFrameworks, checklistItems, complianceStatus, crosswalkData, onUpsertFramework, onDeleteFramework, onUpsertStatus, onRefreshCompliance, profile, orgProfiles }) {
+  const [complianceTab, setComplianceTab] = useState("part5");
   const [expandedSubpart, setExpandedSubpart] = useState("B");
   const [expandedReq, setExpandedReq] = useState(null);
   const [manualOverrides, setManualOverrides] = useState(() => {
@@ -429,8 +432,35 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
   const statusColor = (s) => s === "compliant" ? GREEN : s === "needs_attention" ? AMBER : MUTED;
   const statusLabel = (s) => s === "compliant" ? "Compliant" : s === "needs_attention" ? "Needs Attention" : "Manual Review";
 
+  const compTabBtn = (id, label) => (
+    <button key={id} onClick={() => setComplianceTab(id)}
+      style={{ padding: "8px 20px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+        background: complianceTab === id ? "rgba(255,255,255,0.1)" : "transparent",
+        border: complianceTab === id ? "1px solid rgba(255,255,255,0.2)" : "1px solid transparent",
+        color: complianceTab === id ? WHITE : MUTED }}>
+      {label}
+    </button>
+  );
+
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+      {/* Top-level compliance tabs */}
+      {hasIntlCompliance && (
+        <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+          {compTabBtn("part5", "FAA Part 5")}
+          {compTabBtn("international", "International Compliance")}
+        </div>
+      )}
+
+      {complianceTab === "international" && hasIntlCompliance ? (
+        <InternationalCompliance
+          profile={profile} session={session} org={org} orgProfiles={orgProfiles}
+          complianceFrameworks={complianceFrameworks} checklistItems={checklistItems}
+          complianceStatus={complianceStatus} crosswalkData={crosswalkData}
+          onUpsertFramework={onUpsertFramework} onDeleteFramework={onDeleteFramework}
+          onUpsertStatus={onUpsertStatus} onRefresh={onRefreshCompliance} />
+      ) : (<>
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>FAA Part 5 Audit Log</div>
@@ -637,6 +667,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
         </div>
       </div>
       </>}
+      </>)}
     </div>
   );
 }
