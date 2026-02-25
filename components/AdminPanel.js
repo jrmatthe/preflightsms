@@ -49,6 +49,7 @@ const FEATURE_LABELS_MAP = {
   multi_base: "Multi-Base Support",
   custom_integrations: "Custom Integrations",
   foreflight_integration: "ForeFlight Integration",
+  schedaero_integration: "Schedaero Integration",
   priority_support: "Priority Support",
 };
 
@@ -214,6 +215,193 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
           {syncing ? "Syncing..." : "Sync Now"}
         </button>
       </div>
+    </div>
+  );
+}
+
+function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
+  const BLUE = "#60A5FA";
+  const [apiKey, setApiKey] = useState(config?.api_key || "");
+  const [enabled, setEnabled] = useState(config?.enabled || false);
+  const [syncInterval, setSyncInterval] = useState(config?.sync_interval_minutes || 5);
+  const [syncWindow, setSyncWindow] = useState(config?.sync_window_hours || 24);
+  const [autoCreateFrats, setAutoCreateFrats] = useState(config?.auto_create_frats || false);
+  const [notifyPilots, setNotifyPilots] = useState(config?.notify_pilots_on_sync ?? true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    if (config) {
+      setApiKey(config.api_key || "");
+      setEnabled(config.enabled || false);
+      setSyncInterval(config.sync_interval_minutes || 5);
+      setSyncWindow(config.sync_window_hours || 24);
+      setAutoCreateFrats(config.auto_create_frats || false);
+      setNotifyPilots(config.notify_pilots_on_sync ?? true);
+    }
+  }, [config]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave({
+      api_key: apiKey,
+      enabled,
+      sync_interval_minutes: syncInterval,
+      sync_window_hours: syncWindow,
+      auto_create_frats: autoCreateFrats,
+      notify_pilots_on_sync: notifyPilots,
+    });
+    setSaving(false);
+  };
+
+  const handleTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    const result = await onTestConnection(apiKey);
+    setTestResult(result);
+    setTesting(false);
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    await onSyncNow();
+    setSyncing(false);
+  };
+
+  const lastSynced = config?.last_synced_at;
+  const syncError = config?.last_sync_error;
+  const syncLog = Array.isArray(config?.sync_log) ? config.sync_log : [];
+  const hasCredentials = !!apiKey;
+
+  const getRelativeTime = (dateStr) => {
+    if (!dateStr) return "Never";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
+
+  return (
+    <div>
+      {/* Configuration Card */}
+      <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Schedaero Configuration</div>
+          <span style={{ fontSize: 8, fontWeight: 700, color: BLACK, background: BLUE, padding: "2px 8px", borderRadius: 3 }}>BETA</span>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>API Key</label>
+          <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Schedaero API key"
+            style={{ ...inp, maxWidth: 400 }} />
+        </div>
+
+        {/* Toggles */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          {[
+            { label: "Enable Integration", val: enabled, set: setEnabled },
+            { label: "Notify Pilots on Sync", val: notifyPilots, set: setNotifyPilots },
+            { label: "Auto-create FRATs", val: autoCreateFrats, set: setAutoCreateFrats },
+          ].map(t => (
+            <div key={t.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
+              <button onClick={() => t.set(!t.val)}
+                style={{ width: 36, height: 20, borderRadius: 10, border: "none", cursor: "pointer", position: "relative",
+                  background: t.val ? GREEN : BORDER, transition: "background 0.2s" }}>
+                <div style={{ width: 16, height: 16, borderRadius: 8, background: WHITE, position: "absolute", top: 2,
+                  left: t.val ? 18 : 2, transition: "left 0.2s" }} />
+              </button>
+              <span style={{ fontSize: 11, color: OFF_WHITE }}>{t.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Sync Interval + Sync Window */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Sync Interval</label>
+            <select value={syncInterval} onChange={e => setSyncInterval(Number(e.target.value))}
+              style={{ ...inp }}>
+              {[5, 10, 15, 30, 60].map(m => (
+                <option key={m} value={m}>{m} minutes</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Sync Window</label>
+            <select value={syncWindow} onChange={e => setSyncWindow(Number(e.target.value))}
+              style={{ ...inp }}>
+              {[12, 24, 48, 72].map(h => (
+                <option key={h} value={h}>{h} hours</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={handleTest} disabled={testing || !hasCredentials}
+            style={{ padding: "8px 16px", background: "transparent", color: BLUE, border: `1px solid ${BLUE}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: testing || !hasCredentials ? "default" : "pointer", opacity: testing || !hasCredentials ? 0.5 : 1 }}>
+            {testing ? "Testing..." : "Test Connection"}
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1 }}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+          {testResult && (
+            <span style={{ fontSize: 11, fontWeight: 600, color: testResult.success ? GREEN : RED }}>
+              {testResult.success ? "\u2713 Connected" : `\u2717 ${testResult.error || "Failed"}`}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Sync Status Card */}
+      <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 14 }}>Sync Status</div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <div style={{ width: 10, height: 10, borderRadius: 5,
+            background: syncError ? RED : lastSynced ? GREEN : MUTED }} />
+          <div>
+            <div style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>
+              {syncError ? "Error" : lastSynced ? "Connected" : "Never synced"}
+            </div>
+            <div style={{ fontSize: 10, color: MUTED }}>
+              Last synced: {getRelativeTime(lastSynced)}
+              {syncError && <span style={{ color: RED }}> — {syncError}</span>}
+            </div>
+          </div>
+        </div>
+
+        <button onClick={handleSync} disabled={syncing || !enabled || !hasCredentials}
+          style={{ padding: "8px 16px", background: "transparent", color: BLUE, border: `1px solid ${BLUE}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: syncing || !enabled || !hasCredentials ? "default" : "pointer", opacity: syncing || !enabled || !hasCredentials ? 0.5 : 1 }}>
+          {syncing ? "Syncing..." : "Sync Now"}
+        </button>
+      </div>
+
+      {/* Sync Log Card */}
+      {syncLog.length > 0 && (
+        <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 14 }}>Sync Log</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {syncLog.map((entry, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${BORDER}` }}>
+                <span style={{ fontSize: 10, color: MUTED }}>{getRelativeTime(entry.timestamp)}</span>
+                <div style={{ display: "flex", gap: 12, fontSize: 10 }}>
+                  <span style={{ color: GREEN }}>{entry.synced} new</span>
+                  <span style={{ color: OFF_WHITE }}>{entry.updated} updated</span>
+                  {entry.duplicates > 0 && <span style={{ color: AMBER }}>{entry.duplicates} duplicates</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -902,7 +1090,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -938,9 +1126,10 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* Admin tabs */}
       <div className="admin-tabs" data-tour="tour-admin-tabs" style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-        {[{ id: "org", label: "Organization" }, { id: "fleet", label: "Fleet" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "integrations", label: "Integrations", feat: "foreflight_integration" }, { id: "api", label: "API & Webhooks", feat: "api_access" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
+        {[{ id: "org", label: "Organization" }, { id: "fleet", label: "Fleet" }, { id: "frat", label: "FRAT Template", feat: "custom_frat_template" }, { id: "integrations", label: "Integrations", feat: ["foreflight_integration", "schedaero_integration"] }, { id: "api", label: "API & Webhooks", feat: "api_access" }, { id: "users", label: "Users & Roles" }, { id: "subscription", label: "Subscription" }].filter(t => {
           if (!t.feat) return true;
           const flags = orgData?.feature_flags || {};
+          if (Array.isArray(t.feat)) return t.feat.some(f => flags[f] !== false);
           return flags[t.feat] !== false; // Show if true or undefined
         }).map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
@@ -961,7 +1150,14 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
       )}
 
       {activeTab === "integrations" && canManage && (
-        <ForeflightIntegration config={foreflightConfig} onSave={onSaveForeflightConfig} onTestConnection={onTestForeflightConnection} onSyncNow={onForeflightSyncNow} />
+        <div>
+          {(orgData?.feature_flags?.foreflight_integration !== false) && (
+            <ForeflightIntegration config={foreflightConfig} onSave={onSaveForeflightConfig} onTestConnection={onTestForeflightConnection} onSyncNow={onForeflightSyncNow} />
+          )}
+          {(orgData?.feature_flags?.schedaero_integration !== false) && (
+            <SchedaeroIntegration config={schedaeroConfig} onSave={onSaveSchedaeroConfig} onTestConnection={onTestSchedaeroConnection} onSyncNow={onSchedaeroSyncNow} />
+          )}
+        </div>
       )}
 
       {activeTab === "api" && canManage && (

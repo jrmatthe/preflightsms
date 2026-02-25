@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchPilotEngagement, fetchOrgEngagement, upsertEngagementMetric, fetchSafetyRecognitions, fetchOrgRecognitions, awardRecognition, acknowledgeRecognition, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchPilotEngagement, fetchOrgEngagement, upsertEngagementMetric, fetchSafetyRecognitions, fetchOrgRecognitions, awardRecognition, acknowledgeRecognition, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -1068,7 +1068,7 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, org }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip, org }) {
   // AI Risk Suggestions state
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
@@ -1119,6 +1119,24 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       etd: etdStr || p.etd,
     }));
   }, [selectedFfFlight]);
+  // Schedaero pre-population
+  useEffect(() => {
+    if (!selectedScTrip) return;
+    const sc = selectedScTrip;
+    const etdStr = sc.etd ? new Date(sc.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
+    const dateStr = sc.etd ? new Date(sc.etd).toISOString().split("T")[0] : getLocalDate();
+    setFi(p => ({
+      ...p,
+      departure: sc.departure_icao || p.departure,
+      destination: sc.destination_icao || p.destination,
+      tailNumber: sc.tail_number || p.tailNumber,
+      aircraft: sc.aircraft_type || p.aircraft,
+      pilot: sc.pilot_name || p.pilot,
+      date: dateStr,
+      etd: etdStr || p.etd,
+      numPax: sc.passenger_count ? String(sc.passenger_count) : p.numPax,
+    }));
+  }, [selectedScTrip]);
   const [attachments, setAttachments] = useState([]); // { file, preview, uploading, url }
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [checked, setChecked] = useState({});
@@ -1291,7 +1309,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     const eta = calcArrivalTime(fi.date, fi.etd, fi.ete, depTz?.tz);
     const matchedRL = getRL(score);
     onSubmit({ id: fratId, ...fi, depTz: depTz?.tz || "America/Los_Angeles", destTz: destTz?.tz || "America/Los_Angeles", eta: eta ? eta.toISOString() : "", score, riskLevel: matchedRL.label, approvalMode: matchedRL.approval_mode || "none", factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
-      wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls, foreflightFlightId: selectedFfFlight?.id || null,
+      wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls, foreflightFlightId: selectedFfFlight?.id || null, schedaeroTripId: selectedScTrip?.id || null,
       fatigueData: fatigueEnabled ? { sleepHours24: parseFloat(fatigue.sleepHours) || null, hoursAwake: parseFloat(fatigue.hoursAwake) || null, dutyStartTime: fatigue.dutyStart || null, timezoneCrossings: parseInt(fatigue.tzCrossings) || 0, commuteMinutes: parseInt(fatigue.commute) || null, subjectiveFatigue: fatigue.subjective, calculatedScore: fatigueResult.score, riskLevel: fatigueResult.level, mitigations: fatigue.mitigations } : null });
     if (onNavigate) onNavigate("flights");
   };
@@ -1312,7 +1330,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {/* ForeFlight pending flights selector */}
-      {pendingFfFlights && pendingFfFlights.length > 0 && !selectedFfFlight && (
+      {pendingFfFlights && pendingFfFlights.length > 0 && !selectedFfFlight && !selectedScTrip && (
         <div style={{ ...card, padding: "16px 20px", marginBottom: 14, borderLeft: `4px solid ${CYAN}` }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>ForeFlight Dispatch Flights</div>
           {pendingFfFlights.map(ff => (
@@ -1336,6 +1354,34 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
             <span style={{ fontSize: 9, fontWeight: 700, color: BLACK, background: CYAN, padding: "2px 8px", borderRadius: 3 }}>{selectedFfFlight.departure_icao} → {selectedFfFlight.destination_icao}</span>
           </div>
           <button onClick={onClearFfFlight} style={{ background: "none", border: "none", color: MUTED, fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>{"\u00D7"}</button>
+        </div>
+      )}
+      {/* Schedaero pending trips selector */}
+      {pendingScTrips && pendingScTrips.length > 0 && !selectedScTrip && !selectedFfFlight && (
+        <div style={{ ...card, padding: "16px 20px", marginBottom: 14, borderLeft: "4px solid #60A5FA" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#60A5FA", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Schedaero Trips</div>
+          {pendingScTrips.map(sc => (
+            <div key={sc.id} onClick={() => onSelectScTrip(sc)}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 6, cursor: "pointer" }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = "#60A5FA66"} onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>{sc.departure_icao} → {sc.destination_icao}</span>
+                {sc.tail_number && <span style={{ fontSize: 11, color: MUTED }}>| {sc.tail_number}</span>}
+                {sc.trip_number && <span style={{ fontSize: 9, fontWeight: 700, color: "#60A5FA", background: "rgba(96,165,250,0.12)", padding: "2px 6px", borderRadius: 3 }}>{sc.trip_number}</span>}
+              </div>
+              <span style={{ fontSize: 10, color: MUTED }}>{sc.etd ? new Date(sc.etd).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "No ETD"}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Schedaero pre-populated banner */}
+      {selectedScTrip && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", marginBottom: 14, borderRadius: 8, background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.25)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#60A5FA" }}>Pre-populated from Schedaero</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: BLACK, background: "#60A5FA", padding: "2px 8px", borderRadius: 3 }}>{selectedScTrip.trip_number || `${selectedScTrip.departure_icao} → ${selectedScTrip.destination_icao}`}</span>
+          </div>
+          <button onClick={onClearScTrip} style={{ background: "none", border: "none", color: MUTED, fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>{"\u00D7"}</button>
         </div>
       )}
       <div data-tour="tour-frat-flight-info" style={{ ...card, padding: "24px 28px 28px", marginBottom: 18 }}>
@@ -1780,7 +1826,7 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
     </div>);
 }
 
-function FlightBoard({ flights, foreflightFlights, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight }) {
+function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight }) {
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
@@ -1975,6 +2021,9 @@ function FlightBoard({ flights, foreflightFlights, onUpdateFlight, onApproveFlig
                     <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>{f.tailNumber || f.aircraft}</span>
                     {foreflightFlights?.some(ff => ff.flight_id === f.dbId) && (
                       <span style={{ fontSize: 8, fontWeight: 700, color: CYAN, background: `${CYAN}18`, padding: "2px 6px", borderRadius: 3, border: `1px solid ${CYAN}33` }}>ForeFlight</span>
+                    )}
+                    {schedaeroTrips?.some(sc => sc.flight_id === f.dbId) && (
+                      <span style={{ fontSize: 8, fontWeight: 700, color: "#60A5FA", background: "rgba(96,165,250,0.09)", padding: "2px 6px", borderRadius: 3, border: "1px solid rgba(96,165,250,0.2)" }}>Schedaero</span>
                     )}
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
@@ -3080,6 +3129,9 @@ export default function PVTAIRFrat() {
   const [foreflightConfig, setForeflightConfig] = useState(null);
   const [foreflightFlights, setForeflightFlights] = useState([]);
   const [pendingFfFlights, setPendingFfFlights] = useState([]);
+  const [schedaeroConfig, setSchedaeroConfig] = useState(null);
+  const [schedaeroTrips, setSchedaeroTrips] = useState([]);
+  const [pendingScTrips, setPendingScTrips] = useState([]);
   const [erpPlans, setErpPlans] = useState([]);
   const [erpDrills, setErpDrills] = useState([]);
   const [spis, setSpis] = useState([]);
@@ -3098,6 +3150,7 @@ export default function PVTAIRFrat() {
   const [apiKeys, setApiKeys] = useState([]);
   const [webhooksData, setWebhooksData] = useState([]);
   const [selectedFfFlight, setSelectedFfFlight] = useState(null);
+  const [selectedScTrip, setSelectedScTrip] = useState(null);
   const [reportPrefill, setReportPrefill] = useState(null);
 
   // Derived template config
@@ -3276,6 +3329,12 @@ export default function PVTAIRFrat() {
       fetchForeflightConfig(orgId).then(({ data }) => setForeflightConfig(data));
       fetchForeflightFlights(orgId).then(({ data }) => setForeflightFlights(data || []));
       fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || []));
+    }
+    // Schedaero integration (only if feature enabled)
+    if (hasFeature(profile?.organizations, "schedaero_integration")) {
+      fetchSchedaeroConfig(orgId).then(({ data }) => setSchedaeroConfig(data));
+      fetchSchedaeroTrips(orgId).then(({ data }) => setSchedaeroTrips(data || []));
+      fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || []));
     }
     return () => { if (channel) supabase.removeChannel(channel); };
   }, [profile]);
@@ -3546,6 +3605,20 @@ export default function PVTAIRFrat() {
           fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || []));
           fetchForeflightFlights(profile.org_id).then(({ data }) => setForeflightFlights(data || []));
         } catch (e) { console.error("ForeFlight link error:", e); }
+      }
+
+      // Schedaero linking — update Schedaero trip
+      if (entry.schedaeroTripId && flightData) {
+        try {
+          await updateSchedaeroTrip(entry.schedaeroTripId, {
+            frat_id: fratData.id,
+            flight_id: flightData.id,
+            status: "frat_created",
+          });
+          setSelectedScTrip(null);
+          fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || []));
+          fetchSchedaeroTrips(profile.org_id).then(({ data }) => setSchedaeroTrips(data || []));
+        } catch (e) { console.error("Schedaero link error:", e); }
       }
 
       // Send notification + email for applicable modes
@@ -4253,8 +4326,8 @@ export default function PVTAIRFrat() {
         <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} org={org} />)}
-        {cv === "flights" && <FlightBoard flights={flights} foreflightFlights={foreflightFlights} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} onApproveFlight={async (flightDbId, fratDbId) => {
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} />)}
+        {cv === "flights" && <FlightBoard flights={flights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} onApproveFlight={async (flightDbId, fratDbId) => {
           await approveFlight(flightDbId, session.user.id);
           if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", "");
           const matchedFlight = flights.find(fl => fl.dbId === flightDbId);
@@ -4466,6 +4539,45 @@ export default function PVTAIRFrat() {
             const { data: pff } = await fetchPendingForeflightFlights(orgId);
             setPendingFfFlights(pff || []);
             setToast({ message: "ForeFlight sync complete", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+            setTimeout(() => setToast(null), 3000);
+          } catch (e) {
+            setToast({ message: "Sync failed: " + e.message, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
+            setTimeout(() => setToast(null), 5000);
+          }
+        })} schedaeroConfig={schedaeroConfig} onSaveSchedaeroConfig={roGuard(async (configData) => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          const { data, error } = await upsertSchedaeroConfig(orgId, configData);
+          if (!error && data) {
+            setSchedaeroConfig(data);
+            setToast({ message: "Schedaero configuration saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+            setTimeout(() => setToast(null), 3000);
+          } else {
+            setToast({ message: "Failed to save: " + (error?.message || "Unknown error"), level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
+            setTimeout(() => setToast(null), 5000);
+          }
+        })} onTestSchedaeroConnection={async (apiKey) => {
+          try {
+            const { data, error } = await supabase.functions.invoke('schedaero-test-connection', {
+              body: { apiKey },
+            });
+            if (error) return { success: false, error: error.message };
+            return data;
+          } catch (e) { return { success: false, error: e.message }; }
+        }} onSchedaeroSyncNow={roGuard(async () => {
+          const orgId = profile?.org_id;
+          if (!orgId) return;
+          try {
+            await supabase.functions.invoke('schedaero-sync', {
+              body: { orgId, manual: true },
+            });
+            const { data: cfg } = await fetchSchedaeroConfig(orgId);
+            if (cfg) setSchedaeroConfig(cfg);
+            const { data: sc } = await fetchSchedaeroTrips(orgId);
+            setSchedaeroTrips(sc || []);
+            const { data: psc } = await fetchPendingSchedaeroTrips(orgId);
+            setPendingScTrips(psc || []);
+            setToast({ message: "Schedaero sync complete", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
             setTimeout(() => setToast(null), 3000);
           } catch (e) {
             setToast({ message: "Sync failed: " + e.message, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
