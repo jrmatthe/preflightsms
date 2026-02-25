@@ -28,6 +28,8 @@ const TYPE_COLORS = {
   audit_due: AMBER,
   audit_overdue: RED,
   trend_alert: CYAN,
+  moc_assigned: CYAN,
+  moc_review_due: AMBER,
 };
 
 function timeAgo(dateStr) {
