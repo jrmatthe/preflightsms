@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis } from "recharts";
 
 const CARD = "#222222";
 const BORDER = "#2E2E2E";
@@ -435,7 +435,41 @@ function FRATAnalytics({ records }) {
     });
     dowData.forEach(d => { d.avgScore = d.count > 0 ? Math.round(d.totalScore / d.count) : 0; });
 
-    return { avg, max: Math.max(...scores), total: filtered.length, lc, topFactors, catBreakdown, trendData, aircraftData, pilotData, pieData, dowData };
+    // Fatigue analytics
+    const fatigueRecords = filtered.filter(r => r.fatigueScore != null);
+    let fatigueDist = null;
+    let fatigueTrend = null;
+    let fatigueCorrelation = null;
+    if (fatigueRecords.length > 0) {
+      // Distribution
+      const fLc = { low: 0, moderate: 0, high: 0, critical: 0 };
+      fatigueRecords.forEach(r => { const fl = r.fatigueRiskLevel || "low"; fLc[fl] = (fLc[fl] || 0) + 1; });
+      fatigueDist = [
+        { name: "Low", value: fLc.low, color: GREEN },
+        { name: "Moderate", value: fLc.moderate, color: YELLOW },
+        { name: "High", value: fLc.high, color: AMBER },
+        { name: "Critical", value: fLc.critical, color: RED },
+      ].filter(d => d.value > 0);
+
+      // Trend over time
+      const fDailyMap = {};
+      fatigueRecords.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach(r => {
+        const d = formatDate(r.timestamp);
+        if (!fDailyMap[d]) fDailyMap[d] = { date: d, scores: [], count: 0 };
+        fDailyMap[d].scores.push(r.fatigueScore);
+        fDailyMap[d].count++;
+      });
+      fatigueTrend = Object.values(fDailyMap).map(d => ({
+        date: d.date, avg: Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length), count: d.count,
+      }));
+
+      // Correlation: fatigue score vs overall FRAT score
+      fatigueCorrelation = fatigueRecords.map(r => ({
+        fatigueScore: r.fatigueScore, fratScore: r.score, pilot: r.pilot || "Unknown",
+      }));
+    }
+
+    return { avg, max: Math.max(...scores), total: filtered.length, lc, topFactors, catBreakdown, trendData, aircraftData, pilotData, pieData, dowData, fatigueDist, fatigueTrend, fatigueCorrelation, fatigueCount: fatigueRecords.length };
   }, [records, timeRange]);
 
   if (!stats) return <div style={{ textAlign: "center", padding: 80, color: MUTED }}><div style={{ fontSize: 48, marginBottom: 16 }}>📊</div><div style={{ fontSize: 16, fontWeight: 600 }}>No data for selected period</div></div>;
@@ -579,6 +613,66 @@ function FRATAnalytics({ records }) {
             </table>
           </div>
         </ChartCard>
+      )}
+
+      {/* Fatigue Risk Analytics */}
+      {stats.fatigueCount > 0 && (
+        <>
+          <SectionTitle>Fatigue Risk Analytics</SectionTitle>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16 }} className="stat-grid">
+            <StatCard label="Fatigue Assessments" value={stats.fatigueCount} icon="😴" />
+            <StatCard label="Avg Fatigue Score" value={Math.round(stats.fatigueCorrelation.reduce((a, d) => a + d.fatigueScore, 0) / stats.fatigueCount)} color={(() => { const avg = stats.fatigueCorrelation.reduce((a, d) => a + d.fatigueScore, 0) / stats.fatigueCount; return avg <= 20 ? GREEN : avg <= 40 ? YELLOW : avg <= 60 ? AMBER : RED; })()} icon="📊" />
+            <StatCard label="High/Critical" value={stats.fatigueDist.filter(d => d.name === "High" || d.name === "Critical").reduce((a, d) => a + d.value, 0)} color={(stats.fatigueDist.filter(d => d.name === "High" || d.name === "Critical").reduce((a, d) => a + d.value, 0)) > 0 ? RED : GREEN} sub={`${Math.round(stats.fatigueDist.filter(d => d.name === "High" || d.name === "Critical").reduce((a, d) => a + d.value, 0) / stats.fatigueCount * 100)}% of assessments`} icon="⚠️" />
+          </div>
+
+          <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+            {/* Fatigue Risk Distribution */}
+            <ChartCard title="Fatigue Risk Distribution">
+              <ResponsiveContainer width="100%" height={150}>
+                <PieChart><Pie data={stats.fatigueDist} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
+                  {stats.fatigueDist.map((d, i) => <Cell key={i} fill={d.color} />)}</Pie>
+                  <Tooltip contentStyle={ttStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+                {stats.fatigueDist.map(d => (
+                  <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: d.color }} />
+                    <span style={{ color: MUTED }}>{d.name}: {d.value}</span>
+                  </div>
+                ))}
+              </div>
+            </ChartCard>
+
+            {/* Average Fatigue Score Trend */}
+            <ChartCard title="Average Fatigue Score Trend">
+              <ResponsiveContainer width="100%" height={170}>
+                <LineChart data={stats.fatigueTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: MUTED }} />
+                  <YAxis tick={{ fontSize: 9, fill: MUTED }} domain={[0, 100]} />
+                  <Tooltip contentStyle={ttStyle} />
+                  <Line type="monotone" dataKey="avg" stroke={AMBER} strokeWidth={2} dot={{ fill: AMBER, r: 3 }} name="Avg Fatigue" />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </div>
+
+          {/* Fatigue vs Overall Risk Correlation */}
+          <ChartCard title="Fatigue vs. Overall FRAT Score">
+            <div style={{ fontSize: 10, color: MUTED, marginBottom: 8 }}>Each dot represents a FRAT submission with fatigue data. Higher fatigue scores trending with higher FRAT scores suggests systemic fatigue risk.</div>
+            <ResponsiveContainer width="100%" height={200}>
+              <ScatterChart>
+                <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
+                <XAxis type="number" dataKey="fatigueScore" name="Fatigue Score" tick={{ fontSize: 9, fill: MUTED }} domain={[0, 100]} label={{ value: "Fatigue Score", position: "insideBottom", offset: -2, fontSize: 9, fill: MUTED }} />
+                <YAxis type="number" dataKey="fratScore" name="FRAT Score" tick={{ fontSize: 9, fill: MUTED }} label={{ value: "FRAT Score", angle: -90, position: "insideLeft", fontSize: 9, fill: MUTED }} />
+                <ZAxis range={[30, 30]} />
+                <Tooltip contentStyle={ttStyle} formatter={(val, name) => [val, name === "fatigueScore" ? "Fatigue" : "FRAT Score"]} />
+                <Scatter data={stats.fatigueCorrelation} fill={CYAN} fillOpacity={0.7} />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </>
       )}
     </div>
   );

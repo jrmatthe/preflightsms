@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, submitReport, fetchReports, updateReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, fetchNotificationContacts, createNotificationContact, updateNotificationContact, deleteNotificationContact, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -1129,8 +1129,46 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
   const [depTz, setDepTz] = useState(null); // { tz, tzAbbr }
   const [destTz, setDestTz] = useState(null);
   const fetchTimer = useRef(null);
+  // Fatigue assessment state
+  const fatigueEnabled = !!(currentTemplate?.include_fatigue);
+  const [fatigueOpen, setFatigueOpen] = useState(true);
+  const [fatigue, setFatigue] = useState({ sleepHours: "", hoursAwake: "", dutyStart: "", tzCrossings: "0", commute: "", subjective: null, mitigations: "" });
+  const updateFatigue = (k, v) => setFatigue(p => ({ ...p, [k]: v }));
 
-  const score = useMemo(() => { let s = 0; RISK_CATEGORIES.forEach(c => c.factors.forEach(f => { if (checked[f.id]) s += f.score; })); return s; }, [checked]);
+  // Calculate fatigue score (0-100 scale)
+  const fatigueResult = useMemo(() => {
+    if (!fatigueEnabled) return { score: 0, level: "low", points: 0 };
+    let pts = 0;
+    const sleep = parseFloat(fatigue.sleepHours);
+    const awake = parseFloat(fatigue.hoursAwake);
+    const subj = fatigue.subjective;
+    const tz = parseInt(fatigue.tzCrossings) || 0;
+    const commute = parseInt(fatigue.commute) || 0;
+    // Sleep deficit
+    if (!isNaN(sleep)) { if (sleep < 5) pts += 30; else if (sleep <= 6) pts += 15; }
+    // Hours awake
+    if (!isNaN(awake)) { if (awake > 20) pts += 35; else if (awake > 17) pts += 20; }
+    // Circadian low: departure in 02:00-06:00 local
+    if (fatigue.dutyStart) {
+      const [h] = fatigue.dutyStart.split(":").map(Number);
+      if (h >= 2 && h < 6) pts += 15;
+    }
+    // Subjective fatigue (Samn-Perelli)
+    if (subj === 5) pts += 15;
+    if (subj >= 6) pts += 25;
+    // Timezone crossings
+    if (tz >= 2) pts += 10;
+    // Long commute
+    if (commute > 60) pts += 5;
+    const clamped = Math.min(pts, 100);
+    let level = clamped <= 20 ? "low" : clamped <= 40 ? "moderate" : clamped <= 60 ? "high" : "critical";
+    if (subj >= 6 && level !== "critical") level = level === "low" || level === "moderate" ? "high" : level;
+    // FRAT contribution: Low=0, Moderate=+2, High=+5, Critical=+8
+    const fratPoints = level === "low" ? 0 : level === "moderate" ? 2 : level === "high" ? 5 : 8;
+    return { score: clamped, level, points: fratPoints };
+  }, [fatigueEnabled, fatigue]);
+
+  const score = useMemo(() => { let s = 0; RISK_CATEGORIES.forEach(c => c.factors.forEach(f => { if (checked[f.id]) s += f.score; })); return s + fatigueResult.points; }, [checked, fatigueResult.points]);
   const toggle = id => {
     setChecked(p => ({ ...p, [id]: !p[id] }));
     if (autoSuggested[id]) setAutoSuggested(p => { const n = { ...p }; delete n[id]; return n; });
@@ -1250,11 +1288,12 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     const eta = calcArrivalTime(fi.date, fi.etd, fi.ete, depTz?.tz);
     const matchedRL = getRL(score);
     onSubmit({ id: fratId, ...fi, depTz: depTz?.tz || "America/Los_Angeles", destTz: destTz?.tz || "America/Los_Angeles", eta: eta ? eta.toISOString() : "", score, riskLevel: matchedRL.label, approvalMode: matchedRL.approval_mode || "none", factors: Object.keys(checked).filter(k => checked[k]), timestamp: new Date().toISOString(),
-      wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls, foreflightFlightId: selectedFfFlight?.id || null });
+      wxBriefing: wxAnalysis.briefing ? wxAnalysis.briefing.map(b => b.raw).join(" | ") : "", attachments: uploadedUrls, foreflightFlightId: selectedFfFlight?.id || null,
+      fatigueData: fatigueEnabled ? { sleepHours24: parseFloat(fatigue.sleepHours) || null, hoursAwake: parseFloat(fatigue.hoursAwake) || null, dutyStartTime: fatigue.dutyStart || null, timezoneCrossings: parseInt(fatigue.tzCrossings) || 0, commuteMinutes: parseInt(fatigue.commute) || null, subjectiveFatigue: fatigue.subjective, calculatedScore: fatigueResult.score, riskLevel: fatigueResult.level, mitigations: fatigue.mitigations } : null });
     if (onNavigate) onNavigate("flights");
   };
   const defaultAircraft = fleetList.length > 0 ? fleetList[0].type : "";
-  const reset = () => { attachments.forEach(a => URL.revokeObjectURL(a.preview)); setAttachments([]); setUploadingPhotos(false); setFi({ pilot: "", aircraft: defaultAircraft, tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); };
+  const reset = () => { attachments.forEach(a => URL.revokeObjectURL(a.preview)); setAttachments([]); setUploadingPhotos(false); setFi({ pilot: "", aircraft: defaultAircraft, tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); setFatigue({ sleepHours: "", hoursAwake: "", dutyStart: "", tzCrossings: "0", commute: "", subjective: null, mitigations: "" }); };
 
   if (!hasFleet) return (
     <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}>
@@ -1463,6 +1502,107 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
                   </span>
                   <span style={{ fontWeight: 700, fontSize: 10, color: ic ? (isAuto ? CYAN : rl.color) : SUBTLE, minWidth: 22, textAlign: "right" }}>+{f.score}</span>
                 </div>); })}</div>); })}
+
+          {/* Fatigue Assessment Card — appears after Pilot/Crew category */}
+          {fatigueEnabled && (() => {
+            const SAMN_PERELLI = [
+              { value: 1, label: "Fully alert, wide awake", color: GREEN },
+              { value: 2, label: "Very lively, responsive", color: GREEN },
+              { value: 3, label: "Okay, somewhat fresh", color: GREEN },
+              { value: 4, label: "A little tired, less than fresh", color: YELLOW },
+              { value: 5, label: "Moderately tired, let down", color: AMBER },
+              { value: 6, label: "Extremely tired, very difficult to concentrate", color: RED },
+              { value: 7, label: "Completely exhausted, unable to function effectively", color: RED },
+            ];
+            const fl = fatigueResult.level;
+            const flColor = fl === "low" ? GREEN : fl === "moderate" ? YELLOW : fl === "high" ? AMBER : RED;
+            const flBg = fl === "low" ? "rgba(74,222,128,0.08)" : fl === "moderate" ? "rgba(250,204,21,0.08)" : fl === "high" ? "rgba(245,158,11,0.08)" : "rgba(239,68,68,0.08)";
+            const flBorder = fl === "low" ? "rgba(74,222,128,0.25)" : fl === "moderate" ? "rgba(250,204,21,0.25)" : fl === "high" ? "rgba(245,158,11,0.25)" : "rgba(239,68,68,0.25)";
+            const hasInput = fatigue.sleepHours !== "" || fatigue.hoursAwake !== "" || fatigue.subjective !== null;
+            return (
+              <div style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10, border: `1px solid ${hasInput ? flBorder : BORDER}` }}>
+                <div onClick={() => setFatigueOpen(p => !p)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <h3 style={{ margin: 0, color: WHITE, fontSize: 15, fontWeight: 700 }}>Fatigue Assessment</h3>
+                    {hasInput && <span style={{ fontSize: 9, fontWeight: 700, padding: "3px 10px", borderRadius: 10, background: flBg, color: flColor, border: `1px solid ${flBorder}`, textTransform: "uppercase" }}>{fl}{fatigueResult.points > 0 ? ` (+${fatigueResult.points})` : ""}</span>}
+                  </div>
+                  <span style={{ color: MUTED, fontSize: 12 }}>{fatigueOpen ? "▲" : "▼"}</span>
+                </div>
+                {fatigueOpen && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Hours of sleep in last 24 hours</label>
+                        <input type="number" min="0" max="24" step="0.5" placeholder="e.g. 7" value={fatigue.sleepHours} onChange={e => updateFatigue("sleepHours", e.target.value)} style={inp} />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Hours awake at departure</label>
+                        <input type="number" min="0" max="48" step="0.5" placeholder="e.g. 12" value={fatigue.hoursAwake} onChange={e => updateFatigue("hoursAwake", e.target.value)} style={inp} />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Duty period start time</label>
+                        <input type="time" value={fatigue.dutyStart} onChange={e => updateFatigue("dutyStart", e.target.value)} style={inp} />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Time zone crossings (last 48 hrs)</label>
+                        <input type="number" min="0" max="10" value={fatigue.tzCrossings} onChange={e => updateFatigue("tzCrossings", e.target.value)} style={inp} />
+                      </div>
+                      <div style={{ gridColumn: "1 / -1" }}>
+                        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Commute time to airport (minutes)</label>
+                        <input type="number" min="0" placeholder="e.g. 45" value={fatigue.commute} onChange={e => updateFatigue("commute", e.target.value)} style={{ ...inp, maxWidth: 200 }} />
+                      </div>
+                    </div>
+
+                    {/* Samn-Perelli Scale */}
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>How do you feel right now?</label>
+                      {SAMN_PERELLI.map(sp => (
+                        <div key={sp.value} onClick={() => updateFatigue("subjective", sp.value)}
+                          style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", marginBottom: 3, borderRadius: 6, cursor: "pointer",
+                            background: fatigue.subjective === sp.value ? flBg : "rgba(255,255,255,0.02)",
+                            border: `1px solid ${fatigue.subjective === sp.value ? sp.color + "44" : BORDER}`, transition: "all 0.15s" }}>
+                          <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${fatigue.subjective === sp.value ? sp.color : LIGHT_BORDER}`,
+                            background: fatigue.subjective === sp.value ? sp.color : "transparent",
+                            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {fatigue.subjective === sp.value && <div style={{ width: 6, height: 6, borderRadius: "50%", background: BLACK }} />}
+                          </div>
+                          <span style={{ fontSize: 12, color: fatigue.subjective === sp.value ? WHITE : OFF_WHITE, flex: 1 }}>
+                            <span style={{ fontWeight: 700, color: sp.color, marginRight: 6 }}>{sp.value}.</span>{sp.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Live fatigue score badge */}
+                    {hasInput && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 8, background: flBg, border: `1px solid ${flBorder}`, marginBottom: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 8, background: flColor + "22", border: `1px solid ${flColor}44`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: flColor }}>{fatigueResult.score}</span>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: flColor, textTransform: "uppercase" }}>Fatigue Risk: {fl}</div>
+                          <div style={{ fontSize: 10, color: MUTED }}>{fatigueResult.points > 0 ? `Contributing +${fatigueResult.points} to Pilot/Crew score` : "No additional risk points"}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Warning + mitigations for High/Critical */}
+                    {(fl === "high" || fl === "critical") && (
+                      <div style={{ padding: "12px 16px", borderRadius: 8, background: fl === "critical" ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)", border: `1px solid ${fl === "critical" ? "rgba(239,68,68,0.3)" : "rgba(245,158,11,0.3)"}`, marginBottom: 14 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: fl === "critical" ? RED : AMBER, marginBottom: 8 }}>
+                          {fl === "critical" ? "⚠ Critical Fatigue — Consider not flying" : "⚠ High Fatigue Risk — Mitigation required"}
+                        </div>
+                        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>What steps will you take to mitigate fatigue?</label>
+                        <textarea value={fatigue.mitigations} onChange={e => updateFatigue("mitigations", e.target.value)}
+                          placeholder="e.g. Additional rest before flight, caffeine strategy, crew resource management plan..."
+                          rows={3} style={{ ...inp, resize: "vertical", minHeight: 60 }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         <div className="score-panel-desktop" data-tour="tour-frat-score-panel" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
@@ -1484,6 +1624,12 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
                   <span style={{ fontSize: 12, color: OFF_WHITE }}>{cat.name}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: catScore > 0 ? GREEN : SUBTLE }}>+{catScore}</span>
                 </div>); })}
+              {fatigueEnabled && fatigueResult.points > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+                  <span style={{ fontSize: 12, color: OFF_WHITE }}>Fatigue</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: fatigueResult.level === "critical" ? RED : fatigueResult.level === "high" ? AMBER : YELLOW }}>+{fatigueResult.points}</span>
+                </div>
+              )}
             </div>
             <button onClick={handleSubmit} style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", letterSpacing: 0.5, textTransform: "uppercase" }}>Submit FRAT</button>
           </div>
@@ -3019,6 +3165,7 @@ export default function PVTAIRFrat() {
         numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
         factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [],
         timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id,
+        fatigueScore: r.fatigue_score ?? null, fatigueRiskLevel: r.fatigue_risk_level || null,
       })));
     });
     fetchFlights(orgId).then(({ data }) => {
@@ -3205,6 +3352,8 @@ export default function PVTAIRFrat() {
       const { data: fratData, error: fratErr } = await submitFRAT(profile.org_id, session.user.id, {
         ...entry,
         approvalStatus: fratApprovalStatus,
+        fatigueScore: entry.fatigueData?.calculatedScore ?? null,
+        fatigueRiskLevel: entry.fatigueData?.riskLevel || null,
       }).catch(e => ({ data: null, error: e }));
       if (fratErr) {
         // Queue for offline sync
@@ -3218,6 +3367,23 @@ export default function PVTAIRFrat() {
       }
       const { data: flightData, error: flightErr } = await createFlight(profile.org_id, fratData.id, entry, needsBlock);
       if (flightErr) console.error("Flight create error:", flightErr);
+
+      // Save fatigue assessment if present
+      if (entry.fatigueData && fratData) {
+        createFatigueAssessment(profile.org_id, {
+          frat_id: fratData.id,
+          pilot_id: session.user.id,
+          sleep_hours_24: entry.fatigueData.sleepHours24,
+          hours_awake: entry.fatigueData.hoursAwake,
+          duty_start_time: entry.fatigueData.dutyStartTime,
+          timezone_crossings: entry.fatigueData.timezoneCrossings,
+          commute_minutes: entry.fatigueData.commuteMinutes,
+          subjective_fatigue: entry.fatigueData.subjectiveFatigue,
+          calculated_fatigue_score: entry.fatigueData.calculatedScore,
+          fatigue_risk_level: entry.fatigueData.riskLevel,
+          mitigations: entry.fatigueData.mitigations,
+        }).catch(e => console.error("Fatigue assessment save error:", e));
+      }
 
       // ForeFlight linking — update FF flight and optionally push FRAT PDF
       if (entry.foreflightFlightId && flightData) {
