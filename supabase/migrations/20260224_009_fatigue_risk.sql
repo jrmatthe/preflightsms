@@ -23,25 +23,28 @@ CREATE TABLE IF NOT EXISTS public.fatigue_assessments (
 
 ALTER TABLE public.fatigue_assessments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their org fatigue assessments"
-  ON public.fatigue_assessments FOR SELECT
-  TO authenticated
-  USING (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
-
-CREATE POLICY "Users can create fatigue assessments"
-  ON public.fatigue_assessments FOR INSERT
-  TO authenticated
-  WITH CHECK (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
-
-CREATE POLICY "Users can update their own fatigue assessments"
-  ON public.fatigue_assessments FOR UPDATE
-  TO authenticated
-  USING (pilot_id = auth.uid());
-
-CREATE POLICY "Admins can delete fatigue assessments"
-  ON public.fatigue_assessments FOR DELETE
-  TO authenticated
-  USING (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'fatigue_assessments' AND policyname = 'Users can view their org fatigue assessments') THEN
+    CREATE POLICY "Users can view their org fatigue assessments"
+      ON public.fatigue_assessments FOR SELECT TO authenticated
+      USING (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'fatigue_assessments' AND policyname = 'Users can create fatigue assessments') THEN
+    CREATE POLICY "Users can create fatigue assessments"
+      ON public.fatigue_assessments FOR INSERT TO authenticated
+      WITH CHECK (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'fatigue_assessments' AND policyname = 'Users can update their own fatigue assessments') THEN
+    CREATE POLICY "Users can update their own fatigue assessments"
+      ON public.fatigue_assessments FOR UPDATE TO authenticated
+      USING (pilot_id = auth.uid());
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'fatigue_assessments' AND policyname = 'Admins can delete fatigue assessments') THEN
+    CREATE POLICY "Admins can delete fatigue assessments"
+      ON public.fatigue_assessments FOR DELETE TO authenticated
+      USING (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_fatigue_assessments_org_id ON public.fatigue_assessments(org_id);
 CREATE INDEX IF NOT EXISTS idx_fatigue_assessments_frat_id ON public.fatigue_assessments(frat_id);

@@ -21,7 +21,7 @@ const DEFAULT_THRESHOLDS = [
 ];
 
 // ── SINGLE TEMPLATE EDITOR ─────────────────────────────────────
-function TemplateEditor({ template, onSave, saving, fleetAircraftTypes, enableFatigueOption }) {
+function TemplateEditor({ template, onSave, saving, fleetAircraftTypes }) {
   const [name, setName] = useState(template?.name || "Default FRAT");
   const [categories, setCategories] = useState(template?.categories || []);
   const [assignedAircraft, setAssignedAircraft] = useState(template?.assigned_aircraft || []);
@@ -78,20 +78,18 @@ function TemplateEditor({ template, onSave, saving, fleetAircraftTypes, enableFa
       )}
 
       {/* Fatigue Assessment Toggle */}
-      {enableFatigueOption && (
-        <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <div style={sectionLabel}>Fatigue Assessment</div>
-              <div style={{ fontSize: 11, color: MUTED, marginTop: -8 }}>When enabled, pilots complete a fatigue risk assessment as part of this FRAT. Fatigue score contributes to the Pilot/Crew category.</div>
-            </div>
-            <button onClick={() => { setIncludeFatigue(p => !p); markDirty(); }}
-              style={{ width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer", position: "relative", background: includeFatigue ? GREEN : BORDER, transition: "background 0.2s", flexShrink: 0, marginLeft: 16 }}>
-              <div style={{ width: 18, height: 18, borderRadius: 9, background: WHITE, position: "absolute", top: 3, left: includeFatigue ? 23 : 3, transition: "left 0.2s" }} />
-            </button>
+      <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={sectionLabel}>Fatigue Assessment</div>
+            <div style={{ fontSize: 11, color: MUTED, marginTop: -8 }}>When enabled, pilots complete a fatigue risk assessment as part of this FRAT. Fatigue score contributes to the Pilot/Crew category.</div>
           </div>
+          <button onClick={() => { setIncludeFatigue(p => !p); markDirty(); }}
+            style={{ width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer", position: "relative", background: includeFatigue ? GREEN : BORDER, transition: "background 0.2s", flexShrink: 0, marginLeft: 16 }}>
+            <div style={{ width: 18, height: 18, borderRadius: 9, background: WHITE, position: "absolute", top: 3, left: includeFatigue ? 23 : 3, transition: "left 0.2s" }} />
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Risk Thresholds */}
       <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
@@ -174,7 +172,7 @@ function TemplateEditor({ template, onSave, saving, fleetAircraftTypes, enableFa
 }
 
 // ── MAIN: TEMPLATE LIST + EDITOR ───────────────────────────────
-export default function FRATTemplateEditor({ template, templates, onSave, onCreateTemplate, onDeleteTemplate, onSetActive, saving, fleetAircraftTypes = [], enableFatigueOption = false }) {
+export default function FRATTemplateEditor({ template, templates, onSave, onCreateTemplate, onDeleteTemplate, onSetActive, saving, fleetAircraftTypes = [] }) {
   const allTemplates = templates || (template ? [template] : []);
   const [selectedId, setSelectedId] = useState(template?.id || allTemplates[0]?.id || null);
   const [showEditor, setShowEditor] = useState(!!template);
@@ -193,7 +191,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
   const handleSetActive = async (t) => { if (onSetActive) await onSetActive(t.id); };
 
   // Single-template fallback
-  if (!templates) return <TemplateEditor template={template} onSave={onSave} saving={saving} fleetAircraftTypes={fleetAircraftTypes} enableFatigueOption={enableFatigueOption} />;
+  if (!templates) return <TemplateEditor template={template} onSave={onSave} saving={saving} fleetAircraftTypes={fleetAircraftTypes} />;
 
   return (
     <div>
@@ -244,7 +242,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
             <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Editing: {selectedTemplate.name}</div>
             <button onClick={() => setShowEditor(false)} style={btnSecondary}>Close Editor</button>
           </div>
-          <TemplateEditor template={selectedTemplate} onSave={(data) => onSave({ ...data, id: selectedTemplate.id })} saving={saving} fleetAircraftTypes={fleetAircraftTypes} enableFatigueOption={enableFatigueOption} />
+          <TemplateEditor template={selectedTemplate} onSave={(data) => onSave({ ...data, id: selectedTemplate.id })} saving={saving} fleetAircraftTypes={fleetAircraftTypes} />
         </div>
       )}
     </div>
