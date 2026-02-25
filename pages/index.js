@@ -2904,6 +2904,7 @@ export default function PVTAIRFrat() {
   const [actionFromInvestigation, setActionFromInvestigation] = useState(null);
   const [notifContacts, setNotifContacts] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const notificationsLoadedRef = useRef(false);
   const [notifReads, setNotifReads] = useState([]);
   const [invitations_list, setInvitationsList] = useState([]);
   const isOnline = !!supabase;
@@ -3086,7 +3087,7 @@ export default function PVTAIRFrat() {
     fetchAircraft(orgId).then(({ data }) => setFleetAircraft(data || []));
     fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || []));
     fetchNotificationContacts(orgId).then(({ data }) => setNotifContacts(data || []));
-    fetchNotifications(orgId).then(({ data }) => setNotifications(data || []));
+    fetchNotifications(orgId).then(({ data }) => { setNotifications(data || []); notificationsLoadedRef.current = true; });
     if (session?.user?.id) fetchNotificationReads(session.user.id).then(({ data }) => setNotifReads((data || []).map(r => r.notification_id)));
     if (session?.user?.id) fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
     fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
@@ -3108,7 +3109,7 @@ export default function PVTAIRFrat() {
 
   // IEP audit schedule notifications
   useEffect(() => {
-    if (!profile?.org_id || !auditSchedulesData.length || !notifications) return;
+    if (!profile?.org_id || !auditSchedulesData.length || !notificationsLoadedRef.current) return;
     const orgId = profile.org_id;
     const now = new Date();
     for (const sched of auditSchedulesData) {
@@ -3128,7 +3129,7 @@ export default function PVTAIRFrat() {
 
   // MOC review date notifications
   useEffect(() => {
-    if (!profile?.org_id || !mocItems.length || !notifications) return;
+    if (!profile?.org_id || !mocItems.length || !notificationsLoadedRef.current) return;
     const orgId = profile.org_id;
     const now = new Date();
     for (const moc of mocItems) {
