@@ -166,6 +166,29 @@ export default async function handler(req, res) {
     return res.status(200).json({ stats: { frats: frats.count || 0, flights: flights.count || 0, reports: reports.count || 0, hazards: hazards.count || 0, actions: actions.count || 0 } });
   }
 
+  // ── FETCH ORG DETAILS (API keys, AI usage, integrations) ──
+  if (action === 'fetch_org_details') {
+    const claims = verifyToken(token);
+    if (!claims) return res.status(401).json({ error: 'Unauthorized' });
+    const { org_id } = req.body;
+    if (!org_id) return res.status(400).json({ error: 'org_id required' });
+    const [apiKeysRes, aiUsageRes, ffRes, scRes] = await Promise.all([
+      sb.from('api_keys').select('*', { count: 'exact', head: true }).eq('org_id', org_id),
+      sb.from('ai_usage_log').select('feature, tokens_used').eq('org_id', org_id),
+      sb.from('foreflight_config').select('enabled, last_synced_at').eq('org_id', org_id).maybeSingle(),
+      sb.from('schedaero_config').select('enabled, last_synced_at').eq('org_id', org_id).maybeSingle(),
+    ]);
+    const aiUsage = aiUsageRes.data || [];
+    const totalTokens = aiUsage.reduce((sum, r) => sum + (r.tokens_used || 0), 0);
+    const aiFeatures = [...new Set(aiUsage.map(r => r.feature))];
+    return res.status(200).json({
+      apiKeyCount: apiKeysRes.count || 0,
+      aiUsage: { totalTokens, features: aiFeatures },
+      foreflight: ffRes.data,
+      schedaero: scRes.data,
+    });
+  }
+
   // ── UPDATE ORG ──
   if (action === 'update_org') {
     const claims = verifyToken(token);

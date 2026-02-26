@@ -547,7 +547,7 @@ export default function ManagementOfChange({
 
       {/* Kanban View */}
       {view === "kanban" && (
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${STATUSES.length}, 1fr)`, gap: 8, overflowX: "auto" }} className="moc-kanban">
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${STATUSES.length}, minmax(200px, 1fr))`, gap: 8, overflowX: "auto" }} className="moc-kanban">
           {STATUSES.map(col => {
             const colItems = items.filter(i => i.status === col.id);
             const isOver = dragOverCol === col.id;

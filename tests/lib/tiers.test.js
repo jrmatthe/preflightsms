@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { TIERS, FEATURE_LABELS, hasFeature, getTierFeatures, NAV_FEATURE_MAP } from '../../lib/tiers.js';
+import { TIERS, FEATURE_LABELS, hasFeature, getTierFeatures, NAV_FEATURE_MAP, isFreeTier, FREE_TIER_LIMITS } from '../../lib/tiers.js';
 
 // ── TIER DEFINITIONS ─────────────────────────────────────────
 
 describe('TIERS', () => {
-  it('defines exactly three tiers', () => {
+  it('defines exactly four tiers', () => {
     const tierNames = Object.keys(TIERS);
-    expect(tierNames).toEqual(['starter', 'professional', 'enterprise']);
+    expect(tierNames).toEqual(['free', 'starter', 'professional', 'enterprise']);
   });
 
   it('each tier has required fields', () => {
@@ -21,8 +21,13 @@ describe('TIERS', () => {
   });
 
   it('tiers have ascending maxAircraft limits', () => {
+    expect(TIERS.free.maxAircraft).toBeLessThan(TIERS.starter.maxAircraft);
     expect(TIERS.starter.maxAircraft).toBeLessThan(TIERS.professional.maxAircraft);
     expect(TIERS.professional.maxAircraft).toBeLessThan(TIERS.enterprise.maxAircraft);
+  });
+
+  it('free costs $0', () => {
+    expect(TIERS.free.price).toBe(0);
   });
 
   it('starter costs $149', () => {
@@ -35,6 +40,10 @@ describe('TIERS', () => {
 
   it('enterprise has null (custom) pricing', () => {
     expect(TIERS.enterprise.price).toBeNull();
+  });
+
+  it('free maxAircraft is 1', () => {
+    expect(TIERS.free.maxAircraft).toBe(1);
   });
 
   it('starter maxAircraft is 5', () => {
@@ -50,6 +59,36 @@ describe('TIERS', () => {
   });
 });
 
+// ── FREE TIER ─────────────────────────────────────────
+
+describe('Free tier', () => {
+  it('FREE_TIER_LIMITS has correct values', () => {
+    expect(FREE_TIER_LIMITS.maxAircraft).toBe(1);
+    expect(FREE_TIER_LIMITS.maxUsers).toBe(1);
+    expect(FREE_TIER_LIMITS.maxOpenActions).toBe(5);
+    expect(FREE_TIER_LIMITS.maxPolicies).toBe(3);
+    expect(FREE_TIER_LIMITS.maxErpPlans).toBe(1);
+  });
+
+  it('isFreeTier returns true for free tier org', () => {
+    expect(isFreeTier({ tier: 'free' })).toBe(true);
+  });
+
+  it('isFreeTier returns false for other tiers', () => {
+    expect(isFreeTier({ tier: 'starter' })).toBe(false);
+    expect(isFreeTier({ tier: 'professional' })).toBe(false);
+    expect(isFreeTier(null)).toBe(false);
+  });
+
+  it('free tier has view_only hazard register', () => {
+    expect(TIERS.free.features.hazard_register).toBe('view_only');
+  });
+
+  it('free tier has read_only sms_manuals', () => {
+    expect(TIERS.free.features.sms_manuals).toBe('read_only');
+  });
+});
+
 // ── FEATURE FLAGS PER TIER ─────────────────────────────────────
 
 describe('Tier feature flags', () => {
@@ -61,18 +100,23 @@ describe('Tier feature flags', () => {
     }
   });
 
-  it('all feature values are boolean', () => {
-    for (const tier of Object.values(TIERS)) {
-      for (const [key, val] of Object.entries(tier.features)) {
-        expect(typeof val).toBe('boolean');
-      }
-    }
-  });
-
-  it('enterprise has all features enabled', () => {
+  it('all enterprise feature values are boolean true', () => {
     for (const [key, val] of Object.entries(TIERS.enterprise.features)) {
       expect(val).toBe(true);
     }
+  });
+
+  it('free tier has basic features only', () => {
+    expect(TIERS.free.features.frat).toBe(true);
+    expect(TIERS.free.features.safety_reporting).toBe(true);
+    expect(TIERS.free.features.corrective_actions).toBe(true);
+    expect(TIERS.free.features.policy_library).toBe(true);
+    expect(TIERS.free.features.dashboard_basic).toBe(true);
+
+    expect(TIERS.free.features.flight_following).toBe(false);
+    expect(TIERS.free.features.training_records).toBe(false);
+    expect(TIERS.free.features.cbt_modules).toBe(false);
+    expect(TIERS.free.features.dashboard_analytics).toBe(false);
   });
 
   it('starter has core features but not advanced features', () => {
@@ -86,40 +130,45 @@ describe('Tier feature flags', () => {
     expect(TIERS.starter.features.policy_library).toBe(true);
     expect(TIERS.starter.features.training_records).toBe(true);
     expect(TIERS.starter.features.dashboard_basic).toBe(true);
+    expect(TIERS.starter.features.cbt_modules).toBe(true);
+    expect(TIERS.starter.features.sms_manuals).toBe(true);
 
     // Advanced features (disabled)
     expect(TIERS.starter.features.dashboard_analytics).toBe(false);
     expect(TIERS.starter.features.custom_frat_template).toBe(false);
-    expect(TIERS.starter.features.cbt_modules).toBe(false);
     expect(TIERS.starter.features.role_permissions).toBe(false);
     expect(TIERS.starter.features.approval_workflow).toBe(false);
-    expect(TIERS.starter.features.sms_manuals).toBe(false);
     expect(TIERS.starter.features.api_access).toBe(false);
   });
 
-  it('professional enables most features but not api_access, multi_base, custom_integrations', () => {
+  it('professional enables most features', () => {
     expect(TIERS.professional.features.dashboard_analytics).toBe(true);
     expect(TIERS.professional.features.cbt_modules).toBe(true);
     expect(TIERS.professional.features.sms_manuals).toBe(true);
     expect(TIERS.professional.features.approval_workflow).toBe(true);
     expect(TIERS.professional.features.priority_support).toBe(true);
+    expect(TIERS.professional.features.foreflight_integration).toBe(true);
+    expect(TIERS.professional.features.schedaero_integration).toBe(true);
+    expect(TIERS.professional.features.insurance_export).toBe(true);
 
-    expect(TIERS.professional.features.api_access).toBe(false);
+    // Professional has read-only API access
+    expect(TIERS.professional.features.api_access).toBe('read_only');
     expect(TIERS.professional.features.multi_base).toBe(false);
     expect(TIERS.professional.features.custom_integrations).toBe(false);
+    expect(TIERS.professional.features.asap_program).toBe(false);
   });
 
-  it('higher tiers are strict supersets of lower tiers', () => {
-    // Everything enabled in starter should be enabled in professional
+  it('higher tiers are supersets of lower tiers (boolean features)', () => {
+    // Everything true in starter should be true in professional
     for (const [key, val] of Object.entries(TIERS.starter.features)) {
       if (val === true) {
-        expect(TIERS.professional.features[key]).toBe(true);
+        expect(TIERS.professional.features[key]).toBeTruthy();
       }
     }
-    // Everything enabled in professional should be enabled in enterprise
+    // Everything truthy in professional should be truthy in enterprise
     for (const [key, val] of Object.entries(TIERS.professional.features)) {
-      if (val === true) {
-        expect(TIERS.enterprise.features[key]).toBe(true);
+      if (val) {
+        expect(TIERS.enterprise.features[key]).toBeTruthy();
       }
     }
   });
@@ -159,19 +208,26 @@ describe('hasFeature()', () => {
   it('returns tier default for org without feature_flags', () => {
     const org = { tier: 'starter' };
     expect(hasFeature(org, 'frat')).toBe(true);
-    expect(hasFeature(org, 'cbt_modules')).toBe(false);
+    expect(hasFeature(org, 'dashboard_analytics')).toBe(false);
   });
 
   it('defaults to starter tier when org.tier is missing', () => {
     const org = {};
     expect(hasFeature(org, 'frat')).toBe(true);
-    expect(hasFeature(org, 'cbt_modules')).toBe(false);
+    expect(hasFeature(org, 'dashboard_analytics')).toBe(false);
+  });
+
+  it('returns truthy for view_only and read_only features', () => {
+    const org = { tier: 'free' };
+    expect(hasFeature(org, 'hazard_register')).toBeTruthy();
+    expect(hasFeature(org, 'sms_manuals')).toBeTruthy();
   });
 
   it('uses professional tier features', () => {
     const org = { tier: 'professional' };
     expect(hasFeature(org, 'cbt_modules')).toBe(true);
-    expect(hasFeature(org, 'api_access')).toBe(false);
+    expect(hasFeature(org, 'api_access')).toBe('read_only');
+    expect(hasFeature(org, 'multi_base')).toBe(false);
   });
 
   it('uses enterprise tier features', () => {
@@ -181,8 +237,8 @@ describe('hasFeature()', () => {
   });
 
   it('feature_flags override tier defaults (enable)', () => {
-    const org = { tier: 'starter', feature_flags: { cbt_modules: true } };
-    expect(hasFeature(org, 'cbt_modules')).toBe(true);
+    const org = { tier: 'starter', feature_flags: { dashboard_analytics: true } };
+    expect(hasFeature(org, 'dashboard_analytics')).toBe(true);
   });
 
   it('feature_flags override tier defaults (disable)', () => {
@@ -193,7 +249,7 @@ describe('hasFeature()', () => {
   it('falls through to tier default for flags not in feature_flags', () => {
     const org = { tier: 'professional', feature_flags: { cbt_modules: true } };
     expect(hasFeature(org, 'frat')).toBe(true);
-    expect(hasFeature(org, 'api_access')).toBe(false);
+    expect(hasFeature(org, 'multi_base')).toBe(false);
   });
 
   it('returns false for unknown feature key', () => {
@@ -255,6 +311,9 @@ describe('NAV_FEATURE_MAP', () => {
     expect(NAV_FEATURE_MAP.audit).toBe('faa_audit_log');
     expect(NAV_FEATURE_MAP.manuals).toBe('sms_manuals');
     expect(NAV_FEATURE_MAP.dashboard).toBe('dashboard_basic');
+    expect(NAV_FEATURE_MAP.asap).toBe('asap_program');
+    expect(NAV_FEATURE_MAP.audits).toBe('internal_evaluation');
+    expect(NAV_FEATURE_MAP.moc).toBe('management_of_change');
   });
 
   it('admin tab is always available (null feature)', () => {

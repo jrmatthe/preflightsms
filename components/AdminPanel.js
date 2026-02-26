@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { hasFeature } from "../lib/tiers";
 const FRATTemplateEditor = dynamic(() => import("./FRATTemplateEditor"), { ssr: false });
 const FleetManagement = dynamic(() => import("./FleetManagement"), { ssr: false });
 
@@ -36,21 +37,31 @@ const FEATURE_LABELS_MAP = {
   frat: "Flight Risk Assessment (FRAT)",
   flight_following: "Flight Following",
   safety_reporting: "Safety Reporting",
-  hazard_register: "Hazard Register",
+  hazard_register: "Investigation Register",
   corrective_actions: "Corrective Actions",
   policy_library: "Policy Library",
   training_records: "Training Records",
   dashboard_analytics: "Dashboard Analytics",
+  safety_trend_alerts: "Safety Trend Alerts",
+  scheduled_reports: "Scheduled PDF Reports",
+  faa_audit_log: "FAA Part 5 Audit Log",
   custom_frat_template: "Custom FRAT Templates",
-  cbt_modules: "CBT Modules & Tracking",
+  cbt_modules: "Training & CBT Modules",
   role_permissions: "Role-Based Permissions",
   approval_workflow: "FRAT Approval Workflow",
   document_library: "Document Library",
-  api_access: "API Access",
-  multi_base: "Multi-Base Support",
-  custom_integrations: "Custom Integrations",
+  sms_manuals: "SMS Manual Templates",
   foreflight_integration: "ForeFlight Integration",
   schedaero_integration: "Schedaero Integration",
+  internal_evaluation: "Internal Evaluation Program (IEP)",
+  management_of_change: "Management of Change",
+  safety_culture_survey: "Safety Culture Survey",
+  fatigue_assessment: "Fatigue Risk Assessment",
+  insurance_export: "Insurance Data Export & Scorecard",
+  asap_program: "ASAP Program",
+  international_compliance: "International Compliance",
+  api_access: "API Access",
+  multi_base: "Multi-Base Support",
   priority_support: "Priority Support",
 };
 
@@ -472,43 +483,58 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
           </div>
 
           {/* Plan cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }} className="plan-grid">
             {[
-              { id: "free", name: "Free", monthly: 0, annual: 0, desc: "1 aircraft, 1 user", features: ["FRAT Submissions", "Safety Reporting", "5 Corrective Actions", "3 Policies", "Basic Dashboard"], noBilling: true },
-              { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft", badge: true, features: ["Everything in Free", "Flight Following", "Full Investigations", "Training Records", "Unlimited CAs & Policies"] },
-              { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 15 aircraft", features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
+              { id: "free", name: "Free", monthly: 0, annual: 0, desc: "1 aircraft, 1 user", noBilling: true,
+                features: ["FRAT Submissions", "Safety Reporting", "ERP (1 read-only plan)", "Investigations (view-only)", "5 Corrective Actions", "3 Policies", "SMS Manual (read-only)", "Basic Dashboard"] },
+              { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft",
+                features: ["Everything in Free, plus:", "Flight Following", "Training & CBT", "ERP (2 plans)", "Full Investigations", "Unlimited CAs & Policies", "SMS Manual (editable)", "Pilot Engagement", "Data Export (CSV/PDF)"] },
+              { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 15 aircraft", badge: true,
+                features: ["Everything in Starter, plus:", "ForeFlight & Schedaero Integration", "AI Risk Intelligence", "FRAT Analytics & Safety Metrics", "SPIs/SPTs", "Audits/IEP & Change Management", "Safety Culture Surveys", "Fatigue Risk Assessment", "Declaration of Compliance Wizard", "Insurance Scorecard & Export", "Custom FRAT Templates", "Approval Workflows", "FAA Audit Log", "API (read-only)"] },
+              { id: "enterprise", name: "Enterprise", monthly: 0, annual: 0, desc: "Unlimited aircraft", isEnterprise: true,
+                features: ["Everything in Professional, plus:", "ASAP Program", "International Compliance (ICAO/IS-BAO/EASA)", "API (read-write) & Webhooks", "Multi-base Support", "Dedicated Support"] },
             ].map(p => {
               const price = billingInterval === "annual" ? p.annual : p.monthly;
               const perMonth = billingInterval === "annual" ? Math.round(p.annual / 12) : p.monthly;
               const isCurrent = (p.id === "free" && isFree) || (isActive && tier === p.id);
               return (
-                <div key={p.id} style={{ ...card, padding: "18px 16px", position: "relative", border: `1px solid ${isCurrent ? GREEN + "44" : BORDER}` }}>
-                  {p.badge && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>RECOMMENDED</div>}
-                  <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 2 }}>{p.name}</div>
+                <div key={p.id} style={{ ...card, padding: "16px 14px", position: "relative", border: `1px solid ${isCurrent ? GREEN + "44" : p.badge ? GREEN + "33" : BORDER}` }}>
+                  {p.badge && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>MOST POPULAR</div>}
+                  <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 2 }}>{p.name}</div>
                   <div style={{ fontSize: 10, color: MUTED, marginBottom: 8 }}>{p.desc}</div>
-                  <div style={{ marginBottom: 12 }}>
+                  <div style={{ marginBottom: 10 }}>
                     {p.noBilling ? (
-                      <span style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$0</span>
+                      <span style={{ fontSize: 24, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$0</span>
+                    ) : p.isEnterprise ? (
+                      <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>Custom</span>
                     ) : (<>
-                      <span style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>${perMonth}</span>
-                      <span style={{ fontSize: 11, color: MUTED }}>/mo</span>
-                      {billingInterval === "annual" && <div style={{ fontSize: 10, color: GREEN, marginTop: 2 }}>Billed ${price}/year</div>}
+                      <span style={{ fontSize: 24, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>${perMonth}</span>
+                      <span style={{ fontSize: 10, color: MUTED }}>/mo</span>
+                      {billingInterval === "annual" && <div style={{ fontSize: 9, color: GREEN, marginTop: 2 }}>Billed ${price}/year</div>}
                     </>)}
                   </div>
-                  {p.features.map((f, i) => (
-                    <div key={i} style={{ fontSize: 10, color: f.startsWith("Everything") ? CYAN : OFF_WHITE, padding: "2px 0", display: "flex", gap: 5 }}>
-                      <span style={{ color: GREEN, flexShrink: 0 }}>{f.startsWith("Everything") ? "\u2605" : "\u2713"}</span>{f}
-                    </div>
-                  ))}
+                  <div style={{ minHeight: 120 }}>
+                    {p.features.map((f, i) => (
+                      <div key={i} style={{ fontSize: 9, color: f.includes("Everything") || f.includes("plus:") ? CYAN : OFF_WHITE, padding: "2px 0", display: "flex", gap: 4 }}>
+                        <span style={{ color: GREEN, flexShrink: 0 }}>{f.includes("Everything") || f.includes("plus:") ? "\u2605" : "\u2713"}</span>{f}
+                      </div>
+                    ))}
+                  </div>
                   {p.noBilling ? (
-                    <div style={{ width: "100%", marginTop: 14, padding: "10px 0", borderRadius: 6, fontWeight: 700, fontSize: 12, textAlign: "center",
+                    <div style={{ width: "100%", marginTop: 10, padding: "9px 0", borderRadius: 6, fontWeight: 700, fontSize: 11, textAlign: "center",
                       background: isCurrent ? `${GREEN}22` : "transparent", color: isCurrent ? GREEN : MUTED,
                       border: `1px solid ${isCurrent ? GREEN + "44" : BORDER}` }}>
                       {isCurrent ? "\u2713 Current Plan" : "Free Forever"}
                     </div>
+                  ) : p.isEnterprise ? (
+                    <a href="mailto:sales@preflightsms.com" style={{ display: "block", width: "100%", marginTop: 10, padding: "9px 0", borderRadius: 6, fontWeight: 700, fontSize: 11, textAlign: "center", textDecoration: "none",
+                      background: isCurrent ? `${GREEN}22` : "transparent", color: isCurrent ? GREEN : CYAN,
+                      border: `1px solid ${isCurrent ? GREEN + "44" : CYAN + "44"}` }}>
+                      {isCurrent ? "\u2713 Current Plan" : "Contact Sales"}
+                    </a>
                   ) : (
                     <button onClick={() => handleCheckout(p.id)} disabled={checkoutLoading || isCurrent}
-                      style={{ width: "100%", marginTop: 14, padding: "10px 0", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: isCurrent ? "default" : checkoutLoading ? "wait" : "pointer",
+                      style={{ width: "100%", marginTop: 10, padding: "9px 0", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: isCurrent ? "default" : checkoutLoading ? "wait" : "pointer",
                         background: isCurrent ? `${GREEN}22` : WHITE, color: isCurrent ? GREEN : BLACK,
                         border: isCurrent ? `1px solid ${GREEN}44` : "none",
                         opacity: checkoutLoading ? 0.6 : 1 }}>
@@ -546,7 +572,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
         <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 14 }}>Plan Features</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {Object.entries(FEATURE_LABELS_MAP).map(([key, label]) => {
-            const enabled = flags[key];
+            const enabled = hasFeature(orgData, key);
             return (
               <div key={key}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 6,
@@ -1237,7 +1263,12 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
 
       {/* Users & Invitations */}
       {activeTab === "users" && (<>
-      <InviteSection canManage={canManage} onInvite={onInviteUser} invitations={invitations || []} onRevoke={onRevokeInvitation} onResend={onResendInvitation} />
+      {(orgData?.tier || "starter") !== "free" && <InviteSection canManage={canManage} onInvite={onInviteUser} invitations={invitations || []} onRevoke={onRevokeInvitation} onResend={onResendInvitation} />}
+      {(orgData?.tier || "starter") === "free" && canManage && (
+        <div style={{ ...card, padding: "14px 18px", marginBottom: 16, background: "rgba(34,211,238,0.04)", border: `1px solid rgba(34,211,238,0.15)` }}>
+          <div style={{ fontSize: 11, color: CYAN }}>Free plan is limited to 1 user. Upgrade to Starter to invite team members.</div>
+        </div>
+      )}
 
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>

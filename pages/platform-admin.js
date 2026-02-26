@@ -335,6 +335,13 @@ function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, o
 
 function OrgDetail({ org, orgUsers, orgStats, orgLoading, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, saveChanges, saving, onDeleteOrg, isDirty }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [orgDetails, setOrgDetails] = useState(null);
+  useEffect(() => {
+    if (!org?.id) return;
+    api({ action: "fetch_org_details", org_id: org.id }).then(res => {
+      if (!res.error && !res._status) setOrgDetails(res);
+    });
+  }, [org?.id]);
   return (
     <div style={{ maxWidth: 800 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
@@ -356,6 +363,31 @@ function OrgDetail({ org, orgUsers, orgStats, orgLoading, editStatus, editFlags,
           </div>
         ))}
       </div>
+
+      {/* API Keys, AI Usage, Integrations */}
+      {orgDetails && (
+        <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 10 }}>API & Integrations</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>API Keys</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: WHITE, marginTop: 2 }}>{orgDetails.apiKeyCount} <span style={{ fontSize: 10, color: MUTED, fontWeight: 400 }}>active</span></div>
+            </div>
+            <div>
+              <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>AI Usage</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: WHITE, marginTop: 2 }}>{(orgDetails.aiUsage?.totalTokens || 0).toLocaleString()} <span style={{ fontSize: 10, color: MUTED, fontWeight: 400 }}>tokens</span></div>
+              {orgDetails.aiUsage?.features?.length > 0 && <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>{orgDetails.aiUsage.features.join(", ")}</div>}
+            </div>
+            <div>
+              <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Integrations</div>
+              <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ fontSize: 11, color: orgDetails.foreflight?.enabled ? GREEN : MUTED }}>ForeFlight {orgDetails.foreflight?.enabled ? "Active" : "—"}</div>
+                <div style={{ fontSize: 11, color: orgDetails.schedaero?.enabled ? GREEN : MUTED }}>Schedaero {orgDetails.schedaero?.enabled ? "Active" : "—"}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16, opacity: orgLoading ? 0.4 : 1, transition: "opacity 0.2s" }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 10 }}>Users ({orgLoading ? "…" : orgUsers.length})</div>

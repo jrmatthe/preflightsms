@@ -98,7 +98,7 @@ const ttStyle = { borderRadius: 6, border: `1px solid ${BORDER}`, background: CA
 // ════════════════════════════════════════════════════════════════
 // OVERVIEW TAB — high-level SMS health across all modules
 // ════════════════════════════════════════════════════════════════
-function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert }) {
+function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription }) {
   const stats = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 86400000;
@@ -251,7 +251,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
       </div>
 
       {/* ERP Status */}
-      {(stats.activePlans > 0 || (erpPlans || []).length > 0) && (
+      {(erpPlans || []).length > 0 ? (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
           <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>ERP Status</h3>
           <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
@@ -273,10 +273,21 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
             </div>
           </div>
         </div>
+      ) : !isDashboardFree && (
+        <div style={{ ...card, padding: 18, marginTop: 16 }}>
+          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>ERP Status</h3>
+          <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No emergency response plans created yet</div>
+        </div>
       )}
 
       {/* SPI Health */}
-      {stats.spiCount > 0 && (
+      {!isDashboardFree && stats.spiCount === 0 && (
+        <div style={{ ...card, padding: 18, marginTop: 16 }}>
+          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>SPI Health</h3>
+          <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No safety performance indicators configured</div>
+        </div>
+      )}
+      {!isDashboardFree && stats.spiCount > 0 && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
           <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>SPI Health</h3>
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -307,7 +318,13 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
       )}
 
       {/* ── Trend Alerts (AI Intelligence) ── */}
-      {trendAlerts && trendAlerts.filter(a => !a.acknowledged_by).length > 0 && (
+      {!isDashboardFree && (!trendAlerts || trendAlerts.filter(a => !a.acknowledged_by).length === 0) && (
+        <div style={{ ...card, padding: 18, marginTop: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: CYAN }}>&#9889;</span> Trend Alerts</div>
+          <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No trend alerts — all clear</div>
+        </div>
+      )}
+      {!isDashboardFree && trendAlerts && trendAlerts.filter(a => !a.acknowledged_by).length > 0 && (
         <div style={{ ...card, padding: "18px 22px", marginTop: 14, borderRadius: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ color: CYAN }}>⚡</span> Trend Alerts
@@ -341,6 +358,107 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
                 </div>
               );
             })}
+        </div>
+      )}
+
+      {/* Active Changes (MOC) */}
+      {!isDashboardFree && (!mocItems || mocItems.length === 0 || mocItems.filter(m => m.status !== "closed").length === 0) && (
+        <div style={{ ...card, padding: 18, marginTop: 16 }}>
+          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Active Changes</h3>
+          <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No active change management items</div>
+        </div>
+      )}
+      {!isDashboardFree && mocItems && mocItems.length > 0 && (() => {
+        const open = mocItems.filter(m => m.status !== "closed");
+        const byPriority = { critical: 0, high: 0, medium: 0, low: 0 };
+        open.forEach(m => { if (byPriority.hasOwnProperty(m.priority)) byPriority[m.priority]++; });
+        return open.length > 0 ? (
+          <div style={{ ...card, padding: 18, marginTop: 16 }}>
+            <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Active Changes</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+              {[
+                { label: "Critical", count: byPriority.critical, color: RED },
+                { label: "High", count: byPriority.high, color: AMBER },
+                { label: "Medium", count: byPriority.medium, color: YELLOW },
+                { label: "Low", count: byPriority.low, color: GREEN },
+              ].map(p => (
+                <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: p.color, display: "inline-block" }} />
+                  <span style={{ fontSize: 18, fontWeight: 800, color: p.count > 0 ? p.color : MUTED }}>{p.count}</span>
+                  <span style={{ fontSize: 11, color: MUTED }}>{p.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null;
+      })()}
+
+      {/* SMS Maturity Score (from Insurance Scorecard) */}
+      {!isDashboardFree && typeof insuranceScore === "number" && (
+        <div style={{ ...card, padding: 18, marginTop: 16 }}>
+          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>SMS Maturity Score</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", border: `4px solid ${insuranceScore >= 81 ? GREEN : insuranceScore >= 61 ? "#A3E635" : insuranceScore >= 41 ? AMBER : RED}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 22, fontWeight: 800, color: WHITE }}>{Math.round(insuranceScore)}</span>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: insuranceScore >= 81 ? GREEN : insuranceScore >= 61 ? "#A3E635" : insuranceScore >= 41 ? AMBER : RED }}>
+                {insuranceScore >= 81 ? "Advanced" : insuranceScore >= 61 ? "Established" : insuranceScore >= 41 ? "Developing" : "Early Stage"}
+              </div>
+              <div style={{ fontSize: 11, color: MUTED }}>View full scorecard in Insurance & Export</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Free tier blurred preview overlays */}
+      {isDashboardFree && (
+        <div style={{ position: "relative", marginTop: 16 }}>
+          <div style={{ filter: "blur(3px)", pointerEvents: "none", opacity: 0.5 }}>
+            <div style={{ ...card, padding: 18, marginBottom: 12 }}>
+              <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>SPI Health</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                {[{ label: "On Target", n: 5, c: GREEN }, { label: "Approaching", n: 1, c: AMBER }, { label: "Breached", n: 0, c: RED }].map(p => (
+                  <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 12, height: 12, borderRadius: "50%", background: p.c, display: "inline-block" }} />
+                    <span style={{ fontSize: 18, fontWeight: 800, color: WHITE }}>{p.n}</span>
+                    <span style={{ fontSize: 11, color: MUTED }}>{p.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ ...card, padding: 18, marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: CYAN }}>&#9889;</span> Trend Alerts</div>
+              {[{ sev: "warning", metric: "Avg Risk Score", pct: 18 }, { sev: "info", metric: "Report Frequency", pct: -12 }].map((a, i) => (
+                <div key={i} style={{ ...card, padding: "12px 16px", marginBottom: 8, borderRadius: 8, borderLeft: `3px solid ${a.sev === "warning" ? AMBER : CYAN}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: a.sev === "warning" ? AMBER : CYAN, background: `${a.sev === "warning" ? AMBER : CYAN}22`, padding: "2px 8px", borderRadius: 8, textTransform: "uppercase" }}>{a.sev}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{a.metric}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: MUTED }}>{a.pct > 0 ? "↑" : "↓"} {Math.abs(a.pct)}% change</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ ...card, padding: 18 }}>
+              <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Active Changes</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                {[{ l: "Critical", n: 0, c: RED }, { l: "High", n: 2, c: AMBER }, { l: "Medium", n: 3, c: YELLOW }, { l: "Low", n: 1, c: GREEN }].map(p => (
+                  <div key={p.l} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: "50%", background: p.c, display: "inline-block" }} />
+                    <span style={{ fontSize: 18, fontWeight: 800, color: p.n > 0 ? p.c : MUTED }}>{p.n}</span>
+                    <span style={{ fontSize: 11, color: MUTED }}>{p.l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(10,10,10,0.7)", borderRadius: 10 }}>
+            <div style={{ textAlign: "center", padding: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 6 }}>Upgrade to Unlock</div>
+              <div style={{ fontSize: 11, color: MUTED, marginBottom: 12 }}>FRAT Analytics, Safety Metrics, Trend Alerts, and more</div>
+              <button onClick={() => onNavigateSubscription && onNavigateSubscription()} style={{ padding: "8px 20px", background: CYAN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>View Plans</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -828,14 +946,14 @@ function SafetyMetrics({ reports, hazards, actions }) {
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
   const h = hazards || [];
   const a = actions || [];
 
-  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} />;
+  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} />;
   if (view === "frat") return <FRATAnalytics records={r} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;
 

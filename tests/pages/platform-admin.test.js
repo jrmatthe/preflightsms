@@ -625,12 +625,12 @@ describe("Organizations tab", () => {
     await act(async () => { fireEvent.click(screen.getByText("Acme Aviation")); });
 
     await waitFor(() => {
-      expect(screen.getByText("API Access")).toBeInTheDocument();
+      expect(screen.getByText("Multi-Base Support")).toBeInTheDocument();
     });
 
-    // API Access is off for professional tier by default
-    const apiLabel = screen.getByText("API Access");
-    const toggle = apiLabel.closest("div[style]");
+    // Multi-Base Support is off for professional tier by default
+    const mbLabel = screen.getByText("Multi-Base Support");
+    const toggle = mbLabel.closest("div[style]");
 
     fireEvent.click(toggle);
 
