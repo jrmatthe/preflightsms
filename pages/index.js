@@ -618,7 +618,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     </div>)}
     {/* ── Mobile Bottom Tab Bar ──────────────────── */}
     <nav className="mobile-bottom-nav" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: BLACK, borderTop: `1px solid ${BORDER}` }}>
-      <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-evenly", alignItems: "center", width: "100%" }}>
         {[
           { id: "dashboard", label: "Dashboard", icon: icons.dashboard },
           { id: "submit", label: "FRAT", icon: icons.submit },
@@ -1736,8 +1736,8 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
           </div>
         </div></div>
 
-      <div className="score-panel-mobile" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, paddingBottom: "env(safe-area-inset-bottom, 6px)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", margin: "0 8px 6px", background: BLACK, borderTop: `1px solid ${getRL(score).border}`, borderRadius: 10, border: `1px solid ${getRL(score).border}` }}>
+      <div className="score-panel-mobile" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", margin: "0 16px 6px", background: BLACK, borderRadius: 10, border: `1px solid ${getRL(score).border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
             <div style={{ width: 40, height: 40, borderRadius: 8, background: getRL(score).bg, border: `1px solid ${getRL(score).border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <span style={{ fontWeight: 800, color: getRL(score).color, fontSize: 16, fontFamily: "Georgia,serif" }}>{score}</span></div>
@@ -4792,7 +4792,8 @@ a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 .tour-highlight-ring{animation:tourPulse 2s ease-in-out infinite}
 @media(max-width:768px){
 .fab-container{bottom:calc(72px + env(safe-area-inset-bottom, 8px)) !important;right:16px !important}
-.mobile-bottom-nav{display:flex !important;padding:8px 16px calc(8px + env(safe-area-inset-bottom, 0px)) 16px !important}
+.mobile-bottom-nav{display:flex !important;padding:8px 24px calc(10px + env(safe-area-inset-bottom, 0px)) 24px !important}
+.score-panel-mobile{padding-bottom:env(safe-area-inset-bottom, 6px) !important}
 .frat-grid{grid-template-columns:1fr !important}
 .flight-info-grid{grid-template-columns:1fr 1fr !important}
 .score-panel-desktop{display:none !important}
