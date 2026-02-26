@@ -127,6 +127,7 @@ export default function SafetyPerformanceIndicators({
   const [selectedSpi, setSelectedSpi] = useState(null);
   const [editingSpi, setEditingSpi] = useState(null);
   const [filterCat, setFilterCat] = useState("all");
+  const [showHelp, setShowHelp] = useState(false);
 
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
 
@@ -174,29 +175,30 @@ export default function SafetyPerformanceIndicators({
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Safety Performance Indicators</div>
-            <div style={{ fontSize: 11, color: MUTED }}>Part 5 §5.71–5.75 — configurable SPIs with targets</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Safety Performance Indicators (SPIs)<button onClick={() => setShowHelp(!showHelp)} title="What's this?" style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: MUTED, fontSize: 10, fontWeight: 700, marginLeft: 8, verticalAlign: "middle" }}>?</button></div>
+            <div style={{ fontSize: 11, color: MUTED }}>Part 5 §5.71–5.75 — configurable indicators with targets</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Btn small onClick={() => exportSpiCsv(spiWithLatest)}>Export CSV</Btn>
-            {isAdmin && <Btn primary onClick={() => { setEditingSpi(null); setView("editor"); }}>+ New SPI</Btn>}
+            {isAdmin && <Btn primary onClick={() => { setEditingSpi(null); setView("editor"); }}>+ Add Indicator</Btn>}
           </div>
         </div>
+        {showHelp && <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.6, padding: "10px 14px", marginBottom: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6 }}>Safety Performance Indicators track measurable safety metrics over time. Set targets, record measurements, and monitor trends to ensure your safety program is continuously improving.</div>}
 
         {/* Init defaults card */}
         {(spis || []).length === 0 && isAdmin && (
           <div style={{ ...card, padding: 24, marginBottom: 16, textAlign: "center" }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: WHITE, marginBottom: 4 }}>No Performance Indicators Configured</div>
-            <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Load 8 industry-standard SPIs with default targets aligned to Part 5 requirements.</div>
-            <Btn primary onClick={onInitDefaults}>Load Default SPIs</Btn>
+            <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Load 8 industry-standard indicators with default targets aligned to Part 5 requirements.</div>
+            <Btn primary onClick={onInitDefaults}>Load Default Indicators</Btn>
           </div>
         )}
 
         {/* Health summary bar */}
         {(spis || []).length > 0 && (
           <div style={{ ...card, padding: 14, marginBottom: 16, display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>SPI Health:</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>Indicator Health:</span>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: GREEN, display: "inline-block" }} /><span style={{ fontSize: 12, color: OFF_WHITE }}>{healthSummary.green} On Target</span></span>
               <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: AMBER, display: "inline-block" }} /><span style={{ fontSize: 12, color: OFF_WHITE }}>{healthSummary.yellow} Approaching</span></span>
@@ -257,7 +259,7 @@ export default function SafetyPerformanceIndicators({
           );
         })}
         {(spis || []).length > 0 && Object.keys(grouped).length === 0 && (
-          <div style={{ textAlign: "center", padding: 32, color: MUTED, fontSize: 13 }}>No SPIs match your filter.</div>
+          <div style={{ textAlign: "center", padding: 32, color: MUTED, fontSize: 13 }}>No indicators match your filter.</div>
         )}
       </div>
     );
@@ -351,7 +353,7 @@ function SpiDetail({ spi, spis, isAdmin, onBack, onEdit, onUpdateSpi, onDeleteSp
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: MUTED, fontSize: 12, cursor: "pointer", marginBottom: 12 }}>← Back to SPIs</button>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: MUTED, fontSize: 12, cursor: "pointer", marginBottom: 12 }}>← Back to Indicators</button>
 
       {/* Header */}
       <div style={{ ...card, padding: 20, marginBottom: 16 }}>
@@ -366,7 +368,7 @@ function SpiDetail({ spi, spis, isAdmin, onBack, onEdit, onUpdateSpi, onDeleteSp
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            {isAdmin && <Btn small onClick={onEdit}>Edit SPI</Btn>}
+            {isAdmin && <Btn small onClick={onEdit}>Edit Indicator</Btn>}
             {isAdmin && !confirmDelete && <Btn small danger onClick={() => setConfirmDelete(true)}>Delete</Btn>}
             {isAdmin && confirmDelete && (
               <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
@@ -468,7 +470,7 @@ function SpiDetail({ spi, spis, isAdmin, onBack, onEdit, onUpdateSpi, onDeleteSp
             <span style={{ fontSize: 14, fontWeight: 600, color: WHITE }}>Manual Entry</span>
             {isAdmin && <Btn small onClick={() => setShowManualEntry(!showManualEntry)}>{showManualEntry ? "Cancel" : "+ Add"}</Btn>}
           </div>
-          {!showManualEntry && <div style={{ fontSize: 12, color: MUTED }}>Add manual measurements for custom SPIs or override auto-calculated values.</div>}
+          {!showManualEntry && <div style={{ fontSize: 12, color: MUTED }}>Add manual measurements for custom indicators or override auto-calculated values.</div>}
           {showManualEntry && (
             <div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
@@ -562,7 +564,7 @@ function SpiEditor({ existing, isAdmin, onBack, onSave }) {
     <div style={{ maxWidth: 700, margin: "0 auto" }}>
       <button onClick={onBack} style={{ background: "none", border: "none", color: MUTED, fontSize: 12, cursor: "pointer", marginBottom: 12 }}>← Back</button>
       <div style={{ ...card, padding: 24 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 16 }}>{existing ? "Edit SPI" : "Create New SPI"}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 16 }}>{existing ? "Edit Indicator" : "Create New Indicator"}</div>
 
         <label style={{ fontSize: 11, fontWeight: 600, color: MUTED, display: "block", marginBottom: 4 }}>Name</label>
         <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. FRAT Completion Rate" style={{ ...inp, marginBottom: 12 }} />
@@ -661,7 +663,7 @@ function SpiEditor({ existing, isAdmin, onBack, onSave }) {
             setSaving(true);
             await onSave(form);
             setSaving(false);
-          }}>{saving ? "Saving..." : existing ? "Update SPI" : "Create SPI"}</Btn>
+          }}>{saving ? "Saving..." : existing ? "Update Indicator" : "Create Indicator"}</Btn>
           <Btn onClick={onBack}>Cancel</Btn>
         </div>
       </div>

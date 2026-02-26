@@ -78,7 +78,16 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
       <div className="crew-grid" style={{display:"grid",gridTemplateColumns:selected||editing?"380px 1fr":"1fr",gap:16,minHeight:500}}>
         <div>
           <div style={{display:"flex",gap:6,marginBottom:10}}><input placeholder="Search aircraft..." value={search} onChange={e=>setSearch(e.target.value)} style={{...inp,flex:1}} /></div>
-          {filtered.length===0?<div style={{...card,padding:24,textAlign:"center"}}><div style={{fontSize:11,color:MUTED}}>{fleet.length===0?"No aircraft registered — add your first aircraft above":"No aircraft found"}</div></div>
+          {filtered.length===0?<div style={{...card,padding:"40px 20px",textAlign:"center"}}>{fleet.length===0?<div>
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ marginBottom: 14, opacity: 0.5 }}>
+              <path d="M24 4L8 20l6 2-4 10 14-8 14 8-4-10 6-2L24 4z" stroke={MUTED} strokeWidth="2" strokeLinejoin="round" fill="none" />
+              <line x1="24" y1="24" x2="24" y2="44" stroke={MUTED} strokeWidth="2" strokeLinecap="round" />
+              <line x1="16" y1="38" x2="32" y2="38" stroke={MUTED} strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <div style={{fontSize:14,fontWeight:600,color:WHITE,marginBottom:6}}>No aircraft registered</div>
+            <div style={{fontSize:11,color:MUTED,lineHeight:1.6,maxWidth:340,margin:"0 auto",marginBottom:16}}>Add your fleet to enable FRAT submissions and flight following. Aircraft details are used across safety reports and risk assessments.</div>
+            {canManage && !atLimit && <button onClick={startAdd} style={{padding:"10px 24px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>Add Aircraft</button>}
+          </div>:<div style={{fontSize:11,color:MUTED}}>No aircraft found</div>}</div>
           :filtered.map(a=>{
             const isSelected=selected?.id===a.id;
             return (<div key={a.id} onClick={()=>selectAircraft(a)} style={{...card,padding:"12px 16px",marginBottom:6,cursor:"pointer",border:`1px solid ${isSelected?LIGHT_BORDER:BORDER}`,background:isSelected?"rgba(255,255,255,0.04)":CARD}}>

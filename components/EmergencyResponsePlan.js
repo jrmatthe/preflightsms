@@ -221,6 +221,7 @@ export default function EmergencyResponsePlan({
   const [filterCat, setFilterCat] = useState("all");
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ name: "", category: "general", description: "" });
+  const [showHelp, setShowHelp] = useState(false);
 
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const tier = org?.subscription_tier || org?.tier || "starter";
@@ -244,7 +245,7 @@ export default function EmergencyResponsePlan({
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Emergency Response Plans</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Emergency Response Plans<button onClick={() => setShowHelp(!showHelp)} title="What's this?" style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: MUTED, fontSize: 10, fontWeight: 700, marginLeft: 8, verticalAlign: "middle" }}>?</button></div>
             <div style={{ fontSize: 11, color: MUTED }}>Part 5 §5.27 — maintain and drill your ERPs</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -252,6 +253,7 @@ export default function EmergencyResponsePlan({
             {isAdmin && <Btn primary disabled={atLimit} onClick={() => setView("new")}>+ New Plan</Btn>}
           </div>
         </div>
+        {showHelp && <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.6, padding: "10px 14px", marginBottom: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6 }}>Emergency Response Plans provide step-by-step procedures for handling emergencies. Each plan includes checklists, call trees, and drill tracking to keep your team prepared.</div>}
 
         {/* Tier limit message */}
         {isFree && atLimit && (
@@ -672,8 +674,8 @@ function CallTreeTab({ planId, isAdmin, onLoad, onSave }) {
               <Badge label={c.is_external ? "External" : "Internal"} color={c.is_external ? AMBER : GREEN} />
             </div>
             <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
-              {c.phone_primary && <span style={{ fontSize: 12, color: OFF_WHITE }}>📞 {c.phone_primary}</span>}
-              {c.phone_secondary && <span style={{ fontSize: 12, color: MUTED }}>📞 {c.phone_secondary}</span>}
+              {c.phone_primary && <a href={`tel:${c.phone_primary.replace(/[^+\d]/g, "")}`} style={{ fontSize: 12, color: OFF_WHITE, textDecoration: "none" }} onClick={e => e.stopPropagation()}>📞 {c.phone_primary}</a>}
+              {c.phone_secondary && <a href={`tel:${c.phone_secondary.replace(/[^+\d]/g, "")}`} style={{ fontSize: 12, color: MUTED, textDecoration: "none" }} onClick={e => e.stopPropagation()}>📞 {c.phone_secondary}</a>}
               {c.email && <span style={{ fontSize: 12, color: MUTED }}>✉ {c.email}</span>}
             </div>
             {c.notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{c.notes}</div>}
@@ -754,8 +756,8 @@ function QuickRefTab({ plan, onLoadChecklist, onLoadCallTree }) {
                 <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: 10 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{c.contact_name}</div>
                   {c.contact_role && <div style={{ fontSize: 10, color: MUTED }}>{c.contact_role}</div>}
-                  {c.phone_primary && <div style={{ fontSize: 12, color: GREEN, marginTop: 4 }}>📞 {c.phone_primary}</div>}
-                  {c.phone_secondary && <div style={{ fontSize: 11, color: MUTED }}>📞 {c.phone_secondary}</div>}
+                  {c.phone_primary && <div style={{ marginTop: 4 }}><a href={`tel:${c.phone_primary.replace(/[^+\d]/g, "")}`} style={{ fontSize: 12, color: GREEN, textDecoration: "none" }}>📞 {c.phone_primary}</a></div>}
+                  {c.phone_secondary && <div><a href={`tel:${c.phone_secondary.replace(/[^+\d]/g, "")}`} style={{ fontSize: 11, color: MUTED, textDecoration: "none" }}>📞 {c.phone_secondary}</a></div>}
                 </div>
               ))}
             </div>

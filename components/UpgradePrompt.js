@@ -33,15 +33,15 @@ export default function UpgradePrompt({ feature, message, onNavigateToSubscripti
             <div style={{ width: 48, height: 48, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${CYAN}44`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
               <span style={{ fontSize: 22 }}>{"\u2B06"}</span>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 6 }}>Upgrade to Unlock</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 6 }}>This Feature is Available on a Paid Plan</div>
             <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 20 }}>
-              {message || `This feature is available on the Starter plan. Upgrade to unlock ${feature || "this feature"} and more.`}
+              {message || `${feature || "This feature"} is included with the Starter plan. Upgrading gives your team access to more tools for managing safety effectively.`}
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 12 }}>
-            <button onClick={onNavigateToSubscription} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>View Plans</button>
-            <button onClick={onDismiss} style={{ padding: "10px 24px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Not Now</button>
+            <button onClick={onNavigateToSubscription} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>See Plan Options</button>
+            <button onClick={onDismiss} style={{ padding: "10px 24px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Maybe Later</button>
           </div>
 
           <div style={{ textAlign: "center" }}>

@@ -265,9 +265,19 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
-          <div style={{ fontSize: 42, marginBottom: 12 }}>✅</div>
-          <div style={{ fontSize: 14 }}>No corrective actions</div>
+        <div style={{ textAlign: "center", padding: "60px 20px", color: MUTED }}>
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ marginBottom: 16, opacity: 0.5 }}>
+            <circle cx="24" cy="24" r="20" stroke={MUTED} strokeWidth="2" fill="none" />
+            <path d="M15 24l6 6 12-12" stroke={MUTED} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
+          <div style={{ fontSize: 15, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>No corrective actions</div>
+          <div style={{ fontSize: 12, lineHeight: 1.6, maxWidth: 420, margin: "0 auto", marginBottom: 20 }}>
+            Actions are created from investigation findings to track and resolve safety issues. Each action is assigned, tracked, and verified to ensure hazards are properly addressed.
+          </div>
+          <button onClick={() => setView("new")}
+            style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            Create Your First Action
+          </button>
         </div>
       ) : (<>
         {filtered.slice(0, showCount).map(a => (

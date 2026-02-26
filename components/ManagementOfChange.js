@@ -449,6 +449,7 @@ export default function ManagementOfChange({
   const [view, setView] = useState("kanban"); // kanban | list | form | detail
   const [selectedItem, setSelectedItem] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Filters (for list view)
   const [filterType, setFilterType] = useState("all");
@@ -522,6 +523,7 @@ export default function ManagementOfChange({
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Management of Change<button onClick={() => setShowHelp(!showHelp)} title="What's this?" style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: MUTED, fontSize: 10, fontWeight: 700, marginLeft: 8, verticalAlign: "middle" }}>?</button></div>
           <div style={{ fontSize: 11, color: MUTED }}>&sect;5.53 — Identifying changes and assessing associated hazards</div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -544,6 +546,7 @@ export default function ManagementOfChange({
           </button>
         </div>
       </div>
+      {showHelp && <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.6, padding: "10px 14px", marginBottom: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6 }}>Change Management tracks operational changes through structured hazard analysis. Use this when adding new routes, aircraft, procedures, or responding to regulatory changes.</div>}
 
       {/* Kanban View */}
       {view === "kanban" && (
@@ -633,12 +636,25 @@ export default function ManagementOfChange({
       {/* Empty state */}
       {items.length === 0 && view === "kanban" && (
         <div style={{ textAlign: "center", padding: "60px 20px" }}>
-          <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>&#8634;</div>
-          <div style={{ fontSize: 14, color: OFF_WHITE, fontWeight: 600, marginBottom: 4 }}>No Change Requests</div>
-          <div style={{ fontSize: 11, color: MUTED, marginBottom: 16 }}>Track operational changes and their safety impacts with structured hazard analysis.</div>
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ marginBottom: 16, opacity: 0.5 }}>
+            <path d="M24 4a20 20 0 0 1 14.14 5.86" stroke={MUTED} strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M38.14 9.86A20 20 0 0 1 44 24" stroke={MUTED} strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M44 24a20 20 0 0 1-5.86 14.14" stroke={MUTED} strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M38.14 38.14A20 20 0 0 1 24 44" stroke={MUTED} strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M24 44a20 20 0 0 1-14.14-5.86" stroke={MUTED} strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M9.86 38.14A20 20 0 0 1 4 24" stroke={MUTED} strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M4 24a20 20 0 0 1 5.86-14.14" stroke={MUTED} strokeWidth="2" strokeLinecap="round" fill="none" />
+            <path d="M9.86 9.86A20 20 0 0 1 24 4" stroke={MUTED} strokeWidth="2" strokeLinecap="round" fill="none" />
+            <polygon points="36,8 40,14 34,14" fill={MUTED} />
+            <polygon points="12,40 8,34 14,34" fill={MUTED} />
+          </svg>
+          <div style={{ fontSize: 15, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>No Change Requests</div>
+          <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.6, maxWidth: 420, margin: "0 auto", marginBottom: 20 }}>
+            Management of Change helps you evaluate the safety impact of operational changes before they happen. Track new routes, fleet changes, procedure updates, and more through structured hazard analysis.
+          </div>
           <button onClick={() => setView("form")}
             style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: WHITE, color: BLACK, border: "none" }}>
-            + New Change
+            Start a Change Request
           </button>
         </div>
       )}

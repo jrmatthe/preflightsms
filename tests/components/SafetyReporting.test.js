@@ -95,7 +95,7 @@ describe("SafetyReporting", () => {
   it("shows empty state when no reports exist", () => {
     renderSR({ reports: [] });
     expect(screen.getByText("No safety reports yet")).toBeInTheDocument();
-    expect(screen.getByText(/Submit a report to start building your safety data/)).toBeInTheDocument();
+    expect(screen.getByText(/Filing reports helps your organization/)).toBeInTheDocument();
   });
 
   // 3. Renders report cards with title, type badge, severity badge, status badge

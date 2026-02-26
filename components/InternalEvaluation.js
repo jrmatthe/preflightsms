@@ -222,7 +222,7 @@ export const SEED_TEMPLATES = [
 // ── Helpers ───────────────────────────────────────────────────
 function generateAuditCode(existingAudits) {
   const num = (existingAudits || []).length + 1;
-  return `IEP-${String(num).padStart(3, "0")}`;
+  return `AUDIT-${String(num).padStart(3, "0")}`;
 }
 
 function calcScore(responses, templateSnapshot) {

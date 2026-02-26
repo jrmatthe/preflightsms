@@ -433,6 +433,7 @@ export default function SafetyCultureSurvey({
   const [editQuestions, setEditQuestions] = useState([]);
   const [editForm, setEditForm] = useState({ title: "", description: "", is_anonymous: true, start_date: "", end_date: "", template_type: "standard" });
   const [userResponded, setUserResponded] = useState({});
+  const [showHelp, setShowHelp] = useState(false);
 
   const isAdmin = ["admin", "safety_manager", "accountable_exec"].includes(profile?.role);
   const activeSurveys = (surveys || []).filter(s => s.status === "active");
@@ -742,6 +743,15 @@ export default function SafetyCultureSurvey({
   // ── Survey List ──
   return (
     <div>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Safety Culture Surveys<button onClick={() => setShowHelp(!showHelp)} title="What's this?" style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: MUTED, fontSize: 10, fontWeight: 700, marginLeft: 8, verticalAlign: "middle" }}>?</button></div>
+          <div style={{ fontSize: 11, color: MUTED }}>Part 5 §5.91 — measure and improve safety culture</div>
+        </div>
+      </div>
+      {showHelp && <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.6, padding: "10px 14px", marginBottom: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6 }}>Safety Culture Surveys measure your organization's safety attitudes across five dimensions. Anonymous responses help identify areas where safety culture can be strengthened.</div>}
+
       {/* Active surveys for respondents */}
       {activeSurveys.filter(s => !userResponded[s.id]).length > 0 && (
         <div style={{ marginBottom: 20 }}>

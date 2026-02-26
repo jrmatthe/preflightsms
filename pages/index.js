@@ -616,6 +616,30 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
         </div>
       </>)}
     </div>)}
+    {/* ── Mobile Bottom Tab Bar ──────────────────── */}
+    <nav className="mobile-bottom-nav" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: BLACK, borderTop: `1px solid ${BORDER}`, padding: "6px 0 env(safe-area-inset-bottom, 0)" }}>
+      <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center" }}>
+        {[
+          { id: "dashboard", label: "Dashboard", icon: icons.dashboard },
+          { id: "submit", label: "FRAT", icon: icons.submit },
+          { id: "reports", label: "Reports", icon: icons.reports },
+          { id: "flights", label: "Flights", icon: icons.flights },
+        ].map(t => (
+          <button key={t.id} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
+            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 4px", background: "none", border: "none", cursor: "pointer",
+              color: currentView === t.id ? WHITE : MUTED, transition: "color 0.15s" }}>
+            <span style={{ display: "flex", alignItems: "center", opacity: currentView === t.id ? 1 : 0.6 }}>{t.icon}</span>
+            <span style={{ fontSize: 9, fontWeight: currentView === t.id ? 700 : 500 }}>{t.label}</span>
+          </button>
+        ))}
+        <button onClick={() => setMenuOpen(!menuOpen)}
+          style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 4px", background: "none", border: "none", cursor: "pointer",
+            color: menuOpen ? WHITE : MUTED, transition: "color 0.15s" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+          <span style={{ fontSize: 9, fontWeight: menuOpen ? 700 : 500 }}>More</span>
+        </button>
+      </div>
+    </nav>
   </>);
 }
 
@@ -1159,6 +1183,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [checked, setChecked] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   const [wxData, setWxData] = useState(null);
   const [wxAnalysis, setWxAnalysis] = useState({ flags: {}, reasons: {}, briefing: null });
   const [wxLoading, setWxLoading] = useState(false);
@@ -1297,20 +1322,23 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
   };
 
   const handleSubmit = async () => {
-    const missing = [];
-    if (!fi.pilot) missing.push("Pilot in Command");
-    if (!fi.aircraft) missing.push("Aircraft Type");
-    if (!fi.tailNumber) missing.push("Tail Number");
-    if (!fi.departure) missing.push("Departure");
-    if (!fi.destination) missing.push("Destination");
-    if (!fi.cruiseAlt) missing.push("Cruise Altitude");
-    if (!fi.date) missing.push("Flight Date");
-    if (!fi.etd) missing.push("Est. Departure");
-    if (!fi.ete) missing.push("Est. Time Enroute");
-    if (!fi.fuelLbs) missing.push("Fuel Onboard");
-    if (!fi.numCrew) missing.push("Number of Crew");
-    if (!fi.numPax) missing.push("Number of Passengers");
-    if (missing.length > 0) { alert(`Please fill in all flight information fields:\n\n${missing.join(", ")}`); return; }
+    const errs = {};
+    if (!fi.pilot) errs.pilot = "Select a pilot";
+    if (!fi.aircraft) errs.aircraft = "Select an aircraft";
+    if (!fi.tailNumber) errs.tailNumber = "Select a tail number";
+    if (!fi.departure) errs.departure = "Enter departure airport (e.g. KSFF)";
+    if (fi.departure && fi.departure.length < 3) errs.departure = "Use ICAO or IATA code (e.g. KSFF)";
+    if (!fi.destination) errs.destination = "Enter destination airport (e.g. KBOI)";
+    if (fi.destination && fi.destination.length < 3) errs.destination = "Use ICAO or IATA code (e.g. KBOI)";
+    if (!fi.cruiseAlt) errs.cruiseAlt = "Enter cruise altitude (e.g. FL180)";
+    if (!fi.date) errs.date = "Select a flight date";
+    if (!fi.etd) errs.etd = "Enter departure time (e.g. 1430)";
+    if (!fi.ete) errs.ete = "Enter time enroute (e.g. 1:30)";
+    if (!fi.fuelLbs) errs.fuelLbs = "Enter fuel onboard in lbs";
+    if (!fi.numCrew) errs.numCrew = "Enter number of crew";
+    if (!fi.numPax) errs.numPax = "Enter number of passengers";
+    if (Object.keys(errs).length > 0) { setValidationErrors(errs); const firstKey = Object.keys(errs)[0]; const el = document.querySelector(`[data-field="${firstKey}"]`); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    setValidationErrors({});
     
     // Upload photos first
     const fratId = generateId();
@@ -1332,13 +1360,14 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     if (onNavigate) onNavigate("flights");
   };
   const defaultAircraft = fleetList.length > 0 ? fleetList[0].type : "";
-  const reset = () => { attachments.forEach(a => URL.revokeObjectURL(a.preview)); setAttachments([]); setUploadingPhotos(false); setFi({ pilot: "", aircraft: defaultAircraft, tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); setFatigue({ sleepHours: "", hoursAwake: "", dutyStart: "", tzCrossings: "0", commute: "", subjective: null, mitigations: "" }); };
+  const reset = () => { attachments.forEach(a => URL.revokeObjectURL(a.preview)); setAttachments([]); setUploadingPhotos(false); setFi({ pilot: "", aircraft: defaultAircraft, tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" }); setChecked({}); setSubmitted(false); setValidationErrors({}); setWxData(null); setWxAnalysis({ flags: {}, reasons: {}, briefing: null }); setAutoSuggested({}); setFatigue({ sleepHours: "", hoursAwake: "", dutyStart: "", tzCrossings: "0", commute: "", subjective: null, mitigations: "" }); };
 
   if (!hasFleet) return (
-    <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}>
+    <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: "48px 36px" }}>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, marginBottom: 16 }}><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.3.4.7.5 1.1.3l.5-.3c.4-.2.6-.7.5-1.1z"/></svg>
       <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>No Aircraft Registered</div>
-      <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Add aircraft to your fleet registry before submitting a FRAT.</div>
-      <button onClick={() => onNavigate("admin")} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Admin → Fleet</button>
+      <div style={{ fontSize: 12, color: MUTED, marginBottom: 20, lineHeight: 1.6, maxWidth: 380, margin: "0 auto 20px" }}>Add your fleet to enable FRAT submissions. You can add aircraft in the Admin panel under Fleet Management.</div>
+      <button onClick={() => onNavigate("admin")} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Fleet Management</button>
     </div>
   );
 
@@ -1417,9 +1446,12 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
             { key: "fuelLbs", label: "Fuel Onboard (lbs)", placeholder: "e.g. 2400", type: "text" },
             { key: "numCrew", label: "Number of Crew", placeholder: "e.g. 2", type: "text" },
             { key: "numPax", label: "Number of Passengers", placeholder: "e.g. 4", type: "text" },
-          ].map(f => (
-            <div key={f.key} style={{ minWidth: 0, overflow: "hidden" }}>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{f.label}</label>
+          ].map(f => {
+            const err = validationErrors[f.key];
+            const isNum = ["fuelLbs","numCrew","numPax"].includes(f.key);
+            return (
+            <div key={f.key} data-field={f.key} style={{ minWidth: 0, overflow: "hidden" }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: err ? RED : MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{f.label}</label>
               {f.type === "fleet-type" ? (
                 <select value={fi.aircraft} onChange={e => {
                   const val = e.target.value;
@@ -1429,20 +1461,22 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
                     const matched = resolveTemplate(val);
                     if (matched) { setActiveTemplateId(matched.id); setChecked({}); setAutoSuggested({}); }
                   }
-                }} style={inp}>
+                  if (err) setValidationErrors(p => { const n = {...p}; delete n.aircraft; delete n.tailNumber; return n; });
+                }} style={{...inp, ...(err ? {borderColor: RED} : {})}}>
                   {AIRCRAFT_TYPES.map(a => <option key={a}>{a}</option>)}</select>
               ) : f.type === "fleet-tail" ? (
                 tailOptions.length === 1
                   ? <input type="text" value={tailOptions[0].registration} readOnly style={{...inp, color: CYAN, cursor: "default"}} />
-                  : <select value={fi.tailNumber} onChange={e => setFi(p => ({ ...p, tailNumber: e.target.value }))} style={inp}>
+                  : <select value={fi.tailNumber} onChange={e => { setFi(p => ({ ...p, tailNumber: e.target.value })); if (err) setValidationErrors(p => { const n = {...p}; delete n.tailNumber; return n; }); }} style={{...inp, ...(err ? {borderColor: RED} : {})}}>
                       <option value="">Select tail number...</option>
                       {tailOptions.map(a => <option key={a.registration} value={a.registration}>{a.registration}</option>)}
                     </select>
-              ) : (<input type={f.type === "date" ? "date" : "text"} placeholder={f.placeholder} value={fi[f.key]}
-                onChange={e => { let v = f.upper ? e.target.value.toUpperCase() : e.target.value; if (f.key === "cruiseAlt") v = v.toUpperCase(); setFi(p => ({ ...p, [f.key]: v })); }}
+              ) : (<input type={f.type === "date" ? "date" : "text"} inputMode={isNum ? "numeric" : undefined} placeholder={f.placeholder} value={fi[f.key]}
+                onChange={e => { let v = f.upper ? e.target.value.toUpperCase() : e.target.value; if (f.key === "cruiseAlt") v = v.toUpperCase(); setFi(p => ({ ...p, [f.key]: v })); if (err) setValidationErrors(p => { const n = {...p}; delete n[f.key]; return n; }); }}
                 onBlur={f.key === "ete" ? () => setFi(p => ({ ...p, ete: formatETE(p.ete) })) : f.key === "cruiseAlt" ? () => setFi(p => { const raw = p.cruiseAlt.trim().toUpperCase(); if (!raw) return p; if (raw.startsWith("FL")) return { ...p, cruiseAlt: "FL" + raw.slice(2) }; const num = parseInt(raw, 10); if (!isNaN(num) && num >= 100 && num <= 999) return { ...p, cruiseAlt: "FL" + num }; if (!isNaN(num) && num >= 18000) return { ...p, cruiseAlt: "FL" + Math.round(num / 100) }; return p; }) : undefined}
-                style={inp} />)}
-            </div>))}
+                style={{...inp, ...(err ? {borderColor: RED} : {})}} />)}
+              {err && <div style={{ fontSize: 10, color: RED, marginTop: 3 }}>{err}</div>}
+            </div>);})}
         </div>
       </div>
 
@@ -2156,7 +2190,7 @@ function ExportView({ records, orgName }) {
           <div style={{ fontSize: 11, color: MUTED }}><strong style={{ color: OFF_WHITE }}>§5.97 Recordkeeping:</strong> SRM records must be retained as long as controls remain relevant. Current records: <strong style={{ color: WHITE }}>{records.length}</strong></div></div></div></div>);
 }
 
-function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills, profile, session, spis, spiMeasurements, onCreateSpi, onUpdateSpi, onDeleteSpi, onLoadTargets, onCreateTarget, onUpdateTarget, onDeleteTarget, onLoadMeasurements, onCreateMeasurement, onInitSpiDefaults, cultureSurveys, orgProfiles, onCreateSurvey, onUpdateSurvey, onDeleteSurvey, onFetchSurveyResponses, onSubmitSurveyResponse, onCheckUserSurveyResponse, onFetchSurveyResults, onUpsertSurveyResults, trendAlerts, onAcknowledgeTrendAlert, pilotEngagement, safetyRecognitions, orgEngagement, orgRecognitions, onAcknowledgeRecognition, complianceFrameworks, complianceChecklistItems, complianceStatusData, trainingReqs, trainingRecs, policies, iepAudits, auditSchedules, mocItems, insuranceExports, onGenerateExport, onDeleteExport, onNavigateSubscription }) {
+function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills, profile, session, spis, spiMeasurements, onCreateSpi, onUpdateSpi, onDeleteSpi, onLoadTargets, onCreateTarget, onUpdateTarget, onDeleteTarget, onLoadMeasurements, onCreateMeasurement, onInitSpiDefaults, cultureSurveys, orgProfiles, onCreateSurvey, onUpdateSurvey, onDeleteSurvey, onFetchSurveyResponses, onSubmitSurveyResponse, onCheckUserSurveyResponse, onFetchSurveyResults, onUpsertSurveyResults, trendAlerts, onAcknowledgeTrendAlert, pilotEngagement, safetyRecognitions, orgEngagement, orgRecognitions, onAcknowledgeRecognition, complianceFrameworks, complianceChecklistItems, complianceStatusData, trainingReqs, trainingRecs, policies, iepAudits, auditSchedules, mocItems, insuranceExports, onGenerateExport, onDeleteExport, onNavigateSubscription, onNavigate }) {
   const [sub, setSub] = useState("analytics");
   const hasAnalytics = hasFeature(org, "dashboard_analytics");
   const hasSpi = hasFeature(org, "dashboard_analytics"); // SPIs require Professional+ (same gate as analytics)
@@ -2242,7 +2276,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
           </div>
         )}
       </div>
-      {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} />}
+      {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} />}
       {sub === "frat" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "safety" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "culture" && hasCulture && <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />}
@@ -4475,7 +4509,7 @@ export default function PVTAIRFrat() {
         {cv === "policy" && <PolicyTraining tourTab={tourSubTabs.policy} profile={profile} session={session} policies={policies} onCreatePolicy={freeGuard(roGuard(onCreatePolicy), "policy library", () => isFree && (policies || []).length >= FREE_TIER_LIMITS.maxPolicies, `Free plan allows up to ${FREE_TIER_LIMITS.maxPolicies} policies. Upgrade to Starter for unlimited.`)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} showManuals={(hasFeature(org, "sms_manuals") || isFree) && ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role)} readOnlyManuals={isFree} templateVariables={templateVariables} signatures={smsSignatures} fleetAircraft={fleetAircraft} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} />}
         {cv === "cbt" && <CbtModules tourTab={tourSubTabs.cbt} profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
-        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} pilotEngagement={pilotEngagement} safetyRecognitions={safetyRecognitions} orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} onAcknowledgeRecognition={async (recId) => { await acknowledgeRecognition(recId); if (session?.user?.id) fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || [])); }} complianceFrameworks={complianceFrameworks} complianceChecklistItems={complianceChecklistItems} complianceStatusData={complianceStatusData} trainingReqs={trainingReqs} trainingRecs={trainingRecs} policies={policies} iepAudits={iepAudits} auditSchedules={auditSchedulesData} mocItems={mocItems} insuranceExports={insuranceExports} onGenerateExport={roGuard(async (exportData, pdfBlob) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await createInsuranceExport(orgId, exportData); if (data && pdfBlob) { const { data: pdfUrl } = await uploadInsuranceExportPdf(orgId, data.id, pdfBlob); if (pdfUrl) { await supabase.from('insurance_exports').update({ pdf_path: pdfUrl }).eq('id', data.id); } } fetchInsuranceExports(orgId).then(({ data: d }) => setInsuranceExports(d || [])); setToast({ message: "Insurance export generated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onDeleteExport={roGuard(async (exportId) => { await deleteInsuranceExport(exportId); const orgId = profile?.org_id; if (orgId) fetchInsuranceExports(orgId).then(({ data }) => setInsuranceExports(data || [])); })} onNavigateSubscription={() => { setInitialAdminTab("subscription"); setCv("admin"); }} />}
+        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} pilotEngagement={pilotEngagement} safetyRecognitions={safetyRecognitions} orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} onAcknowledgeRecognition={async (recId) => { await acknowledgeRecognition(recId); if (session?.user?.id) fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || [])); }} complianceFrameworks={complianceFrameworks} complianceChecklistItems={complianceChecklistItems} complianceStatusData={complianceStatusData} trainingReqs={trainingReqs} trainingRecs={trainingRecs} policies={policies} iepAudits={iepAudits} auditSchedules={auditSchedulesData} mocItems={mocItems} insuranceExports={insuranceExports} onGenerateExport={roGuard(async (exportData, pdfBlob) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await createInsuranceExport(orgId, exportData); if (data && pdfBlob) { const { data: pdfUrl } = await uploadInsuranceExportPdf(orgId, data.id, pdfBlob); if (pdfUrl) { await supabase.from('insurance_exports').update({ pdf_path: pdfUrl }).eq('id', data.id); } } fetchInsuranceExports(orgId).then(({ data: d }) => setInsuranceExports(d || [])); setToast({ message: "Insurance export generated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onDeleteExport={roGuard(async (exportId) => { await deleteInsuranceExport(exportId); const orgId = profile?.org_id; if (orgId) fetchInsuranceExports(orgId).then(({ data }) => setInsuranceExports(data || [])); })} onNavigateSubscription={() => { setInitialAdminTab("subscription"); setCv("admin"); }} onNavigate={setCv} />}
         {cv === "admin" && (isAuthed || isOnline) && <AdminPanel tourTab={tourSubTabs.admin} profile={profile} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
@@ -4728,11 +4762,37 @@ export default function PVTAIRFrat() {
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
         {orgName} Safety Management System · PreflightSMS · 14 CFR Part 5 SMS · {new Date().getFullYear()}</footer>
       </div>{/* end main-content */}
+      {/* ── Floating Action Buttons ─────────────────────── */}
+      {session && cv !== "submit" && (
+        <div className="fab-container" style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column", gap: 10, zIndex: 1000 }}>
+          {cv !== "reports" && (
+            <button onClick={() => setCv("reports")} title="File a safety report"
+              style={{ width: 48, height: 48, borderRadius: "50%", border: "none", background: "rgba(74,222,128,0.15)", color: GREEN, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.4)", transition: "all 0.15s", backdropFilter: "blur(8px)" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(74,222,128,0.3)"; e.currentTarget.style.transform = "scale(1.08)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(74,222,128,0.15)"; e.currentTarget.style.transform = "scale(1)"; }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            </button>
+          )}
+          <button onClick={() => setCv("submit")} title="New FRAT"
+            style={{ width: 56, height: 56, borderRadius: "50%", border: "none", background: WHITE, color: BLACK, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.5)", transition: "all 0.15s", fontWeight: 800, fontSize: 13 }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(0,0,0,0.6)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.5)"; }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      )}
       <style>{`*{box-sizing:border-box}input:focus,select:focus,textarea:focus{outline:none;border-color:${WHITE} !important;box-shadow:0 0 0 2px rgba(255,255,255,0.15) !important}select option{background:${NEAR_BLACK};color:${OFF_WHITE}}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes checkDraw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+.fade-in{animation:fadeIn 0.2s ease-out}
+button:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
+a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 @keyframes tourPulse{0%,100%{box-shadow:0 0 0 3px #ffffff,0 0 12px rgba(255,255,255,0.15)}50%{box-shadow:0 0 0 3px #22d3ee,0 0 24px rgba(34,211,238,0.35)}}
 .tour-highlight-ring{animation:tourPulse 2s ease-in-out infinite}
 @media(max-width:768px){
+.fab-container{bottom:80px !important;right:16px !important}
+.mobile-bottom-nav{display:flex !important}
 .frat-grid{grid-template-columns:1fr !important}
 .flight-info-grid{grid-template-columns:1fr 1fr !important}
 .score-panel-desktop{display:none !important}
@@ -4741,7 +4801,7 @@ export default function PVTAIRFrat() {
 .nav-mobile-header{display:flex !important}
 .nav-mobile-menu{display:flex !important}
 .main-content{margin-left:0 !important;padding:0 !important}
-.main-content main{padding:12px 16px 50px !important}
+.main-content main{padding:12px 16px 80px !important}
 .main-content h1{font-size:16px !important}
 .user-info-desktop{display:none !important}
 .stat-grid{grid-template-columns:repeat(2,1fr) !important}
@@ -4761,6 +4821,8 @@ export default function PVTAIRFrat() {
 .report-grid{grid-template-columns:1fr !important}
 .onboarding-tour-card{top:auto !important;bottom:0 !important;right:0 !important;left:0 !important;width:100% !important;border-radius:16px 16px 0 0 !important;max-height:60vh;overflow-y:auto}
 .tour-highlight-ring{display:none !important}
+button,a,[role="button"]{min-height:44px;min-width:44px}
+input,select,textarea{min-height:44px;font-size:16px !important}
 }
 @media(max-width:480px){
 .flight-info-grid{grid-template-columns:1fr !important}

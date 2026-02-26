@@ -142,16 +142,16 @@ describe("CbtModules", () => {
   /* ── 1. Rendering & Tabs ─────────────────────────────────────── */
 
   describe("Rendering & Tabs", () => {
-    it("renders the CBT Courses tab by default", () => {
+    it("renders the Training Courses tab by default", () => {
       renderCbt();
-      // "CBT Courses" appears as both heading and tab button
-      expect(screen.getAllByText("CBT Courses").length).toBeGreaterThanOrEqual(1);
+      // "Training Courses" appears as both heading and tab button
+      expect(screen.getAllByText("Training Courses").length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("SMS Foundations")).toBeTruthy();
     });
 
     it("shows all four tabs for admin users", () => {
       renderCbt({ profile: adminProfile });
-      expect(screen.getAllByText("CBT Courses").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("Training Courses").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("Training Records").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("Requirements").length).toBeGreaterThanOrEqual(1);
       // Compliance only appears as a tab for admin
@@ -160,7 +160,7 @@ describe("CbtModules", () => {
 
     it("hides Compliance tab for non-admin (pilot) users", () => {
       renderCbt({ profile: pilotProfile });
-      expect(screen.getAllByText("CBT Courses").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("Training Courses").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("Training Records").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("Requirements").length).toBeGreaterThanOrEqual(1);
       expect(screen.queryByText("Compliance")).toBeNull();
@@ -186,9 +186,9 @@ describe("CbtModules", () => {
     });
   });
 
-  /* ── 2. CBT Courses tab ──────────────────────────────────────── */
+  /* ── 2. Training Courses tab ──────────────────────────────────────── */
 
-  describe("CBT Courses tab", () => {
+  describe("Training Courses tab", () => {
     it("displays stats grid with courses, completed, in progress counts", () => {
       renderCbt({ enrollments: [mockEnrollmentInProgress, mockEnrollmentCompleted] });
       expect(screen.getByText("Courses")).toBeTruthy();

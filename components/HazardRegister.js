@@ -511,10 +511,20 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
-          <div style={{ fontSize: 42, marginBottom: 12 }}>⚠️</div>
-          <div style={{ fontSize: 14 }}>No investigations yet</div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>Create investigations with risk assessments and mitigations.</div>
+        <div style={{ textAlign: "center", padding: "60px 20px", color: MUTED }}>
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ marginBottom: 16, opacity: 0.5 }}>
+            <path d="M24 6L43 40H5L24 6z" stroke={MUTED} strokeWidth="2" strokeLinejoin="round" fill="none" />
+            <line x1="24" y1="18" x2="24" y2="30" stroke={MUTED} strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="24" cy="35" r="1.5" fill={MUTED} />
+          </svg>
+          <div style={{ fontSize: 15, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>No investigations yet</div>
+          <div style={{ fontSize: 12, lineHeight: 1.6, maxWidth: 420, margin: "0 auto", marginBottom: 20 }}>
+            Investigations are opened from escalated safety reports to assess risk and determine root causes. Use the 5x5 risk matrix to evaluate likelihood and severity.
+          </div>
+          <button onClick={() => setView("new")}
+            style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            Start an Investigation
+          </button>
         </div>
       ) : (<>
         {filtered.slice(0, showCount).map(h => {

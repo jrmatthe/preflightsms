@@ -240,10 +240,10 @@ describe('PVTAIRFrat — FRAT form (offline mode)', () => {
     expect(screen.getByText('No Aircraft Registered')).toBeInTheDocument();
   });
 
-  it('shows the "Go to Admin" button when no fleet', () => {
+  it('shows the "Go to Fleet Management" button when no fleet', () => {
     render(<PVTAIRFrat />);
     fireEvent.click(screen.getByTitle('FRAT'));
-    expect(screen.getByText((content) => content.includes('Go to Admin'))).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes('Go to Fleet Management'))).toBeInTheDocument();
   });
 
   it('shows empty state on FRAT tab when fleet is populated via localStorage', () => {

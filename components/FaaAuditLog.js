@@ -318,6 +318,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
   const [complianceTab, setComplianceTab] = useState(defaultTab || "part5");
   const [expandedSubpart, setExpandedSubpart] = useState("B");
   const [expandedReq, setExpandedReq] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
   const [manualOverrides, setManualOverrides] = useState(() => {
     try { const s = typeof window !== "undefined" && localStorage.getItem("audit_overrides"); return s ? JSON.parse(s) : {}; } catch { return {}; }
   });
@@ -463,7 +464,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>FAA Part 5 Audit Log</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>FAA Part 5 Audit Log<button onClick={() => setShowHelp(!showHelp)} title="What's this?" style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: MUTED, fontSize: 10, fontWeight: 700, marginLeft: 8, verticalAlign: "middle" }}>?</button></div>
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR Part 5 SMS Compliance for Part 135 Operations</div>
         </div>
         <button onClick={() => setWizardOpen(true)}
@@ -471,6 +472,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
           Declaration of Compliance
         </button>
       </div>
+      {showHelp && <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.6, padding: "10px 14px", marginBottom: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6 }}>This is your live compliance checklist for 14 CFR Part 5. Each item automatically syncs with data across the platform — FRATs, flights, reports, investigations, and policies. Use this to prepare for FAA audits.</div>}
 
       {wizardOpen && (
         <DeclarationWizard

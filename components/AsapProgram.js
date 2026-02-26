@@ -139,6 +139,7 @@ export default function AsapProgram({
   const [showMeetingForm, setShowMeetingForm] = useState(false);
   const [newAcceptance, setNewAcceptance] = useState("");
   const [newExclusion, setNewExclusion] = useState("");
+  const [showHelp, setShowHelp] = useState(false);
 
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const userId = session?.user?.id;
@@ -238,7 +239,7 @@ export default function AsapProgram({
         <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 12 }}>Recent Reports</div>
         {reports.length === 0 ? (
           <div style={{ textAlign: "center", padding: 40, color: MUTED }}>
-            <div style={{ fontSize: 14, marginBottom: 4 }}>No ASAP reports yet</div>
+            <div style={{ fontSize: 14, marginBottom: 4 }}>No reports yet</div>
             <div style={{ fontSize: 11 }}>Submit your first confidential safety report to get started.</div>
           </div>
         ) : (
@@ -613,7 +614,8 @@ export default function AsapProgram({
         {/* ERC Review Section — admin only */}
         {canReview && (r.status === "erc_review" || r.status === "submitted") && (
           <div style={{ ...card, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 16 }}>ERC Review</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Event Review Committee (ERC) Review</div>
+            <div style={{ fontSize: 11, color: MUTED, marginBottom: 16 }}>Evaluate this report against acceptance and exclusion criteria, assess risk, and determine disposition.</div>
 
             {/* Acceptance criteria */}
             {asapConfig?.acceptance_criteria?.length > 0 && (
@@ -687,16 +689,16 @@ export default function AsapProgram({
 
             {/* Sole source */}
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Sole Source Assessment</label>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Sole Source Check</label>
               <textarea value={reviewForm.sole_source_assessment || ""} onChange={e => setReviewForm(f => ({ ...f, sole_source_assessment: e.target.value }))}
-                style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="Is this the only source of information about this event?" />
+                style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="Is this ASAP report the only way we learned about this event? If not, note other sources." />
             </div>
 
             {/* Recommendation */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Recommendation</label>
               <textarea value={reviewForm.recommendation || ""} onChange={e => setReviewForm(f => ({ ...f, recommendation: e.target.value }))}
-                style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="ERC recommendation..." />
+                style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="What does the committee recommend? (e.g., additional training, procedure change, no action needed)" />
             </div>
 
             {/* Disposition */}
@@ -921,7 +923,7 @@ export default function AsapProgram({
     return (
       <div style={{ maxWidth: 800, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>ASAP Program Setup</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Aviation Safety Action Program (ASAP) Setup</div>
           <div style={{ display: "flex", gap: 8 }}>
             {!asapConfig && <button onClick={onInitSetup} style={btn(ASAP_BLUE, WHITE)}>Initialize ASAP Program</button>}
             <button onClick={handleSave} style={btn(GREEN, "#000")}>Save Configuration</button>
@@ -1056,7 +1058,7 @@ export default function AsapProgram({
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>ASAP Trends</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>ASAP Report Trends</div>
           <div style={{ display: "flex", gap: 4 }}>
             {[3, 6, 12].map(m => (
               <button key={m} onClick={() => setDateRange(m)}
@@ -1167,11 +1169,12 @@ export default function AsapProgram({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: WHITE }}>{asapConfig?.program_name || "ASAP"}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: WHITE }}>{asapConfig?.program_name || "ASAP"}<button onClick={() => setShowHelp(!showHelp)} title="What's this?" style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: MUTED, fontSize: 10, fontWeight: 700, marginLeft: 8, verticalAlign: "middle" }}>?</button></div>
           <div style={{ fontSize: 11, color: MUTED }}>Aviation Safety Action Program — AC 120-66C</div>
         </div>
         <button onClick={onRefresh} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Refresh</button>
       </div>
+      {showHelp && <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.6, padding: "10px 14px", marginBottom: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6 }}>The Aviation Safety Action Program provides a voluntary, confidential reporting system. Reports are reviewed by an Event Review Committee (ERC) who determines corrective actions.</div>}
 
       <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
         {tabBtn("dashboard", "Dashboard")}

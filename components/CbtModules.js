@@ -1258,7 +1258,7 @@ export default function CbtModules({
   );
 
   // Top-level tab bar (CBT Courses | Training Records | Requirements | Compliance)
-  const tabs = [["cbt", "CBT Courses"], ["records", "Training Records"], ["requirements", "Requirements"]];
+  const tabs = [["cbt", "Training Courses"], ["records", "Training Records"], ["requirements", "Requirements"]];
   if (isAdmin) tabs.push(["compliance", "Compliance"]);
   const renderTopTabs = () => (
     <div data-tour="tour-cbt-tabs" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
@@ -1494,8 +1494,8 @@ export default function CbtModules({
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>CBT Courses</div>
-            <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Computer-based training and safety promotion</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Training Courses</div>
+            <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Online training and safety promotion</div>
           </div>
           {isAdmin && <button onClick={() => setView("new_course")} style={btnPrimary}>+ New Course</button>}
         </div>
@@ -1555,7 +1555,7 @@ export default function CbtModules({
                 Set up a complete 14 CFR Part 5 compliant training program with pre-built requirements and courses covering all SMS competency areas.
               </div>
               <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 20 }}>
-                5 training requirements and 5 CBT courses with 18 lessons covering Safety Policy, Safety Risk Management, Safety Assurance, Emergency Response Planning, and Safety Promotion will be created.
+                5 training requirements and 5 courses with 18 lessons covering Safety Policy, Safety Risk Management, Safety Assurance, Emergency Response Planning, and Safety Promotion will be created.
               </div>
               <button onClick={handleInitTraining} disabled={initializing}
                 style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>

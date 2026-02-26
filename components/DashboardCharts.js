@@ -65,16 +65,42 @@ const RISK_CATEGORIES = [
 const ALL_FACTORS = {};
 RISK_CATEGORIES.forEach(c => c.factors.forEach(f => { ALL_FACTORS[f.id] = f.label; }));
 
-function StatCard({ label, value, sub, color, icon }) {
+function StatCard({ label, value, sub, color, icon, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const isClickable = !!onClick;
+  const baseStyle = {
+    ...card,
+    padding: "14px 16px",
+    minWidth: 0,
+    ...(isClickable ? {
+      cursor: "pointer",
+      transition: "all 0.15s",
+      ...(hovered ? {
+        borderColor: "#444444",
+        background: "#282828",
+      } : {}),
+    } : {}),
+  };
   return (
-    <div style={{ ...card, padding: "14px 16px", minWidth: 0 }}>
+    <div
+      style={baseStyle}
+      onClick={onClick}
+      onMouseEnter={isClickable ? () => setHovered(true) : undefined}
+      onMouseLeave={isClickable ? () => setHovered(false) : undefined}
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>{label}</div>
           <div style={{ fontSize: 26, fontWeight: 800, color: color || WHITE, fontFamily: "Georgia,serif" }}>{value}</div>
           {sub && <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{sub}</div>}
         </div>
-        {icon && <span style={{ fontSize: 20, opacity: 0.5 }}>{icon}</span>}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+          {icon && <span style={{ fontSize: 20, opacity: 0.5 }}>{icon}</span>}
+          {isClickable && <span style={{ fontSize: 11, color: hovered ? OFF_WHITE : MUTED, transition: "color 0.15s", marginTop: icon ? 0 : 4 }}>→</span>}
+        </div>
       </div>
     </div>
   );
@@ -98,7 +124,7 @@ const ttStyle = { borderRadius: 6, border: `1px solid ${BORDER}`, background: CA
 // ════════════════════════════════════════════════════════════════
 // OVERVIEW TAB — high-level SMS health across all modules
 // ════════════════════════════════════════════════════════════════
-function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription }) {
+function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate }) {
   const stats = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 86400000;
@@ -171,14 +197,36 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
   }, [records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements]);
 
   const compColor = stats.compliance >= 80 ? GREEN : stats.compliance >= 60 ? YELLOW : RED;
+  const [complianceHovered, setComplianceHovered] = useState(false);
+  const [erpHovered, setErpHovered] = useState(false);
+  const [spiHovered, setSpiHovered] = useState(false);
 
   return (
     <div>
       {/* Compliance banner */}
-      <div data-tour="tour-dashboard-health" style={{ ...card, padding: "18px 22px", marginBottom: 16, borderLeft: `4px solid ${compColor}` }}>
+      <div
+        data-tour="tour-dashboard-health"
+        style={{
+          ...card,
+          padding: "18px 22px",
+          marginBottom: 16,
+          borderLeft: `4px solid ${compColor}`,
+          ...(onNavigate ? {
+            cursor: "pointer",
+            transition: "all 0.15s",
+            ...(complianceHovered ? { borderTopColor: "#444444", borderRightColor: "#444444", borderBottomColor: "#444444", background: "#282828" } : {}),
+          } : {}),
+        }}
+        onClick={onNavigate ? () => onNavigate("audits") : undefined}
+        onMouseEnter={onNavigate ? () => setComplianceHovered(true) : undefined}
+        onMouseLeave={onNavigate ? () => setComplianceHovered(false) : undefined}
+        role={onNavigate ? "button" : undefined}
+        tabIndex={onNavigate ? 0 : undefined}
+        onKeyDown={onNavigate ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("audits"); } } : undefined}
+      >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: WHITE, marginBottom: 4 }}>SMS Compliance Health</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: WHITE, marginBottom: 4 }}>SMS Compliance Health{onNavigate && <span style={{ fontSize: 11, color: complianceHovered ? OFF_WHITE : MUTED, marginLeft: 6, transition: "color 0.15s" }}> →</span>}</div>
             <div style={{ fontSize: 10, color: MUTED }}>
               {stats.overdueActions > 0 ? `${stats.overdueActions} overdue action${stats.overdueActions > 1 ? "s" : ""}` : "No overdue actions"}
               {stats.openHazards > 0 ? ` · ${stats.openHazards} open hazard${stats.openHazards > 1 ? "s" : ""}` : ""}
@@ -196,10 +244,10 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
 
       {/* KPI cards */}
       <div className="stat-grid" data-tour="tour-dashboard-kpi" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
-        <StatCard label="FRATs (30d)" value={stats.r7Count} sub={`${stats.totalFrats} total`} icon="📋" />
+        <StatCard label="FRATs (30d)" value={stats.r7Count} sub={`${stats.totalFrats} total`} icon="📋" onClick={onNavigate ? () => onNavigate("submit") : undefined} />
         <StatCard label="Avg Risk Score" value={stats.avgScore.toFixed(1)} color={getRiskColor(Math.round(stats.avgScore))} sub="30-day average" icon="📊" />
-        <StatCard label="Active Flights" value={stats.activeFlights} sub={`${stats.f30} in last 30d`} icon="✈️" />
-        <StatCard label="Open Items" value={stats.openReports + stats.openHazards + stats.openActions} color={stats.overdueActions > 0 ? RED : WHITE} sub={stats.overdueActions > 0 ? `${stats.overdueActions} overdue` : "On track"} icon="⚠️" />
+        <StatCard label="Active Flights" value={stats.activeFlights} sub={`${stats.f30} in last 30d`} icon="✈️" onClick={onNavigate ? () => onNavigate("flights") : undefined} />
+        <StatCard label="Open Items" value={stats.openReports + stats.openHazards + stats.openActions} color={stats.overdueActions > 0 ? RED : WHITE} sub={stats.overdueActions > 0 ? `${stats.overdueActions} overdue` : "On track"} icon="⚠️" onClick={onNavigate ? () => onNavigate("actions") : undefined} />
       </div>
 
       {/* Weekly trend */}
@@ -253,7 +301,18 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
       {/* ERP Status */}
       {(erpPlans || []).length > 0 ? (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
-          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>ERP Status</h3>
+          <h3
+            style={{
+              margin: "0 0 14px",
+              color: WHITE,
+              fontFamily: "Georgia,serif",
+              fontSize: 14,
+              ...(onNavigate ? { cursor: "pointer", transition: "all 0.15s", ...(erpHovered ? { color: CYAN } : {}) } : {}),
+            }}
+            onClick={onNavigate ? () => onNavigate("erp") : undefined}
+            onMouseEnter={onNavigate ? () => setErpHovered(true) : undefined}
+            onMouseLeave={onNavigate ? () => setErpHovered(false) : undefined}
+          >ERP Status{onNavigate && <span style={{ fontSize: 11, color: erpHovered ? CYAN : MUTED, marginLeft: 6, transition: "color 0.15s" }}> →</span>}</h3>
           <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: WHITE }}>{stats.activePlans}</div>
@@ -275,7 +334,16 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         </div>
       ) : !isDashboardFree && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
-          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>ERP Status</h3>
+          <h3
+            style={{
+              margin: "0 0 14px",
+              color: WHITE,
+              fontFamily: "Georgia,serif",
+              fontSize: 14,
+              ...(onNavigate ? { cursor: "pointer", transition: "all 0.15s" } : {}),
+            }}
+            onClick={onNavigate ? () => onNavigate("erp") : undefined}
+          >ERP Status{onNavigate && <span style={{ fontSize: 11, color: MUTED, marginLeft: 6 }}> →</span>}</h3>
           <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No emergency response plans created yet</div>
         </div>
       )}
@@ -283,13 +351,33 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
       {/* SPI Health */}
       {!isDashboardFree && stats.spiCount === 0 && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
-          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>SPI Health</h3>
+          <h3
+            style={{
+              margin: "0 0 14px",
+              color: WHITE,
+              fontFamily: "Georgia,serif",
+              fontSize: 14,
+              ...(onNavigate ? { cursor: "pointer", transition: "all 0.15s" } : {}),
+            }}
+            onClick={onNavigate ? () => onNavigate("spiDashboard") : undefined}
+          >SPI Health{onNavigate && <span style={{ fontSize: 11, color: MUTED, marginLeft: 6 }}> →</span>}</h3>
           <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No safety performance indicators configured</div>
         </div>
       )}
       {!isDashboardFree && stats.spiCount > 0 && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
-          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>SPI Health</h3>
+          <h3
+            style={{
+              margin: "0 0 14px",
+              color: WHITE,
+              fontFamily: "Georgia,serif",
+              fontSize: 14,
+              ...(onNavigate ? { cursor: "pointer", transition: "all 0.15s", ...(spiHovered ? { color: CYAN } : {}) } : {}),
+            }}
+            onClick={onNavigate ? () => onNavigate("spiDashboard") : undefined}
+            onMouseEnter={onNavigate ? () => setSpiHovered(true) : undefined}
+            onMouseLeave={onNavigate ? () => setSpiHovered(false) : undefined}
+          >SPI Health{onNavigate && <span style={{ fontSize: 11, color: spiHovered ? CYAN : MUTED, marginLeft: 6, transition: "color 0.15s" }}> →</span>}</h3>
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ width: 12, height: 12, borderRadius: "50%", background: GREEN, display: "inline-block" }} />
@@ -946,14 +1034,14 @@ function SafetyMetrics({ reports, hazards, actions }) {
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
   const h = hazards || [];
   const a = actions || [];
 
-  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} />;
+  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} />;
   if (view === "frat") return <FRATAnalytics records={r} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;
 
