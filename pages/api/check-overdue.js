@@ -65,28 +65,18 @@ export default async function handler(req, res) {
     const results = [];
 
     for (const flight of overdueFlights) {
-      const { data: contacts } = await supabase
-        .from("notification_contacts")
-        .select("*")
-        .eq("org_id", flight.org_id)
-        .eq("notify_overdue", true)
-        .eq("active", true);
-
-      // Also get users with flight_follower permission
+      // Get users with flight_follower permission
       const { data: followers } = await supabase
         .from("profiles")
         .select("id, full_name, email, permissions")
         .eq("org_id", flight.org_id)
         .not("email", "is", null);
 
-      // Merge: notification_contacts + flight_follower profiles (dedupe by email)
-      const allContacts = [...(contacts || [])];
-      const existingEmails = new Set(allContacts.map(c => c.email?.toLowerCase()).filter(Boolean));
+      const allContacts = [];
       if (followers) {
         for (const f of followers) {
-          if (f.permissions && f.permissions.includes("flight_follower") && f.email && !existingEmails.has(f.email.toLowerCase())) {
+          if (f.permissions && f.permissions.includes("flight_follower") && f.email) {
             allContacts.push({ name: f.full_name, email: f.email, phone: "", role: "Flight Follower" });
-            existingEmails.add(f.email.toLowerCase());
           }
         }
       }
