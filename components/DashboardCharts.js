@@ -1127,7 +1127,7 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields }) {
               </div>
               {hasData ? (
                 <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
-                  {fields.location !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Location </span><span style={{ color: OFF_WHITE }}>{ac.lastLocation}{ac.parkingSpot ? ` / ${ac.parkingSpot}` : ""}</span></div>}
+                  {fields.location !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Location </span><span style={{ color: OFF_WHITE }}>{ac.lastLocation}</span>{ac.parkingSpot ? <span style={{ color: MUTED }}> / <span style={{ color: OFF_WHITE }}>{ac.parkingSpot}</span></span> : null}</div>}
                   {fields.fuel !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Fuel </span><span style={{ color: OFF_WHITE }}>{ac.fuelRemaining ? `${ac.fuelRemaining} ${ac.fuelUnit}` : "\u2014"}</span></div>}
                 </div>
               ) : (
