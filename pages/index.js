@@ -4830,7 +4830,7 @@ export default function PVTAIRFrat() {
       {session && cv !== "submit" && (
         <div className="fab-container" style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column", gap: 10, zIndex: 1000 }}>
           {cv !== "reports" && (
-            <button onClick={() => setCv("reports")} title="File a safety report"
+            <button onClick={() => { setReportPrefill({}); setCv("reports"); }} title="File a safety report"
               style={{ width: 48, height: 48, borderRadius: "50%", border: "none", background: "rgba(74,222,128,0.15)", color: GREEN, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.4)", transition: "all 0.15s", backdropFilter: "blur(8px)" }}
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(74,222,128,0.3)"; e.currentTarget.style.transform = "scale(1.08)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "rgba(74,222,128,0.15)"; e.currentTarget.style.transform = "scale(1)"; }}>
