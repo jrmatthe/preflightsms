@@ -12,7 +12,7 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyAuth } from "../../lib/apiAuth";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  if (req.method !== "POST" && req.method !== "GET") return res.status(405).json({ error: "POST or GET only" });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
@@ -21,7 +21,8 @@ export default async function handler(req, res) {
   }
 
   // Auth: either cron secret OR authenticated user with orgId param
-  const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
+  const authHeader = req.headers["authorization"];
+  const cronSecret = req.headers["x-cron-secret"] || req.query.secret || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
   const orgIdParam = req.query.orgId;
   const isCron = !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
 

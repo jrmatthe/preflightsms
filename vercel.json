@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/check-overdue",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/check-notifications",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/check-training",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
