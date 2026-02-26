@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, Fragment } from "react";
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis } from "recharts";
 
 const CARD = "#222222";
@@ -32,6 +32,17 @@ function getRiskLabel(s) {
 
 function daysAgo(d) { return Math.floor((Date.now() - new Date(d).getTime()) / 86400000); }
 function formatDate(d) { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+function timeAgo(d) {
+  const ms = Date.now() - new Date(d).getTime();
+  if (ms < 60000) return "Just now";
+  const mins = Math.floor(ms / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "Yesterday";
+  return `${days}d ago`;
+}
 
 const RISK_CATEGORIES = [
   { id: "weather", name: "Weather", factors: [
@@ -124,7 +135,7 @@ const ttStyle = { borderRadius: 6, border: `1px solid ${BORDER}`, background: CA
 // ════════════════════════════════════════════════════════════════
 // OVERVIEW TAB — high-level SMS health across all modules
 // ════════════════════════════════════════════════════════════════
-function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate }) {
+function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft }) {
   const stats = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 86400000;
@@ -196,6 +207,26 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
     return { avgScore, highCritical30, activeFlights, f30, openReports, r30Reports, openHazards, criticalHazards, openActions, overdueActions, weeklyData, compliance, totalFrats: records.length, totalReports: reports.length, r7Count: r7.length, activePlans, erpNeedsReview, lastDrill, nextDrill, spiHealth, spiCount: spiList.filter(s => s.is_active).length };
   }, [records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements]);
 
+  const fleetStatus = useMemo(() => {
+    const fleet = fleetAircraft || [];
+    if (fleet.length === 0) return [];
+    return fleet.map(ac => {
+      const arrived = flights
+        .filter(f => f.tailNumber === ac.registration && f.status === "ARRIVED" && !f.cancelled)
+        .sort((a, b) => new Date(b.arrivedAt || b.timestamp) - new Date(a.arrivedAt || a.timestamp));
+      const last = arrived[0];
+      return {
+        registration: ac.registration,
+        type: ac.type || "",
+        lastLocation: last ? last.destination : null,
+        parkingSpot: last ? last.parkingSpot : null,
+        fuelRemaining: last ? last.fuelRemaining : null,
+        fuelUnit: last ? (last.fuelUnit || "lbs") : null,
+        lastUpdated: last ? (last.arrivedAt || last.timestamp) : null,
+      };
+    });
+  }, [fleetAircraft, flights]);
+
   const compColor = stats.compliance >= 80 ? GREEN : stats.compliance >= 60 ? YELLOW : RED;
   const [complianceHovered, setComplianceHovered] = useState(false);
   const [erpHovered, setErpHovered] = useState(false);
@@ -249,6 +280,40 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         <StatCard label="Active Flights" value={stats.activeFlights} sub={`${stats.f30} in last 30d`} icon="✈️" onClick={onNavigate ? () => onNavigate("flights") : undefined} />
         <StatCard label="Open Items" value={stats.openReports + stats.openHazards + stats.openActions} color={stats.overdueActions > 0 ? RED : WHITE} sub={stats.overdueActions > 0 ? `${stats.overdueActions} overdue` : "On track"} icon="⚠️" onClick={onNavigate ? () => onNavigate("actions") : undefined} />
       </div>
+
+      {/* Fleet Status */}
+      {fleetStatus.length > 0 && (
+        <div style={{ ...card, padding: "16px 18px", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 14 }}>{"\u2708"}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: WHITE }}>Fleet Status</span>
+          </div>
+          <div className="fleet-status-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "4px 12px", fontSize: 11 }}>
+            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Tail #</div>
+            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Type</div>
+            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Location</div>
+            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Fuel</div>
+            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Updated</div>
+            {fleetStatus.map(ac => (
+              ac.lastLocation ? (
+                <Fragment key={ac.registration}>
+                  <div style={{ color: CYAN, fontWeight: 700, padding: "6px 0" }}>{ac.registration}</div>
+                  <div style={{ color: OFF_WHITE, padding: "6px 0" }}>{ac.type}</div>
+                  <div style={{ color: OFF_WHITE, padding: "6px 0" }}>{ac.lastLocation}{ac.parkingSpot ? ` / ${ac.parkingSpot}` : ""}</div>
+                  <div style={{ color: OFF_WHITE, padding: "6px 0" }}>{ac.fuelRemaining ? `${ac.fuelRemaining} ${ac.fuelUnit}` : "\u2014"}</div>
+                  <div style={{ color: MUTED, padding: "6px 0" }}>{timeAgo(ac.lastUpdated)}</div>
+                </Fragment>
+              ) : (
+                <Fragment key={ac.registration}>
+                  <div style={{ color: CYAN, fontWeight: 700, padding: "6px 0" }}>{ac.registration}</div>
+                  <div style={{ color: OFF_WHITE, padding: "6px 0" }}>{ac.type}</div>
+                  <div style={{ color: MUTED, fontStyle: "italic", padding: "6px 0", gridColumn: "span 3" }}>No recent data</div>
+                </Fragment>
+              )
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Weekly trend */}
       <ChartCard title="12-Week Activity Trend">
@@ -1034,14 +1099,14 @@ function SafetyMetrics({ reports, hazards, actions }) {
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
   const h = hazards || [];
   const a = actions || [];
 
-  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} />;
+  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} fleetAircraft={fleetAircraft} />;
   if (view === "frat") return <FRATAnalytics records={r} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;
 
