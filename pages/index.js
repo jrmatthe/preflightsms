@@ -617,7 +617,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
       </>)}
     </div>)}
     {/* ── Mobile Bottom Tab Bar ──────────────────── */}
-    <nav className="mobile-bottom-nav" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: BLACK, borderTop: `1px solid ${BORDER}`, padding: "6px env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 8px) env(safe-area-inset-left, 16px)" }}>
+    <nav className="mobile-bottom-nav" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: BLACK, borderTop: `1px solid ${BORDER}` }}>
       <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center" }}>
         {[
           { id: "dashboard", label: "Dashboard", icon: icons.dashboard },
@@ -4792,7 +4792,7 @@ a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 .tour-highlight-ring{animation:tourPulse 2s ease-in-out infinite}
 @media(max-width:768px){
 .fab-container{bottom:calc(72px + env(safe-area-inset-bottom, 8px)) !important;right:16px !important}
-.mobile-bottom-nav{display:flex !important}
+.mobile-bottom-nav{display:flex !important;padding:8px 16px calc(8px + env(safe-area-inset-bottom, 0px)) 16px !important}
 .frat-grid{grid-template-columns:1fr !important}
 .flight-info-grid{grid-template-columns:1fr 1fr !important}
 .score-panel-desktop{display:none !important}
