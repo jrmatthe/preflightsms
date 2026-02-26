@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("org_id", org.id)
         .eq("status", "ACTIVE")
-        .eq("overdue_notified", false)
+        .is("overdue_notified_at", null)
         .not("eta", "is", null);
 
       if (!overdueFlights || overdueFlights.length === 0) continue;
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         for (const flight of actuallyOverdue) {
           await supabase
             .from("flights")
-            .update({ overdue_notified: true })
+            .update({ overdue_notified_at: new Date().toISOString() })
             .eq("id", flight.id);
         }
         continue;
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
         if (anySucceeded) {
           await supabase
             .from("flights")
-            .update({ overdue_notified: true })
+            .update({ overdue_notified_at: new Date().toISOString() })
             .eq("id", flight.id);
         }
       }

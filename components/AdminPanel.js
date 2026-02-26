@@ -596,9 +596,11 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
   );
 }
 
-function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, onRemoveUser }) {
+function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [editEmail, setEditEmail] = useState(user.email || "");
+  const [savingEmail, setSavingEmail] = useState(false);
   const role = ROLES.find(r => r.id === user.role) || ROLES[0];
   const isMe = user.id === profile?.id;
   const userPerms = user.permissions || [];
@@ -654,6 +656,17 @@ function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, 
                 </button>
               );
             })}
+          </div>
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Email</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="user@example.com"
+                style={{ padding: "6px 10px", borderRadius: 6, fontSize: 12, background: BLACK, color: OFF_WHITE, border: `1px solid ${BORDER}`, width: 240, boxSizing: "border-box" }} />
+              <button disabled={savingEmail || editEmail === (user.email || "")} onClick={async () => { setSavingEmail(true); await onUpdateEmail(user.id, editEmail); setSavingEmail(false); }}
+                style={{ padding: "6px 14px", borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: savingEmail || editEmail === (user.email || "") ? "default" : "pointer",
+                  background: savingEmail || editEmail === (user.email || "") ? "transparent" : `${GREEN}22`, color: savingEmail || editEmail === (user.email || "") ? MUTED : GREEN,
+                  border: `1px solid ${savingEmail || editEmail === (user.email || "") ? BORDER : GREEN + "44"}` }}>{savingEmail ? "Saving…" : "Save"}</button>
+            </div>
           </div>
           {!isMe && (
             <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
@@ -1131,7 +1144,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, notificationContacts, onAddContact, onUpdateContact, onDeleteContact, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -1324,7 +1337,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
         </div>
 
         {orgProfiles.map(user => (
-          <UserRow key={user.id} user={user} profile={profile} canManage={canManage} onUpdateRole={onUpdateRole} onUpdatePermissions={onUpdatePermissions} onRemoveUser={onRemoveUser} />
+          <UserRow key={user.id} user={user} profile={profile} canManage={canManage} onUpdateRole={onUpdateRole} onUpdatePermissions={onUpdatePermissions} onUpdateEmail={onUpdateEmail} onRemoveUser={onRemoveUser} />
         ))}
       </div>
 

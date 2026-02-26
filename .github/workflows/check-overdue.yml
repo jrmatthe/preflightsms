@@ -1,0 +1,16 @@
+name: Check Overdue Flights
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Every 5 minutes — overdue flights are time-critical
+  workflow_dispatch: {}   # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger overdue flight checks
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/check-overdue"
