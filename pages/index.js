@@ -4612,7 +4612,7 @@ export default function PVTAIRFrat() {
           await updateOrg(orgId, updates);
           const { data: prof } = await getProfile();
           if (prof) setProfile(prof);
-          setToast({ message: "Subscription updated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+          setToast({ message: "Settings updated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
           setTimeout(() => setToast(null), 3000);
         }} onCheckout={async (plan, interval) => {
           const orgId = profile?.org_id;
