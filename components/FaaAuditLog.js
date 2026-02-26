@@ -314,8 +314,8 @@ const MANUAL_LABELS = {
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals, declarations, onSaveDeclaration, onUpdateDeclaration, onUploadPdf, session, hasIntlCompliance, complianceFrameworks, checklistItems, complianceStatus, crosswalkData, onUpsertFramework, onDeleteFramework, onUpsertStatus, onRefreshCompliance, profile, orgProfiles }) {
-  const [complianceTab, setComplianceTab] = useState("part5");
+export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals, declarations, onSaveDeclaration, onUpdateDeclaration, onUploadPdf, session, hasIntlCompliance, complianceFrameworks, checklistItems, complianceStatus, crosswalkData, onUpsertFramework, onDeleteFramework, onUpsertStatus, onRefreshCompliance, profile, orgProfiles, defaultTab }) {
+  const [complianceTab, setComplianceTab] = useState(defaultTab || "part5");
   const [expandedSubpart, setExpandedSubpart] = useState("B");
   const [expandedReq, setExpandedReq] = useState(null);
   const [manualOverrides, setManualOverrides] = useState(() => {

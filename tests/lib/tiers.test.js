@@ -308,11 +308,10 @@ describe('NAV_FEATURE_MAP', () => {
     expect(NAV_FEATURE_MAP.actions).toBe('corrective_actions');
     expect(NAV_FEATURE_MAP.policy).toBe('policy_library');
     expect(NAV_FEATURE_MAP.cbt).toBe('cbt_modules');
-    expect(NAV_FEATURE_MAP.audit).toBe('faa_audit_log');
     expect(NAV_FEATURE_MAP.manuals).toBe('sms_manuals');
     expect(NAV_FEATURE_MAP.dashboard).toBe('dashboard_basic');
     expect(NAV_FEATURE_MAP.asap).toBe('asap_program');
-    expect(NAV_FEATURE_MAP.audits).toBe('internal_evaluation');
+    expect(NAV_FEATURE_MAP.audits).toBe('audit_program');
     expect(NAV_FEATURE_MAP.moc).toBe('management_of_change');
   });
 

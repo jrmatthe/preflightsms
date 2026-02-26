@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import dynamic from "next/dynamic";
+const FaaAuditLog = dynamic(() => import("./FaaAuditLog"), { ssr: false });
 
 const DARK = "#0A0A0A", NEAR_BLACK = "#111111", CARD = "#141414";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888";
@@ -264,8 +266,15 @@ export default function InternalEvaluation({
   onLoadResponses, onSaveResponse, onSaveResponses,
   onCreateSchedule, onUpdateSchedule, onDeleteSchedule,
   onInitTemplates, onCreateAction, onRefreshAudits,
+  // FaaAuditLog pass-through props
+  frats, flights, reports, hazards, actions, policies, profiles,
+  trainingRecords, smsManuals, declarations,
+  onSaveDeclaration, onUpdateDeclaration, onUploadPdf,
+  hasIntlCompliance, complianceFrameworks, checklistItems,
+  complianceStatus, crosswalkData, onUpsertFramework,
+  onDeleteFramework, onUpsertStatus, onRefreshCompliance,
 }) {
-  const [tab, setTab] = useState("audits");
+  const [tab, setTab] = useState("part5");
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [executingAudit, setExecutingAudit] = useState(null);
   const [viewingAudit, setViewingAudit] = useState(null);
@@ -803,11 +812,48 @@ export default function InternalEvaluation({
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
-        {tabBtn("audits", "Audits")}
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, flexWrap: "wrap" }}>
+        {tabBtn("part5", "Part 5 Compliance")}
+        {tabBtn("audits", "Internal Audits")}
         {tabBtn("templates", "Templates")}
         {tabBtn("schedules", "Schedules")}
+        {hasIntlCompliance && tabBtn("international", "International")}
       </div>
+
+      {/* ── PART 5 COMPLIANCE TAB ───────────────────────────── */}
+      {tab === "part5" && (
+        <FaaAuditLog
+          frats={frats} flights={flights} reports={reports} hazards={hazards}
+          actions={actions} policies={policies} profiles={profiles}
+          trainingRecords={trainingRecords} org={org} smsManuals={smsManuals}
+          declarations={declarations} session={session}
+          onSaveDeclaration={onSaveDeclaration} onUpdateDeclaration={onUpdateDeclaration}
+          onUploadPdf={onUploadPdf} hasIntlCompliance={false}
+          profile={profile} orgProfiles={orgProfiles}
+          complianceFrameworks={complianceFrameworks} checklistItems={checklistItems}
+          complianceStatus={complianceStatus} crosswalkData={crosswalkData}
+          onUpsertFramework={onUpsertFramework} onDeleteFramework={onDeleteFramework}
+          onUpsertStatus={onUpsertStatus} onRefreshCompliance={onRefreshCompliance}
+        />
+      )}
+
+      {/* ── INTERNATIONAL TAB ───────────────────────────────── */}
+      {tab === "international" && hasIntlCompliance && (
+        <FaaAuditLog
+          frats={frats} flights={flights} reports={reports} hazards={hazards}
+          actions={actions} policies={policies} profiles={profiles}
+          trainingRecords={trainingRecords} org={org} smsManuals={smsManuals}
+          declarations={declarations} session={session}
+          onSaveDeclaration={onSaveDeclaration} onUpdateDeclaration={onUpdateDeclaration}
+          onUploadPdf={onUploadPdf} hasIntlCompliance={true}
+          profile={profile} orgProfiles={orgProfiles}
+          complianceFrameworks={complianceFrameworks} checklistItems={checklistItems}
+          complianceStatus={complianceStatus} crosswalkData={crosswalkData}
+          onUpsertFramework={onUpsertFramework} onDeleteFramework={onDeleteFramework}
+          onUpsertStatus={onUpsertStatus} onRefreshCompliance={onRefreshCompliance}
+          defaultTab="international"
+        />
+      )}
 
       {/* ── AUDITS TAB ─────────────────────────────────────── */}
       {tab === "audits" && (

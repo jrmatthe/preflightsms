@@ -121,10 +121,8 @@ function analyzeWeather(wx) {
     const fr = ceiling < 200 || vis < 0.5 ? "LIFR" : ceiling < 500 || vis < 1 ? "IFR" : ceiling < 1000 || vis < 3 ? "MVFR" : "VFR";
     stationSummaries.push({ station, type: "METAR (current)", summary: `Ceil ${ceilStr} | Vis ${visStr} | Wind ${windStr}${temp ? ` | ${temp}/${dewp}` : ""}${wxStr ? ` | ${wxStr}` : ""}`, flight_rules: fr });
 
-    const targetTime = (station === depId) ? depTimeZ : (station === destId) ? arrTimeZ : null;
-    if (!targetTime || isMetarCurrent(m, targetTime)) {
-      analyzePeriod(station, ceiling, vis, wspd, wgst, wdir, wxStr, "METAR");
-    }
+    // Always analyze current METAR for risk flags
+    analyzePeriod(station, ceiling, vis, wspd, wgst, wdir, wxStr, "METAR");
     if (raw.includes("WS") || raw.toUpperCase().includes("WIND SHEAR")) { flags.wx_wind_shear = true; reasons.wx_wind_shear = (reasons.wx_wind_shear || "") + `${station} wind shear. `; }
   }
 
