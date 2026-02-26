@@ -617,7 +617,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
       </>)}
     </div>)}
     {/* ── Mobile Bottom Tab Bar ──────────────────── */}
-    <nav className="mobile-bottom-nav" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: BLACK, borderTop: `1px solid ${BORDER}`, padding: "6px 0 env(safe-area-inset-bottom, 0)" }}>
+    <nav className="mobile-bottom-nav" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: BLACK, borderTop: `1px solid ${BORDER}`, padding: "6px env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 8px) env(safe-area-inset-left, 16px)" }}>
       <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center" }}>
         {[
           { id: "dashboard", label: "Dashboard", icon: icons.dashboard },
@@ -4791,12 +4791,12 @@ a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 @keyframes tourPulse{0%,100%{box-shadow:0 0 0 3px #ffffff,0 0 12px rgba(255,255,255,0.15)}50%{box-shadow:0 0 0 3px #22d3ee,0 0 24px rgba(34,211,238,0.35)}}
 .tour-highlight-ring{animation:tourPulse 2s ease-in-out infinite}
 @media(max-width:768px){
-.fab-container{bottom:80px !important;right:16px !important}
+.fab-container{bottom:calc(72px + env(safe-area-inset-bottom, 8px)) !important;right:16px !important}
 .mobile-bottom-nav{display:flex !important}
 .frat-grid{grid-template-columns:1fr !important}
 .flight-info-grid{grid-template-columns:1fr 1fr !important}
 .score-panel-desktop{display:none !important}
-.score-panel-mobile{display:flex !important}
+.score-panel-mobile{display:flex !important;bottom:calc(60px + env(safe-area-inset-bottom, 8px)) !important}
 .nav-sidebar{display:none !important}
 .nav-mobile-header{display:flex !important}
 .nav-mobile-menu{display:flex !important}
