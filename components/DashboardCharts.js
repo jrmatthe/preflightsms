@@ -135,7 +135,7 @@ const ttStyle = { borderRadius: 6, border: `1px solid ${BORDER}`, background: CA
 // ════════════════════════════════════════════════════════════════
 // OVERVIEW TAB — high-level SMS health across all modules
 // ════════════════════════════════════════════════════════════════
-function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft }) {
+function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate }) {
   const stats = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 86400000;
@@ -207,26 +207,6 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
     return { avgScore, highCritical30, activeFlights, f30, openReports, r30Reports, openHazards, criticalHazards, openActions, overdueActions, weeklyData, compliance, totalFrats: records.length, totalReports: reports.length, r7Count: r7.length, activePlans, erpNeedsReview, lastDrill, nextDrill, spiHealth, spiCount: spiList.filter(s => s.is_active).length };
   }, [records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements]);
 
-  const fleetStatus = useMemo(() => {
-    const fleet = fleetAircraft || [];
-    if (fleet.length === 0) return [];
-    return fleet.map(ac => {
-      const arrived = flights
-        .filter(f => f.tailNumber === ac.registration && f.status === "ARRIVED" && !f.cancelled)
-        .sort((a, b) => new Date(b.arrivedAt || b.timestamp) - new Date(a.arrivedAt || a.timestamp));
-      const last = arrived[0];
-      return {
-        registration: ac.registration,
-        type: ac.type || "",
-        lastLocation: last ? last.destination : null,
-        parkingSpot: last ? last.parkingSpot : null,
-        fuelRemaining: last ? last.fuelRemaining : null,
-        fuelUnit: last ? (last.fuelUnit || "lbs") : null,
-        lastUpdated: last ? (last.arrivedAt || last.timestamp) : null,
-      };
-    });
-  }, [fleetAircraft, flights]);
-
   const compColor = stats.compliance >= 80 ? GREEN : stats.compliance >= 60 ? YELLOW : RED;
   const [complianceHovered, setComplianceHovered] = useState(false);
   const [erpHovered, setErpHovered] = useState(false);
@@ -280,40 +260,6 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         <StatCard label="Active Flights" value={stats.activeFlights} sub={`${stats.f30} in last 30d`} icon="✈️" onClick={onNavigate ? () => onNavigate("flights") : undefined} />
         <StatCard label="Open Items" value={stats.openReports + stats.openHazards + stats.openActions} color={stats.overdueActions > 0 ? RED : WHITE} sub={stats.overdueActions > 0 ? `${stats.overdueActions} overdue` : "On track"} icon="⚠️" onClick={onNavigate ? () => onNavigate("actions") : undefined} />
       </div>
-
-      {/* Fleet Status */}
-      {fleetStatus.length > 0 && (
-        <div style={{ ...card, padding: "16px 18px", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <span style={{ fontSize: 14 }}>{"\u2708"}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: WHITE }}>Fleet Status</span>
-          </div>
-          <div className="fleet-status-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "4px 12px", fontSize: 11 }}>
-            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Tail #</div>
-            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Type</div>
-            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Location</div>
-            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Fuel</div>
-            <div style={{ color: MUTED, fontWeight: 700, paddingBottom: 4, borderBottom: `1px solid ${BORDER}` }}>Updated</div>
-            {fleetStatus.map(ac => (
-              ac.lastLocation ? (
-                <Fragment key={ac.registration}>
-                  <div style={{ color: CYAN, fontWeight: 700, padding: "6px 0" }}>{ac.registration}</div>
-                  <div style={{ color: OFF_WHITE, padding: "6px 0" }}>{ac.type}</div>
-                  <div style={{ color: OFF_WHITE, padding: "6px 0" }}>{ac.lastLocation}{ac.parkingSpot ? ` / ${ac.parkingSpot}` : ""}</div>
-                  <div style={{ color: OFF_WHITE, padding: "6px 0" }}>{ac.fuelRemaining ? `${ac.fuelRemaining} ${ac.fuelUnit}` : "\u2014"}</div>
-                  <div style={{ color: MUTED, padding: "6px 0" }}>{timeAgo(ac.lastUpdated)}</div>
-                </Fragment>
-              ) : (
-                <Fragment key={ac.registration}>
-                  <div style={{ color: CYAN, fontWeight: 700, padding: "6px 0" }}>{ac.registration}</div>
-                  <div style={{ color: OFF_WHITE, padding: "6px 0" }}>{ac.type}</div>
-                  <div style={{ color: MUTED, fontStyle: "italic", padding: "6px 0", gridColumn: "span 3" }}>No recent data</div>
-                </Fragment>
-              )
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Weekly trend */}
       <ChartCard title="12-Week Activity Trend">
@@ -1097,16 +1043,93 @@ function SafetyMetrics({ reports, hazards, actions }) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// FLEET STATUS TAB
+// ════════════════════════════════════════════════════════════════
+function FleetStatusView({ flights, fleetAircraft, fleetStatusFields }) {
+  const fields = fleetStatusFields || { tailNumber: true, type: true, location: true, fuel: true, updated: true };
+  const columns = [
+    { key: "tailNumber", label: "Tail #" },
+    { key: "type", label: "Type" },
+    { key: "location", label: "Location" },
+    { key: "fuel", label: "Fuel" },
+    { key: "updated", label: "Updated" },
+  ].filter(c => fields[c.key] !== false);
+
+  const fleetStatus = useMemo(() => {
+    const fleet = fleetAircraft || [];
+    if (fleet.length === 0) return [];
+    return fleet.map(ac => {
+      const arrived = flights
+        .filter(f => f.tailNumber === ac.registration && f.status === "ARRIVED" && !f.cancelled)
+        .sort((a, b) => new Date(b.arrivedAt || b.timestamp) - new Date(a.arrivedAt || a.timestamp));
+      const last = arrived[0];
+      return {
+        registration: ac.registration,
+        type: ac.type || "",
+        lastLocation: last ? last.destination : null,
+        parkingSpot: last ? last.parkingSpot : null,
+        fuelRemaining: last ? last.fuelRemaining : null,
+        fuelUnit: last ? (last.fuelUnit || "lbs") : null,
+        lastUpdated: last ? (last.arrivedAt || last.timestamp) : null,
+      };
+    });
+  }, [fleetAircraft, flights]);
+
+  if (!fleetAircraft || fleetAircraft.length === 0) {
+    return (
+      <div style={{ ...card, padding: "32px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 13, color: MUTED }}>No aircraft in fleet</div>
+      </div>
+    );
+  }
+
+  const colCount = columns.length;
+  // Count non-tailNumber visible columns for "No recent data" span
+  const dataColCount = columns.filter(c => c.key !== "tailNumber" && c.key !== "type").length;
+
+  return (
+    <div style={{ ...card, padding: "20px 24px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <span style={{ fontSize: 16 }}>{"\u2708"}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Fleet Status</span>
+      </div>
+      <div className="fleet-status-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${colCount}, 1fr)`, gap: "6px 16px", fontSize: 12 }}>
+        {columns.map(c => (
+          <div key={c.key} style={{ color: MUTED, fontWeight: 700, paddingBottom: 6, borderBottom: `1px solid ${BORDER}` }}>{c.label}</div>
+        ))}
+        {fleetStatus.map(ac => {
+          const hasData = ac.lastLocation;
+          const cellStyle = { padding: "8px 0" };
+          const renderers = {
+            tailNumber: () => <div style={{ ...cellStyle, color: CYAN, fontWeight: 700 }}>{ac.registration}</div>,
+            type: () => <div style={{ ...cellStyle, color: OFF_WHITE }}>{ac.type}</div>,
+            location: () => <div style={{ ...cellStyle, color: hasData ? OFF_WHITE : MUTED, fontStyle: hasData ? "normal" : "italic" }}>{hasData ? `${ac.lastLocation}${ac.parkingSpot ? ` / ${ac.parkingSpot}` : ""}` : "No recent data"}</div>,
+            fuel: () => <div style={{ ...cellStyle, color: hasData ? OFF_WHITE : MUTED, fontStyle: hasData ? "normal" : "italic" }}>{hasData ? (ac.fuelRemaining ? `${ac.fuelRemaining} ${ac.fuelUnit}` : "\u2014") : (!columns.some(c => c.key === "location") ? "No recent data" : "")}</div>,
+            updated: () => <div style={{ ...cellStyle, color: MUTED, fontStyle: hasData ? "normal" : "italic" }}>{hasData ? timeAgo(ac.lastUpdated) : (!columns.some(c => c.key === "location") && !columns.some(c => c.key === "fuel") ? "No recent data" : "")}</div>,
+          };
+          return (
+            <Fragment key={ac.registration}>
+              {columns.map(c => <Fragment key={c.key}>{renderers[c.key]()}</Fragment>)}
+            </Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft, fleetStatusFields }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
   const h = hazards || [];
   const a = actions || [];
 
-  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} fleetAircraft={fleetAircraft} />;
+  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} />;
+  if (view === "fleet") return <FleetStatusView flights={f} fleetAircraft={fleetAircraft} fleetStatusFields={fleetStatusFields} />;
   if (view === "frat") return <FRATAnalytics records={r} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;
 

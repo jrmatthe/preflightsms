@@ -1259,6 +1259,54 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
           ))}
         </div>
       )}
+
+      {/* Fleet Status Settings */}
+      {canManage && (() => {
+        const fsEnabled = orgData?.fleet_status_enabled !== false;
+        const fsFields = orgData?.fleet_status_fields || { tailNumber: true, type: true, location: true, fuel: true, updated: true };
+        const fieldDefs = [
+          { key: "tailNumber", label: "Tail Number", desc: "Aircraft registration / tail number" },
+          { key: "type", label: "Aircraft Type", desc: "Aircraft type designation" },
+          { key: "location", label: "Location & Parking", desc: "Last arrived airport and parking spot" },
+          { key: "fuel", label: "Fuel Remaining", desc: "Fuel on board at last arrival" },
+          { key: "updated", label: "Last Updated", desc: "Relative time since last arrival" },
+        ];
+        return (
+          <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>Fleet Status</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Enable Fleet Status Tab</div>
+                <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Show the Fleet Status tab on the dashboard with aircraft locations and status</div>
+              </div>
+              <button onClick={() => onUpdateOrg({ fleet_status_enabled: !fsEnabled })}
+                style={{ width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: fsEnabled ? GREEN : BORDER, transition: "background 0.2s", flexShrink: 0, marginLeft: 12 }}>
+                <div style={{ width: 16, height: 16, borderRadius: 8, background: WHITE, position: "absolute", top: 3, left: fsEnabled ? 21 : 3, transition: "left 0.2s" }} />
+              </button>
+            </div>
+            {fsEnabled && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 10, color: MUTED, marginBottom: 6 }}>Choose which columns appear in Fleet Status:</div>
+                {fieldDefs.map(f => {
+                  const on = fsFields[f.key] !== false;
+                  return (
+                    <div key={f.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0 6px 12px", borderBottom: `1px solid ${BORDER}` }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, color: OFF_WHITE }}>{f.label}</div>
+                        <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>{f.desc}</div>
+                      </div>
+                      <button onClick={() => onUpdateOrg({ fleet_status_fields: { ...fsFields, [f.key]: !on } })}
+                        style={{ width: 36, height: 20, borderRadius: 10, border: "none", cursor: "pointer", position: "relative", background: on ? GREEN : BORDER, transition: "background 0.2s", flexShrink: 0, marginLeft: 12 }}>
+                        <div style={{ width: 14, height: 14, borderRadius: 7, background: WHITE, position: "absolute", top: 3, left: on ? 19 : 3, transition: "left 0.2s" }} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       </>)}
 
       {/* Users & Invitations */}

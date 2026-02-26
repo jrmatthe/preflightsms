@@ -2231,6 +2231,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
   const hasInsurance = hasFeature(org, "insurance_export");
   const isDashboardFree = isFreeTier(org);
   const gamificationOn = org?.gamification_enabled !== false;
+  const fleetStatusOn = org?.fleet_status_enabled !== false;
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
@@ -2297,7 +2298,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         );
       })()}
       <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
-        {[["analytics", "Overview"], ...(hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ...(hasInsurance ? [["insurance", "Insurance & Export"]] : []), ["history", "FRAT History"], ...(isDashboardFree ? [] : [["export", "Export"]])].map(([id, label]) => (
+        {[["analytics", "Overview"], ...(fleetStatusOn ? [["fleet", "Fleet Status"]] : []), ...(hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ...(hasInsurance ? [["insurance", "Insurance & Export"]] : []), ["history", "FRAT History"], ...(isDashboardFree ? [] : [["export", "Export"]])].map(([id, label]) => (
           <button key={id} onClick={() => setSub(id)}
             style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${sub === id ? WHITE : BORDER}`,
               background: sub === id ? WHITE : "transparent", color: sub === id ? BLACK : MUTED,
@@ -2310,6 +2311,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         )}
       </div>
       {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} fleetAircraft={fleetAircraft} />}
+      {sub === "fleet" && fleetStatusOn && <DashboardCharts flights={flights} view="fleet" fleetAircraft={fleetAircraft} fleetStatusFields={org?.fleet_status_fields} />}
       {sub === "frat" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "safety" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "culture" && hasCulture && <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />}
