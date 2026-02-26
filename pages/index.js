@@ -3363,6 +3363,8 @@ export default function PVTAIRFrat() {
     return () => clearInterval(interval);
   }, [profile]);
 
+  useEffect(() => { setProfileEmail(profile?.email || ""); }, [profile?.email]);
+
   // ── Initialize: check session or fall back to localStorage ──
   useEffect(() => {
     if (isOnline) {
@@ -4415,7 +4417,6 @@ export default function PVTAIRFrat() {
   const orgName = profile?.organizations?.name || COMPANY_NAME;
   const orgLogo = profile?.organizations?.logo_url || LOGO_URL;
   const userName = profile?.full_name || "";
-  useEffect(() => { setProfileEmail(profile?.email || ""); }, [profile?.email]);
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
 
   // Onboarding handlers
