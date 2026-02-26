@@ -1084,8 +1084,16 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields }) {
   }
 
   const colCount = columns.length;
-  // Count non-tailNumber visible columns for "No recent data" span
-  const dataColCount = columns.filter(c => c.key !== "tailNumber" && c.key !== "type").length;
+
+  const valueFor = (ac, key) => {
+    const hasData = ac.lastLocation;
+    if (key === "tailNumber") return { text: ac.registration, color: CYAN, bold: true };
+    if (key === "type") return { text: ac.type, color: OFF_WHITE };
+    if (key === "location") return hasData ? { text: `${ac.lastLocation}${ac.parkingSpot ? ` / ${ac.parkingSpot}` : ""}`, color: OFF_WHITE } : { text: "No recent data", color: MUTED, italic: true };
+    if (key === "fuel") return hasData ? { text: ac.fuelRemaining ? `${ac.fuelRemaining} ${ac.fuelUnit}` : "\u2014", color: OFF_WHITE } : { text: "", color: MUTED };
+    if (key === "updated") return hasData ? { text: timeAgo(ac.lastUpdated), color: MUTED } : { text: "", color: MUTED };
+    return { text: "", color: MUTED };
+  };
 
   return (
     <div style={{ ...card, padding: "20px 24px" }}>
@@ -1093,24 +1101,39 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields }) {
         <span style={{ fontSize: 16 }}>{"\u2708"}</span>
         <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Fleet Status</span>
       </div>
-      <div className="fleet-status-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${colCount}, 1fr)`, gap: "6px 16px", fontSize: 12 }}>
+      {/* Desktop: grid table */}
+      <div className="fleet-status-desktop" style={{ display: "grid", gridTemplateColumns: `repeat(${colCount}, 1fr)`, gap: "6px 16px", fontSize: 12 }}>
         {columns.map(c => (
           <div key={c.key} style={{ color: MUTED, fontWeight: 700, paddingBottom: 6, borderBottom: `1px solid ${BORDER}` }}>{c.label}</div>
         ))}
+        {fleetStatus.map(ac => (
+          <Fragment key={ac.registration}>
+            {columns.map(c => { const v = valueFor(ac, c.key); return <div key={c.key} style={{ padding: "8px 0", color: v.color, fontWeight: v.bold ? 700 : 400, fontStyle: v.italic ? "italic" : "normal" }}>{v.text}</div>; })}
+          </Fragment>
+        ))}
+      </div>
+      {/* Mobile: stacked cards */}
+      <div className="fleet-status-mobile" style={{ display: "none", flexDirection: "column", gap: 12 }}>
         {fleetStatus.map(ac => {
           const hasData = ac.lastLocation;
-          const cellStyle = { padding: "8px 0" };
-          const renderers = {
-            tailNumber: () => <div style={{ ...cellStyle, color: CYAN, fontWeight: 700 }}>{ac.registration}</div>,
-            type: () => <div style={{ ...cellStyle, color: OFF_WHITE }}>{ac.type}</div>,
-            location: () => <div style={{ ...cellStyle, color: hasData ? OFF_WHITE : MUTED, fontStyle: hasData ? "normal" : "italic" }}>{hasData ? `${ac.lastLocation}${ac.parkingSpot ? ` / ${ac.parkingSpot}` : ""}` : "No recent data"}</div>,
-            fuel: () => <div style={{ ...cellStyle, color: hasData ? OFF_WHITE : MUTED, fontStyle: hasData ? "normal" : "italic" }}>{hasData ? (ac.fuelRemaining ? `${ac.fuelRemaining} ${ac.fuelUnit}` : "\u2014") : (!columns.some(c => c.key === "location") ? "No recent data" : "")}</div>,
-            updated: () => <div style={{ ...cellStyle, color: MUTED, fontStyle: hasData ? "normal" : "italic" }}>{hasData ? timeAgo(ac.lastUpdated) : (!columns.some(c => c.key === "location") && !columns.some(c => c.key === "fuel") ? "No recent data" : "")}</div>,
-          };
           return (
-            <Fragment key={ac.registration}>
-              {columns.map(c => <Fragment key={c.key}>{renderers[c.key]()}</Fragment>)}
-            </Fragment>
+            <div key={ac.registration} style={{ background: NEAR_BLACK, borderRadius: 8, padding: "12px 14px", border: `1px solid ${BORDER}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: hasData ? 8 : 0 }}>
+                <div>
+                  {fields.tailNumber !== false && <span style={{ color: CYAN, fontWeight: 700, fontSize: 13 }}>{ac.registration}</span>}
+                  {fields.type !== false && <span style={{ color: MUTED, fontSize: 12, marginLeft: 8 }}>{ac.type}</span>}
+                </div>
+                {hasData && fields.updated !== false && <span style={{ color: MUTED, fontSize: 11 }}>{timeAgo(ac.lastUpdated)}</span>}
+              </div>
+              {hasData ? (
+                <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
+                  {fields.location !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Location </span><span style={{ color: OFF_WHITE }}>{ac.lastLocation}{ac.parkingSpot ? ` / ${ac.parkingSpot}` : ""}</span></div>}
+                  {fields.fuel !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Fuel </span><span style={{ color: OFF_WHITE }}>{ac.fuelRemaining ? `${ac.fuelRemaining} ${ac.fuelUnit}` : "\u2014"}</span></div>}
+                </div>
+              ) : (
+                <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic", marginTop: 4 }}>No recent data</div>
+              )}
+            </div>
           );
         })}
       </div>

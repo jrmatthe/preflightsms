@@ -4835,7 +4835,8 @@ a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 .score-panel-mobile{padding-bottom:env(safe-area-inset-bottom, 6px) !important}
 .frat-grid{grid-template-columns:1fr !important}
 .flight-info-grid{grid-template-columns:1fr 1fr !important}
-.fleet-status-grid{grid-template-columns:1fr 1fr !important}
+.fleet-status-desktop{display:none !important}
+.fleet-status-mobile{display:flex !important}
 .score-panel-desktop{display:none !important}
 .score-panel-mobile{display:flex !important;bottom:calc(60px + env(safe-area-inset-bottom, 8px)) !important}
 .nav-sidebar{display:none !important}
