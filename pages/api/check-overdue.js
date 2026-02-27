@@ -65,25 +65,34 @@ export default async function handler(req, res) {
     const results = [];
 
     for (const flight of overdueFlights) {
-      // Get users with flight_follower permission
-      const { data: followers } = await supabase
+      // Get all profiles in this org that have an email
+      const { data: followers, error: followerErr } = await supabase
         .from("profiles")
         .select("id, full_name, email, permissions")
         .eq("org_id", flight.org_id)
         .not("email", "is", null);
 
+      const totalProfiles = (followers || []).length;
       const allContacts = [];
       if (followers) {
         for (const f of followers) {
-          if (f.permissions && f.permissions.includes("flight_follower") && f.email) {
+          const perms = Array.isArray(f.permissions) ? f.permissions : [];
+          if (perms.includes("flight_follower") && f.email) {
             allContacts.push({ name: f.full_name, email: f.email, phone: "", role: "Flight Follower" });
           }
         }
       }
 
+      // If no flight_followers found, do NOT mark as notified — let cron retry
       if (allContacts.length === 0) {
-        results.push({ flight: flight.frat_code, status: "no_contacts" });
-        await supabase.from("flights").update({ overdue_notified_at: now }).eq("id", flight.id);
+        results.push({
+          flight: flight.frat_code,
+          status: "no_flight_followers",
+          orgId: flight.org_id,
+          profilesInOrg: totalProfiles,
+          followerErr: followerErr?.message || null,
+          hint: "No users with 'flight_follower' permission found. Assign the permission in Admin > Team Members.",
+        });
         continue;
       }
 
@@ -111,7 +120,14 @@ export default async function handler(req, res) {
         org: escapeHtml(orgName),
       };
 
-      const flightResults = { flight: flight.frat_code, emails: 0, sms: 0, errors: [] };
+      const flightResults = {
+        flight: flight.frat_code,
+        contactsFound: allContacts.length,
+        contactEmails: allContacts.map(c => c.email),
+        emails: 0,
+        sms: 0,
+        errors: [],
+      };
 
       for (const contact of allContacts) {
         // Send email
@@ -121,7 +137,7 @@ export default async function handler(req, res) {
               method: "POST",
               headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
               body: JSON.stringify({
-                from: "PreflightSMS Alerts <onboarding@resend.dev>",
+                from: process.env.FROM_EMAIL || "PreflightSMS Alerts <noreply@send.preflightsms.com>",
                 to: [contact.email],
                 subject: `OVERDUE FLIGHT — ${f.code} | ${f.aircraft} | ${f.dep} to ${f.dest}`,
                 html: buildEmailHtml(f),
@@ -172,7 +188,15 @@ export default async function handler(req, res) {
         }
       }
 
-      await supabase.from("flights").update({ overdue_notified_at: now }).eq("id", flight.id);
+      // Only mark as notified if at least one notification was actually sent
+      if (flightResults.emails > 0 || flightResults.sms > 0) {
+        await supabase.from("flights").update({ overdue_notified_at: now }).eq("id", flight.id);
+        flightResults.markedNotified = true;
+      } else {
+        flightResults.markedNotified = false;
+        flightResults.hint = "No notifications sent successfully — flight will be retried on next cron run.";
+      }
+
       results.push(flightResults);
     }
 
