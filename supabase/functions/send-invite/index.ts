@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
   try {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const fromEmail = Deno.env.get("FROM_EMAIL") || "PreflightSMS <noreply@send.preflightsms.com>";
+    const fromEmail = Deno.env.get("FROM_EMAIL") || "PreflightSMS <noreply@preflightsms.com>";
 
     if (!resendApiKey) {
       return new Response(

@@ -127,7 +127,7 @@ export default async function handler(req, res) {
             method: "POST",
             headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-              from: process.env.FROM_EMAIL || "PreflightSMS <noreply@send.preflightsms.com>",
+              from: process.env.FROM_EMAIL || "PreflightSMS <noreply@preflightsms.com>",
               to: [pilot.email],
               subject: `Your ${monthName} Safety Summary — PreflightSMS`,
               html: `

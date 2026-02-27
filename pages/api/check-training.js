@@ -87,7 +87,7 @@ export default async function handler(req, res) {
           method: "POST",
           headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            from: process.env.FROM_EMAIL || "PreflightSMS Alerts <noreply@send.preflightsms.com>",
+            from: process.env.FROM_EMAIL || "PreflightSMS Alerts <noreply@preflightsms.com>",
             to: [user.email],
             subject: isExpired
               ? `EXPIRED — ${record.title} training has expired`
@@ -141,7 +141,7 @@ export default async function handler(req, res) {
             method: "POST",
             headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-              from: process.env.FROM_EMAIL || "PreflightSMS Alerts <noreply@send.preflightsms.com>",
+              from: process.env.FROM_EMAIL || "PreflightSMS Alerts <noreply@preflightsms.com>",
               to: [contact.email],
               subject: `Training Compliance Summary — ${expiredCount} expired, ${expiringCount} expiring`,
               html: buildSummaryEmailHtml(orgName, orgRecords, expiredCount, expiringCount),
