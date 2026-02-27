@@ -3428,6 +3428,23 @@ export default function PVTAIRFrat() {
     }
   }, []);
 
+  // Handle email confirmation token from Supabase auth links
+  useEffect(() => {
+    if (typeof window === "undefined" || !supabase) return;
+    const params = new URLSearchParams(window.location.search);
+    const tokenHash = params.get("token_hash");
+    const type = params.get("type");
+    if (tokenHash && type) {
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type }).then(({ data, error }) => {
+        if (data?.session) {
+          setSession(data.session);
+          getProfile().then(p => { if (p) setProfile(p); });
+        }
+        window.history.replaceState(null, "", window.location.pathname);
+      });
+    }
+  }, []);
+
   // Handle payment return from Stripe
   useEffect(() => {
     if (typeof window === "undefined") return;
