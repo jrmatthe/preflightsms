@@ -536,7 +536,7 @@ function getSection(cv) {
   return NAV_SECTIONS.find(s => s.cvs.includes(cv)) || NAV_SECTIONS[0];
 }
 
-function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate }) {
+function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade }) {
   const [menuOpen, setMenuOpen] = useState(false);
   // SVG icons — monochrome, inherit color from parent
   const I = (d, s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
@@ -560,27 +560,34 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   };
   const isAdminRole = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(userRole);
   const cvPassesGate = (cv) => { const feat = NAV_FEATURE_MAP[cv]; return !feat || hasFeature(org, feat); };
+  const sectionFullyGated = (sec) => sec.id !== "admin" && sec.id !== "dashboard" && !sec.cvs.some(cv => cvPassesGate(cv));
   const visibleSections = NAV_SECTIONS.filter(sec => {
     if (sec.id === "admin") return isAdminRole;
-    return sec.cvs.some(cv => cvPassesGate(cv));
+    return true; // Show all sections, even gated ones
   });
   const activeSection = getSection(currentView);
   const firstVisibleCv = (sec) => sec.cvs.find(cv => cvPassesGate(cv)) || sec.cvs[0];
   const sideTab = (sec) => {
     const isActive = activeSection.id === sec.id;
+    const isGated = sectionFullyGated(sec);
     return (
-    <button key={sec.id} data-tour={`nav-${sec.id}`} onClick={() => { setCurrentView(firstVisibleCv(sec)); setMenuOpen(false); }}
+    <button key={sec.id} data-tour={`nav-${sec.id}`} onClick={() => {
+        if (isGated && onUpgrade) { onUpgrade(sec.label, `${sec.label} features are not available on your current plan. Upgrade to unlock this section.`); }
+        else { setCurrentView(firstVisibleCv(sec)); }
+        setMenuOpen(false);
+      }}
       title={sec.label}
       style={{
         width: "100%", height: 40, display: "flex", alignItems: "center", gap: 8, paddingLeft: 14,
         background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
-        color: isActive ? WHITE : MUTED,
+        color: isActive ? WHITE : isGated ? "#444" : MUTED,
         border: "none", borderLeft: isActive ? `2px solid ${WHITE}` : "2px solid transparent",
         cursor: "pointer", fontSize: 15, transition: "all 0.15s", borderRadius: 0,
         fontFamily: "inherit",
       }}>
       <span style={{ width: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>{icons[sec.icon]}</span>
       <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, letterSpacing: 0.3 }}>{sec.label}</span>
+      {isGated && <span style={{ fontSize: 9, opacity: 0.5, marginLeft: "auto", marginRight: 10 }}>{"\uD83D\uDD12"}</span>}
     </button>);
   };
   return (<>
@@ -610,10 +617,16 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     {menuOpen && (<div className="nav-mobile-menu" style={{ display: "none", flexDirection: "column", padding: "8px 16px", gap: 2, background: NEAR_BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 48, zIndex: 99 }}>
       {visibleSections.map(sec => {
         const isActive = activeSection.id === sec.id;
+        const isGated = sectionFullyGated(sec);
         return (
-        <button key={sec.id} onClick={() => { setCurrentView(firstVisibleCv(sec)); setMenuOpen(false); }}
-          style={{ background: isActive ? "rgba(255,255,255,0.08)" : "transparent", color: isActive ? WHITE : MUTED, border: "none", padding: "10px 12px", cursor: "pointer", fontWeight: isActive ? 700 : 500, fontSize: 13, textAlign: "left", borderRadius: 6, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
+        <button key={sec.id} onClick={() => {
+            if (isGated && onUpgrade) { onUpgrade(sec.label, `${sec.label} features are not available on your current plan. Upgrade to unlock this section.`); }
+            else { setCurrentView(firstVisibleCv(sec)); }
+            setMenuOpen(false);
+          }}
+          style={{ background: isActive ? "rgba(255,255,255,0.08)" : "transparent", color: isActive ? WHITE : isGated ? "#444" : MUTED, border: "none", padding: "10px 12px", cursor: "pointer", fontWeight: isActive ? 700 : 500, fontSize: 13, textAlign: "left", borderRadius: 6, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ display: "flex", alignItems: "center" }}>{icons[sec.icon]}</span> {sec.label}
+          {isGated && <span style={{ fontSize: 9, opacity: 0.5, marginLeft: "auto" }}>{"\uD83D\uDD12"}</span>}
         </button>);
       })}
       {userName && (<>
@@ -639,11 +652,16 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
           NAV_SECTIONS.find(s => s.id === "investigations"),
         ].map(sec => {
           const isActive = activeSection.id === sec.id;
+          const isGated = sectionFullyGated(sec);
           return (
-          <button key={sec.id} onClick={() => { setCurrentView(firstVisibleCv(sec)); setMenuOpen(false); }}
+          <button key={sec.id} onClick={() => {
+              if (isGated && onUpgrade) { onUpgrade(sec.label, `${sec.label} features are not available on your current plan. Upgrade to unlock this section.`); }
+              else { setCurrentView(firstVisibleCv(sec)); }
+              setMenuOpen(false);
+            }}
             style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 4px", background: "none", border: "none", cursor: "pointer",
-              color: isActive ? WHITE : MUTED, transition: "color 0.15s" }}>
-            <span style={{ display: "flex", alignItems: "center", opacity: isActive ? 1 : 0.6 }}>{icons[sec.icon]}</span>
+              color: isActive ? WHITE : isGated ? "#444" : MUTED, transition: "color 0.15s" }}>
+            <span style={{ display: "flex", alignItems: "center", opacity: isActive ? 1 : isGated ? 0.3 : 0.6 }}>{icons[sec.icon]}</span>
             <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500 }}>{sec.label}</span>
           </button>);
         })}
@@ -4535,7 +4553,7 @@ export default function PVTAIRFrat() {
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
     {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} onTourStart={handleTourStart} onSubTabChange={handleSubTabChange} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} userRole={profile?.role} />}
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Top bar with user info */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
@@ -4578,20 +4596,25 @@ export default function PVTAIRFrat() {
         {(() => {
           const sec = getSection(cv);
           if (sec.cvs.length <= 1) return null;
-          const visibleCvs = sec.cvs.filter(c => { const feat = NAV_FEATURE_MAP[c]; return !feat || hasFeature(org, feat); });
-          if (visibleCvs.length <= 1) return null;
           return (
             <div style={{ display: "flex", gap: 4, marginBottom: 0, flexWrap: "wrap", padding: "8px 32px 0" }}>
-              {visibleCvs.map(c => (
-                <button key={c} onClick={() => setCv(c)}
+              {sec.cvs.map(c => {
+                const feat = NAV_FEATURE_MAP[c];
+                const isGated = feat && !hasFeature(org, feat);
+                return (
+                <button key={c} onClick={() => {
+                    if (isGated) { setUpgradePrompt({ feature: SUB_TAB_LABELS[c], message: `${SUB_TAB_LABELS[c]} is not available on your current plan. Upgrade to access this feature.` }); }
+                    else { setCv(c); }
+                  }}
                   style={{ padding: "8px 16px", borderRadius: 6,
                     border: `1px solid ${cv === c ? WHITE : BORDER}`,
                     background: cv === c ? WHITE : "transparent",
-                    color: cv === c ? BLACK : MUTED,
-                    fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  {SUB_TAB_LABELS[c]}
-                </button>
-              ))}
+                    color: isGated ? "#444" : cv === c ? BLACK : MUTED,
+                    fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    opacity: isGated ? 0.6 : 1 }}>
+                  {SUB_TAB_LABELS[c]}{isGated ? " \uD83D\uDD12" : ""}
+                </button>);
+              })}
             </div>
           );
         })()}
