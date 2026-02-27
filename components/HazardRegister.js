@@ -212,9 +212,10 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
   );
 }
 
-function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpdateHazard, canManage, org, onAiInvestigate }) {
+function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpdateHazard, canManage, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule }) {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [llLoading, setLlLoading] = useState(false);
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
   const initScore = hazard.initial_risk_score || (hazard.initial_likelihood * hazard.initial_severity);
   const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
@@ -373,6 +374,65 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               )}
             </div>
           )}
+          {/* Lessons Learned */}
+          {(hazard.status === "closed" || hazard.status === "accepted") && onGenerateLessonsLearned && canManage && hasFeature(org, "safety_trend_alerts") && !hazard.lessons_learned && (
+            <button onClick={async () => {
+              setLlLoading(true);
+              try { await onGenerateLessonsLearned(hazard.id); } catch { /* handled by parent */ }
+              setLlLoading(false);
+            }} disabled={llLoading}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 8, background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: llLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: llLoading ? 0.6 : 1 }}>
+              <span style={{ fontSize: 14 }}>🤖</span> {llLoading ? "Generating..." : "Generate Lessons Learned"}
+            </button>
+          )}
+          {hazard.lessons_learned && (
+            <div style={{ marginTop: 8, padding: "14px 16px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: CYAN, marginBottom: 10 }}>Lessons Learned</div>
+              {hazard.lessons_learned.summary && (
+                <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.6, marginBottom: 10, whiteSpace: "pre-wrap" }}>{hazard.lessons_learned.summary}</div>
+              )}
+              {hazard.lessons_learned.takeaways?.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Key Takeaways</div>
+                  {hazard.lessons_learned.takeaways.map((t, i) => (
+                    <div key={i} style={{ fontSize: 11, color: OFF_WHITE, padding: "4px 0", paddingLeft: 8, borderLeft: `2px solid ${CYAN}44`, marginBottom: 4 }}>{t}</div>
+                  ))}
+                </div>
+              )}
+              {hazard.lessons_learned.training_topics?.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Training Topics</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {hazard.lessons_learned.training_topics.map((t, i) => (
+                      <span key={i} style={{ fontSize: 9, padding: "3px 10px", borderRadius: 8, background: `${CYAN}15`, color: CYAN, fontWeight: 600 }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {hazard.lessons_learned.prevention_tips?.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Prevention Tips</div>
+                  {hazard.lessons_learned.prevention_tips.map((t, i) => (
+                    <div key={i} style={{ fontSize: 11, color: OFF_WHITE, padding: "4px 0", paddingLeft: 8, borderLeft: `2px solid ${GREEN}44`, marginBottom: 4 }}>{t}</div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                {onPublishBulletin && (
+                  <button onClick={() => onPublishBulletin(hazard)}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "transparent", border: `1px solid ${YELLOW}44`, borderRadius: 4, color: YELLOW, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    Publish as Safety Bulletin
+                  </button>
+                )}
+                {onCreateTrainingModule && (
+                  <button onClick={() => onCreateTrainingModule(hazard)}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "transparent", border: `1px solid ${GREEN}44`, borderRadius: 4, color: GREEN, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    Create Training Module
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           {onCreateAction && canManage && (
             <button onClick={() => onCreateAction(hazard)}
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 8, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
@@ -385,7 +445,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
   );
 }
 
-export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, org, onAiInvestigate }) {
+export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule }) {
   const [view, setView] = useState(fromReport ? "new" : "list");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -529,7 +589,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
       ) : (<>
         {filtered.slice(0, showCount).map(h => {
           const lr = h.related_report_id && reports ? reports.find(r => r.id === h.related_report_id) : null;
-          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} onUpdateHazard={onUpdateHazard} canManage={canManage} org={org} onAiInvestigate={onAiInvestigate} />;
+          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} onUpdateHazard={onUpdateHazard} canManage={canManage} org={org} onAiInvestigate={onAiInvestigate} onGenerateLessonsLearned={onGenerateLessonsLearned} onPublishBulletin={onPublishBulletin} onCreateTrainingModule={onCreateTrainingModule} />;
         })}
         {filtered.length > showCount && (
           <button onClick={() => setShowCount(c => c + 25)}

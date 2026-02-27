@@ -2,7 +2,7 @@
 //
 // Supabase Edge Function — runs daily via pg_cron (7am UTC)
 // Computes trend anomalies for Professional/Enterprise orgs.
-// Pure statistical — no Claude API call.
+// After statistical computation, generates AI narrative via Claude API.
 //
 // SETUP:
 // 1. Deploy: supabase functions deploy analyze-trends
@@ -162,6 +162,96 @@ Deno.serve(async (req) => {
         if (Math.abs(changePct) > 25) {
           const severity = Math.abs(changePct) > 75 ? "critical" : Math.abs(changePct) > 50 ? "warning" : "info";
 
+          // Generate AI narrative for this alert
+          let narrative = null;
+          const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+          if (anthropicKey) {
+            try {
+              // Fetch additional context for narrative
+              const { data: topFactors } = await supabase
+                .from("frat_submissions")
+                .select("factors")
+                .eq("org_id", orgId)
+                .gte("created_at", currentStart)
+                .lte("created_at", currentEnd)
+                .limit(50);
+
+              const factorCounts: Record<string, number> = {};
+              (topFactors || []).forEach(f => {
+                (f.factors || []).forEach((fac: string | { id?: string; label?: string }) => {
+                  const label = typeof fac === "string" ? fac : (fac.label || fac.id || "unknown");
+                  factorCounts[label] = (factorCounts[label] || 0) + 1;
+                });
+              });
+              const top5Factors = Object.entries(factorCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([label, count]) => `${label} (${count}x)`);
+
+              const { data: recentReportTitles } = await supabase
+                .from("safety_reports")
+                .select("title, category")
+                .eq("org_id", orgId)
+                .order("created_at", { ascending: false })
+                .limit(10);
+
+              const { count: openHazards } = await supabase
+                .from("hazard_register")
+                .select("id", { count: "exact", head: true })
+                .eq("org_id", orgId)
+                .not("status", "in", '("closed","accepted")');
+
+              const narrativePrompt = `You are a safety trend analyst for a Part 135 flight operation (${org.name}). Analyze the following metric change and provide a narrative summary.
+
+METRIC: ${metric.name}
+CHANGE: ${Math.round(changePct)}% over 30 days (${Math.round(metric.baseline * 10) / 10} → ${Math.round(metric.current * 10) / 10})
+SEVERITY: ${severity}
+
+ALL METRICS THIS PERIOD:
+${metrics.map(m => `- ${m.name}: ${Math.round(m.current * 10) / 10} (baseline: ${Math.round(m.baseline * 10) / 10})`).join("\n")}
+
+TOP FRAT RISK FACTORS: ${top5Factors.join(", ") || "None"}
+RECENT REPORTS: ${(recentReportTitles || []).map(r => `${r.title} [${r.category}]`).join("; ") || "None"}
+OPEN HAZARDS: ${openHazards || 0}
+
+Respond ONLY with a JSON object:
+{"summary": "2-3 sentence narrative of what this trend means", "focus_areas": ["area 1", "area 2", "area 3"], "risk_outlook": "improving|stable|declining"}`;
+
+              const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-api-key": anthropicKey,
+                  "anthropic-version": "2023-06-01",
+                },
+                body: JSON.stringify({
+                  model: "claude-sonnet-4-20250514",
+                  max_tokens: 1024,
+                  messages: [{ role: "user", content: narrativePrompt }],
+                }),
+              });
+
+              const claudeData = await claudeRes.json();
+              const responseText = claudeData.content?.[0]?.text || "{}";
+              const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                narrative = JSON.parse(jsonMatch[0]);
+              }
+
+              // Log AI usage
+              const tokensUsed = (claudeData.usage?.input_tokens || 0) + (claudeData.usage?.output_tokens || 0);
+              await supabase.from("ai_usage_log").insert({
+                org_id: orgId,
+                user_id: null,
+                feature: "trend_narrative",
+                tokens_used: tokensUsed,
+                cost_estimate: tokensUsed * 0.000003,
+              });
+            } catch (narrativeErr) {
+              console.error("Failed to generate narrative:", narrativeErr);
+            }
+          }
+
           await supabase.from("trend_alerts").insert({
             org_id: orgId,
             alert_type: "trend",
@@ -172,6 +262,7 @@ Deno.serve(async (req) => {
             period_start: currentStart,
             period_end: currentEnd,
             severity,
+            narrative,
           });
           alertsCreated++;
 

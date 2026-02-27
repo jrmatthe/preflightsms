@@ -273,6 +273,7 @@ export default function InternalEvaluation({
   hasIntlCompliance, complianceFrameworks, checklistItems,
   complianceStatus, crosswalkData, onUpsertFramework,
   onDeleteFramework, onUpsertStatus, onRefreshCompliance,
+  onAiGenerateChecklist,
 }) {
   const [tab, setTab] = useState("part5");
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -482,6 +483,7 @@ export default function InternalEvaluation({
     const [category, setCategory] = useState(template?.category || "general");
     const [sections, setSections] = useState(template?.sections || [{ title: "Section 1", questions: [{ text: "", guidance: "", response_type: "yes_no_na" }] }]);
     const [expandedSec, setExpandedSec] = useState(0);
+    const [aiChecklistLoading, setAiChecklistLoading] = useState(false);
 
     const addSection = () => setSections([...sections, { title: `Section ${sections.length + 1}`, questions: [{ text: "", guidance: "", response_type: "yes_no_na" }] }]);
     const removeSection = (i) => setSections(sections.filter((_, j) => j !== i));
@@ -536,7 +538,26 @@ export default function InternalEvaluation({
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <span style={{ fontSize: 13, color: OFF_WHITE, fontWeight: 700 }}>Sections</span>
-          <button onClick={addSection} style={btn("rgba(34,211,238,0.15)", CYAN)}>+ Add Section</button>
+          <div style={{ display: "flex", gap: 6 }}>
+            {onAiGenerateChecklist && (
+              <button onClick={async () => {
+                setAiChecklistLoading(true);
+                try {
+                  const result = await onAiGenerateChecklist({ auditScope: desc || name, auditCategory: category });
+                  if (result?.sections) {
+                    setSections(result.sections);
+                    if (result.name && !name) setName(result.name);
+                    if (result.description && !desc) setDesc(result.description);
+                  }
+                } catch { /* handled by parent */ }
+                setAiChecklistLoading(false);
+              }} disabled={aiChecklistLoading}
+                style={{ ...btn("rgba(34,211,238,0.08)", CYAN), border: `1px solid ${CYAN}44`, opacity: aiChecklistLoading ? 0.6 : 1, cursor: aiChecklistLoading ? "wait" : "pointer" }}>
+                {aiChecklistLoading ? "Generating..." : "🤖 AI Generate Checklist"}
+              </button>
+            )}
+            <button onClick={addSection} style={btn("rgba(34,211,238,0.15)", CYAN)}>+ Add Section</button>
+          </div>
         </div>
         {sections.map((sec, si) => (
           <div key={si} draggable onDragStart={e => onSecDragStart(e, si)} onDragOver={e => onSecDragOver(e, si)} onDrop={e => onSecDrop(e, si)}

@@ -32,13 +32,14 @@ const PART5_TAG_OPTIONS = [
 ];
 
 // ── POLICY LIBRARY ────────────────────────────────────────────
-function PolicyForm({ onSubmit, onCancel }) {
+function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy }) {
   const [form, setForm] = useState({
     title: "", description: "", category: "safety_policy", version: "1.0",
     content: "", effectiveDate: "", reviewDate: "", status: "active",
   });
   const [file, setFile] = useState(null);
   const [part5Tags, setPart5Tags] = useState([]);
+  const [aiDraftLoading, setAiDraftLoading] = useState(false);
   const fileRef = { current: null };
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   return (
@@ -51,7 +52,25 @@ function PolicyForm({ onSubmit, onCancel }) {
         {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
       </div>
       <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Title *</label>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <label style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Title *</label>
+          {onAiDraftPolicy && form.title.trim() && (
+            <button onClick={async () => {
+              setAiDraftLoading(true);
+              try {
+                const result = await onAiDraftPolicy({ policyTitle: form.title, policyCategory: form.category });
+                if (result) {
+                  if (result.description) set("description", result.description);
+                  if (result.content) set("content", result.content);
+                }
+              } catch { /* handled by parent */ }
+              setAiDraftLoading(false);
+            }} disabled={aiDraftLoading}
+              style={{ fontSize: 10, color: CYAN, background: `${CYAN}08`, border: `1px solid ${CYAN}44`, borderRadius: 4, padding: "3px 10px", cursor: aiDraftLoading ? "wait" : "pointer", fontWeight: 600, fontFamily: "inherit", opacity: aiDraftLoading ? 0.6 : 1 }}>
+              {aiDraftLoading ? "Drafting..." : "🤖 AI Draft"}
+            </button>
+          )}
+        </div>
         <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. PVTAIR Safety Policy Statement" style={inp} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }} className="report-grid">
@@ -137,6 +156,7 @@ export default function PolicyTraining({
   // SMS Manuals props (passed through when showManuals is true)
   templateVariables, signatures, fleetAircraft,
   onSaveManual, onInitManuals, onSaveVariables, onSaveSignature,
+  onAiDraftPolicy,
 }) {
   const [topTab, setTopTab] = useState("policies");
   useEffect(() => { if (tourTab) setTopTab(tourTab); }, [tourTab]);
@@ -199,7 +219,7 @@ export default function PolicyTraining({
   ) : null;
 
   // Forms
-  if (view === "new_policy") return <PolicyForm onSubmit={p => { onCreatePolicy(p); setView("list"); }} onCancel={() => setView("list")} />;
+  if (view === "new_policy") return <PolicyForm onSubmit={p => { onCreatePolicy(p); setView("list"); }} onCancel={() => setView("list")} onAiDraftPolicy={onAiDraftPolicy} />;
 
   // SMS Manual Templates subtab
   if (topTab === "manuals" && showManuals) {

@@ -454,6 +454,26 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
                       </button>
                     )}
                   </div>
+                  {alert.narrative && (
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${BORDER}` }}>
+                      {alert.narrative.summary && (
+                        <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5, marginBottom: 6 }}>{alert.narrative.summary}</div>
+                      )}
+                      {alert.narrative.focus_areas && alert.narrative.focus_areas.length > 0 && (
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 4 }}>
+                          <span style={{ fontSize: 9, color: MUTED, fontWeight: 600 }}>Focus:</span>
+                          {alert.narrative.focus_areas.map((area, i) => (
+                            <span key={i} style={{ fontSize: 9, padding: "2px 8px", borderRadius: 8, background: `${CYAN}15`, color: CYAN, fontWeight: 600 }}>{area}</span>
+                          ))}
+                        </div>
+                      )}
+                      {alert.narrative.risk_outlook && (
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: alert.narrative.risk_outlook === "improving" ? `${GREEN}22` : alert.narrative.risk_outlook === "declining" ? `${RED}22` : `${AMBER}22`, color: alert.narrative.risk_outlook === "improving" ? GREEN : alert.narrative.risk_outlook === "declining" ? RED : AMBER }}>
+                          {alert.narrative.risk_outlook === "improving" ? "Improving" : alert.narrative.risk_outlook === "declining" ? "Declining" : "Stable"}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

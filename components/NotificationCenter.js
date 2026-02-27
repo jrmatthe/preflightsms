@@ -46,6 +46,8 @@ const TYPE_COLORS = {
   asap_corrective_action_due: AMBER,
   compliance_item_expiring: AMBER,
   api_webhook_failed: RED,
+  safety_digest: CYAN,
+  safety_bulletin: YELLOW,
 };
 
 function timeAgo(dateStr) {

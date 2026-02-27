@@ -180,7 +180,7 @@ function MocForm({ onSubmit, onCancel, orgProfiles, session }) {
 }
 
 // ── Detail View ──
-function MocDetail({ item, orgProfiles, onUpdate, onClose, onUploadFile, onFetchAttachments, onCreateAttachment, onDeleteAttachment }) {
+function MocDetail({ item, orgProfiles, onUpdate, onClose, onUploadFile, onFetchAttachments, onCreateAttachment, onDeleteAttachment, onAiIdentifyHazards }) {
   const [form, setForm] = useState({ ...item });
   const [hazards, setHazards] = useState(item.identified_hazards || []);
   const [residual, setResidual] = useState(item.residual_risk || []);
@@ -188,6 +188,7 @@ function MocDetail({ item, orgProfiles, onUpdate, onClose, onUploadFile, onFetch
   const [activityLog, setActivityLog] = useState([]);
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [aiHazardLoading, setAiHazardLoading] = useState(false);
 
   useEffect(() => {
     if (item.id && onFetchAttachments) {
@@ -300,10 +301,34 @@ function MocDetail({ item, orgProfiles, onUpdate, onClose, onUploadFile, onFetch
       <div style={{ ...card, padding: "16px 18px", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 0.5 }}>Hazard Analysis</div>
-          <button onClick={() => setHazards(prev => [...prev, { hazard: "", likelihood: 0, severity: 0, risk_level: "" }])}
-            style={{ fontSize: 10, color: CYAN, background: `${CYAN}15`, border: `1px solid ${CYAN}33`, borderRadius: 4, padding: "4px 10px", cursor: "pointer", fontWeight: 600 }}>
-            + Add Hazard
-          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            {onAiIdentifyHazards && (
+              <button onClick={async () => {
+                setAiHazardLoading(true);
+                try {
+                  const result = await onAiIdentifyHazards({ mocTitle: form.title, changeType: form.change_type, mocDescription: form.description });
+                  if (result?.identified_hazards) {
+                    const aiHazards = result.identified_hazards.map(h => ({
+                      hazard: h.description || "",
+                      likelihood: h.likelihood || 0,
+                      severity: h.severity || 0,
+                      risk_level: riskLabel((h.likelihood || 0) * (h.severity || 0)),
+                    }));
+                    setHazards(prev => [...prev, ...aiHazards]);
+                    if (result.mitigation_plan) set("mitigation_plan", (form.mitigation_plan || "") + (form.mitigation_plan ? "\n\n" : "") + result.mitigation_plan);
+                  }
+                } catch { /* handled by parent */ }
+                setAiHazardLoading(false);
+              }} disabled={aiHazardLoading}
+                style={{ fontSize: 10, color: CYAN, background: `${CYAN}08`, border: `1px solid ${CYAN}44`, borderRadius: 4, padding: "4px 10px", cursor: aiHazardLoading ? "wait" : "pointer", fontWeight: 600, opacity: aiHazardLoading ? 0.6 : 1 }}>
+                {aiHazardLoading ? "Analyzing..." : "🤖 AI Identify Hazards"}
+              </button>
+            )}
+            <button onClick={() => setHazards(prev => [...prev, { hazard: "", likelihood: 0, severity: 0, risk_level: "" }])}
+              style={{ fontSize: 10, color: CYAN, background: `${CYAN}15`, border: `1px solid ${CYAN}33`, borderRadius: 4, padding: "4px 10px", cursor: "pointer", fontWeight: 600 }}>
+              + Add Hazard
+            </button>
+          </div>
         </div>
         {hazards.length === 0 && <div style={{ fontSize: 11, color: MUTED, padding: "16px 0", textAlign: "center" }}>No hazards identified yet. Click "+ Add Hazard" to begin analysis.</div>}
         {hazards.map((h, i) => (
@@ -445,6 +470,7 @@ function KanbanCard({ item, orgProfiles, onClick, onDragStart }) {
 export default function ManagementOfChange({
   profile, session, orgProfiles, mocItems, onCreateMoc, onUpdateMoc, onDeleteMoc,
   onUploadFile, onFetchAttachments, onCreateAttachment, onDeleteAttachment,
+  onAiIdentifyHazards,
 }) {
   const [view, setView] = useState("kanban"); // kanban | list | form | detail
   const [selectedItem, setSelectedItem] = useState(null);
@@ -514,6 +540,7 @@ export default function ManagementOfChange({
         onFetchAttachments={onFetchAttachments}
         onCreateAttachment={onCreateAttachment}
         onDeleteAttachment={onDeleteAttachment}
+        onAiIdentifyHazards={onAiIdentifyHazards}
       />
     );
   }

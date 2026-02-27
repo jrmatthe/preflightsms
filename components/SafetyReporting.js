@@ -47,7 +47,7 @@ function generateReportCode() {
   return `RPT-${Date.now().toString(36).toUpperCase()}`;
 }
 
-function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData }) {
+function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCategorize }) {
   const [form, setForm] = useState({
     reportType: "hazard", title: "", description: "",
     dateOccurred: initialData?.dateOccurred || "",
@@ -58,6 +58,8 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData }) {
     aircraftType: initialData?.aircraftType || "",
     confidential: false, anonymous: false,
   });
+  const [aiSuggestion, setAiSuggestion] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -65,7 +67,11 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData }) {
     if (!form.title.trim()) return;
     if (!form.description.trim()) return;
     const tailNumber = form.tailNumber === "__other" ? (form.tailNumberCustom || "") : form.tailNumber;
-    onSubmit({ ...form, tailNumber, reportCode: generateReportCode() });
+    onSubmit({
+      ...form, tailNumber, reportCode: generateReportCode(),
+      aiSuggestedCategory: aiSuggestion?.category || null,
+      aiSuggestedSeverity: aiSuggestion?.severity || null,
+    });
   };
 
   return (
@@ -108,6 +114,34 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData }) {
           rows={5} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
       </div>
 
+      {/* AI Suggest Button */}
+      {onAiCategorize && form.title.trim() && form.description.trim() && (
+        <div style={{ marginBottom: 12 }}>
+          <button onClick={async () => {
+            setAiLoading(true);
+            try {
+              const result = await onAiCategorize({ title: form.title, description: form.description, location: form.location, tailNumber: form.tailNumber });
+              if (result) {
+                setAiSuggestion(result);
+                if (result.category && CATEGORIES.includes(result.category)) set("category", result.category);
+                if (result.severity && SEVERITIES.find(s => s.id === result.severity)) set("severity", result.severity);
+                if (result.flight_phase && FLIGHT_PHASES.includes(result.flight_phase)) set("flightPhase", result.flight_phase);
+              }
+            } catch { /* handled by parent */ }
+            setAiLoading(false);
+          }} disabled={aiLoading}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1 }}>
+            <span style={{ fontSize: 14 }}>🤖</span> {aiLoading ? "Analyzing..." : "AI Suggest Category & Severity"}
+          </button>
+          {aiSuggestion?.triage_summary && (
+            <div style={{ marginTop: 8, padding: "10px 14px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: CYAN, marginBottom: 4 }}>AI Triage Summary</div>
+              <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{aiSuggestion.triage_summary}</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 3-column grid: Date, Location, Category */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }} className="report-grid">
         <div>
@@ -119,7 +153,7 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData }) {
           <input value={form.location} onChange={e => set("location", e.target.value)} placeholder="KSFF ramp, enroute, etc." style={inp} />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Category</label>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Category {aiSuggestion?.category === form.category && <span style={{ color: CYAN, fontSize: 9, fontWeight: 600 }}>AI suggested</span>}</label>
           <select value={form.category} onChange={e => set("category", e.target.value)} style={inp}>
             {CATEGORIES.map(c => <option key={c} value={c}>{c.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</option>)}
           </select>
@@ -129,13 +163,13 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData }) {
       {/* Severity + Flight Phase + Aircraft */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }} className="report-grid">
         <div>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Severity</label>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Severity {aiSuggestion?.severity === form.severity && <span style={{ color: CYAN, fontSize: 9, fontWeight: 600 }}>AI suggested</span>}</label>
           <select value={form.severity} onChange={e => set("severity", e.target.value)} style={inp}>
             {SEVERITIES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </div>
         <div>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Flight Phase</label>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Flight Phase {aiSuggestion?.flight_phase === form.flightPhase && form.flightPhase && <span style={{ color: CYAN, fontSize: 9, fontWeight: 600 }}>AI suggested</span>}</label>
           <select value={form.flightPhase} onChange={e => set("flightPhase", e.target.value)} style={inp}>
             <option value="">N/A</option>
             {FLIGHT_PHASES.filter(p => p).map(p => <option key={p} value={p}>{p.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</option>)}
@@ -272,7 +306,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard, orgP
   );
 }
 
-export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles, reportPrefill, onClearPrefill, org, onAiSearch }) {
+export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles, reportPrefill, onClearPrefill, org, onAiSearch, onAiCategorize }) {
   const [view, setView] = useState("list"); // list | new
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
@@ -332,7 +366,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
   }, [reports]);
 
   if (view === "new") {
-    return <ReportForm onSubmit={(report) => { onSubmitReport(report); setView("list"); if (onClearPrefill) onClearPrefill(); }} onCancel={() => { setView("list"); if (onClearPrefill) onClearPrefill(); }} fleetAircraft={fleetAircraft} initialData={reportPrefill} />;
+    return <ReportForm onSubmit={(report) => { onSubmitReport(report); setView("list"); if (onClearPrefill) onClearPrefill(); }} onCancel={() => { setView("list"); if (onClearPrefill) onClearPrefill(); }} fleetAircraft={fleetAircraft} initialData={reportPrefill} onAiCategorize={onAiCategorize} />;
   }
 
   return (
