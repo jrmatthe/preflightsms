@@ -60,9 +60,7 @@ vi.mock('../../lib/supabase', () => ({
   upsertFratTemplate: vi.fn(), createFratTemplate: vi.fn(),
   deleteFratTemplate: vi.fn(), setActiveFratTemplate: vi.fn(),
   uploadFratAttachment: vi.fn(),
-  fetchNotificationContacts: vi.fn().mockResolvedValue({ data: [] }),
-  createNotificationContact: vi.fn(),
-  updateNotificationContact: vi.fn(), deleteNotificationContact: vi.fn(),
+
   approveFlight: vi.fn(), rejectFlight: vi.fn(),
   selfDispatchFlight: vi.fn(), approveRejectFRAT: vi.fn(),
   updateOrg: vi.fn(),

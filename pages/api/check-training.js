@@ -117,16 +117,16 @@ export default async function handler(req, res) {
       await supabase.from("training_records").update({ expiry_notified_at: now.toISOString() }).eq("id", record.id);
     }
 
-    // Send org summary emails to notification contacts
+    // Send org summary emails to admins and safety managers
     for (const [orgId, orgRecords] of Object.entries(byOrg)) {
-      const { data: contacts } = await supabase
-        .from("notification_contacts")
-        .select("*")
+      const { data: adminProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, role")
         .eq("org_id", orgId)
-        .eq("notify_training", true)
-        .eq("active", true);
+        .in("role", ["admin", "safety_manager"])
+        .not("email", "is", null);
 
-      if (!contacts?.length) continue;
+      if (!adminProfiles?.length) continue;
 
       const { data: orgData } = await supabase.from("organizations").select("name").eq("id", orgId).single();
       const orgName = orgData?.name || "Your organization";
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
       const expiredCount = orgRecords.filter(r => r.isExpired).length;
       const expiringCount = orgRecords.length - expiredCount;
 
-      for (const contact of contacts) {
+      for (const contact of adminProfiles) {
         if (!contact.email) continue;
         try {
           const emailRes = await fetch("https://api.resend.com/emails", {
