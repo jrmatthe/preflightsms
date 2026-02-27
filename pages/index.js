@@ -58,19 +58,19 @@ const ONBOARDING_STEPS = [
   { id: "fleet", phase: "setup", adminOnly: true, title: "Add Your Fleet", desc: "Register the aircraft your organization operates." },
   { id: "invite", phase: "setup", adminOnly: true, title: "Invite Your Team", desc: "Bring your pilots and safety officers on board." },
   // Overview phase — one step per nav tab with brief description
-  { id: "ov-frat", phase: "overview", tab: "submit", target: "nav-submit", placement: "right", title: "FRAT", feature: null, desc: "Submit Flight Risk Assessment Tools before every departure to quantify and manage operational risk.", descNonAdmin: "Submit a risk assessment before each flight to flag hazards and get departure authorization." },
-  { id: "ov-flights", phase: "overview", tab: "flights", target: "nav-flights", placement: "right", title: "Flight Following", feature: null, desc: "Track live flights from departure to arrival with automatic overdue alerts.", descNonAdmin: "Track your flights from departure to arrival and update your status in real time." },
-  { id: "ov-reports", phase: "overview", tab: "reports", target: "nav-reports", placement: "right", title: "Safety Reporting", feature: null, desc: "Receive and manage anonymous hazard and safety reports from your team.", descNonAdmin: "Submit anonymous or confidential safety reports to help your organization improve." },
-  { id: "ov-hazards", phase: "overview", tab: "hazards", target: "nav-hazards", placement: "right", title: "Investigations", adminOnly: true, feature: "hazard_register", desc: "Investigate escalated safety reports with risk-scored severity tracking." },
-  { id: "ov-actions", phase: "overview", tab: "actions", target: "nav-actions", placement: "right", title: "Corrective Actions", adminOnly: true, feature: "corrective_actions", desc: "Assign and track corrective and preventative actions through to resolution." },
-  { id: "ov-policy", phase: "overview", tab: "policy", target: "nav-policy", placement: "right", title: "Policies & Manuals", feature: "policy_library", desc: "Publish policies with acknowledgment tracking and build Part 5 SMS manuals.", descNonAdmin: "Read and acknowledge your organization\u2019s safety policies and SMS manuals." },
-  { id: "ov-cbt", phase: "overview", tab: "cbt", target: "nav-cbt", placement: "right", title: "Training", feature: "cbt_modules", desc: "Create training courses, set requirements, and monitor crew compliance.", descNonAdmin: "Complete assigned training courses and track your certification requirements." },
-  { id: "ov-audits", phase: "overview", tab: "audits", target: "nav-audits", placement: "right", title: "Audits & Compliance", adminOnly: true, feature: "audit_program", desc: "FAA Part 5 compliance tracking, internal evaluations, audit scheduling, and templates." },
+  { id: "ov-frat", phase: "overview", tab: "submit", target: "nav-operations", placement: "right", title: "FRAT", feature: null, desc: "Submit Flight Risk Assessment Tools before every departure to quantify and manage operational risk.", descNonAdmin: "Submit a risk assessment before each flight to flag hazards and get departure authorization." },
+  { id: "ov-flights", phase: "overview", tab: "flights", target: "nav-operations", placement: "right", title: "Flight Following", feature: null, desc: "Track live flights from departure to arrival with automatic overdue alerts.", descNonAdmin: "Track your flights from departure to arrival and update your status in real time." },
+  { id: "ov-reports", phase: "overview", tab: "reports", target: "nav-safety", placement: "right", title: "Safety Reporting", feature: null, desc: "Receive and manage anonymous hazard and safety reports from your team.", descNonAdmin: "Submit anonymous or confidential safety reports to help your organization improve." },
+  { id: "ov-hazards", phase: "overview", tab: "hazards", target: "nav-investigations", placement: "right", title: "Investigations", adminOnly: true, feature: "hazard_register", desc: "Investigate escalated safety reports with risk-scored severity tracking." },
+  { id: "ov-actions", phase: "overview", tab: "actions", target: "nav-investigations", placement: "right", title: "Corrective Actions", adminOnly: true, feature: "corrective_actions", desc: "Assign and track corrective and preventative actions through to resolution." },
+  { id: "ov-policy", phase: "overview", tab: "policy", target: "nav-documents", placement: "right", title: "Policies & Manuals", feature: "policy_library", desc: "Publish policies with acknowledgment tracking and build Part 5 SMS manuals.", descNonAdmin: "Read and acknowledge your organization\u2019s safety policies and SMS manuals." },
+  { id: "ov-cbt", phase: "overview", tab: "cbt", target: "nav-training", placement: "right", title: "Training", feature: "cbt_modules", desc: "Create training courses, set requirements, and monitor crew compliance.", descNonAdmin: "Complete assigned training courses and track your certification requirements." },
+  { id: "ov-audits", phase: "overview", tab: "audits", target: "nav-compliance", placement: "right", title: "Audits & Compliance", adminOnly: true, feature: "audit_program", desc: "FAA Part 5 compliance tracking, internal evaluations, audit scheduling, and templates." },
   { id: "ov-dashboard", phase: "overview", tab: "dashboard", target: "nav-dashboard", placement: "right", title: "Safety Dashboard", adminOnly: true, feature: "dashboard_basic", desc: "KPI cards, trend charts, and an overall SMS Health Score for your organization." },
   { id: "ov-admin", phase: "overview", tab: "admin", target: "nav-admin", placement: "right", title: "Admin Panel", adminOnly: true, feature: null, desc: "Organization settings, fleet, FRAT templates, user management, and billing." },
-  { id: "ov-erp", phase: "overview", tab: "erp", target: "nav-erp", placement: "right", title: "Emergency Response", feature: null, desc: "Pre-built emergency response plans with checklists, call trees, and drill tracking." },
-  { id: "ov-asap", phase: "overview", tab: "asap", target: "nav-asap", placement: "right", title: "ASAP Program", adminOnly: true, feature: "asap_program", desc: "Aviation Safety Action Program with ERC review workflow and corrective action tracking." },
-  { id: "ov-moc", phase: "overview", tab: "moc", target: "nav-moc", placement: "right", title: "Change Management", adminOnly: true, feature: "management_of_change", desc: "Track operational changes through hazard analysis and mitigation with a Kanban workflow." },
+  { id: "ov-erp", phase: "overview", tab: "erp", target: "nav-safety", placement: "right", title: "Emergency Response", feature: null, desc: "Pre-built emergency response plans with checklists, call trees, and drill tracking." },
+  { id: "ov-asap", phase: "overview", tab: "asap", target: "nav-safety", placement: "right", title: "ASAP Program", adminOnly: true, feature: "asap_program", desc: "Aviation Safety Action Program with ERC review workflow and corrective action tracking." },
+  { id: "ov-moc", phase: "overview", tab: "moc", target: "nav-investigations", placement: "right", title: "Change Management", adminOnly: true, feature: "management_of_change", desc: "Track operational changes through hazard analysis and mitigation with a Kanban workflow." },
   { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", feature: null, subSteps: [
     { target: "tour-frat-flight-info", placement: "bottom", title: "Flight Information", desc: "Enter flight details including PIC, aircraft, route, and times. Use ICAO airport codes to auto-fetch live weather data and flag risk factors.", descNonAdmin: "Enter your flight details including aircraft, route, and times. ICAO airport codes auto-fetch live weather data and flag risk factors for you." },
     { target: "tour-frat-risk-categories", placement: "right", title: "Risk Scoring", desc: "Five weighted risk categories \u2014 Weather, Pilot/Crew, Aircraft, Environment, and Operational. Check applicable factors; weather items are auto-detected from METAR/TAF data." },
@@ -515,6 +515,27 @@ function AdminGate({ children, isAuthed, onAuth }) {
       </div></div>);
 }
 
+const NAV_SECTIONS = [
+  { id: "dashboard", label: "Dashboard", icon: "dashboard", cvs: ["dashboard"] },
+  { id: "operations", label: "Operations", icon: "fleet", cvs: ["submit", "flights", "fleet"] },
+  { id: "safety", label: "Safety", icon: "reports", cvs: ["reports", "asap", "erp"] },
+  { id: "investigations", label: "Investigations", icon: "hazards", cvs: ["hazards", "actions", "moc"] },
+  { id: "compliance", label: "Compliance", icon: "audits", cvs: ["audits"] },
+  { id: "training", label: "Training", icon: "cbt", cvs: ["cbt"] },
+  { id: "documents", label: "Documents", icon: "manuals", cvs: ["policy"] },
+  { id: "admin", label: "Admin", icon: "admin", cvs: ["admin"] },
+];
+
+const SUB_TAB_LABELS = {
+  submit: "FRAT", flights: "Flight Following", fleet: "Fleet",
+  reports: "Reports", asap: "ASAP", erp: "ERP",
+  hazards: "Investigations", actions: "Corrective Actions", moc: "Change Mgmt",
+};
+
+function getSection(cv) {
+  return NAV_SECTIONS.find(s => s.cvs.includes(cv)) || NAV_SECTIONS[0];
+}
+
 function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate }) {
   const [menuOpen, setMenuOpen] = useState(false);
   // SVG icons — monochrome, inherit color from parent
@@ -537,42 +558,31 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     moc: I(<><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M16 21h5v-5"/><path d="M8 21H3v-5"/><path d="M21 21l-7-7"/><path d="M3 21l7-7"/></>),
     asap: I(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></>),
   };
-  const tabs = [
-    { id: "dashboard", label: "Dashboard", icon: icons.dashboard },
-    { id: "submit", label: "FRAT", icon: icons.submit },
-    { id: "flights", label: "Flight Following", icon: icons.flights },
-    { id: "reports", label: "Safety Reports", icon: icons.reports },
-    { id: "asap", label: "ASAP", icon: icons.asap },
-    { id: "erp", label: "ERP", icon: icons.erp },
-    { id: "hazards", label: "Investigations", icon: icons.hazards },
-    { id: "actions", label: "Actions", icon: icons.actions },
-    { id: "audits", label: "Audits", icon: icons.audits },
-    { id: "moc", label: "Change Mgmt", icon: icons.moc },
-    { id: "policy", label: "Policies", icon: icons.policy },
-    { id: "cbt", label: "Training", icon: icons.cbt },
-    { id: "admin", label: "Admin", icon: icons.admin },
-  ].filter(t => {
-    const requiredFeature = NAV_FEATURE_MAP[t.id];
-    if (requiredFeature && !hasFeature(org, requiredFeature)) return false;
-    // Role-based visibility — only Admin tab is admin-role-only
-    const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(userRole);
-    if (t.id === "admin" && !isAdmin) return false;
-    return true;
+  const isAdminRole = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(userRole);
+  const cvPassesGate = (cv) => { const feat = NAV_FEATURE_MAP[cv]; return !feat || hasFeature(org, feat); };
+  const visibleSections = NAV_SECTIONS.filter(sec => {
+    if (sec.id === "admin") return isAdminRole;
+    return sec.cvs.some(cv => cvPassesGate(cv));
   });
-  const sideTab = (t) => (
-    <button key={t.id} data-tour={`nav-${t.id}`} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
-      title={t.label}
+  const activeSection = getSection(currentView);
+  const firstVisibleCv = (sec) => sec.cvs.find(cv => cvPassesGate(cv)) || sec.cvs[0];
+  const sideTab = (sec) => {
+    const isActive = activeSection.id === sec.id;
+    return (
+    <button key={sec.id} data-tour={`nav-${sec.id}`} onClick={() => { setCurrentView(firstVisibleCv(sec)); setMenuOpen(false); }}
+      title={sec.label}
       style={{
         width: "100%", height: 40, display: "flex", alignItems: "center", gap: 8, paddingLeft: 14,
-        background: currentView === t.id ? "rgba(255,255,255,0.08)" : "transparent",
-        color: currentView === t.id ? WHITE : MUTED,
-        border: "none", borderLeft: currentView === t.id ? `2px solid ${WHITE}` : "2px solid transparent",
+        background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
+        color: isActive ? WHITE : MUTED,
+        border: "none", borderLeft: isActive ? `2px solid ${WHITE}` : "2px solid transparent",
         cursor: "pointer", fontSize: 15, transition: "all 0.15s", borderRadius: 0,
         fontFamily: "inherit",
       }}>
-      <span style={{ width: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>{t.icon}</span>
-      <span style={{ fontSize: 11, fontWeight: currentView === t.id ? 700 : 500, letterSpacing: 0.3 }}>{t.label}</span>
+      <span style={{ width: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>{icons[sec.icon]}</span>
+      <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, letterSpacing: 0.3 }}>{sec.label}</span>
     </button>);
+  };
   return (<>
     {/* Desktop sidebar */}
     <aside className="nav-sidebar" style={{
@@ -584,7 +594,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
         <img src={orgLogo || LOGO_URL} alt={orgName || "P"} style={{ width: 52, height: 52, objectFit: "contain", borderRadius: 50, border: `1px solid ${BORDER}` }} onError={e => { e.target.src = LOGO_URL; }} />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
-        {tabs.map(t => sideTab(t))}
+        {visibleSections.map(sec => sideTab(sec))}
       </div>
     </aside>
     {/* Mobile top bar */}
@@ -598,11 +608,14 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
       </div>
     </header>
     {menuOpen && (<div className="nav-mobile-menu" style={{ display: "none", flexDirection: "column", padding: "8px 16px", gap: 2, background: NEAR_BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 48, zIndex: 99 }}>
-      {tabs.map(t => (
-        <button key={t.id} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
-          style={{ background: currentView === t.id ? "rgba(255,255,255,0.08)" : "transparent", color: currentView === t.id ? WHITE : MUTED, border: "none", padding: "10px 12px", cursor: "pointer", fontWeight: currentView === t.id ? 700 : 500, fontSize: 13, textAlign: "left", borderRadius: 6, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ display: "flex", alignItems: "center" }}>{t.icon}</span> {t.label}
-        </button>))}
+      {visibleSections.map(sec => {
+        const isActive = activeSection.id === sec.id;
+        return (
+        <button key={sec.id} onClick={() => { setCurrentView(firstVisibleCv(sec)); setMenuOpen(false); }}
+          style={{ background: isActive ? "rgba(255,255,255,0.08)" : "transparent", color: isActive ? WHITE : MUTED, border: "none", padding: "10px 12px", cursor: "pointer", fontWeight: isActive ? 700 : 500, fontSize: 13, textAlign: "left", borderRadius: 6, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ display: "flex", alignItems: "center" }}>{icons[sec.icon]}</span> {sec.label}
+        </button>);
+      })}
       {userName && (<>
         <div style={{ borderTop: `1px solid ${BORDER}`, margin: "6px 0", paddingTop: 8 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px" }}>
@@ -620,18 +633,20 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     <nav className="mobile-bottom-nav" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: BLACK, borderTop: `1px solid ${BORDER}` }}>
       <div style={{ display: "flex", justifyContent: "space-evenly", alignItems: "center", width: "100%" }}>
         {[
-          { id: "dashboard", label: "Dashboard", icon: icons.dashboard },
-          { id: "submit", label: "FRAT", icon: icons.submit },
-          { id: "reports", label: "Reports", icon: icons.reports },
-          { id: "flights", label: "Flights", icon: icons.flights },
-        ].map(t => (
-          <button key={t.id} onClick={() => { setCurrentView(t.id); setMenuOpen(false); }}
+          NAV_SECTIONS.find(s => s.id === "dashboard"),
+          NAV_SECTIONS.find(s => s.id === "operations"),
+          NAV_SECTIONS.find(s => s.id === "safety"),
+          NAV_SECTIONS.find(s => s.id === "investigations"),
+        ].map(sec => {
+          const isActive = activeSection.id === sec.id;
+          return (
+          <button key={sec.id} onClick={() => { setCurrentView(firstVisibleCv(sec)); setMenuOpen(false); }}
             style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 4px", background: "none", border: "none", cursor: "pointer",
-              color: currentView === t.id ? WHITE : MUTED, transition: "color 0.15s" }}>
-            <span style={{ display: "flex", alignItems: "center", opacity: currentView === t.id ? 1 : 0.6 }}>{t.icon}</span>
-            <span style={{ fontSize: 9, fontWeight: currentView === t.id ? 700 : 500 }}>{t.label}</span>
-          </button>
-        ))}
+              color: isActive ? WHITE : MUTED, transition: "color 0.15s" }}>
+            <span style={{ display: "flex", alignItems: "center", opacity: isActive ? 1 : 0.6 }}>{icons[sec.icon]}</span>
+            <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500 }}>{sec.label}</span>
+          </button>);
+        })}
         <button onClick={() => setMenuOpen(!menuOpen)}
           style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 4px", background: "none", border: "none", cursor: "pointer",
             color: menuOpen ? WHITE : MUTED, transition: "color 0.15s" }}>
@@ -2299,7 +2314,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         );
       })()}
       <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
-        {[["analytics", "Overview"], ...(fleetStatusOn ? [["fleet", "Fleet Status"]] : []), ...(hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ...(hasInsurance ? [["insurance", "Insurance & Export"]] : []), ["history", "FRAT History"], ...(isDashboardFree ? [] : [["export", "Export"]])].map(([id, label]) => (
+        {[["analytics", "Overview"], ...(hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ...(hasInsurance ? [["insurance", "Insurance & Export"]] : []), ["history", "FRAT History"], ...(isDashboardFree ? [] : [["export", "Export"]])].map(([id, label]) => (
           <button key={id} onClick={() => setSub(id)}
             style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${sub === id ? WHITE : BORDER}`,
               background: sub === id ? WHITE : "transparent", color: sub === id ? BLACK : MUTED,
@@ -2312,7 +2327,6 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         )}
       </div>
       {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} fleetAircraft={fleetAircraft} />}
-      {sub === "fleet" && fleetStatusOn && <DashboardCharts flights={flights} view="fleet" fleetAircraft={fleetAircraft} fleetStatusFields={org?.fleet_status_fields} />}
       {sub === "frat" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "safety" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "culture" && hasCulture && <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />}
@@ -4487,7 +4501,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {cv === "submit" ? "NEW FLIGHT RISK ASSESSMENT" : cv === "flights" ? "FLIGHT FOLLOWING" : cv === "reports" ? "SAFETY REPORTS" : cv === "erp" ? "EMERGENCY RESPONSE" : cv === "audits" ? "AUDITS & COMPLIANCE" : cv === "moc" ? "MANAGEMENT OF CHANGE" : cv === "hazards" ? "INVESTIGATIONS" : cv === "actions" ? "CORRECTIVE ACTIONS" : cv === "policy" ? "POLICIES" : cv === "cbt" ? "TRAINING" : cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "admin" ? "ADMIN" : ""}
+              {(() => { const sec = getSection(cv); if (sec.cvs.length > 1) return sec.label.toUpperCase(); return cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "audits" ? "AUDITS & COMPLIANCE" : cv === "cbt" ? "TRAINING" : cv === "policy" ? "DOCUMENTS" : cv === "admin" ? "ADMIN" : ""; })()}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -4521,6 +4535,26 @@ export default function PVTAIRFrat() {
             </>)}
           </div>
         </div>
+        {(() => {
+          const sec = getSection(cv);
+          if (sec.cvs.length <= 1) return null;
+          const visibleCvs = sec.cvs.filter(c => { const feat = NAV_FEATURE_MAP[c]; return !feat || hasFeature(org, feat); });
+          if (visibleCvs.length <= 1) return null;
+          return (
+            <div style={{ display: "flex", gap: 4, marginBottom: 0, flexWrap: "wrap", padding: "8px 32px 0" }}>
+              {visibleCvs.map(c => (
+                <button key={c} onClick={() => setCv(c)}
+                  style={{ padding: "8px 16px", borderRadius: 6,
+                    border: `1px solid ${cv === c ? WHITE : BORDER}`,
+                    background: cv === c ? WHITE : "transparent",
+                    color: cv === c ? BLACK : MUTED,
+                    fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  {SUB_TAB_LABELS[c]}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         {nudgeFlight && <PostFlightNudge flight={nudgeFlight} onSubmitReport={onNudgeSubmitReport} onNothingToReport={onNudgeNothingToReport} onRemindLater={onNudgeRemindLater} onDismiss={onNudgeDismiss} />}
         {fratDetailId && <FRATDetailModal fratId={fratDetailId} records={records} flights={flights} riskCategories={riskCategories} canApprove={["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role) || (profile?.permissions || []).includes("approver")} onApproveFlight={async (flightDbId, fratDbId) => { await approveFlight(flightDbId, session.user.id); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: fl } = await fetchFlights(profile.org_id); setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [], parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "" }))); setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); }} onRejectFlight={async (flightDbId, fratDbId) => { const fratRecord = fratDbId ? records.find(r => r.dbId === fratDbId) : null; await deleteFlight(flightDbId); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); if (fratRecord?.userId) { createNotification(profile.org_id, { type: "frat_rejected", title: "FRAT Rejected", body: `Your FRAT ${fratDetailId} was rejected`, target_user_id: fratRecord.userId, link_tab: "submit" }); } const { data: fl } = await fetchFlights(profile.org_id); setFlights(fl.map(f => ({ id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number, departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt, etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level, status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [], parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "" }))); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "Flight rejected and removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onApproveFRAT={async (fratDbId) => { await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "FRAT approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); }} onRejectFRAT={async (fratDbId) => { await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "FRAT rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onClose={() => setFratDetailId(null)} />}
@@ -4564,6 +4598,7 @@ export default function PVTAIRFrat() {
           createNotification(profile.org_id, { type: "frat_self_dispatched", title: "Pilot Self-Dispatched", body: `${matchingFlight?.pilot || userName} self-dispatched ${matchingFlight?.id || "flight"} (${matchingFlight?.riskLevel || "HIGH"} risk) — ${matchingFlight?.departure || "?"} to ${matchingFlight?.destination || "?"}`, link_tab: "flights", target_roles: ["admin", "safety_manager"] });
           setToast({ message: "Flight self-dispatched — flagged for review", level: { bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.25)", color: AMBER } }); setTimeout(() => setToast(null), 3000);
         }} />}
+        {cv === "fleet" && <DashboardCharts flights={flights} view="fleet" fleetAircraft={fleetAircraft} fleetStatusFields={org?.fleet_status_fields} />}
         {cv === "reports" && (() => { const canManageReports = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role); const visibleReports = canManageReports ? reports : reports.filter(r => r.reporter_id === session?.user?.id); return <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={visibleReports} onStatusChange={canManageReports ? roGuard(onReportStatusChange) : null} hazards={hazards} onCreateHazardFromReport={canManageReports ? (report) => { setHazardFromReport(report); setCv("hazards"); } : null} fleetAircraft={fleetAircraft} orgProfiles={orgProfiles} reportPrefill={reportPrefill} onClearPrefill={() => setReportPrefill(null)} org={org} onAiSearch={async (query) => { try { const { data, error } = await supabase.functions.invoke('ai-safety-search', { body: { orgId: profile?.org_id, query } }); if (error) { setToast({ message: "AI search unavailable — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data; } catch { setToast({ message: "AI search unavailable — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } }} />; })()}
         {cv === "asap" && <AsapProgram profile={profile} session={session} org={org} orgProfiles={orgProfiles} asapConfig={asapConfig} asapReports={asapReports} asapCorrActions={asapCorrActions} asapMeetings={asapMeetings} onSaveConfig={roGuard(async (config) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await upsertAsapConfig(orgId, config); if (data) setAsapConfig(data); })} onCreateReport={roGuard(async (report) => { const orgId = profile?.org_id; if (!orgId) return; const { count } = await fetchAsapReportCount(orgId); const prefix = asapConfig?.auto_number_prefix || "ASAP"; const reportNumber = `${prefix}-${String((count || 0) + 1).padStart(3, "0")}`; await createAsapReport(orgId, { ...report, report_number: reportNumber, reporter_id: session.user.id, reporter_name: userName }); createNotification(orgId, { type: "asap_report_submitted", title: "ASAP Report Submitted", body: `New ASAP report ${reportNumber}: ${report.title || "Untitled"}`, link_tab: "asap", target_roles: ["admin", "safety_manager"] }); fetchAsapReports(orgId).then(({ data }) => setAsapReports(data || [])); })} onUpdateReport={roGuard(async (reportId, updates) => { await updateAsapReport(reportId, updates); const orgId = profile?.org_id; if (orgId) fetchAsapReports(orgId).then(({ data }) => setAsapReports(data || [])); })} onDeleteReport={roGuard(async (reportId) => { await deleteAsapReport(reportId); const orgId = profile?.org_id; if (orgId) fetchAsapReports(orgId).then(({ data }) => setAsapReports(data || [])); })} onFetchErcReviews={async (reportId) => { const { data } = await fetchAsapErcReviews(reportId); return data || []; }} onCreateErcReview={roGuard(async (review) => { await createAsapErcReview(review); const orgId = profile?.org_id; if (orgId && review.report_id) { const report = asapReports.find(r => r.id === review.report_id); if (report?.reporter_id) { createNotification(orgId, { type: "asap_erc_decision", title: "ERC Review Decision", body: `ERC has reviewed your ASAP report ${report.report_number || ""}: ${review.decision || "reviewed"}`, link_tab: "asap", link_id: review.report_id, target_user_id: report.reporter_id }); } } })} onUpdateErcReview={roGuard(async (reviewId, updates) => { await updateAsapErcReview(reviewId, updates); })} onCreateCorrAction={roGuard(async (action) => { const orgId = profile?.org_id; if (!orgId) return; await createAsapCorrectiveAction(orgId, action); fetchAsapCorrectiveActions(orgId).then(({ data }) => setAsapCorrActions(data || [])); })} onUpdateCorrAction={roGuard(async (actionId, updates) => { await updateAsapCorrectiveAction(actionId, updates); const orgId = profile?.org_id; if (orgId) fetchAsapCorrectiveActions(orgId).then(({ data }) => setAsapCorrActions(data || [])); })} onDeleteCorrAction={roGuard(async (actionId) => { await deleteAsapCorrectiveAction(actionId); const orgId = profile?.org_id; if (orgId) fetchAsapCorrectiveActions(orgId).then(({ data }) => setAsapCorrActions(data || [])); })} onCreateMeeting={roGuard(async (meeting) => { const orgId = profile?.org_id; if (!orgId) return; await createAsapMeeting(orgId, meeting); fetchAsapMeetings(orgId).then(({ data }) => setAsapMeetings(data || [])); })} onUpdateMeeting={roGuard(async (meetingId, updates) => { await updateAsapMeeting(meetingId, updates); const orgId = profile?.org_id; if (orgId) fetchAsapMeetings(orgId).then(({ data }) => setAsapMeetings(data || [])); })} onDeleteMeeting={roGuard(async (meetingId) => { await deleteAsapMeeting(meetingId); const orgId = profile?.org_id; if (orgId) fetchAsapMeetings(orgId).then(({ data }) => setAsapMeetings(data || [])); })} onRefresh={async () => { const orgId = profile?.org_id; if (orgId) { fetchAsapReports(orgId).then(({ data }) => setAsapReports(data || [])); fetchAsapCorrectiveActions(orgId).then(({ data }) => setAsapCorrActions(data || [])); fetchAsapMeetings(orgId).then(({ data }) => setAsapMeetings(data || [])); } }} onCreateAction={(finding) => { setActionFromInvestigation(finding); setCv("actions"); }} onInitSetup={roGuard(async () => { const { DEFAULT_MOU_TEXT, DEFAULT_ACCEPTANCE_CRITERIA, DEFAULT_EXCLUSION_CRITERIA } = await import("../components/AsapProgram"); const orgId = profile?.org_id; if (!orgId) return; const { data } = await upsertAsapConfig(orgId, { mou_text: DEFAULT_MOU_TEXT, acceptance_criteria: DEFAULT_ACCEPTANCE_CRITERIA, exclusion_criteria: DEFAULT_EXCLUSION_CRITERIA, reporting_window_hours: 24, auto_number_prefix: "ASAP" }); if (data) setAsapConfig(data); setToast({ message: "ASAP program initialized with default templates", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} />}
         {cv === "erp" && <EmergencyResponsePlan profile={profile} session={session} org={org} erpPlans={erpPlans} erpDrills={erpDrills} onCreatePlan={roGuard(async (plan) => { const orgId = profile?.org_id; if (!orgId) return; await createErpPlan(orgId, plan); fetchErpPlans(orgId).then(({ data }) => setErpPlans(data || [])); })} onUpdatePlan={roGuard(async (planId, updates) => { await updateErpPlan(planId, updates); const orgId = profile?.org_id; if (orgId) fetchErpPlans(orgId).then(({ data }) => setErpPlans(data || [])); })} onDeletePlan={roGuard(async (planId) => { await deleteErpPlan(planId); const orgId = profile?.org_id; if (orgId) { fetchErpPlans(orgId).then(({ data }) => setErpPlans(data || [])); fetchErpDrills(orgId).then(({ data }) => setErpDrills(data || [])); } })} onLoadChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onSaveChecklist={roGuard(async (planId, items) => { await upsertErpChecklistItems(planId, items); })} onLoadCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} onSaveCallTree={roGuard(async (planId, contacts) => { await upsertErpCallTree(planId, contacts); })} onCreateDrill={roGuard(async (drill) => { const orgId = profile?.org_id; if (!orgId) return; await createErpDrill(orgId, drill); fetchErpDrills(orgId).then(({ data }) => setErpDrills(data || [])); })} onUpdateDrill={roGuard(async (drillId, updates) => { await updateErpDrill(drillId, updates); const orgId = profile?.org_id; if (orgId) fetchErpDrills(orgId).then(({ data }) => setErpDrills(data || [])); })} onDeleteDrill={roGuard(async (drillId) => { await deleteErpDrill(drillId); const orgId = profile?.org_id; if (orgId) fetchErpDrills(orgId).then(({ data }) => setErpDrills(data || [])); })} onInitTemplates={roGuard(async () => { const { ERP_TEMPLATES, DEFAULT_CALL_TREE } = await import("../components/EmergencyResponsePlan"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of ERP_TEMPLATES) { const { data: plan } = await createErpPlan(orgId, { name: tmpl.name, category: tmpl.category, description: tmpl.description }); if (plan) { await upsertErpChecklistItems(plan.id, tmpl.checklist); await upsertErpCallTree(plan.id, DEFAULT_CALL_TREE); } } fetchErpPlans(orgId).then(({ data }) => setErpPlans(data || [])); setToast({ message: "6 ERP templates loaded with checklists and call trees", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onCreateActionFromDrill={(drill) => { const planName = (erpPlans || []).find(p => p.id === drill.erp_plan_id)?.name || "ERP Drill"; setActionFromInvestigation({ title: `Corrective action from ${planName} drill`, description: `Drill findings: ${drill.findings || "N/A"}\nLessons learned: ${drill.lessons_learned || "N/A"}`, source: "erp_drill", source_id: drill.id }); setCv("actions"); }} />}
