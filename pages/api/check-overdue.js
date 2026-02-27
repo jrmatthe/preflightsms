@@ -38,18 +38,22 @@ export default async function handler(req, res) {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const now = new Date().toISOString();
+    const now = new Date();
+    const GRACE_MINUTES = 30;
+    const graceThreshold = new Date(now.getTime() - GRACE_MINUTES * 60000).toISOString();
+    const nowISO = now.toISOString();
 
     if (req.query.reset === "true") {
       return res.status(403).json({ error: "reset=true is disabled — use the platform admin panel to reset notification flags" });
     }
 
+    // Only notify flights whose ETA is more than GRACE_MINUTES ago
     const { data: overdueFlights, error: flightErr } = await supabase
       .from("flights")
       .select("*, organizations(name, slug)")
       .eq("status", "ACTIVE")
       .not("eta", "is", null)
-      .lt("eta", now)
+      .lt("eta", graceThreshold)
       .is("overdue_notified_at", null);
 
     if (flightErr) {
@@ -57,7 +61,7 @@ export default async function handler(req, res) {
     }
 
     if (!overdueFlights || overdueFlights.length === 0) {
-      return res.status(200).json({ message: "No overdue flights", checked: now });
+      return res.status(200).json({ message: "No overdue flights", checked: nowISO });
     }
 
     let totalEmails = 0;
@@ -190,7 +194,7 @@ export default async function handler(req, res) {
 
       // Only mark as notified if at least one notification was actually sent
       if (flightResults.emails > 0 || flightResults.sms > 0) {
-        await supabase.from("flights").update({ overdue_notified_at: now }).eq("id", flight.id);
+        await supabase.from("flights").update({ overdue_notified_at: nowISO }).eq("id", flight.id);
         flightResults.markedNotified = true;
       } else {
         flightResults.markedNotified = false;
@@ -203,7 +207,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       message: `Checked ${overdueFlights.length} overdue flights — ${totalEmails} emails, ${totalSMS} SMS sent`,
       results,
-      checked: now,
+      checked: nowISO,
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });

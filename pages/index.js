@@ -2198,6 +2198,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
         </div>
       </div>
       {activeFlights.length > 0 && <div style={{ textAlign: "center", padding: "14px 0 4px", color: SUBTLE, fontSize: 10 }}>Flight positions on map and progress bars are estimates based on departure time and ETA — not live tracking.</div>}
+      <div style={{ textAlign: "center", padding: "8px 16px", color: "#f59e0b", fontSize: 10, lineHeight: 1.5 }}>All users with the Flight Follower permission will be notified if a flight is not marked arrived within 30 minutes of its ETA.</div>
     </div>);
 }
 
