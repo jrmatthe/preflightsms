@@ -34,8 +34,8 @@ describe('TIERS', () => {
     expect(TIERS.starter.price).toBe(149);
   });
 
-  it('professional costs $299', () => {
-    expect(TIERS.professional.price).toBe(299);
+  it('professional costs $349', () => {
+    expect(TIERS.professional.price).toBe(349);
   });
 
   it('enterprise has null (custom) pricing', () => {

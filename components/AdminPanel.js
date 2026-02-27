@@ -29,7 +29,7 @@ const PERMISSIONS = [
 const TIER_DEFS = {
   free: { name: "Free", price: "Free", aircraft: "1", color: CYAN },
   starter: { name: "Starter", price: "$149/mo", aircraft: "5", color: MUTED },
-  professional: { name: "Professional", price: "$299/mo", aircraft: "15", color: GREEN },
+  professional: { name: "Professional", price: "$349/mo", aircraft: "15", color: GREEN },
   enterprise: { name: "Enterprise", price: "Custom", aircraft: "Unlimited", color: CYAN },
 };
 
@@ -489,7 +489,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
                 features: ["FRAT Submissions", "Safety Reporting", "ERP (1 read-only plan)", "Investigations (view-only)", "5 Corrective Actions", "3 Policies", "SMS Manual (read-only)", "Basic Dashboard"] },
               { id: "starter", name: "Starter", monthly: 149, annual: 1490, desc: "Up to 5 aircraft",
                 features: ["Everything in Free, plus:", "Flight Following", "Training & CBT", "ERP (2 plans)", "Full Investigations", "Unlimited CAs & Policies", "SMS Manual (editable)", "Pilot Engagement", "Data Export (CSV/PDF)"] },
-              { id: "professional", name: "Professional", monthly: 299, annual: 2990, desc: "Up to 15 aircraft", badge: true,
+              { id: "professional", name: "Professional", monthly: 349, annual: 3490, desc: "Up to 15 aircraft", badge: true,
                 features: ["Everything in Starter, plus:", "ForeFlight & Schedaero Integration", "AI Risk Intelligence", "FRAT Analytics & Safety Metrics", "SPIs/SPTs", "Audits/IEP & Change Management", "Safety Culture Surveys", "Fatigue Risk Assessment", "Declaration of Compliance Wizard", "Insurance Scorecard & Export", "Custom FRAT Templates", "Approval Workflows", "FAA Audit Log", "API (read-only)"] },
               { id: "enterprise", name: "Enterprise", monthly: 0, annual: 0, desc: "Unlimited aircraft", isEnterprise: true,
                 features: ["Everything in Professional, plus:", "ASAP Program", "International Compliance (ICAO/IS-BAO/EASA)", "API (read-write) & Webhooks", "Multi-base Support", "Dedicated Support"] },

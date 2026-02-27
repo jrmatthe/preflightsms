@@ -314,7 +314,7 @@ describe("AdminPanel", () => {
     fireEvent.click(screen.getByText("Subscription"));
     expect(screen.getByText("Professional")).toBeInTheDocument();
     expect(screen.getByText("Current Plan")).toBeInTheDocument();
-    expect(screen.getByText(/\$299\/mo/)).toBeInTheDocument();
+    expect(screen.getByText(/\$349\/mo/)).toBeInTheDocument();
   });
 
   // 15. Subscription tab shows status badge

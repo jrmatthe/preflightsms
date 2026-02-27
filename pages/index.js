@@ -2425,7 +2425,7 @@ function LandingPage() {
         <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {[
             { name: "Starter", price: "$149", desc: "Core SMS for small operators", features: ["Flight Risk Assessment (FRAT)", "Flight Following", "Safety Reports & Investigations", "Corrective Actions", "Policy Library", "Basic Dashboard", "Up to 5 aircraft"] },
-            { name: "Professional", price: "$299", desc: "Full SMS with analytics & compliance", badge: "MOST POPULAR", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"] },
+            { name: "Professional", price: "$349", desc: "Full SMS with analytics & compliance", badge: "MOST POPULAR", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"] },
           ].map(p => (
             <div key={p.name} style={{ background: CARD, border: `1px solid ${p.badge ? WHITE+"44" : BORDER}`, borderRadius: 12, padding: "28px 24px", position: "relative" }}>
               {p.badge && <div style={{ position: "absolute", top: -10, right: 16, fontSize: 9, fontWeight: 700, color: BLACK, background: GREEN, padding: "3px 10px", borderRadius: 4 }}>{p.badge}</div>}
@@ -2688,7 +2688,7 @@ function SignupFlow({ onAuth }) {
               <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
                 {[
                   { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Safety Reporting", "Investigation Register", "Policy Library"] },
-                  { id: "professional", name: "Professional", price: "$299", desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
+                  { id: "professional", name: "Professional", price: "$349", desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
                 ].map(p => (
                   <div key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ ...card, padding: "18px 16px", cursor: "pointer", position: "relative", transition: "all 0.2s", border: `2px solid ${selectedPlan === p.id ? (p.badge ? GREEN : WHITE) : BORDER}`, background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD, opacity: selectedPlan === "free" ? 0.5 : 1 }}>
                     {p.badge && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>RECOMMENDED</div>}
@@ -2981,7 +2981,7 @@ function AuthScreen({ onAuth, initialMode }) {
   const plans = [
     { id: "free", name: "Free", price: "$0", period: "", desc: "Solo pilot SMS — free forever", features: ["Flight Risk Assessment (FRAT)", "Safety Reporting", "Up to 5 Corrective Actions", "3 Policies", "Basic Dashboard", "1 aircraft, 1 user"] },
     { id: "starter", name: "Starter", price: "$149", period: "/mo", desc: "Core SMS for small operators", features: ["Everything in Free, plus:", "Flight Following", "Full Investigations", "Unlimited Corrective Actions", "Training Records", "Basic Dashboard", "Up to 5 aircraft & unlimited users"], trial: true },
-    { id: "professional", name: "Professional", price: "$299", period: "/mo", desc: "Full SMS with analytics & compliance", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"], trial: true },
+    { id: "professional", name: "Professional", price: "$349", period: "/mo", desc: "Full SMS with analytics & compliance", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"], trial: true },
   ];
 
   return (

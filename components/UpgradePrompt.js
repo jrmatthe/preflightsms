@@ -59,7 +59,7 @@ export default function UpgradePrompt({ feature, message, onNavigateToSubscripti
                   <th style={{ textAlign: "left", padding: "8px 6px", color: MUTED, fontWeight: 600 }}>Feature</th>
                   <th style={{ textAlign: "center", padding: "8px 6px", color: CYAN, fontWeight: 600 }}>Free</th>
                   <th style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600 }}>Starter<br /><span style={{ fontWeight: 400, fontSize: 9 }}>$149/mo</span></th>
-                  <th style={{ textAlign: "center", padding: "8px 6px", color: GREEN, fontWeight: 600 }}>Professional<br /><span style={{ fontWeight: 400, fontSize: 9 }}>$299/mo</span></th>
+                  <th style={{ textAlign: "center", padding: "8px 6px", color: GREEN, fontWeight: 600 }}>Professional<br /><span style={{ fontWeight: 400, fontSize: 9 }}>$349/mo</span></th>
                 </tr>
               </thead>
               <tbody>
