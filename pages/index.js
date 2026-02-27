@@ -2672,7 +2672,7 @@ function SignupFlow({ onAuth }) {
                   { id: "starter", name: "Starter", price: "$149", desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Safety Reporting", "Investigation Register", "Policy Library"] },
                   { id: "professional", name: "Professional", price: "$299", desc: "Up to 15 aircraft", badge: true, features: ["Everything in Starter", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows"] },
                 ].map(p => (
-                  <div key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ ...card, padding: "18px 16px", cursor: "pointer", position: "relative", transition: "all 0.2s", border: `2px solid ${selectedPlan === p.id ? (p.badge ? GREEN : WHITE) : BORDER}`, background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD }}>
+                  <div key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ ...card, padding: "18px 16px", cursor: "pointer", position: "relative", transition: "all 0.2s", border: `2px solid ${selectedPlan === p.id ? (p.badge ? GREEN : WHITE) : BORDER}`, background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD, opacity: selectedPlan === "free" ? 0.5 : 1 }}>
                     {p.badge && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>RECOMMENDED</div>}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                       <div><div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{p.name}</div><div style={{ fontSize: 10, color: MUTED }}>{p.desc}</div></div>
@@ -2684,6 +2684,11 @@ function SignupFlow({ onAuth }) {
                 ))}
               </div>
               <div style={{ fontSize: 11, color: MUTED, textAlign: "center" }}>No charge during your trial. Cancel anytime.</div>
+              <div style={{ textAlign: "center", marginTop: 10 }}>
+                <button onClick={() => setSelectedPlan("free")} style={{ background: "none", border: "none", color: selectedPlan === "free" ? WHITE : MUTED, cursor: "pointer", fontSize: 11, fontWeight: selectedPlan === "free" ? 700 : 400, padding: 0, fontFamily: "inherit" }}>
+                  Just need the basics? <span style={{ color: selectedPlan === "free" ? GREEN : CYAN, textDecoration: "underline" }}>Start with our Free plan</span> — 1 aircraft, core SMS features.
+                </button>
+              </div>
               <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, cursor: "pointer" }}>
                 <input type="checkbox" checked={agreedTos} onChange={e => setAgreedTos(e.target.checked)} style={{ marginTop: 2, accentColor: CYAN }} />
                 <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>I agree to the <a href="/terms" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Terms of Service</a> and <a href="/privacy" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Privacy Policy</a></span>
@@ -2693,7 +2698,7 @@ function SignupFlow({ onAuth }) {
             <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
               {step > 1 && <button onClick={() => { setStep(step - 1); setError(""); }} style={{ padding: "13px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>{"\u2190"}</button>}
               <button onClick={next} disabled={loading} style={{ flex: 1, padding: "13px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1, letterSpacing: 0.3 }}>
-                {loading ? "Setting up..." : step === 3 ? "Start Free Trial \u2192" : "Continue \u2192"}</button>
+                {loading ? "Setting up..." : step === 3 ? (selectedPlan === "free" ? "Start Free Plan \u2192" : "Start Free Trial \u2192") : "Continue \u2192"}</button>
             </div>
             <div style={{ textAlign: "center", marginTop: 20, fontSize: 11, color: MUTED }}>
               {step === 1 && <>Already have an account? <button onClick={() => { window.location.search = "login"; }} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Log in</button></>}
