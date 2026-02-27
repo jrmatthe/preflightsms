@@ -22,10 +22,16 @@ CREATE TABLE IF NOT EXISTS safety_digests (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE safety_digests ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "safety_digests_select" ON safety_digests
-  FOR SELECT USING (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
-CREATE POLICY "safety_digests_service_insert" ON safety_digests
-  FOR INSERT WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'safety_digests' AND policyname = 'safety_digests_select') THEN
+    CREATE POLICY "safety_digests_select" ON safety_digests
+      FOR SELECT USING (org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid()));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'safety_digests' AND policyname = 'safety_digests_service_insert') THEN
+    CREATE POLICY "safety_digests_service_insert" ON safety_digests
+      FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_safety_digests_org ON safety_digests(org_id);
 
 -- Expand ai_suggestions context_type CHECK
