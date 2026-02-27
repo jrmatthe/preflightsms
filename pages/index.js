@@ -2515,17 +2515,26 @@ function SignupFlow({ onAuth }) {
       const tier = selectedPlan;
       const features = getTierFeatures(tier);
       const isFreeSignup = tier === "free";
+      const headers = { "Content-Type": "application/json" };
+      if (authData.session?.access_token) headers.Authorization = `Bearer ${authData.session.access_token}`;
       const orgRes = await fetch("/api/create-org", {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${authData.session?.access_token}` },
+        method: "POST", headers,
         body: JSON.stringify({ name: orgName.trim(), slug, tier, feature_flags: features,
+          userId: authData.user?.id,
           subscription_status: isFreeSignup ? "free" : "trial",
           max_aircraft: isFreeSignup ? 1 : tier === "enterprise" ? 999 : tier === "professional" ? 15 : 5 }),
       });
       const orgJson = await orgRes.json();
       if (!orgRes.ok || !orgJson.data) { setError(orgJson.error || "Failed to create organization"); setLoading(false); return; }
-      // 3. Create profile linked to org as admin (org creator = admin)
+      // 3. Create profile linked to org as admin (org creator = admin) — use service-role-based insert via API if no session
       if (authData.user) {
-        await supabase.from("profiles").insert({ id: authData.user.id, org_id: orgJson.data.id, full_name: name.trim(), email, role: "admin" });
+        if (authData.session) {
+          await supabase.from("profiles").insert({ id: authData.user.id, org_id: orgJson.data.id, full_name: name.trim(), email, role: "admin" });
+        } else {
+          // No session yet (email confirmation pending) — create profile via create-org API or direct service call
+          await fetch("/api/create-org", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "create-profile", userId: authData.user.id, orgId: orgJson.data.id, fullName: name.trim(), email }) });
+        }
       }
       // 4. Sign in
       const { data: session } = await signIn(email, password);
