@@ -234,7 +234,7 @@ function WeatherSkeleton() {
 }
 
 // ── Step 1: Flight Info ──
-function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, errors }) {
+function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, errors, allTemplates, activeTemplateId, onTemplateChange, onAircraftChange }) {
   const fleetList = fleetAircraft || [];
   const fleetMap = useMemo(() => {
     const map = {};
@@ -259,6 +259,7 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
             const type = e.target.value;
             const tails = fleetMap[type] || [];
             setFi(p => ({ ...p, aircraft: type, tailNumber: tails.length === 1 ? tails[0].registration : "" }));
+            if (onAircraftChange) onAircraftChange(type);
           }} style={inputStyle}>
             <option value="">Select aircraft</option>
             {aircraftTypes.map(t => <option key={t} value={t}>{t}</option>)}
@@ -279,6 +280,16 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
         )}
       </Field>
 
+      {allTemplates && allTemplates.length > 1 && (
+        <Field label="FRAT Template">
+          <select value={activeTemplateId || ""} onChange={e => { if (onTemplateChange) onTemplateChange(e.target.value); }} style={inputStyle}>
+            {allTemplates.filter(t => t.categories && t.categories.length > 0).map(t => (
+              <option key={t.id} value={t.id}>{t.name}{t.is_active ? " (default)" : ""}</option>
+            ))}
+          </select>
+        </Field>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Departure" error={errors.departure}>
           <input value={fi.departure} onChange={e => setFi(p => ({ ...p, departure: e.target.value.toUpperCase() }))} style={inputStyle} placeholder="ICAO" maxLength={4} autoCapitalize="characters" />
@@ -289,30 +300,30 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Date">
+        <Field label="Date" error={errors.date}>
           <input type="date" value={fi.date} onChange={e => setFi(p => ({ ...p, date: e.target.value }))} style={inputStyle} />
         </Field>
-        <Field label="ETD (local)">
+        <Field label="ETD (local)" error={errors.etd}>
           <input type="time" value={fi.etd} onChange={e => setFi(p => ({ ...p, etd: e.target.value }))} style={inputStyle} />
         </Field>
       </div>
 
-      <Field label="ETE (hours:minutes)">
+      <Field label="ETE (hours:minutes)" error={errors.ete}>
         <input value={fi.ete} onChange={e => setFi(p => ({ ...p, ete: e.target.value }))} style={inputStyle} placeholder="e.g. 1:30 or 0130" inputMode="numeric" />
       </Field>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Crew">
+        <Field label="Crew" error={errors.numCrew}>
           <NumberStepper value={fi.numCrew} onChange={v => setFi(p => ({ ...p, numCrew: v }))} min={1} max={10} />
         </Field>
-        <Field label="Passengers">
+        <Field label="Passengers" error={errors.numPax}>
           <NumberStepper value={fi.numPax} onChange={v => setFi(p => ({ ...p, numPax: v }))} min={0} max={50} />
         </Field>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-        <Field label="Fuel">
-          <input value={fi.fuelLbs} onChange={e => setFi(p => ({ ...p, fuelLbs: e.target.value }))} style={inputStyle} placeholder="Optional" inputMode="decimal" />
+        <Field label={`Fuel (${fuelUnit.toUpperCase()})`} error={errors.fuelLbs}>
+          <input value={fi.fuelLbs} onChange={e => setFi(p => ({ ...p, fuelLbs: e.target.value }))} style={inputStyle} placeholder={`Enter fuel in ${fuelUnit}`} inputMode="decimal" />
         </Field>
         <Field label=" ">
           <button onClick={() => setFuelUnit(u => u === "lbs" ? "gal" : u === "gal" ? "hrs" : "lbs")} style={{
@@ -323,7 +334,7 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
         </Field>
       </div>
 
-      <Field label="Cruise Altitude">
+      <Field label="Cruise Altitude" error={errors.cruiseAlt}>
         <input value={fi.cruiseAlt} onChange={e => setFi(p => ({ ...p, cruiseAlt: e.target.value }))} style={inputStyle} placeholder="e.g. FL250 or 10500" />
       </Field>
     </div>
@@ -741,6 +752,7 @@ export default function MobileFRATWizard({
   const [fuelUnit, setFuelUnit] = useState("hrs");
   const [checked, setChecked] = useState({});
   const [errors, setErrors] = useState({});
+  const [activeTemplateId, setActiveTemplateId] = useState(null);
 
   // Weather state
   const [wxData, setWxData] = useState(null);
@@ -755,7 +767,13 @@ export default function MobileFRATWizard({
     return allTemplates.find(t => (t.assigned_aircraft || []).includes(aircraft)) || allTemplates.find(t => t.is_active) || null;
   }, [allTemplates]);
 
-  const currentTemplate = resolveTemplate(fi.aircraft) || fratTemplate;
+  const currentTemplate = useMemo(() => {
+    if (activeTemplateId && allTemplates) {
+      const found = allTemplates.find(t => t.id === activeTemplateId);
+      if (found) return found;
+    }
+    return resolveTemplate(fi.aircraft) || fratTemplate;
+  }, [activeTemplateId, allTemplates, resolveTemplate, fi.aircraft, fratTemplate]);
   const categories = currentTemplate?.categories || DEFAULT_RISK_CATEGORIES;
   const riskLevels = currentTemplate?.risk_thresholds ? buildRiskLevels(currentTemplate.risk_thresholds) : (parentRiskLevels || DEFAULT_RISK_LEVELS);
 
@@ -766,8 +784,27 @@ export default function MobileFRATWizard({
       const firstType = fleetList[0].type;
       const matching = fleetList.filter(a => a.type === firstType);
       setFi(p => ({ ...p, aircraft: firstType, tailNumber: matching.length === 1 ? matching[0].registration : "" }));
+      if (allTemplates && allTemplates.length > 1) {
+        const matched = resolveTemplate(firstType);
+        if (matched) setActiveTemplateId(matched.id);
+      }
     }
   }, [fleetAircraft]);
+
+  // When aircraft changes, auto-switch template and clear risk factors
+  const handleAircraftTemplateSwitch = useCallback((aircraftType) => {
+    if (allTemplates && allTemplates.length > 1) {
+      const matched = resolveTemplate(aircraftType);
+      if (matched) setActiveTemplateId(matched.id);
+      setChecked({});
+    }
+  }, [allTemplates, resolveTemplate]);
+
+  // Manual template override from selector
+  const handleManualTemplateChange = useCallback((templateId) => {
+    setActiveTemplateId(templateId || null);
+    setChecked({});
+  }, []);
 
   // Fetch weather when entering step 2
   useEffect(() => {
@@ -807,14 +844,23 @@ export default function MobileFRATWizard({
       .finally(() => setWxLoading(false));
   }, [step, fi.departure, fi.destination, fi.cruiseAlt]);
 
-  // Validation
+  // Validation — matches desktop required fields
   const validateStep = (stepNum) => {
     if (stepNum === 0) {
       const errs = {};
-      if (!fi.pilot.trim()) errs.pilot = "PIC is required";
-      if (!fi.aircraft.trim()) errs.aircraft = "Aircraft is required";
-      if (!fi.departure.trim()) errs.departure = "Required";
-      if (!fi.destination.trim()) errs.destination = "Required";
+      if (!fi.pilot.trim()) errs.pilot = "Select a pilot";
+      if (!fi.aircraft.trim()) errs.aircraft = "Select an aircraft";
+      if (!fi.tailNumber.trim()) errs.tailNumber = "Select a tail number";
+      if (!fi.departure.trim()) errs.departure = "Enter departure airport (e.g. KSFF)";
+      else if (fi.departure.trim().length < 3) errs.departure = "Use ICAO or IATA code";
+      if (!fi.destination.trim()) errs.destination = "Enter destination airport (e.g. KBOI)";
+      else if (fi.destination.trim().length < 3) errs.destination = "Use ICAO or IATA code";
+      if (!fi.cruiseAlt.trim()) errs.cruiseAlt = "Enter cruise altitude (e.g. FL180)";
+      if (!fi.date) errs.date = "Select a flight date";
+      if (!fi.etd) errs.etd = "Enter departure time";
+      if (!fi.ete.trim()) errs.ete = "Enter time enroute (e.g. 1:30)";
+      if (!fi.fuelLbs.trim()) errs.fuelLbs = `Enter fuel onboard in ${fuelUnit}`;
+      if (!fi.numCrew || fi.numCrew === "0") errs.numCrew = "Enter number of crew";
       setErrors(errs);
       return Object.keys(errs).length === 0;
     }
@@ -934,7 +980,9 @@ export default function MobileFRATWizard({
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: step === 2 ? 120 : 80 }}>
         {step === 0 && (
           <StepFlightInfo fi={fi} setFi={setFi} fuelUnit={fuelUnit} setFuelUnit={setFuelUnit}
-            fleetAircraft={fleetAircraft} errors={errors} />
+            fleetAircraft={fleetAircraft} errors={errors}
+            allTemplates={allTemplates} activeTemplateId={activeTemplateId}
+            onTemplateChange={handleManualTemplateChange} onAircraftChange={handleAircraftTemplateSwitch} />
         )}
         {step === 1 && (
           <StepWeather wxData={wxData} wxAnalysis={wxAnalysis} wxLoading={wxLoading} wxError={wxError} />
