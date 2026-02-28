@@ -32,7 +32,7 @@ export default function MobileTabBar({ activeTab, onTabChange, unreadCount }) {
     <nav aria-label="Main navigation" style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1000,
       background: BLACK, borderTop: `1px solid ${BORDER}`,
-      paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      paddingBottom: "max(env(safe-area-inset-bottom, 0px), 20px)",
     }}>
       <div role="tablist" style={{ display: "flex", justifyContent: "space-evenly", alignItems: "center" }}>
         {TABS.map(tab => {

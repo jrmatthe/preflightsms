@@ -242,7 +242,7 @@ export default function MobileLayout({
       {/* Content area — scrollable, between header and tab bar */}
       <div style={{
         paddingTop: (!isOnline || pendingCount > 0) ? 56 + 36 : 56,
-        paddingBottom: 64,
+        paddingBottom: 96,
         minHeight: "100vh", overflowY: "auto",
         opacity: tabOpacity,
         transition: "opacity 0.15s ease-in-out",

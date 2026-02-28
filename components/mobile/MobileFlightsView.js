@@ -167,7 +167,7 @@ function ArrivalSheet({ flight, onConfirm, onCancel }) {
 function PostFlightNudge({ onFileReport, onDismiss }) {
   return (
     <div style={{
-      position: "fixed", bottom: 80, left: 16, right: 16, zIndex: 1500,
+      position: "fixed", bottom: "calc(68px + max(env(safe-area-inset-bottom, 0px), 20px))", left: 16, right: 16, zIndex: 1500,
       background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
       padding: 16, display: "flex", alignItems: "center", gap: 12,
       boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
@@ -492,13 +492,7 @@ export default function MobileFlightsView({
     return list;
   }, [flights, filter, profile, now, isOverdue]);
 
-  // Set default filter based on role
-  useEffect(() => {
-    const role = profile?.role;
-    if (role === "admin" || role === "safety_manager" || role === "accountable_exec" || role === "chief_pilot") {
-      setFilter("all");
-    }
-  }, [profile?.role]);
+  // Mobile always defaults to "my" flights regardless of role
 
   const handleArrivalConfirm = (extra) => {
     if (arrivalFlight) {
