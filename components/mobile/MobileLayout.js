@@ -46,8 +46,11 @@ export default function MobileLayout({
   hazards, actions, onUpdateAction,
   erpPlans, onLoadErpChecklist, onLoadErpCallTree,
   policies, onAcknowledgePolicy,
+  // Feature gating
+  hasFlights, hasTraining,
 }) {
-  const [activeTab, setActiveTab] = useState("flights");
+  const defaultTab = hasFlights === false ? "reports" : "flights";
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [moreSubView, setMoreSubView] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -254,6 +257,8 @@ export default function MobileLayout({
         activeTab={activeTab}
         onTabChange={handleTabChange}
         unreadCount={unreadCount}
+        hasFlights={hasFlights}
+        hasTraining={hasTraining}
       />
     </div>
   );

@@ -19,15 +19,21 @@ const icons = {
   more: I(<><circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none"/></>),
 };
 
-const TABS = [
-  { id: "flights", label: "Flights", icon: "flights" },
-  { id: "newFrat", label: "New FRAT", icon: "newFrat" },
+const ALL_TABS = [
+  { id: "flights", label: "Flights", icon: "flights", feature: "flights" },
+  { id: "newFrat", label: "New FRAT", icon: "newFrat", feature: "flights" },
   { id: "reports", label: "Reports", icon: "reports" },
-  { id: "training", label: "Training", icon: "training" },
+  { id: "training", label: "Training", icon: "training", feature: "training" },
   { id: "more", label: "More", icon: "more" },
 ];
 
-export default function MobileTabBar({ activeTab, onTabChange, unreadCount }) {
+export default function MobileTabBar({ activeTab, onTabChange, unreadCount, hasFlights, hasTraining }) {
+  const tabs = useMemo(() => ALL_TABS.filter(tab => {
+    if (tab.feature === "flights" && hasFlights === false) return false;
+    if (tab.feature === "training" && hasTraining === false) return false;
+    return true;
+  }), [hasFlights, hasTraining]);
+
   return (
     <nav aria-label="Main navigation" style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1000,
@@ -35,7 +41,7 @@ export default function MobileTabBar({ activeTab, onTabChange, unreadCount }) {
       paddingBottom: "max(env(safe-area-inset-bottom, 0px), 20px)",
     }}>
       <div role="tablist" style={{ display: "flex", justifyContent: "space-evenly", alignItems: "center" }}>
-        {TABS.map(tab => {
+        {tabs.map(tab => {
           const isActive = activeTab === tab.id;
           const isFrat = tab.id === "newFrat";
           const isMore = tab.id === "more";
