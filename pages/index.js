@@ -3278,6 +3278,13 @@ function buildTourSeedData(today, userName, fleet) {
 
 export default function PVTAIRFrat() {
   const isMobile = useIsMobile();
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobileViewport(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   const _initTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
   const [cv, setCv] = useState(() => {
     if (_initTab === "subscription") return "admin";
@@ -4592,10 +4599,8 @@ export default function PVTAIRFrat() {
                           background: savingProfileEmail || profileEmail === (profile?.email || "") ? "transparent" : "rgba(74,222,128,0.13)", color: savingProfileEmail || profileEmail === (profile?.email || "") ? MUTED : GREEN,
                           border: `1px solid ${savingProfileEmail || profileEmail === (profile?.email || "") ? BORDER : "rgba(74,222,128,0.27)"}` }}>{savingProfileEmail ? "…" : "Save"}</button>
                     </div>
-                    {typeof window !== "undefined" && window.innerWidth <= 768 && (
-                      <button onClick={() => { setShowProfileMenu(false); setDesktopPreference(false); }}
-                        style={{ width: "100%", fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "6px 10px", cursor: "pointer", fontWeight: 600, marginBottom: 8 }}>Switch to Mobile View</button>
-                    )}
+                    {isMobileViewport && <button onClick={() => { setShowProfileMenu(false); setDesktopPreference(false); }}
+                      style={{ width: "100%", fontSize: 12, color: "#22D3EE", background: "rgba(34,211,238,0.08)", border: "1px solid rgba(34,211,238,0.25)", borderRadius: 6, padding: "10px", cursor: "pointer", fontWeight: 700, marginBottom: 8 }}>Switch to Mobile View</button>}
                     <button onClick={async () => { setShowProfileMenu(false); await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); setNotifications([]); setNotifReads([]); }}
                       style={{ width: "100%", fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "6px 10px", cursor: "pointer", fontWeight: 600 }}>Log out</button>
                   </div>
