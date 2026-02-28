@@ -11,8 +11,10 @@ import { getQueueCount } from "../../lib/offlineQueue";
 const DARK = "#111111";
 const MUTED = "#666666";
 const WHITE = "#FFFFFF";
+const OFF_WHITE = "#D4D4D4";
 const BORDER = "#232323";
 const AMBER = "#F59E0B";
+const CYAN = "#22D3EE";
 
 function PlaceholderScreen({ title }) {
   return (
@@ -23,6 +25,34 @@ function PlaceholderScreen({ title }) {
       <div>
         <div style={{ color: WHITE, fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{title}</div>
         <div style={{ color: MUTED, fontSize: 14 }}>Coming soon in the mobile experience</div>
+      </div>
+    </div>
+  );
+}
+
+function UpgradeScreen({ feature, description }) {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      minHeight: "calc(100vh - 56px - 64px)", padding: 24, textAlign: "center",
+    }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: 28,
+        background: `${CYAN}12`, border: `1px solid ${CYAN}30`,
+        display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16,
+      }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+      </div>
+      <div style={{ color: WHITE, fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{feature}</div>
+      <div style={{ color: MUTED, fontSize: 14, lineHeight: 1.5, maxWidth: 300, marginBottom: 20 }}>{description}</div>
+      <div style={{
+        padding: "10px 24px", borderRadius: 10, background: `${CYAN}14`,
+        border: `1px solid ${CYAN}30`, color: CYAN, fontSize: 14, fontWeight: 600,
+      }}>
+        Upgrade to unlock
       </div>
     </div>
   );
@@ -49,8 +79,7 @@ export default function MobileLayout({
   // Feature gating
   hasFlights, hasTraining,
 }) {
-  const defaultTab = hasFlights === false ? "reports" : "flights";
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -118,6 +147,7 @@ export default function MobileLayout({
   const renderContent = () => {
     switch (activeTab) {
       case "flights":
+        if (hasFlights === false) return <UpgradeScreen feature="Flight Following" description="Track flights in real time, manage dispatch status, and monitor your fleet. Available on the Starter plan and above." />;
         return (
           <MobileFlightsView
             flights={flights}
@@ -159,6 +189,7 @@ export default function MobileLayout({
           />
         );
       case "training":
+        if (hasTraining === false) return <UpgradeScreen feature="Training & CBT" description="Access computer-based training courses, track requirements, and log training records. Available on the Starter plan and above." />;
         return (
           <MobileTrainingView
             courses={cbtCourses}
@@ -257,8 +288,6 @@ export default function MobileLayout({
         activeTab={activeTab}
         onTabChange={handleTabChange}
         unreadCount={unreadCount}
-        hasFlights={hasFlights}
-        hasTraining={hasTraining}
       />
     </div>
   );
