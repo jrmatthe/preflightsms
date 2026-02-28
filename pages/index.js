@@ -26,7 +26,7 @@ const AsapProgram = dynamic(() => import("../components/AsapProgram"), { ssr: fa
 const InsuranceScorecard = dynamic(() => import("../components/InsuranceScorecard"), { ssr: false });
 const UpgradePrompt = dynamic(() => import("../components/UpgradePrompt"), { ssr: false });
 const MobileLayout = dynamic(() => import("../components/mobile/MobileLayout"), { ssr: false });
-import useIsMobile from "../lib/useIsMobile";
+import useIsMobile, { setDesktopPreference } from "../lib/useIsMobile";
 
 const COMPANY_NAME = "PreflightSMS";
 const ADMIN_PASSWORD = "admin2026";
@@ -4592,6 +4592,10 @@ export default function PVTAIRFrat() {
                           background: savingProfileEmail || profileEmail === (profile?.email || "") ? "transparent" : "rgba(74,222,128,0.13)", color: savingProfileEmail || profileEmail === (profile?.email || "") ? MUTED : GREEN,
                           border: `1px solid ${savingProfileEmail || profileEmail === (profile?.email || "") ? BORDER : "rgba(74,222,128,0.27)"}` }}>{savingProfileEmail ? "…" : "Save"}</button>
                     </div>
+                    {typeof window !== "undefined" && window.innerWidth <= 768 && (
+                      <button onClick={() => { setShowProfileMenu(false); setDesktopPreference(false); }}
+                        style={{ width: "100%", fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "6px 10px", cursor: "pointer", fontWeight: 600, marginBottom: 8 }}>Switch to Mobile View</button>
+                    )}
                     <button onClick={async () => { setShowProfileMenu(false); await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); setNotifications([]); setNotifReads([]); }}
                       style={{ width: "100%", fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "6px 10px", cursor: "pointer", fontWeight: 600 }}>Log out</button>
                   </div>
