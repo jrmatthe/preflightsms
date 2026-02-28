@@ -5,6 +5,7 @@ import MobileMoreMenu from "./MobileMoreMenu";
 import MobileFlightsView from "./MobileFlightsView";
 import MobileFRATWizard from "./MobileFRATWizard";
 import MobileReportsView from "./MobileReportsView";
+import MobileTrainingView from "./MobileTrainingView";
 
 const DARK = "#111111";
 const MUTED = "#666666";
@@ -35,6 +36,10 @@ export default function MobileLayout({
   reportPrefill, setReportPrefill,
   // Phase 3 props
   reports, onSubmitReport,
+  // Phase 4 props
+  cbtCourses, cbtLessonsMap, cbtProgress, cbtEnrollments,
+  trainingReqs, trainingRecs,
+  onUpdateCbtProgress, onUpdateCbtEnrollment, onLogTraining, refreshCbt,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -114,7 +119,22 @@ export default function MobileLayout({
           />
         );
       case "training":
-        return <PlaceholderScreen title="Training" />;
+        return (
+          <MobileTrainingView
+            courses={cbtCourses}
+            lessonsMap={cbtLessonsMap}
+            progress={cbtProgress}
+            enrollments={cbtEnrollments}
+            trainingRequirements={trainingReqs}
+            trainingRecords={trainingRecs}
+            profile={profile}
+            session={session}
+            onUpdateProgress={onUpdateCbtProgress}
+            onUpdateEnrollment={onUpdateCbtEnrollment}
+            onLogTraining={onLogTraining}
+            onRefresh={refreshCbt}
+          />
+        );
       case "more":
         return (
           <MobileMoreMenu
