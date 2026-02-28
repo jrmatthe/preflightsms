@@ -287,7 +287,7 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
         <div style={{ padding: "8px 0 12px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Date Occurred">
-              <input type="date" value={form.dateOccurred} onChange={e => set("dateOccurred", e.target.value)} style={inputStyle} />
+              <input type="date" value={form.dateOccurred} onChange={e => set("dateOccurred", e.target.value)} style={{ ...inputStyle, minWidth: 0 }} />
             </Field>
             <Field label="Location">
               <input value={form.location} onChange={e => set("location", e.target.value)} placeholder="Airport, ramp, etc." style={inputStyle} />
