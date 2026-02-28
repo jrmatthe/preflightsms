@@ -2,19 +2,13 @@ import { useState, useMemo } from "react";
 import MobileHeader from "./MobileHeader";
 import MobileTabBar from "./MobileTabBar";
 import MobileMoreMenu from "./MobileMoreMenu";
+import MobileFlightsView from "./MobileFlightsView";
+import MobileFRATWizard from "./MobileFRATWizard";
 
 const DARK = "#111111";
 const MUTED = "#666666";
 const WHITE = "#FFFFFF";
 const BORDER = "#232323";
-
-const TAB_TITLES = {
-  flights: "Flights",
-  newFrat: "New FRAT",
-  reports: "Safety Reports",
-  training: "Training",
-  more: "More",
-};
 
 function PlaceholderScreen({ title }) {
   return (
@@ -24,7 +18,7 @@ function PlaceholderScreen({ title }) {
     }}>
       <div>
         <div style={{ color: WHITE, fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{title}</div>
-        <div style={{ color: MUTED, fontSize: 13 }}>Coming soon in the mobile experience</div>
+        <div style={{ color: MUTED, fontSize: 14 }}>Coming soon in the mobile experience</div>
       </div>
     </div>
   );
@@ -33,6 +27,11 @@ function PlaceholderScreen({ title }) {
 export default function MobileLayout({
   session, profile, orgData, notifications, notifReads,
   onMarkNotifRead, onMarkAllNotifsRead, onSignOut,
+  // Phase 2 props
+  flights, onUpdateFlight, onSubmitFRAT,
+  fleetAircraft, fratTemplate, allFratTemplates, riskLevels,
+  nudgeFlight, onNudgeSubmitReport, onNudgeDismiss,
+  reportPrefill, setReportPrefill,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -71,9 +70,34 @@ export default function MobileLayout({
   const renderContent = () => {
     switch (activeTab) {
       case "flights":
-        return <PlaceholderScreen title="Flights" />;
+        return (
+          <MobileFlightsView
+            flights={flights}
+            profile={profile}
+            onUpdateFlight={onUpdateFlight}
+            onNewFrat={() => setActiveTab("newFrat")}
+            onNavigateToReports={() => setActiveTab("reports")}
+            onNudgeSubmitReport={() => {
+              if (onNudgeSubmitReport) onNudgeSubmitReport();
+              setActiveTab("reports");
+            }}
+            onNudgeDismiss={onNudgeDismiss}
+            nudgeFlight={nudgeFlight}
+          />
+        );
       case "newFrat":
-        return <PlaceholderScreen title="New FRAT" />;
+        return (
+          <MobileFRATWizard
+            profile={profile}
+            fleetAircraft={fleetAircraft}
+            fratTemplate={fratTemplate}
+            allTemplates={allFratTemplates}
+            riskLevels={riskLevels}
+            onSubmit={onSubmitFRAT}
+            onCancel={() => setActiveTab("flights")}
+            onNavigateToFlights={() => setActiveTab("flights")}
+          />
+        );
       case "reports":
         return <PlaceholderScreen title="Safety Reports" />;
       case "training":
