@@ -160,7 +160,7 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
     <div style={{ padding: "0 16px 24px" }}>
       {/* Report Type — 2x2 grid */}
       <label style={{ display: "block", color: OFF_WHITE, fontSize: 14, fontWeight: 600, marginBottom: 8 }}>What are you reporting?</label>
-      {errors.reportType && <div style={{ color: RED, fontSize: 13, marginBottom: 6 }}>{errors.reportType}</div>}
+      {errors.reportType && <div style={{ color: RED, fontSize: 14, marginBottom: 6 }}>{errors.reportType}</div>}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
         {REPORT_TYPES.map(rt => {
           const selected = form.reportType === rt.id;
@@ -184,7 +184,7 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
                 {rt.icon}
               </svg>
               <span style={{ color: selected ? rt.color : OFF_WHITE, fontSize: 14, fontWeight: 600 }}>{rt.label}</span>
-              <span style={{ color: MUTED, fontSize: 12, lineHeight: 1.3 }}>{rt.desc}</span>
+              <span style={{ color: MUTED, fontSize: 14, lineHeight: 1.3 }}>{rt.desc}</span>
             </button>
           );
         })}
@@ -241,7 +241,7 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
                     </svg>
                   )}
                 </div>
-                <span style={{ fontSize: 11, color: selected ? s.color : MUTED, fontWeight: selected ? 700 : 500 }}>{s.label}</span>
+                <span style={{ fontSize: 14, color: selected ? s.color : MUTED, fontWeight: selected ? 700 : 500 }}>{s.label}</span>
               </button>
             );
           })}
@@ -255,7 +255,7 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
       }}>
         <div>
           <div style={{ color: OFF_WHITE, fontSize: 15, fontWeight: 500 }}>Submit anonymously</div>
-          <div style={{ color: MUTED, fontSize: 13, marginTop: 2, lineHeight: 1.4 }}>
+          <div style={{ color: MUTED, fontSize: 14, marginTop: 2, lineHeight: 1.4 }}>
             Your identity will be hidden from everyone except the Safety Manager
           </div>
         </div>
@@ -389,11 +389,11 @@ function ReportListCard({ report, expanded, onToggle }) {
               </div>
             </div>
           </div>
-          <span style={{ color: MUTED, fontSize: 13, flexShrink: 0 }}>{dateStr}</span>
+          <span style={{ color: MUTED, fontSize: 14, flexShrink: 0 }}>{dateStr}</span>
         </div>
 
         {/* Meta line */}
-        <div style={{ color: MUTED, fontSize: 13, marginTop: 4, marginLeft: 14 }}>
+        <div style={{ color: MUTED, fontSize: 14, marginTop: 4, marginLeft: 14 }}>
           {report.category ? titleCase(report.category) : ""}
           {report.location ? ` · ${report.location}` : ""}
           {report.anonymous ? " · Anonymous" : ""}
@@ -422,7 +422,7 @@ function ReportListCard({ report, expanded, onToggle }) {
               padding: 12, borderRadius: 8, marginTop: 8,
               background: "rgba(167,139,250,0.06)", border: "1px solid rgba(167,139,250,0.2)",
             }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#A78BFA", marginBottom: 4 }}>Action Being Taken</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#A78BFA", marginBottom: 4 }}>Action Being Taken</div>
               <div style={{ fontSize: 14, color: OFF_WHITE, lineHeight: 1.5 }}>{report.investigation_notes}</div>
             </div>
           )}
@@ -441,7 +441,7 @@ function Badge({ label, color }) {
   return (
     <span style={{
       display: "inline-block", padding: "2px 8px", borderRadius: 8,
-      background: `${color}16`, color, fontSize: 12, fontWeight: 600,
+      background: `${color}16`, color, fontSize: 14, fontWeight: 600,
       border: `1px solid ${color}30`,
     }}>
       {label}
@@ -463,7 +463,7 @@ function Field({ label, children, error }) {
     <div style={{ marginBottom: 14 }}>
       <label style={{ display: "block", color: OFF_WHITE, fontSize: 14, marginBottom: 6 }}>{label}</label>
       {children}
-      {error && <div style={{ color: RED, fontSize: 13, marginTop: 4 }}>{error}</div>}
+      {error && <div role="alert" style={{ color: RED, fontSize: 14, marginTop: 4 }}>{error}</div>}
     </div>
   );
 }
@@ -598,7 +598,7 @@ export default function MobileReportsView({
           <EmptyState />
         ) : (
           <>
-            <div style={{ color: MUTED, fontSize: 13, fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <div style={{ color: MUTED, fontSize: 14, fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               My Reports ({myReports.length})
             </div>
             {myReports.map(r => (

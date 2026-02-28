@@ -153,11 +153,11 @@ function NotificationItem({ notif, isRead, onMarkRead }) {
         }}>{notif.title}</div>
         {notif.body && (
           <div style={{
-            fontSize: 13, color: MUTED, lineHeight: 1.4,
+            fontSize: 14, color: MUTED, lineHeight: 1.4,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>{notif.body}</div>
         )}
-        <div style={{ fontSize: 12, color: MUTED, marginTop: 4, opacity: 0.7 }}>{timeAgo(notif.created_at)}</div>
+        <div style={{ fontSize: 14, color: MUTED, marginTop: 4, opacity: 0.7 }}>{timeAgo(notif.created_at)}</div>
       </div>
 
       {/* Unread dot */}
@@ -222,10 +222,10 @@ export default function MobileNotificationsView({
           display: "flex", justifyContent: "space-between", alignItems: "center",
           padding: "10px 16px", borderBottom: `1px solid ${BORDER}`,
         }}>
-          <span style={{ fontSize: 13, color: MUTED }}>{unreadCount} unread</span>
-          <button onClick={onMarkAllNotifsRead} style={{
-            background: "none", border: "none", color: CYAN, fontSize: 13, fontWeight: 600,
-            cursor: "pointer", padding: "4px 8px", fontFamily: "inherit",
+          <span style={{ fontSize: 14, color: MUTED }}>{unreadCount} unread</span>
+          <button onClick={onMarkAllNotifsRead} aria-label="Mark all notifications as read" style={{
+            background: "none", border: "none", color: CYAN, fontSize: 14, fontWeight: 600,
+            cursor: "pointer", padding: "8px 12px", fontFamily: "inherit", minHeight: 44,
           }}>Mark All Read</button>
         </div>
       )}
@@ -233,7 +233,7 @@ export default function MobileNotificationsView({
       {grouped.map(group => (
         <div key={group.day}>
           <div style={{
-            padding: "12px 16px 6px", fontSize: 12, fontWeight: 600,
+            padding: "12px 16px 6px", fontSize: 14, fontWeight: 600,
             color: MUTED, textTransform: "uppercase", letterSpacing: 0.5,
           }}>{group.day}</div>
           {group.items.map(n => (

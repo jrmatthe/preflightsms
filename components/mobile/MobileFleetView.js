@@ -11,6 +11,20 @@ const CYAN = "#22D3EE";
 
 const cardStyle = { background: CARD, borderRadius: 12, border: `1px solid ${BORDER}` };
 
+function SkeletonLoader() {
+  return (
+    <div style={{ padding: 16 }} aria-label="Loading fleet data">
+      <style>{`@keyframes fleetPulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>
+      {[1, 2, 3].map(i => (
+        <div key={i} style={{ ...cardStyle, padding: 16, marginBottom: 10, animation: "fleetPulse 1.5s ease-in-out infinite" }}>
+          <div style={{ height: 20, width: "40%", background: BORDER, borderRadius: 6, marginBottom: 8 }} />
+          <div style={{ height: 14, width: "60%", background: BORDER, borderRadius: 6 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function EmptyState() {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px", textAlign: "center" }}>
@@ -29,10 +43,15 @@ function AircraftCard({ aircraft }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <button onClick={() => setExpanded(!expanded)} style={{
-      ...cardStyle, padding: 16, width: "100%", textAlign: "left", cursor: "pointer",
-      fontFamily: "inherit", display: "block", marginBottom: 10,
-    }}>
+    <button
+      onClick={() => setExpanded(!expanded)}
+      aria-expanded={expanded}
+      aria-label={`${aircraft.registration || "N/A"}, ${aircraft.type || "Unknown Type"}${expanded ? ", collapse details" : ", expand details"}`}
+      style={{
+        ...cardStyle, padding: 16, width: "100%", textAlign: "left", cursor: "pointer",
+        fontFamily: "inherit", display: "block", marginBottom: 10,
+      }}
+    >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <div style={{ fontSize: 20, fontWeight: 700, color: WHITE, letterSpacing: 0.5 }}>
@@ -44,7 +63,7 @@ function AircraftCard({ aircraft }) {
           </div>
         </div>
         <div style={{
-          padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+          padding: "4px 10px", borderRadius: 8, fontSize: 14, fontWeight: 600,
           background: `${GREEN}16`, color: GREEN, border: `1px solid ${GREEN}30`,
         }}>Active</div>
       </div>
@@ -54,32 +73,32 @@ function AircraftCard({ aircraft }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {aircraft.serial_number && (
               <div>
-                <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Serial Number</div>
+                <div style={{ fontSize: 14, color: MUTED, marginBottom: 2 }}>Serial Number</div>
                 <div style={{ fontSize: 14, color: OFF_WHITE }}>{aircraft.serial_number}</div>
               </div>
             )}
             {aircraft.year && (
               <div>
-                <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Year</div>
+                <div style={{ fontSize: 14, color: MUTED, marginBottom: 2 }}>Year</div>
                 <div style={{ fontSize: 14, color: OFF_WHITE }}>{aircraft.year}</div>
               </div>
             )}
             {aircraft.max_passengers != null && (
               <div>
-                <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Max Passengers</div>
+                <div style={{ fontSize: 14, color: MUTED, marginBottom: 2 }}>Max Passengers</div>
                 <div style={{ fontSize: 14, color: OFF_WHITE }}>{aircraft.max_passengers}</div>
               </div>
             )}
             {aircraft.base_location && (
               <div>
-                <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Base</div>
+                <div style={{ fontSize: 14, color: MUTED, marginBottom: 2 }}>Base</div>
                 <div style={{ fontSize: 14, color: OFF_WHITE }}>{aircraft.base_location}</div>
               </div>
             )}
           </div>
           {aircraft.notes && (
             <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Notes</div>
+              <div style={{ fontSize: 14, color: MUTED, marginBottom: 2 }}>Notes</div>
               <div style={{ fontSize: 14, color: OFF_WHITE, lineHeight: 1.5 }}>{aircraft.notes}</div>
             </div>
           )}
@@ -90,13 +109,14 @@ function AircraftCard({ aircraft }) {
 }
 
 export default function MobileFleetView({ fleetAircraft }) {
-  const aircraft = fleetAircraft || [];
+  if (fleetAircraft === undefined || fleetAircraft === null) return <SkeletonLoader />;
 
+  const aircraft = fleetAircraft || [];
   if (aircraft.length === 0) return <EmptyState />;
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ fontSize: 13, color: MUTED, marginBottom: 12 }}>
+      <div style={{ fontSize: 14, color: MUTED, marginBottom: 12 }}>
         {aircraft.length} aircraft in fleet
       </div>
       {aircraft.map(a => <AircraftCard key={a.id} aircraft={a} />)}

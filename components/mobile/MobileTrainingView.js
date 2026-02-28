@@ -92,7 +92,7 @@ function SegmentedControl({ options, value, onChange }) {
           {opt.badge > 0 && (
             <span style={{
               display: "inline-block", marginLeft: 6, padding: "1px 6px", borderRadius: 8,
-              fontSize: 11, fontWeight: 700,
+              fontSize: 14, fontWeight: 700,
               background: opt.badgeColor === "red" ? `${RED}22` : `${AMBER}22`,
               color: opt.badgeColor === "red" ? RED : AMBER,
             }}>{opt.badge}</span>
@@ -143,13 +143,13 @@ function CourseCard({ course, lessons, progress, enrollment, trainingStatus, pro
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 16, fontWeight: 600, color: WHITE, marginBottom: 4, lineHeight: 1.3 }}>{course.title}</div>
-          <div style={{ fontSize: 13, color: MUTED }}>
+          <div style={{ fontSize: 14, color: MUTED }}>
             {catLabel} {course.estimated_minutes ? `\u00B7 ${course.estimated_minutes} min` : ""}
           </div>
         </div>
         {statusBadge && (
           <span style={{
-            padding: "3px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600, flexShrink: 0,
+            padding: "3px 8px", borderRadius: 8, fontSize: 14, fontWeight: 600, flexShrink: 0,
             background: statusBadge.bg, color: statusBadge.color, border: `1px solid ${statusBadge.border}`,
           }}>{statusBadge.label}</span>
         )}
@@ -159,7 +159,7 @@ function CourseCard({ course, lessons, progress, enrollment, trainingStatus, pro
         <div style={{ flex: 1 }}>
           <ProgressBar pct={pct} />
         </div>
-        <span style={{ fontSize: 12, fontWeight: 600, color: isComplete ? GREEN : MUTED, flexShrink: 0 }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: isComplete ? GREEN : MUTED, flexShrink: 0 }}>
           {completedCount}/{lessonCount}
         </span>
       </div>
@@ -213,13 +213,13 @@ function ComplianceItem({ record, requirement, onTap }) {
         <div style={{ fontSize: 15, fontWeight: 600, color: WHITE, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {record.title}
         </div>
-        <div style={{ fontSize: 12, color: MUTED }}>
+        <div style={{ fontSize: 14, color: MUTED }}>
           {record.completed_date ? `Completed ${new Date(record.completed_date).toLocaleDateString()}` : "Not completed"}
           {daysText && ` \u00B7 ${daysText}`}
         </div>
       </div>
       <span style={{
-        padding: "3px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600, flexShrink: 0,
+        padding: "3px 8px", borderRadius: 8, fontSize: 14, fontWeight: 600, flexShrink: 0,
         background: `${statusColor}16`, color: statusColor, border: `1px solid ${statusColor}30`,
       }}>{statusLabel}</span>
     </button>
@@ -248,7 +248,7 @@ function LessonStepper({ lessons, progress, profile, onStartLesson }) {
                 {isComplete ? (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                 ) : (
-                  <span style={{ color: MUTED, fontSize: 13, fontWeight: 700 }}>{i + 1}</span>
+                  <span style={{ color: MUTED, fontSize: 14, fontWeight: 700 }}>{i + 1}</span>
                 )}
               </div>
               {!isLast && (
@@ -262,7 +262,7 @@ function LessonStepper({ lessons, progress, profile, onStartLesson }) {
               cursor: "pointer", fontFamily: "inherit", display: "block", width: "100%",
             }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: WHITE, marginBottom: 4 }}>{lesson.title}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: MUTED }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: MUTED }}>
                 {(lesson.content_blocks || []).length > 0 && (
                   <span>{(lesson.content_blocks || []).length} section{(lesson.content_blocks || []).length !== 1 ? "s" : ""}</span>
                 )}
@@ -294,7 +294,7 @@ function LessonContentView({ lesson, course, progress, onComplete, onBack, onSta
 
       <div style={{ padding: 16 }}>
         {/* Course breadcrumb */}
-        <div style={{ fontSize: 12, color: CYAN, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16 }}>
+        <div style={{ fontSize: 14, color: CYAN, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 16 }}>
           {course?.title}
         </div>
 
@@ -340,7 +340,7 @@ function LessonContentView({ lesson, course, progress, onComplete, onBack, onSta
                   padding: 16, background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 10,
                   marginBottom: 14, textAlign: "center",
                 }}>
-                  <div style={{ fontSize: 13, color: MUTED }}>Invalid video URL</div>
+                  <div style={{ fontSize: 14, color: MUTED }}>Invalid video URL</div>
                 </div>
               );
             }
@@ -362,7 +362,7 @@ function LessonContentView({ lesson, course, progress, onComplete, onBack, onSta
                 Lesson completed
               </div>
               {progress?.quiz_score != null && (
-                <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>Quiz score: {progress.quiz_score}%</div>
+                <div style={{ fontSize: 14, color: MUTED, marginTop: 4 }}>Quiz score: {progress.quiz_score}%</div>
               )}
             </div>
           ) : hasQuiz ? (
@@ -459,7 +459,7 @@ function QuizView({ lesson, course, onComplete, onBack }) {
           <div style={{ fontSize: 15, color: MUTED, marginBottom: 8 }}>
             {correctCount} of {total} correct
           </div>
-          <div style={{ fontSize: 13, color: MUTED, marginBottom: 32 }}>
+          <div style={{ fontSize: 14, color: MUTED, marginBottom: 32 }}>
             {passed ? "Great work! This lesson is now complete." : `You need ${passingScore}% to pass. Review the material and try again.`}
           </div>
 
@@ -485,7 +485,7 @@ function QuizView({ lesson, course, onComplete, onBack }) {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: WHITE, marginBottom: 4 }}>Q{i + 1}. {q.question}</div>
                       {!correct && (
-                        <div style={{ fontSize: 13, color: MUTED }}>
+                        <div style={{ fontSize: 14, color: MUTED }}>
                           Your answer: {q.options[userAnswer]} {"\u00B7"} Correct: {q.options[q.correct]}
                         </div>
                       )}
@@ -494,7 +494,7 @@ function QuizView({ lesson, course, onComplete, onBack }) {
                   {q.explanation && (
                     <div style={{
                       marginTop: 8, padding: "8px 10px", background: `${CYAN}08`, borderRadius: 6,
-                      fontSize: 13, color: MUTED, lineHeight: 1.5,
+                      fontSize: 14, color: MUTED, lineHeight: 1.5,
                     }}>{q.explanation}</div>
                   )}
                 </div>
@@ -611,7 +611,7 @@ function QuizView({ lesson, course, onComplete, onBack }) {
             padding: "14px 16px", background: `${CYAN}08`, border: `1px solid ${CYAN}22`,
             borderRadius: 10, marginBottom: 24, borderLeft: `3px solid ${CYAN}`,
           }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: CYAN, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Explanation</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: CYAN, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>Explanation</div>
             <div style={{ fontSize: 14, color: OFF_WHITE, lineHeight: 1.6 }}>{q.explanation}</div>
           </div>
         )}
@@ -649,10 +649,10 @@ function CourseDetailView({ course, lessons, progress, enrollment, profile, onSt
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <span style={{
-              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, textTransform: "uppercase",
+              padding: "2px 8px", borderRadius: 6, fontSize: 14, fontWeight: 700, textTransform: "uppercase",
               background: `${GREEN}22`, color: GREEN,
             }}>Published</span>
-            <span style={{ fontSize: 12, color: MUTED }}>{catLabel} {course.estimated_minutes ? `\u00B7 ${course.estimated_minutes} min` : ""}</span>
+            <span style={{ fontSize: 14, color: MUTED }}>{catLabel} {course.estimated_minutes ? `\u00B7 ${course.estimated_minutes} min` : ""}</span>
           </div>
           <div style={{ fontSize: 22, fontWeight: 700, color: WHITE, lineHeight: 1.3, marginBottom: 8 }}>{course.title}</div>
           {course.description && (
@@ -664,23 +664,23 @@ function CourseDetailView({ course, lessons, progress, enrollment, profile, onSt
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 20 }}>
           <div style={{ ...cardStyle, padding: 12, textAlign: "center" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: WHITE }}>{lessonCount}</div>
-            <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>Lessons</div>
+            <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>Lessons</div>
           </div>
           <div style={{ ...cardStyle, padding: 12, textAlign: "center" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: isComplete ? GREEN : CYAN }}>{completedCount}/{lessonCount}</div>
-            <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>Progress</div>
+            <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>Progress</div>
           </div>
           <div style={{ ...cardStyle, padding: 12, textAlign: "center" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: WHITE }}>{course.passing_score || 80}%</div>
-            <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>To Pass</div>
+            <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>To Pass</div>
           </div>
         </div>
 
         {/* Progress bar */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontSize: 13, color: MUTED }}>Overall Progress</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: isComplete ? GREEN : WHITE }}>{pct}%</span>
+            <span style={{ fontSize: 14, color: MUTED }}>Overall Progress</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: isComplete ? GREEN : WHITE }}>{pct}%</span>
           </div>
           <ProgressBar pct={pct} height={8} />
         </div>
@@ -695,7 +695,7 @@ function CourseDetailView({ course, lessons, progress, enrollment, profile, onSt
               <circle cx="12" cy="8" r="6"/><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/>
             </svg>
             <div style={{ fontSize: 14, fontWeight: 600, color: GREEN, marginBottom: 2 }}>Course Complete</div>
-            <div style={{ fontSize: 12, color: MUTED }}>Certificate: {enrollment.certificate_number}</div>
+            <div style={{ fontSize: 14, color: MUTED }}>Certificate: {enrollment.certificate_number}</div>
           </div>
         )}
 
@@ -961,7 +961,7 @@ export default function MobileTrainingView({
     <div ref={scrollRef} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* Pull-to-refresh indicator */}
       {refreshing && (
-        <div style={{ textAlign: "center", padding: "12px 0", color: CYAN, fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: "12px 0", color: CYAN, fontSize: 14 }}>
           Refreshing...
         </div>
       )}
@@ -987,7 +987,7 @@ export default function MobileTrainingView({
                   {complianceStats.expired > 0 && complianceStats.expiring > 0 ? ", " : ""}
                   {complianceStats.expiring > 0 ? `${complianceStats.expiring} expiring soon` : ""}
                 </div>
-                <div style={{ fontSize: 12, color: MUTED }}>
+                <div style={{ fontSize: 14, color: MUTED }}>
                   {segment === "courses" ? "Tap My Compliance to see details" : "Complete required courses to stay current"}
                 </div>
               </div>
@@ -1050,7 +1050,7 @@ export default function MobileTrainingView({
                       ...cardStyle, flex: 1, padding: "10px 8px", textAlign: "center",
                     }}>
                       <div style={{ fontSize: 20, fontWeight: 700, color: s.count > 0 ? s.color : MUTED }}>{s.count}</div>
-                      <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</div>
+                      <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</div>
                     </div>
                   ))}
                 </div>

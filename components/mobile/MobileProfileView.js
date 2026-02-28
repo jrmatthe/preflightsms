@@ -61,14 +61,14 @@ export default function MobileProfileView({ profile, orgData, onSignOut }) {
         </div>
         <span style={{
           display: "inline-block", padding: "4px 12px", borderRadius: 8,
-          fontSize: 12, fontWeight: 600, background: `${CYAN}16`, color: CYAN,
+          fontSize: 14, fontWeight: 600, background: `${CYAN}16`, color: CYAN,
           border: `1px solid ${CYAN}30`,
         }}>{roleLabel}</span>
       </div>
 
       {/* Organization */}
       <div style={{ ...cardStyle, padding: 16, marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Organization</div>
+        <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Organization</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {orgData?.logo_url ? (
             <img src={orgData.logo_url} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "contain", background: BLACK }} />
@@ -83,14 +83,14 @@ export default function MobileProfileView({ profile, orgData, onSignOut }) {
           )}
           <div>
             <div style={{ fontSize: 16, fontWeight: 600, color: WHITE }}>{orgName}</div>
-            {orgData?.slug && <div style={{ fontSize: 12, color: MUTED }}>{orgData.slug}</div>}
+            {orgData?.slug && <div style={{ fontSize: 14, color: MUTED }}>{orgData.slug}</div>}
           </div>
         </div>
       </div>
 
       {/* Account info */}
       <div style={{ ...cardStyle, marginBottom: 16, overflow: "hidden" }}>
-        <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, padding: "12px 16px 6px" }}>Account</div>
+        <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, padding: "12px 16px 6px" }}>Account</div>
         {[
           { label: "Full Name", value: profile?.full_name },
           { label: "Email", value: profile?.email },

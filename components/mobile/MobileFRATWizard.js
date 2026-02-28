@@ -212,7 +212,7 @@ function StepIndicator({ current, total }) {
           transition: "all 0.2s",
         }} />
       ))}
-      <span style={{ color: MUTED, fontSize: 13, marginLeft: 8 }}>Step {current + 1} of {total}</span>
+      <span style={{ color: MUTED, fontSize: 14, marginLeft: 8 }}>Step {current + 1} of {total}</span>
     </div>
   );
 }
@@ -382,7 +382,7 @@ function StepWeather({ wxData, wxAnalysis, wxLoading, wxError }) {
               <div style={{ color: WHITE, fontSize: 16, fontWeight: 700 }}>{s.station}</div>
               <span style={{
                 padding: "3px 10px", borderRadius: 10, background: `${frColor}18`,
-                color: frColor, fontSize: 12, fontWeight: 700, border: `1px solid ${frColor}33`,
+                color: frColor, fontSize: 14, fontWeight: 700, border: `1px solid ${frColor}33`,
               }}>
                 {s.flight_rules}
               </span>
@@ -401,7 +401,7 @@ function StepWeather({ wxData, wxAnalysis, wxLoading, wxError }) {
                 {s.hazards.map((h, hi) => (
                   <span key={hi} style={{
                     padding: "3px 10px", borderRadius: 10, background: `${h.color}18`,
-                    color: h.color, fontSize: 12, fontWeight: 600, border: `1px solid ${h.color}33`,
+                    color: h.color, fontSize: 14, fontWeight: 600, border: `1px solid ${h.color}33`,
                   }}>
                     {h.label}
                   </span>
@@ -413,14 +413,14 @@ function StepWeather({ wxData, wxAnalysis, wxLoading, wxError }) {
             {s.raw && (
               <div style={{ marginTop: 10 }}>
                 <button onClick={() => setShowRaw(p => ({ ...p, [s.station + i]: !isRawOpen }))} style={{
-                  background: "none", border: "none", color: CYAN, fontSize: 13, cursor: "pointer", padding: 0,
+                  background: "none", border: "none", color: CYAN, fontSize: 14, cursor: "pointer", padding: "4px 0", minHeight: 44,
                 }}>
                   {isRawOpen ? "Hide" : "View"} Raw METAR
                 </button>
                 {isRawOpen && (
                   <div style={{
                     marginTop: 6, padding: 10, background: BLACK, borderRadius: 6,
-                    fontSize: 13, color: MUTED, fontFamily: "monospace", wordBreak: "break-all", lineHeight: 1.5,
+                    fontSize: 14, color: MUTED, fontFamily: "monospace", wordBreak: "break-all", lineHeight: 1.5,
                   }}>
                     {s.raw}
                   </div>
@@ -499,7 +499,7 @@ function StepRiskAssessment({ categories, checked, setChecked, autoFlags, riskLe
                 <span style={{ color: WHITE, fontSize: 15, fontWeight: 600 }}>{cat.name}</span>
                 {checkedCount > 0 && (
                   <span style={{
-                    background: `${rl.color}22`, color: rl.color, fontSize: 11, fontWeight: 700,
+                    background: `${rl.color}22`, color: rl.color, fontSize: 14, fontWeight: 700,
                     padding: "2px 8px", borderRadius: 8,
                   }}>
                     +{catScore}
@@ -533,14 +533,14 @@ function StepRiskAssessment({ categories, checked, setChecked, autoFlags, riskLe
                           {isAuto && (
                             <span style={{
                               marginLeft: 6, padding: "1px 6px", borderRadius: 4,
-                              background: `${CYAN}22`, color: CYAN, fontSize: 10, fontWeight: 700,
+                              background: `${CYAN}22`, color: CYAN, fontSize: 14, fontWeight: 700,
                             }}>
                               AUTO
                             </span>
                           )}
                         </div>
                       </div>
-                      <span style={{ color: MUTED, fontSize: 13, fontWeight: 600, flexShrink: 0 }}>+{f.score}</span>
+                      <span style={{ color: MUTED, fontSize: 14, fontWeight: 600, flexShrink: 0 }}>+{f.score}</span>
                     </label>
                   );
                 })}
@@ -594,7 +594,7 @@ function StepReview({ fi, fuelUnit, checked, categories, riskLevels, wxAnalysis,
             <div style={{ color: rl.color, fontSize: 14, fontWeight: 600, marginTop: 2 }}>{rl.label}</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ color: rl.color, fontSize: 13, opacity: 0.8 }}>{rl.action}</div>
+            <div style={{ color: rl.color, fontSize: 14, opacity: 0.8 }}>{rl.action}</div>
           </div>
         </div>
       </div>
@@ -640,7 +640,7 @@ function StepReview({ fi, fuelUnit, checked, categories, riskLevels, wxAnalysis,
           {checkedFactors.map(f => (
             <div key={f.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${LIGHT_BORDER}` }}>
               <span style={{ color: OFF_WHITE, fontSize: 14 }}>{f.label}</span>
-              <span style={{ color: MUTED, fontSize: 13, flexShrink: 0 }}>+{f.score}</span>
+              <span style={{ color: MUTED, fontSize: 14, flexShrink: 0 }}>+{f.score}</span>
             </div>
           ))}
         </div>
@@ -664,7 +664,7 @@ function Field({ label, children, error }) {
     <div style={{ marginBottom: 14 }}>
       <label style={{ display: "block", color: OFF_WHITE, fontSize: 14, marginBottom: 6 }}>{label}</label>
       {children}
-      {error && <div style={{ color: RED, fontSize: 13, marginTop: 4 }}>{error}</div>}
+      {error && <div role="alert" style={{ color: RED, fontSize: 14, marginTop: 4 }}>{error}</div>}
     </div>
   );
 }
@@ -902,17 +902,23 @@ export default function MobileFRATWizard({
   if (submitted) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 120px)", padding: 24, textAlign: "center" }}>
+        <style>{`
+          @keyframes successPop { 0% { transform: scale(0.3); opacity: 0 } 60% { transform: scale(1.1) } 100% { transform: scale(1); opacity: 1 } }
+          @keyframes successFade { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
+          @keyframes checkDraw { from { stroke-dashoffset: 24 } to { stroke-dashoffset: 0 } }
+        `}</style>
         <div style={{
           width: 64, height: 64, borderRadius: "50%", background: `${GREEN}18`,
           display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16,
           border: `2px solid ${GREEN}44`,
+          animation: "successPop 0.4s ease-out",
         }}>
           <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
+            <polyline points="20 6 9 17 4 12" style={{ strokeDasharray: 24, animation: "checkDraw 0.4s ease-out 0.2s both" }}/>
           </svg>
         </div>
-        <div style={{ color: WHITE, fontSize: 20, fontWeight: 700, marginBottom: 6 }}>FRAT Submitted</div>
-        <div style={{ color: MUTED, fontSize: 14 }}>Your flight plan has been created</div>
+        <div style={{ color: WHITE, fontSize: 20, fontWeight: 700, marginBottom: 6, animation: "successFade 0.3s ease-out 0.3s both" }}>FRAT Submitted</div>
+        <div style={{ color: MUTED, fontSize: 14, animation: "successFade 0.3s ease-out 0.4s both" }}>Your flight plan has been created</div>
       </div>
     );
   }

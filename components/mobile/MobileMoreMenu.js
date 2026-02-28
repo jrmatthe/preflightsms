@@ -124,7 +124,7 @@ export default function MobileMoreMenu({
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" }}>
               <div>
                 <div style={{ color: MUTED, fontSize: 14, marginBottom: 4 }}>{SUB_VIEW_TITLES[subView] || subView}</div>
-                <div style={{ color: MUTED, fontSize: 12, opacity: 0.6 }}>Coming soon</div>
+                <div style={{ color: MUTED, fontSize: 14, opacity: 0.6 }}>Coming soon</div>
               </div>
             </div>
           );
@@ -145,7 +145,7 @@ export default function MobileMoreMenu({
           display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
           borderBottom: `1px solid ${BORDER}`,
         }}>
-          <button onClick={onBack} style={{
+          <button onClick={onBack} aria-label="Back to menu" style={{
             background: "none", border: "none", cursor: "pointer", color: WHITE,
             padding: 4, display: "flex", alignItems: "center",
             minWidth: 44, minHeight: 44,
@@ -167,43 +167,49 @@ export default function MobileMoreMenu({
       {SECTIONS.map(section => (
         <div key={section.label}>
           <div style={{
-            padding: "16px 16px 6px", fontSize: 11, fontWeight: 600,
+            padding: "16px 16px 6px", fontSize: 14, fontWeight: 600,
             color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em",
           }}>
             {section.label}
           </div>
-          {section.items.map(item => (
+          {section.items.map(item => {
+            const ariaLabel = item.showBadge && unreadCount > 0
+              ? `${item.label}, ${unreadCount} unread`
+              : item.label;
+            return (
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
+              aria-label={ariaLabel}
               style={{
-                width: "100%", height: 48, display: "flex", alignItems: "center",
+                width: "100%", minHeight: 48, display: "flex", alignItems: "center",
                 gap: 12, padding: "0 16px", background: "none", border: "none",
                 cursor: "pointer", textAlign: "left",
               }}
             >
-              <span style={{ color: MUTED, display: "flex", alignItems: "center" }}>
+              <span aria-hidden="true" style={{ color: MUTED, display: "flex", alignItems: "center" }}>
                 {menuIcons[item.icon]}
               </span>
               <span style={{ flex: 1, color: OFF_WHITE, fontSize: 15 }}>
                 {item.label}
               </span>
               {item.showBadge && unreadCount > 0 && (
-                <span style={{
+                <span aria-hidden="true" style={{
                   minWidth: 20, height: 20, borderRadius: 10,
                   background: RED, color: WHITE,
-                  fontSize: 10, fontWeight: 700,
+                  fontSize: 14, fontWeight: 700,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   padding: "0 6px",
                 }}>
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
-              <span style={{ color: MUTED, opacity: 0.4, display: "flex", alignItems: "center" }}>
+              <span aria-hidden="true" style={{ color: MUTED, opacity: 0.4, display: "flex", alignItems: "center" }}>
                 {chevron}
               </span>
             </button>
-          ))}
+            );
+          })}
         </div>
       ))}
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import MobileHeader from "./MobileHeader";
 import MobileTabBar from "./MobileTabBar";
 import MobileMoreMenu from "./MobileMoreMenu";
@@ -6,11 +6,13 @@ import MobileFlightsView from "./MobileFlightsView";
 import MobileFRATWizard from "./MobileFRATWizard";
 import MobileReportsView from "./MobileReportsView";
 import MobileTrainingView from "./MobileTrainingView";
+import { getQueueCount } from "../../lib/offlineQueue";
 
 const DARK = "#111111";
 const MUTED = "#666666";
 const WHITE = "#FFFFFF";
 const BORDER = "#232323";
+const AMBER = "#F59E0B";
 
 function PlaceholderScreen({ title }) {
   return (
@@ -47,6 +49,31 @@ export default function MobileLayout({
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [tabOpacity, setTabOpacity] = useState(1);
+  const prevTabRef = useRef("flights");
+
+  // Online/offline detection
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    setIsOnline(navigator.onLine);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+
+  // Poll offline queue count
+  useEffect(() => {
+    const check = () => setPendingCount(getQueueCount());
+    check();
+    const id = setInterval(check, 5000);
+    return () => clearInterval(id);
+  }, []);
 
   const unreadCount = useMemo(() => {
     if (!notifications) return 0;
@@ -65,8 +92,14 @@ export default function MobileLayout({
   }, [notifications, notifReads, profile]);
 
   const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-    if (tabId !== "more") setMoreSubView(null);
+    if (tabId === activeTab) return;
+    prevTabRef.current = activeTab;
+    setTabOpacity(0);
+    setTimeout(() => {
+      setActiveTab(tabId);
+      if (tabId !== "more") setMoreSubView(null);
+      setTabOpacity(1);
+    }, 100);
   };
 
   const handleBellTap = () => {
@@ -184,10 +217,35 @@ export default function MobileLayout({
         onInitialsTap={handleInitialsTap}
       />
 
+      {/* Offline banner */}
+      {(!isOnline || pendingCount > 0) && (
+        <div role="status" aria-live="polite" style={{
+          position: "fixed", top: 56, left: 0, right: 0, zIndex: 999,
+          background: `${AMBER}18`, borderBottom: `1px solid ${AMBER}40`,
+          padding: "8px 16px", display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={AMBER} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {!isOnline ? (
+              <><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0119 12.55"/><path d="M5 12.55a10.94 10.94 0 015.17-2.39"/><path d="M10.71 5.05A16 16 0 0122.56 9"/><path d="M1.42 9a15.91 15.91 0 014.7-2.88"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></>
+            ) : (
+              <><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>
+            )}
+          </svg>
+          <span style={{ fontSize: 14, color: AMBER, fontWeight: 500 }}>
+            {!isOnline
+              ? "You're offline — changes will sync when reconnected"
+              : `${pendingCount} pending change${pendingCount !== 1 ? "s" : ""} syncing...`}
+          </span>
+        </div>
+      )}
+
       {/* Content area — scrollable, between header and tab bar */}
       <div style={{
-        paddingTop: 56, paddingBottom: 64,
+        paddingTop: (!isOnline || pendingCount > 0) ? 56 + 36 : 56,
+        paddingBottom: 64,
         minHeight: "100vh", overflowY: "auto",
+        opacity: tabOpacity,
+        transition: "opacity 0.15s ease-in-out",
       }}>
         {renderContent()}
       </div>

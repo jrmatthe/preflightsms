@@ -103,8 +103,12 @@ function ArrivalSheet({ flight, onConfirm, onCancel }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-      <div onClick={onCancel} style={{ flex: 1, background: "rgba(0,0,0,0.6)" }} />
-      <div style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))" }}>
+      <style>{`
+        @keyframes arrBackdropIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes arrSlideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+      `}</style>
+      <div onClick={onCancel} aria-hidden="true" style={{ flex: 1, background: "rgba(0,0,0,0.6)", animation: "arrBackdropIn 0.2s ease-out" }} />
+      <div role="dialog" aria-label="Mark flight arrived" style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", animation: "arrSlideUp 0.25s ease-out" }}>
         <div style={{ width: 36, height: 4, background: BORDER, borderRadius: 2, margin: "0 auto 16px" }} />
         <div style={{ color: WHITE, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
           Mark Arrived
@@ -134,7 +138,7 @@ function ArrivalSheet({ flight, onConfirm, onCancel }) {
             onClick={() => setFuelUnit(u => u === "lbs" ? "hrs" : "lbs")}
             style={{
               padding: "0 14px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8,
-              color: OFF_WHITE, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+              color: OFF_WHITE, fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
             }}
           >
             {fuelUnit.toUpperCase()}
@@ -167,18 +171,21 @@ function PostFlightNudge({ onFileReport, onDismiss }) {
       background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
       padding: 16, display: "flex", alignItems: "center", gap: 12,
       boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+      animation: "nudgeSlideIn 0.3s ease-out",
     }}>
+      <style>{`@keyframes nudgeSlideIn { from { transform: translateY(30px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
       <div style={{ flex: 1 }}>
         <div style={{ color: WHITE, fontSize: 14, fontWeight: 600, marginBottom: 2 }}>Notice anything worth reporting?</div>
-        <div style={{ color: MUTED, fontSize: 13 }}>Help keep your operation safe</div>
+        <div style={{ color: MUTED, fontSize: 14 }}>Help keep your operation safe</div>
       </div>
-      <button onClick={onFileReport} style={{
-        padding: "8px 14px", background: WHITE, color: BLACK, border: "none",
-        borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+      <button onClick={onFileReport} aria-label="File a safety report" style={{
+        padding: "10px 14px", background: WHITE, color: BLACK, border: "none",
+        borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+        minHeight: 44,
       }}>
         File Report
       </button>
-      <button onClick={onDismiss} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", padding: 4 }}>
+      <button onClick={onDismiss} aria-label="Dismiss" style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", padding: 8, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
@@ -271,7 +278,7 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
           background: CYAN, display: "flex", alignItems: "center", justifyContent: "center",
           borderRadius: "0 12px 12px 0",
         }}>
-          <div style={{ color: BLACK, fontSize: 12, fontWeight: 700, textAlign: "center" }}>
+          <div style={{ color: BLACK, fontSize: 14, fontWeight: 700, textAlign: "center" }}>
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             <div>Arrive</div>
           </div>
@@ -280,6 +287,9 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
 
       <div
         onClick={onToggle}
+        role="button"
+        aria-expanded={expanded}
+        aria-label={`Flight ${flight.departure || "????"} to ${flight.destination || "????"}, ${displayStatus}`}
         style={{
           ...cardStyle,
           padding: 16, border: `1px solid ${borderColor}`, cursor: "pointer",
@@ -302,7 +312,7 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
           <span style={{
             display: "inline-block", padding: "4px 10px", borderRadius: 10,
             background: `${statusColor}18`, color: statusColor,
-            fontSize: 11, fontWeight: 700, letterSpacing: "0.03em", whiteSpace: "nowrap",
+            fontSize: 14, fontWeight: 700, letterSpacing: "0.03em", whiteSpace: "nowrap",
             border: `1px solid ${statusColor}33`,
           }}>
             {displayStatus}
@@ -317,7 +327,7 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
         )}
 
         {/* Time info */}
-        <div style={{ display: "flex", gap: 16, color: MUTED, fontSize: 13 }}>
+        <div style={{ display: "flex", gap: 16, color: MUTED, fontSize: 14 }}>
           {flight.etd && <span>ETD {flight.etd}</span>}
           {flight.eta && <span>ETA {formatTime(flight.eta)}</span>}
           {isArrived && flight.arrivedAt && <span>Arrived {formatTime(flight.arrivedAt)}</span>}
@@ -325,8 +335,8 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
 
         {/* Swipe hint for active flights */}
         {canArrive && !expanded && (
-          <div style={{ color: MUTED, fontSize: 11, marginTop: 6, opacity: 0.5 }}>
-            ← Swipe to mark arrived
+          <div style={{ color: MUTED, fontSize: 14, marginTop: 6, opacity: 0.5 }}>
+            \u2190 Swipe to mark arrived
           </div>
         )}
 
@@ -372,7 +382,7 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
 function DetailRow({ label, value }) {
   return (
     <div>
-      <div style={{ color: MUTED, fontSize: 12, marginBottom: 1 }}>{label}</div>
+      <div style={{ color: MUTED, fontSize: 14, marginBottom: 1 }}>{label}</div>
       <div style={{ color: OFF_WHITE, fontSize: 14 }}>{value}</div>
     </div>
   );
@@ -546,24 +556,26 @@ export default function MobileFlightsView({
       )}
       {refreshing && (
         <div style={{ display: "flex", justifyContent: "center", padding: 8 }}>
-          <div style={{ color: MUTED, fontSize: 13 }}>Refreshing...</div>
+          <div style={{ color: MUTED, fontSize: 14 }}>Refreshing...</div>
         </div>
       )}
 
       {/* Filter pills */}
-      <div style={{ padding: "12px 16px 8px", display: "flex", gap: 8, overflowX: "auto" }}>
+      <div role="radiogroup" aria-label="Filter flights" style={{ padding: "12px 16px 8px", display: "flex", gap: 8, overflowX: "auto" }}>
         {FILTERS.map(f => (
           <button
             key={f.id}
+            role="radio"
+            aria-checked={filter === f.id}
             onClick={() => setFilter(f.id)}
             style={{
-              padding: "7px 16px", borderRadius: 20,
+              padding: "10px 16px", borderRadius: 20,
               background: filter === f.id ? WHITE : "transparent",
               color: filter === f.id ? BLACK : MUTED,
               border: filter === f.id ? "none" : `1px solid ${BORDER}`,
               fontSize: 14, fontWeight: filter === f.id ? 700 : 500,
               cursor: "pointer", whiteSpace: "nowrap",
-              minHeight: 36,
+              minHeight: 44,
             }}
           >
             {f.label}{f.id === "active" && activeCount > 0 ? ` (${activeCount})` : ""}

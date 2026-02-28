@@ -76,15 +76,15 @@ function PolicyDetail({ policy, profile, onAcknowledge, onBack }) {
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <span style={{
-              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, textTransform: "uppercase",
+              padding: "2px 8px", borderRadius: 6, fontSize: 14, fontWeight: 700, textTransform: "uppercase",
               background: `${GREEN}22`, color: GREEN,
             }}>{policy.status || "active"}</span>
-            <span style={{ fontSize: 12, color: MUTED }}>{catLabel}</span>
-            {policy.version && <span style={{ fontSize: 12, color: MUTED }}>{"\u00B7"} v{policy.version}</span>}
+            <span style={{ fontSize: 14, color: MUTED }}>{catLabel}</span>
+            {policy.version && <span style={{ fontSize: 14, color: MUTED }}>{"\u00B7"} v{policy.version}</span>}
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: WHITE, lineHeight: 1.3, marginBottom: 6 }}>{policy.title}</div>
           {policy.effective_date && (
-            <div style={{ fontSize: 13, color: MUTED }}>Effective: {formatDate(policy.effective_date)}</div>
+            <div style={{ fontSize: 14, color: MUTED }}>Effective: {formatDate(policy.effective_date)}</div>
           )}
         </div>
 
@@ -135,7 +135,7 @@ function PolicyDetail({ policy, profile, onAcknowledge, onBack }) {
             </svg>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: CYAN }}>{policy.file_name || "Download Attachment"}</div>
-              <div style={{ fontSize: 12, color: MUTED }}>Tap to open</div>
+              <div style={{ fontSize: 14, color: MUTED }}>Tap to open</div>
             </div>
           </a>
         )}
@@ -196,7 +196,7 @@ export default function MobilePoliciesView({ policies, profile, onAcknowledgePol
         </div>
       )}
 
-      <div style={{ fontSize: 13, color: MUTED, marginBottom: 10 }}>
+      <div style={{ fontSize: 14, color: MUTED, marginBottom: 10 }}>
         {activePolicies.length} active polic{activePolicies.length !== 1 ? "ies" : "y"}
       </div>
 
@@ -206,14 +206,14 @@ export default function MobilePoliciesView({ policies, profile, onAcknowledgePol
         const formatDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
 
         return (
-          <button key={policy.id} onClick={() => setSelectedPolicy(policy)} style={{
+          <button key={policy.id} onClick={() => setSelectedPolicy(policy)} aria-label={`${policy.title}${isAcked ? ", acknowledged" : ", action required"}`} style={{
             ...cardStyle, padding: 14, width: "100%", textAlign: "left", cursor: "pointer",
             fontFamily: "inherit", display: "flex", alignItems: "center", gap: 12, marginBottom: 10,
             borderLeft: `3px solid ${isAcked ? GREEN : YELLOW}`,
           }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: WHITE, marginBottom: 4, lineHeight: 1.3 }}>{policy.title}</div>
-              <div style={{ fontSize: 12, color: MUTED }}>
+              <div style={{ fontSize: 14, color: MUTED }}>
                 {catLabel}
                 {policy.effective_date && ` \u00B7 ${formatDate(policy.effective_date)}`}
               </div>
@@ -228,7 +228,7 @@ export default function MobilePoliciesView({ policies, profile, onAcknowledgePol
               </div>
             ) : (
               <span style={{
-                padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, flexShrink: 0,
+                padding: "3px 8px", borderRadius: 6, fontSize: 14, fontWeight: 600, flexShrink: 0,
                 background: `${YELLOW}16`, color: YELLOW, border: `1px solid ${YELLOW}30`,
               }}>Action Required</span>
             )}

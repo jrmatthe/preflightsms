@@ -52,14 +52,16 @@ export default function MobileHeader({ profile, orgData, notifications, notifRea
       </div>
 
       {/* Right: Bell + Initials */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {/* Notification bell */}
         <button
           onClick={onBellTap}
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
           style={{
             position: "relative", background: "none", border: "none",
-            cursor: "pointer", color: MUTED, padding: 6,
-            display: "flex", alignItems: "center",
+            cursor: "pointer", color: MUTED,
+            width: 44, height: 44,
+            display: "flex", alignItems: "center", justifyContent: "center",
           }}
         >
           <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -67,11 +69,11 @@ export default function MobileHeader({ profile, orgData, notifications, notifRea
             <path d="M13.73 21a2 2 0 01-3.46 0"/>
           </svg>
           {unreadCount > 0 && (
-            <span style={{
-              position: "absolute", top: 2, right: 2,
+            <span aria-hidden="true" style={{
+              position: "absolute", top: 6, right: 4,
               minWidth: 16, height: 16, borderRadius: 8,
               background: RED, color: WHITE,
-              fontSize: 9, fontWeight: 700,
+              fontSize: 10, fontWeight: 700,
               display: "flex", alignItems: "center", justifyContent: "center",
               padding: "0 4px", lineHeight: 1,
             }}>
@@ -83,10 +85,11 @@ export default function MobileHeader({ profile, orgData, notifications, notifRea
         {/* User initials */}
         <button
           onClick={onInitialsTap}
+          aria-label="Profile and settings"
           style={{
-            width: 32, height: 32, borderRadius: "50%",
+            width: 36, height: 36, borderRadius: "50%",
             background: CARD, border: `1px solid ${BORDER}`,
-            color: OFF_WHITE, fontSize: 12, fontWeight: 700,
+            color: OFF_WHITE, fontSize: 14, fontWeight: 700,
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer",
           }}

@@ -93,7 +93,7 @@ function PlanDetail({ plan, onLoadChecklist, onLoadCallTree, onBack }) {
           )}
           <div style={{
             display: "inline-block", marginTop: 8, padding: "3px 10px", borderRadius: 8,
-            fontSize: 12, fontWeight: 600, background: `${cat.color}16`, color: cat.color,
+            fontSize: 14, fontWeight: 600, background: `${cat.color}16`, color: cat.color,
             border: `1px solid ${cat.color}30`,
           }}>{cat.label}</div>
         </div>
@@ -129,7 +129,7 @@ function PlanDetail({ plan, onLoadChecklist, onLoadCallTree, onBack }) {
                       background: item.is_critical ? `${RED}22` : BLACK,
                       border: `1px solid ${item.is_critical ? RED : BORDER}`,
                       color: item.is_critical ? RED : MUTED,
-                      fontSize: 13, fontWeight: 700,
+                      fontSize: 14, fontWeight: 700,
                     }}>{i + 1}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 15, color: WHITE, lineHeight: 1.5, fontWeight: 500 }}>
@@ -138,25 +138,25 @@ function PlanDetail({ plan, onLoadChecklist, onLoadCallTree, onBack }) {
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
                         {item.responsible_role && (
                           <span style={{
-                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                            padding: "2px 8px", borderRadius: 6, fontSize: 14, fontWeight: 600,
                             background: `${CYAN}16`, color: CYAN, border: `1px solid ${CYAN}30`,
                           }}>{item.responsible_role}</span>
                         )}
                         {item.time_target && (
                           <span style={{
-                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                            padding: "2px 8px", borderRadius: 6, fontSize: 14, fontWeight: 600,
                             background: `${AMBER}16`, color: AMBER, border: `1px solid ${AMBER}30`,
                           }}>{item.time_target}</span>
                         )}
                         {item.is_critical && (
                           <span style={{
-                            padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            padding: "2px 8px", borderRadius: 6, fontSize: 14, fontWeight: 700,
                             background: `${RED}22`, color: RED, border: `1px solid ${RED}40`,
                           }}>CRITICAL</span>
                         )}
                       </div>
                       {item.notes && (
-                        <div style={{ fontSize: 13, color: MUTED, marginTop: 6, lineHeight: 1.4 }}>{item.notes}</div>
+                        <div style={{ fontSize: 14, color: MUTED, marginTop: 6, lineHeight: 1.4 }}>{item.notes}</div>
                       )}
                     </div>
                   </div>
@@ -182,28 +182,28 @@ function PlanDetail({ plan, onLoadChecklist, onLoadCallTree, onBack }) {
                       width: 28, height: 28, borderRadius: 14, flexShrink: 0,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       background: BLACK, border: `1px solid ${BORDER}`,
-                      color: MUTED, fontSize: 12, fontWeight: 700,
+                      color: MUTED, fontSize: 14, fontWeight: 700,
                     }}>{i + 1}</div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: WHITE }}>{contact.contact_name}</div>
-                      <div style={{ fontSize: 13, color: MUTED }}>
+                      <div style={{ fontSize: 14, color: MUTED }}>
                         {contact.contact_role}
                         {contact.is_external && (
                           <span style={{
                             marginLeft: 6, padding: "1px 6px", borderRadius: 4,
-                            fontSize: 10, background: `${MUTED}22`, color: MUTED,
+                            fontSize: 14, background: `${MUTED}22`, color: MUTED,
                           }}>External</span>
                         )}
                       </div>
                       {contact.notes && (
-                        <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{contact.notes}</div>
+                        <div style={{ fontSize: 14, color: MUTED, marginTop: 2 }}>{contact.notes}</div>
                       )}
                     </div>
 
                     {/* Phone — tappable */}
                     {contact.phone_primary && (
-                      <a href={`tel:${contact.phone_primary.replace(/[^+\d]/g, "")}`} onClick={e => e.stopPropagation()} style={{
+                      <a href={`tel:${contact.phone_primary.replace(/[^+\d]/g, "")}`} aria-label={`Call ${contact.contact_name}`} onClick={e => e.stopPropagation()} style={{
                         display: "flex", alignItems: "center", justifyContent: "center",
                         width: 44, height: 44, borderRadius: 22, flexShrink: 0,
                         background: `${GREEN}16`, border: `1px solid ${GREEN}30`,
@@ -245,13 +245,13 @@ export default function MobileERPView({ erpPlans, onLoadChecklist, onLoadCallTre
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ fontSize: 13, color: MUTED, marginBottom: 12 }}>
+      <div style={{ fontSize: 14, color: MUTED, marginBottom: 12 }}>
         {plans.length} emergency plan{plans.length !== 1 ? "s" : ""}
       </div>
       {plans.map(plan => {
         const cat = ERP_CATEGORIES[plan.category] || ERP_CATEGORIES.general;
         return (
-          <button key={plan.id} onClick={() => setSelectedPlan(plan)} style={{
+          <button key={plan.id} onClick={() => setSelectedPlan(plan)} aria-label={`${plan.name}, ${cat.label}`} style={{
             ...cardStyle, padding: 16, width: "100%", textAlign: "left", cursor: "pointer",
             fontFamily: "inherit", display: "flex", alignItems: "center", gap: 14,
             marginBottom: 10, borderLeft: `3px solid ${cat.color}`,
@@ -259,7 +259,7 @@ export default function MobileERPView({ erpPlans, onLoadChecklist, onLoadCallTre
             <div style={{ fontSize: 28, flexShrink: 0 }}>{cat.icon}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 16, fontWeight: 600, color: WHITE, marginBottom: 2 }}>{plan.name}</div>
-              <div style={{ fontSize: 13, color: MUTED }}>{cat.label}</div>
+              <div style={{ fontSize: 14, color: MUTED }}>{cat.label}</div>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4, flexShrink: 0 }}>
               <polyline points="9 18 15 12 9 6"/>

@@ -29,12 +29,12 @@ const TABS = [
 
 export default function MobileTabBar({ activeTab, onTabChange, unreadCount }) {
   return (
-    <nav style={{
+    <nav aria-label="Main navigation" style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1000,
       background: BLACK, borderTop: `1px solid ${BORDER}`,
       paddingBottom: "env(safe-area-inset-bottom, 0px)",
     }}>
-      <div style={{ display: "flex", justifyContent: "space-evenly", alignItems: "center" }}>
+      <div role="tablist" style={{ display: "flex", justifyContent: "space-evenly", alignItems: "center" }}>
         {TABS.map(tab => {
           const isActive = activeTab === tab.id;
           const isFrat = tab.id === "newFrat";
@@ -49,25 +49,33 @@ export default function MobileTabBar({ activeTab, onTabChange, unreadCount }) {
             color = MUTED;
           }
 
+          const ariaLabel = isMore && unreadCount > 0
+            ? `${tab.label}, ${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
+            : tab.label;
+
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={ariaLabel}
               onClick={() => onTabChange(tab.id)}
               style={{
                 flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-                gap: 2, padding: "8px 4px 6px", background: "none", border: "none",
+                gap: 2, padding: "10px 4px 8px", background: "none", border: "none",
                 cursor: "pointer", color, opacity: isActive || isFrat ? 1 : 0.6,
                 transition: "color 0.15s, opacity 0.15s", position: "relative",
+                minHeight: 48,
               }}
             >
               <span style={{ display: "flex", alignItems: "center", position: "relative" }}>
                 {icons[tab.icon]}
                 {isMore && unreadCount > 0 && (
-                  <span style={{
+                  <span aria-hidden="true" style={{
                     position: "absolute", top: -4, right: -8,
                     minWidth: 16, height: 16, borderRadius: 8,
                     background: RED, color: WHITE,
-                    fontSize: 9, fontWeight: 700,
+                    fontSize: 10, fontWeight: 700,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     padding: "0 4px", lineHeight: 1,
                   }}>
@@ -75,7 +83,7 @@ export default function MobileTabBar({ activeTab, onTabChange, unreadCount }) {
                   </span>
                 )}
               </span>
-              <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500 }}>{tab.label}</span>
+              <span aria-hidden="true" style={{ fontSize: 11, fontWeight: isActive ? 700 : 500 }}>{tab.label}</span>
             </button>
           );
         })}

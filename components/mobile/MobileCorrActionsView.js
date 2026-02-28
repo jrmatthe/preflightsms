@@ -19,6 +19,23 @@ const STATUS_COLORS = { open: CYAN, in_progress: YELLOW, completed: GREEN, overd
 const STATUS_LABELS = { open: "Open", in_progress: "In Progress", completed: "Completed", overdue: "Overdue", cancelled: "Cancelled" };
 const PRIORITY_LABELS = { low: "Low", medium: "Medium", high: "High", critical: "Critical" };
 
+function SkeletonLoader() {
+  return (
+    <div style={{ padding: 16 }} aria-label="Loading corrective actions">
+      <style>{`@keyframes actPulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>
+      {[1, 2, 3].map(i => (
+        <div key={i} style={{ ...cardStyle, padding: 14, marginBottom: 10, borderLeft: `3px solid ${BORDER}`, animation: "actPulse 1.5s ease-in-out infinite" }}>
+          <div style={{ height: 16, width: "65%", background: BORDER, borderRadius: 6, marginBottom: 10 }} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ height: 22, width: 60, background: BORDER, borderRadius: 6 }} />
+            <div style={{ height: 22, width: 80, background: BORDER, borderRadius: 6 }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function EmptyState() {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px", textAlign: "center" }}>
@@ -46,32 +63,38 @@ function StatusSheet({ action, onUpdate, onClose }) {
 
   return (
     <>
+      <style>{`
+        @keyframes sheetBackdropIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes sheetSlideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+      `}</style>
       {/* Backdrop */}
-      <div onClick={onClose} style={{
+      <div onClick={onClose} aria-hidden="true" style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 999,
+        animation: "sheetBackdropIn 0.2s ease-out",
       }} />
       {/* Sheet */}
-      <div style={{
+      <div role="dialog" aria-label="Update action status" style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1000,
         background: CARD, borderTop: `1px solid ${BORDER}`,
         borderRadius: "16px 16px 0 0", padding: "20px 16px",
         paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+        animation: "sheetSlideUp 0.25s ease-out",
       }}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: BORDER, margin: "0 auto 16px" }} />
+        <div aria-hidden="true" style={{ width: 36, height: 4, borderRadius: 2, background: BORDER, margin: "0 auto 16px" }} />
         <div style={{ fontSize: 16, fontWeight: 600, color: WHITE, marginBottom: 16, textAlign: "center" }}>Update Status</div>
 
         {statuses.map(s => {
           const color = STATUS_COLORS[s];
           const isCurrent = action.status === s;
           return (
-            <button key={s} onClick={() => handleSelect(s)} style={{
+            <button key={s} onClick={() => handleSelect(s)} aria-label={`Set status to ${STATUS_LABELS[s]}${isCurrent ? ", current status" : ""}`} style={{
               width: "100%", padding: "14px 16px", borderRadius: 10, marginBottom: 8,
               display: "flex", alignItems: "center", gap: 12,
               background: isCurrent ? `${color}12` : "transparent",
               border: `1px solid ${isCurrent ? color : BORDER}`,
-              cursor: "pointer", fontFamily: "inherit",
+              cursor: "pointer", fontFamily: "inherit", minHeight: 48,
             }}>
-              <div style={{
+              <div aria-hidden="true" style={{
                 width: 12, height: 12, borderRadius: 6, background: color, flexShrink: 0,
               }} />
               <span style={{ fontSize: 15, fontWeight: 600, color: isCurrent ? color : OFF_WHITE, flex: 1, textAlign: "left" }}>
@@ -90,6 +113,7 @@ function StatusSheet({ action, onUpdate, onClose }) {
           width: "100%", padding: "14px 0", borderRadius: 10, marginTop: 4,
           background: "transparent", border: `1px solid ${BORDER}`,
           color: MUTED, fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+          minHeight: 48,
         }}>Cancel</button>
       </div>
     </>
@@ -116,25 +140,30 @@ function ActionCard({ action, hazards, onUpdateAction }) {
 
   return (
     <>
-      <button onClick={() => setExpanded(!expanded)} style={{
-        ...cardStyle, padding: 0, width: "100%", textAlign: "left", cursor: "pointer",
-        fontFamily: "inherit", display: "block", marginBottom: 10, overflow: "hidden",
-        borderLeft: `3px solid ${isOverdue ? RED : priorityColor}`,
-      }}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-label={`${action.title}, ${priorityLabel} priority, ${isOverdue ? "overdue" : statusLabel}`}
+        style={{
+          ...cardStyle, padding: 0, width: "100%", textAlign: "left", cursor: "pointer",
+          fontFamily: "inherit", display: "block", marginBottom: 10, overflow: "hidden",
+          borderLeft: `3px solid ${isOverdue ? RED : priorityColor}`,
+        }}
+      >
         <div style={{ padding: 14 }}>
           <div style={{ fontSize: 15, fontWeight: 600, color: WHITE, marginBottom: 8, lineHeight: 1.3 }}>{action.title}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
             <span style={{
-              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              padding: "2px 8px", borderRadius: 6, fontSize: 14, fontWeight: 600,
               background: `${priorityColor}16`, color: priorityColor, border: `1px solid ${priorityColor}30`,
             }}>{priorityLabel}</span>
             <span style={{
-              padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+              padding: "2px 8px", borderRadius: 6, fontSize: 14, fontWeight: 600,
               background: `${isOverdue ? RED : statusColor}16`, color: isOverdue ? RED : statusColor,
               border: `1px solid ${isOverdue ? RED : statusColor}30`,
             }}>{isOverdue ? "Overdue" : statusLabel}</span>
             {action.due_date && (
-              <span style={{ fontSize: 12, color: isOverdue ? RED : MUTED, fontWeight: isOverdue ? 600 : 400 }}>
+              <span style={{ fontSize: 14, color: isOverdue ? RED : MUTED, fontWeight: isOverdue ? 600 : 400 }}>
                 Due {formatDate(action.due_date)}
               </span>
             )}
@@ -145,25 +174,25 @@ function ActionCard({ action, hazards, onUpdateAction }) {
           <div style={{ padding: "0 14px 14px", borderTop: `1px solid ${BORDER}` }}>
             {action.description && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Description</div>
+                <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Description</div>
                 <div style={{ fontSize: 14, color: OFF_WHITE, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{action.description}</div>
               </div>
             )}
 
             {linkedHazard && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Linked Investigation</div>
+                <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Linked Investigation</div>
                 <div style={{
                   padding: "8px 10px", borderRadius: 8, background: BLACK, border: `1px solid ${BORDER}`,
-                  fontSize: 13, color: OFF_WHITE,
+                  fontSize: 14, color: OFF_WHITE,
                 }}>
-                  {linkedHazard.hazard_code ? `${linkedHazard.hazard_code} — ` : ""}{linkedHazard.title}
+                  {linkedHazard.hazard_code ? `${linkedHazard.hazard_code} \u2014 ` : ""}{linkedHazard.title}
                 </div>
               </div>
             )}
 
             {action.action_code && (
-              <div style={{ marginTop: 10, fontSize: 12, color: MUTED }}>Code: {action.action_code}</div>
+              <div style={{ marginTop: 10, fontSize: 14, color: MUTED }}>Code: {action.action_code}</div>
             )}
 
             {/* Update Status button */}
@@ -171,7 +200,7 @@ function ActionCard({ action, hazards, onUpdateAction }) {
               <button onClick={(e) => { e.stopPropagation(); setShowSheet(true); }} style={{
                 width: "100%", padding: "14px 0", borderRadius: 10, marginTop: 14,
                 background: WHITE, color: BLACK, fontSize: 15, fontWeight: 600,
-                border: "none", cursor: "pointer", fontFamily: "inherit",
+                border: "none", cursor: "pointer", fontFamily: "inherit", minHeight: 48,
               }}>
                 Update Status
               </button>
@@ -193,6 +222,8 @@ function ActionCard({ action, hazards, onUpdateAction }) {
 
 // ── MAIN VIEW ────────────────────────────────────────────────
 export default function MobileCorrActionsView({ actions, hazards, profile, onUpdateAction }) {
+  if (actions === undefined || actions === null) return <SkeletonLoader />;
+
   // Only show actions assigned to current user
   const myActions = useMemo(() => {
     return (actions || []).filter(a => a.assigned_to === profile?.id);
@@ -220,7 +251,7 @@ export default function MobileCorrActionsView({ actions, hazards, profile, onUpd
   return (
     <div style={{ padding: 16 }}>
       {overdueCount > 0 && (
-        <div style={{
+        <div role="alert" style={{
           ...cardStyle, padding: 12, marginBottom: 14,
           borderColor: `${RED}44`, background: `${RED}06`,
           display: "flex", alignItems: "center", gap: 10,
@@ -232,7 +263,7 @@ export default function MobileCorrActionsView({ actions, hazards, profile, onUpd
         </div>
       )}
 
-      <div style={{ fontSize: 13, color: MUTED, marginBottom: 10 }}>
+      <div style={{ fontSize: 14, color: MUTED, marginBottom: 10 }}>
         {sorted.length} action{sorted.length !== 1 ? "s" : ""} assigned to you
       </div>
 
