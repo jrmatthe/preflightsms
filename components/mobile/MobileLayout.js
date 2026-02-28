@@ -4,6 +4,7 @@ import MobileTabBar from "./MobileTabBar";
 import MobileMoreMenu from "./MobileMoreMenu";
 import MobileFlightsView from "./MobileFlightsView";
 import MobileFRATWizard from "./MobileFRATWizard";
+import MobileReportsView from "./MobileReportsView";
 
 const DARK = "#111111";
 const MUTED = "#666666";
@@ -32,6 +33,8 @@ export default function MobileLayout({
   fleetAircraft, fratTemplate, allFratTemplates, riskLevels,
   nudgeFlight, onNudgeSubmitReport, onNudgeDismiss,
   reportPrefill, setReportPrefill,
+  // Phase 3 props
+  reports, onSubmitReport,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -99,7 +102,17 @@ export default function MobileLayout({
           />
         );
       case "reports":
-        return <PlaceholderScreen title="Safety Reports" />;
+        return (
+          <MobileReportsView
+            reports={reports}
+            profile={profile}
+            session={session}
+            onSubmitReport={onSubmitReport}
+            fleetAircraft={fleetAircraft}
+            reportPrefill={reportPrefill}
+            onClearPrefill={() => { if (setReportPrefill) setReportPrefill(null); }}
+          />
+        );
       case "training":
         return <PlaceholderScreen title="Training" />;
       case "more":
