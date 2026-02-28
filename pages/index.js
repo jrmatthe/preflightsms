@@ -4966,7 +4966,7 @@ a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 .signup-plan-grid{grid-template-columns:1fr !important}
 .admin-org-grid{grid-template-columns:1fr !important}
 .admin-tabs{overflow-x:auto !important;flex-wrap:nowrap !important;-webkit-overflow-scrolling:touch}
-.admin-tabs button{white-space:nowrap !important}
+.admin-tabs button{white-space:nowrap !important;flex-shrink:0 !important;min-width:auto !important;min-height:auto !important;padding:6px 12px !important;font-size:11px !important}
 .admin-toggle{min-height:22px !important;min-width:40px !important}
 .admin-toggle-sm{min-height:20px !important;min-width:36px !important}
 .plan-feature-grid{grid-template-columns:1fr !important}
