@@ -1065,7 +1065,99 @@ function SafetyMetrics({ reports, hazards, actions }) {
 // ════════════════════════════════════════════════════════════════
 // FLEET STATUS TAB
 // ════════════════════════════════════════════════════════════════
-function FleetStatusView({ flights, fleetAircraft, fleetStatusFields }) {
+function FleetStatusRow({ ac, columns, fields, onUpdateStatus }) {
+  const [editing, setEditing] = useState(false);
+  const [editLocation, setEditLocation] = useState(ac.last_location || "");
+  const [editParking, setEditParking] = useState(ac.parking_spot || "");
+  const [editFuel, setEditFuel] = useState(ac.fuel_remaining || "");
+  const [editFuelUnit, setEditFuelUnit] = useState(ac.fuel_unit || "lbs");
+  const [saving, setSaving] = useState(false);
+
+  const hasData = ac.last_location || ac.parking_spot || ac.fuel_remaining;
+
+  const handleSave = async () => {
+    if (!onUpdateStatus) return;
+    setSaving(true);
+    await onUpdateStatus(ac.id, {
+      last_location: editLocation.trim(),
+      parking_spot: editParking.trim(),
+      fuel_remaining: editFuel.trim(),
+      fuel_unit: editFuelUnit,
+    });
+    setSaving(false);
+    setEditing(false);
+  };
+
+  const handleStartEdit = () => {
+    setEditLocation(ac.last_location || "");
+    setEditParking(ac.parking_spot || "");
+    setEditFuel(ac.fuel_remaining || "");
+    setEditFuelUnit(ac.fuel_unit || "lbs");
+    setEditing(true);
+  };
+
+  const inlineInput = { padding: "4px 8px", borderRadius: 4, fontSize: 12, color: WHITE, background: NEAR_BLACK, border: `1px solid ${BORDER}`, fontFamily: "inherit", width: "100%" };
+
+  if (editing) {
+    return (
+      <Fragment>
+        {columns.map(c => {
+          if (c.key === "tailNumber") return <div key={c.key} style={{ padding: "8px 0", color: CYAN, fontWeight: 700 }}>{ac.registration}</div>;
+          if (c.key === "type") return <div key={c.key} style={{ padding: "8px 0", color: OFF_WHITE }}>{ac.type}</div>;
+          if (c.key === "location") return (
+            <div key={c.key} style={{ padding: "4px 0", display: "flex", gap: 4 }}>
+              <input value={editLocation} onChange={e => setEditLocation(e.target.value.toUpperCase())} placeholder="ICAO" style={{ ...inlineInput, flex: 2 }} />
+              <input value={editParking} onChange={e => setEditParking(e.target.value)} placeholder="Spot" style={{ ...inlineInput, flex: 1 }} />
+            </div>
+          );
+          if (c.key === "fuel") return (
+            <div key={c.key} style={{ padding: "4px 0", display: "flex", gap: 4 }}>
+              <input value={editFuel} onChange={e => setEditFuel(e.target.value)} placeholder="Amt" inputMode="decimal" style={{ ...inlineInput, flex: 1 }} />
+              <button onClick={() => setEditFuelUnit(u => u === "lbs" ? "gal" : u === "gal" ? "hrs" : "lbs")} style={{ padding: "4px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${CYAN}12`, color: CYAN, border: `1px solid ${CYAN}30`, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{editFuelUnit}</button>
+            </div>
+          );
+          if (c.key === "updated") return (
+            <div key={c.key} style={{ padding: "4px 0", display: "flex", gap: 4 }}>
+              <button onClick={handleSave} disabled={saving} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, background: CYAN, color: BLACK, border: "none", cursor: saving ? "wait" : "pointer", fontFamily: "inherit" }}>{saving ? "..." : "Save"}</button>
+              <button onClick={() => setEditing(false)} style={{ padding: "4px 8px", borderRadius: 4, fontSize: 11, color: MUTED, background: "transparent", border: `1px solid ${BORDER}`, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            </div>
+          );
+          return <div key={c.key} style={{ padding: "8px 0" }} />;
+        })}
+      </Fragment>
+    );
+  }
+
+  return (
+    <Fragment>
+      {columns.map(c => {
+        if (c.key === "tailNumber") return <div key={c.key} style={{ padding: "8px 0", color: CYAN, fontWeight: 700 }}>{ac.registration}</div>;
+        if (c.key === "type") return <div key={c.key} style={{ padding: "8px 0", color: OFF_WHITE }}>{ac.type}</div>;
+        if (c.key === "location") return (
+          <div key={c.key} style={{ padding: "8px 0", color: hasData ? OFF_WHITE : MUTED, fontStyle: hasData ? "normal" : "italic", cursor: onUpdateStatus ? "pointer" : "default" }} onClick={onUpdateStatus ? handleStartEdit : undefined} title={onUpdateStatus ? "Click to edit" : undefined}>
+            {ac.last_location ? `${ac.last_location}${ac.parking_spot ? ` / ${ac.parking_spot}` : ""}` : "No recent data"}
+          </div>
+        );
+        if (c.key === "fuel") return (
+          <div key={c.key} style={{ padding: "8px 0", color: ac.fuel_remaining ? OFF_WHITE : MUTED, cursor: onUpdateStatus ? "pointer" : "default" }} onClick={onUpdateStatus ? handleStartEdit : undefined} title={onUpdateStatus ? "Click to edit" : undefined}>
+            {ac.fuel_remaining ? `${ac.fuel_remaining} ${ac.fuel_unit || "lbs"}` : hasData ? "\u2014" : ""}
+          </div>
+        );
+        if (c.key === "updated") return (
+          <div key={c.key} style={{ padding: "8px 0", color: MUTED, display: "flex", alignItems: "center", gap: 6 }}>
+            {ac.status_updated_at ? timeAgo(ac.status_updated_at) : ""}
+            {onUpdateStatus && (
+              <button onClick={handleStartEdit} title="Edit status" style={{ padding: "2px 6px", borderRadius: 4, fontSize: 10, color: CYAN, background: "transparent", border: `1px solid ${CYAN}30`, cursor: "pointer", fontFamily: "inherit", opacity: 0.7 }}>Edit</button>
+            )}
+          </div>
+        );
+        return <div key={c.key} style={{ padding: "8px 0" }} />;
+      })}
+    </Fragment>
+  );
+}
+
+function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus }) {
   const fields = fleetStatusFields || { tailNumber: true, type: true, location: true, fuel: true, updated: true };
   const columns = [
     { key: "tailNumber", label: "Tail #" },
@@ -1075,23 +1167,29 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields }) {
     { key: "updated", label: "Updated" },
   ].filter(c => fields[c.key] !== false);
 
+  // Read status from aircraft table fields directly
   const fleetStatus = useMemo(() => {
     const fleet = fleetAircraft || [];
     if (fleet.length === 0) return [];
     return fleet.map(ac => {
-      const arrived = flights
-        .filter(f => f.tailNumber === ac.registration && f.status === "ARRIVED" && !f.cancelled)
-        .sort((a, b) => new Date(b.arrivedAt || b.timestamp) - new Date(a.arrivedAt || a.timestamp));
-      const last = arrived[0];
-      return {
-        registration: ac.registration,
-        type: ac.type || "",
-        lastLocation: last ? last.destination : null,
-        parkingSpot: last ? last.parkingSpot : null,
-        fuelRemaining: last ? last.fuelRemaining : null,
-        fuelUnit: last ? (last.fuelUnit || "lbs") : null,
-        lastUpdated: last ? (last.arrivedAt || last.timestamp) : null,
-      };
+      // Fallback: if aircraft record has no status fields, check flights
+      if (!ac.last_location && !ac.parking_spot && !ac.fuel_remaining) {
+        const arrived = (flights || [])
+          .filter(f => f.tailNumber === ac.registration && f.status === "ARRIVED" && !f.cancelled)
+          .sort((a, b) => new Date(b.arrivedAt || b.timestamp) - new Date(a.arrivedAt || a.timestamp));
+        const last = arrived[0];
+        if (last) {
+          return {
+            ...ac,
+            last_location: last.destination || "",
+            parking_spot: last.parkingSpot || "",
+            fuel_remaining: last.fuelRemaining || "",
+            fuel_unit: last.fuelUnit || "lbs",
+            status_updated_at: last.arrivedAt || last.timestamp,
+          };
+        }
+      }
+      return ac;
     });
   }, [fleetAircraft, flights]);
 
@@ -1105,16 +1203,6 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields }) {
 
   const colCount = columns.length;
 
-  const valueFor = (ac, key) => {
-    const hasData = ac.lastLocation;
-    if (key === "tailNumber") return { text: ac.registration, color: CYAN, bold: true };
-    if (key === "type") return { text: ac.type, color: OFF_WHITE };
-    if (key === "location") return hasData ? { text: `${ac.lastLocation}${ac.parkingSpot ? ` / ${ac.parkingSpot}` : ""}`, color: OFF_WHITE } : { text: "No recent data", color: MUTED, italic: true };
-    if (key === "fuel") return hasData ? { text: ac.fuelRemaining ? `${ac.fuelRemaining} ${ac.fuelUnit}` : "\u2014", color: OFF_WHITE } : { text: "", color: MUTED };
-    if (key === "updated") return hasData ? { text: timeAgo(ac.lastUpdated), color: MUTED } : { text: "", color: MUTED };
-    return { text: "", color: MUTED };
-  };
-
   return (
     <div style={{ ...card, padding: "20px 24px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -1127,28 +1215,26 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields }) {
           <div key={c.key} style={{ color: MUTED, fontWeight: 700, paddingBottom: 6, borderBottom: `1px solid ${BORDER}` }}>{c.label}</div>
         ))}
         {fleetStatus.map(ac => (
-          <Fragment key={ac.registration}>
-            {columns.map(c => { const v = valueFor(ac, c.key); return <div key={c.key} style={{ padding: "8px 0", color: v.color, fontWeight: v.bold ? 700 : 400, fontStyle: v.italic ? "italic" : "normal" }}>{v.text}</div>; })}
-          </Fragment>
+          <FleetStatusRow key={ac.registration || ac.id} ac={ac} columns={columns} fields={fields} onUpdateStatus={onUpdateAircraftStatus} />
         ))}
       </div>
       {/* Mobile: stacked cards */}
       <div className="fleet-status-mobile" style={{ display: "none", flexDirection: "column", gap: 12 }}>
         {fleetStatus.map(ac => {
-          const hasData = ac.lastLocation;
+          const hasData = ac.last_location;
           return (
-            <div key={ac.registration} style={{ background: NEAR_BLACK, borderRadius: 8, padding: "12px 14px", border: `1px solid ${BORDER}` }}>
+            <div key={ac.registration || ac.id} style={{ background: NEAR_BLACK, borderRadius: 8, padding: "12px 14px", border: `1px solid ${BORDER}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: hasData ? 8 : 0 }}>
                 <div>
                   {fields.tailNumber !== false && <span style={{ color: CYAN, fontWeight: 700, fontSize: 13 }}>{ac.registration}</span>}
                   {fields.type !== false && <span style={{ color: MUTED, fontSize: 12, marginLeft: 8 }}>{ac.type}</span>}
                 </div>
-                {hasData && fields.updated !== false && <span style={{ color: MUTED, fontSize: 11 }}>{timeAgo(ac.lastUpdated)}</span>}
+                {hasData && fields.updated !== false && <span style={{ color: MUTED, fontSize: 11 }}>{timeAgo(ac.status_updated_at)}</span>}
               </div>
               {hasData ? (
                 <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
-                  {fields.location !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Location </span><span style={{ color: OFF_WHITE }}>{ac.lastLocation}</span>{ac.parkingSpot ? <span style={{ color: MUTED }}> / <span style={{ color: OFF_WHITE }}>{ac.parkingSpot}</span></span> : null}</div>}
-                  {fields.fuel !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Fuel </span><span style={{ color: OFF_WHITE }}>{ac.fuelRemaining ? `${ac.fuelRemaining} ${ac.fuelUnit}` : "\u2014"}</span></div>}
+                  {fields.location !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Location </span><span style={{ color: OFF_WHITE }}>{ac.last_location}</span>{ac.parking_spot ? <span style={{ color: MUTED }}> / <span style={{ color: OFF_WHITE }}>{ac.parking_spot}</span></span> : null}</div>}
+                  {fields.fuel !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Fuel </span><span style={{ color: OFF_WHITE }}>{ac.fuel_remaining ? `${ac.fuel_remaining} ${ac.fuel_unit || "lbs"}` : "\u2014"}</span></div>}
                 </div>
               ) : (
                 <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic", marginTop: 4 }}>No recent data</div>
@@ -1164,7 +1250,7 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields }) {
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft, fleetStatusFields }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
@@ -1172,7 +1258,7 @@ export default function DashboardCharts({ records, flights, reports, hazards, ac
   const a = actions || [];
 
   if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} />;
-  if (view === "fleet") return <FleetStatusView flights={f} fleetAircraft={fleetAircraft} fleetStatusFields={fleetStatusFields} />;
+  if (view === "fleet") return <FleetStatusView flights={f} fleetAircraft={fleetAircraft} fleetStatusFields={fleetStatusFields} onUpdateAircraftStatus={onUpdateAircraftStatus} />;
   if (view === "frat") return <FRATAnalytics records={r} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;
 

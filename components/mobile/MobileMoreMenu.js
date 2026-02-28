@@ -88,7 +88,7 @@ const SUB_VIEW_TITLES = {
 export default function MobileMoreMenu({
   subView, onNavigate, onBack, unreadCount,
   // Sub-view data props
-  fleetAircraft,
+  fleetAircraft, onUpdateAircraftStatus,
   erpPlans, onLoadErpChecklist, onLoadErpCallTree,
   hazards, actions, profile, session, orgData,
   onUpdateAction,
@@ -101,7 +101,7 @@ export default function MobileMoreMenu({
     const renderSubView = () => {
       switch (subView) {
         case "fleet":
-          return <MobileFleetView fleetAircraft={fleetAircraft} />;
+          return <MobileFleetView fleetAircraft={fleetAircraft} onUpdateAircraftStatus={onUpdateAircraftStatus} />;
         case "erp":
           return <MobileERPView erpPlans={erpPlans} onLoadChecklist={onLoadErpChecklist} onLoadCallTree={onLoadErpCallTree} />;
         case "hazards":

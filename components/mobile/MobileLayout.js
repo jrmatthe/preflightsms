@@ -73,7 +73,7 @@ export default function MobileLayout({
   trainingReqs, trainingRecs,
   onUpdateCbtProgress, onUpdateCbtEnrollment, onLogTraining, refreshCbt,
   // Phase 5 props
-  hazards, actions, onUpdateAction,
+  hazards, actions, onUpdateAction, onUpdateAircraftStatus,
   erpPlans, onLoadErpChecklist, onLoadErpCallTree,
   policies, onAcknowledgePolicy,
   // Feature gating
@@ -214,6 +214,7 @@ export default function MobileLayout({
             onBack={() => setMoreSubView(null)}
             unreadCount={unreadCount}
             fleetAircraft={fleetAircraft}
+            onUpdateAircraftStatus={onUpdateAircraftStatus}
             erpPlans={erpPlans}
             onLoadErpChecklist={onLoadErpChecklist}
             onLoadErpCallTree={onLoadErpCallTree}
