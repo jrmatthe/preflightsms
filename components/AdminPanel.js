@@ -1264,7 +1264,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
                 <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{t.label}</div>
                 <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{t.desc}</div>
               </div>
-              <button onClick={() => onUpdateOrg({ [t.key]: !t.val })}
+              <button className="admin-toggle" onClick={() => onUpdateOrg({ [t.key]: !t.val })}
                 style={{ width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: t.val ? GREEN : BORDER, transition: "background 0.2s", flexShrink: 0, marginLeft: 12 }}>
                 <div style={{ width: 16, height: 16, borderRadius: 8, background: WHITE, position: "absolute", top: 3, left: t.val ? 21 : 3, transition: "left 0.2s" }} />
               </button>
@@ -1292,7 +1292,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
                 <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Enable Fleet Status Tab</div>
                 <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Show the Fleet Status tab on the dashboard with aircraft locations and status</div>
               </div>
-              <button onClick={() => onUpdateOrg({ fleet_status_enabled: !fsEnabled })}
+              <button className="admin-toggle" onClick={() => onUpdateOrg({ fleet_status_enabled: !fsEnabled })}
                 style={{ width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: fsEnabled ? GREEN : BORDER, transition: "background 0.2s", flexShrink: 0, marginLeft: 12 }}>
                 <div style={{ width: 16, height: 16, borderRadius: 8, background: WHITE, position: "absolute", top: 3, left: fsEnabled ? 21 : 3, transition: "left 0.2s" }} />
               </button>
@@ -1308,7 +1308,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
                         <div style={{ fontSize: 11, color: OFF_WHITE }}>{f.label}</div>
                         <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>{f.desc}</div>
                       </div>
-                      <button onClick={() => onUpdateOrg({ fleet_status_fields: { ...fsFields, [f.key]: !on } })}
+                      <button className="admin-toggle-sm" onClick={() => onUpdateOrg({ fleet_status_fields: { ...fsFields, [f.key]: !on } })}
                         style={{ width: 36, height: 20, borderRadius: 10, border: "none", cursor: "pointer", position: "relative", background: on ? GREEN : BORDER, transition: "background 0.2s", flexShrink: 0, marginLeft: 12 }}>
                         <div style={{ width: 14, height: 14, borderRadius: 7, background: WHITE, position: "absolute", top: 3, left: on ? 19 : 3, transition: "left 0.2s" }} />
                       </button>

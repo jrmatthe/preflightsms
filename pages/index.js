@@ -4966,6 +4966,10 @@ a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 .signup-plan-grid{grid-template-columns:1fr !important}
 .admin-org-grid{grid-template-columns:1fr !important}
 .admin-tabs{overflow-x:auto !important;flex-wrap:nowrap !important;-webkit-overflow-scrolling:touch}
+.admin-tabs button{white-space:nowrap !important}
+.admin-toggle{min-height:22px !important;min-width:40px !important}
+.admin-toggle-sm{min-height:20px !important;min-width:36px !important}
+.plan-feature-grid{grid-template-columns:1fr !important}
 .invite-form-grid{grid-template-columns:1fr !important}
 .trial-expired-plans{flex-direction:column !important}
 .trial-banner{flex-direction:column !important;gap:8px !important;text-align:center}
