@@ -46,7 +46,7 @@ function riskLabel(score) {
 
 function SkeletonLoader() {
   return (
-    <div style={{ padding: 16 }} aria-label="Loading hazards">
+    <div style={{ padding: 16 }} aria-label="Loading investigations">
       <style>{`@keyframes hazPulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         {[1, 2, 3].map(i => (
@@ -74,8 +74,8 @@ function EmptyState() {
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
         </svg>
       </div>
-      <div style={{ color: WHITE, fontSize: 17, fontWeight: 600, marginBottom: 6 }}>No Active Hazards</div>
-      <div style={{ color: MUTED, fontSize: 14, lineHeight: 1.5, maxWidth: 280 }}>All clear. Hazards and investigations are managed from the desktop app.</div>
+      <div style={{ color: WHITE, fontSize: 17, fontWeight: 600, marginBottom: 6 }}>No Active Investigations</div>
+      <div style={{ color: MUTED, fontSize: 14, lineHeight: 1.5, maxWidth: 280 }}>All clear. Investigations are managed from the desktop app.</div>
     </div>
   );
 }
@@ -218,7 +218,7 @@ export default function MobileHazardsView({ hazards, actions }) {
   return (
     <div style={{ padding: 16 }}>
       {/* Filter pills */}
-      <div role="radiogroup" aria-label="Filter hazards" style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "auto" }}>
+      <div role="radiogroup" aria-label="Filter investigations" style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "auto" }}>
         {filters.map(f => (
           <button
             key={f.id}
@@ -242,7 +242,7 @@ export default function MobileHazardsView({ hazards, actions }) {
       ) : (
         <>
           <div style={{ fontSize: 14, color: MUTED, marginBottom: 10 }}>
-            {filteredHazards.length} hazard{filteredHazards.length !== 1 ? "s" : ""}
+            {filteredHazards.length} investigation{filteredHazards.length !== 1 ? "s" : ""}
           </div>
           {filteredHazards.map(h => (
             <HazardCard key={h.id} hazard={h} actions={actions} />

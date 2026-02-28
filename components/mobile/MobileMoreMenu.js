@@ -56,7 +56,7 @@ const SECTIONS = [
   {
     label: "Safety",
     items: [
-      { id: "hazards", label: "Hazard Register", icon: "hazards" },
+      { id: "hazards", label: "Investigations", icon: "hazards" },
       { id: "actions", label: "Corrective Actions", icon: "actions" },
     ],
   },
@@ -78,7 +78,7 @@ const SECTIONS = [
 const SUB_VIEW_TITLES = {
   fleet: "Fleet Status",
   erp: "Emergency Response",
-  hazards: "Hazard Register",
+  hazards: "Investigations",
   actions: "Corrective Actions",
   policies: "Policy Library",
   profile: "Profile & Settings",
