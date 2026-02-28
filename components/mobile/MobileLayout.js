@@ -40,6 +40,10 @@ export default function MobileLayout({
   cbtCourses, cbtLessonsMap, cbtProgress, cbtEnrollments,
   trainingReqs, trainingRecs,
   onUpdateCbtProgress, onUpdateCbtEnrollment, onLogTraining, refreshCbt,
+  // Phase 5 props
+  hazards, actions, onUpdateAction,
+  erpPlans, onLoadErpChecklist, onLoadErpCallTree,
+  policies, onAcknowledgePolicy,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -142,6 +146,23 @@ export default function MobileLayout({
             onNavigate={(id) => setMoreSubView(id)}
             onBack={() => setMoreSubView(null)}
             unreadCount={unreadCount}
+            fleetAircraft={fleetAircraft}
+            erpPlans={erpPlans}
+            onLoadErpChecklist={onLoadErpChecklist}
+            onLoadErpCallTree={onLoadErpCallTree}
+            hazards={hazards}
+            actions={actions}
+            profile={profile}
+            session={session}
+            orgData={orgData}
+            onUpdateAction={onUpdateAction}
+            policies={policies}
+            onAcknowledgePolicy={onAcknowledgePolicy}
+            notifications={notifications}
+            notifReads={notifReads}
+            onMarkNotifRead={onMarkNotifRead}
+            onMarkAllNotifsRead={onMarkAllNotifsRead}
+            onSignOut={onSignOut}
           />
         );
       default:

@@ -1,5 +1,12 @@
 import { useMemo } from "react";
 import { setDesktopPreference } from "../../lib/useIsMobile";
+import MobileFleetView from "./MobileFleetView";
+import MobileERPView from "./MobileERPView";
+import MobileHazardsView from "./MobileHazardsView";
+import MobileCorrActionsView from "./MobileCorrActionsView";
+import MobilePoliciesView from "./MobilePoliciesView";
+import MobileNotificationsView from "./MobileNotificationsView";
+import MobileProfileView from "./MobileProfileView";
 
 const BLACK = "#000000";
 const DARK = "#111111";
@@ -78,41 +85,78 @@ const SUB_VIEW_TITLES = {
   notifications: "Notifications",
 };
 
-export default function MobileMoreMenu({ subView, onNavigate, onBack, unreadCount }) {
-  // Sub-view: show back button header + placeholder
+export default function MobileMoreMenu({
+  subView, onNavigate, onBack, unreadCount,
+  // Sub-view data props
+  fleetAircraft,
+  erpPlans, onLoadErpChecklist, onLoadErpCallTree,
+  hazards, actions, profile, session, orgData,
+  onUpdateAction,
+  policies, onAcknowledgePolicy,
+  notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead,
+  onSignOut,
+}) {
+  // Sub-view: render appropriate component
   if (subView) {
+    const renderSubView = () => {
+      switch (subView) {
+        case "fleet":
+          return <MobileFleetView fleetAircraft={fleetAircraft} />;
+        case "erp":
+          return <MobileERPView erpPlans={erpPlans} onLoadChecklist={onLoadErpChecklist} onLoadCallTree={onLoadErpCallTree} />;
+        case "hazards":
+          return <MobileHazardsView hazards={hazards} actions={actions} />;
+        case "actions":
+          return <MobileCorrActionsView actions={actions} hazards={hazards} profile={profile} onUpdateAction={onUpdateAction} />;
+        case "policies":
+          return <MobilePoliciesView policies={policies} profile={profile} onAcknowledgePolicy={onAcknowledgePolicy} />;
+        case "notifications":
+          return (
+            <MobileNotificationsView
+              notifications={notifications} notifReads={notifReads} profile={profile}
+              onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead}
+            />
+          );
+        case "profile":
+          return <MobileProfileView profile={profile} orgData={orgData} onSignOut={onSignOut} />;
+        default:
+          return (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" }}>
+              <div>
+                <div style={{ color: MUTED, fontSize: 14, marginBottom: 4 }}>{SUB_VIEW_TITLES[subView] || subView}</div>
+                <div style={{ color: MUTED, fontSize: 12, opacity: 0.6 }}>Coming soon</div>
+              </div>
+            </div>
+          );
+      }
+    };
+
+    // ERP, policies, and profile handle their own back headers internally for drill-down
+    const needsHeader = !["erp", "policies"].includes(subView) ||
+      (subView === "erp" || subView === "policies");
+    // Actually: all sub-views that don't have internal nav get the shared back header
+    // ERP and policies have internal detail views with their own back buttons,
+    // but their list views still need the outer back header
+    // Simplest approach: always show the back header for the top-level sub-view
+
     return (
       <div style={{ minHeight: "100%" }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
           borderBottom: `1px solid ${BORDER}`,
         }}>
-          <button
-            onClick={onBack}
-            style={{
-              background: "none", border: "none", cursor: "pointer", color: WHITE,
-              padding: 4, display: "flex", alignItems: "center",
-            }}
-          >
+          <button onClick={onBack} style={{
+            background: "none", border: "none", cursor: "pointer", color: WHITE,
+            padding: 4, display: "flex", alignItems: "center",
+            minWidth: 44, minHeight: 44,
+          }}>
             {backArrow}
           </button>
           <span style={{ color: WHITE, fontSize: 16, fontWeight: 600 }}>
             {SUB_VIEW_TITLES[subView] || subView}
           </span>
         </div>
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          padding: "80px 24px", textAlign: "center",
-        }}>
-          <div>
-            <div style={{ color: MUTED, fontSize: 14, marginBottom: 4 }}>
-              {SUB_VIEW_TITLES[subView] || subView}
-            </div>
-            <div style={{ color: MUTED, fontSize: 12, opacity: 0.6 }}>
-              Coming soon in the mobile experience
-            </div>
-          </div>
-        </div>
+        {renderSubView()}
       </div>
     );
   }
