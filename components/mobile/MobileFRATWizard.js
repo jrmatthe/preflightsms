@@ -299,12 +299,12 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
         </Field>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 12 }}>
         <Field label="Date" error={errors.date}>
-          <input type="date" value={fi.date} onChange={e => setFi(p => ({ ...p, date: e.target.value }))} style={inputStyle} />
+          <input type="date" value={fi.date} onChange={e => setFi(p => ({ ...p, date: e.target.value }))} style={{ ...inputStyle, minWidth: 0 }} />
         </Field>
         <Field label="ETD (local)" error={errors.etd}>
-          <input type="time" value={fi.etd} onChange={e => setFi(p => ({ ...p, etd: e.target.value }))} style={inputStyle} />
+          <input type="time" value={fi.etd} onChange={e => setFi(p => ({ ...p, etd: e.target.value }))} style={{ ...inputStyle, minWidth: 0 }} />
         </Field>
       </div>
 
