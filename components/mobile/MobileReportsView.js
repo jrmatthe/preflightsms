@@ -270,7 +270,7 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
 
       {/* Date & Location */}
       <Field label="Date Occurred" error={errors.dateOccurred}>
-        <input type="date" value={form.dateOccurred} onChange={e => set("dateOccurred", e.target.value)} style={{ ...inputStyle, WebkitAppearance: "none", appearance: "none", maxWidth: "100%" }} />
+        <input type="date" value={form.dateOccurred} onChange={e => set("dateOccurred", e.target.value)} style={{ ...inputStyle, WebkitAppearance: "none", appearance: "none", maxWidth: "100%", minHeight: 48 }} />
       </Field>
       <Field label="Location" error={errors.location}>
         <input value={form.location} onChange={e => set("location", e.target.value)} placeholder="Airport, ramp, etc." style={inputStyle} />
