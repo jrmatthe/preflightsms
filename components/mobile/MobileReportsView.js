@@ -383,8 +383,10 @@ function ReportListCard({ report, expanded, onToggle }) {
               <div style={{ color: WHITE, fontSize: 15, fontWeight: 600, marginBottom: 4, lineHeight: 1.3 }}>
                 {report.title}
               </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ color: MUTED, fontSize: 12, fontWeight: 600 }}>Type:</span>
                 <Badge label={type.label} color={type.color} />
+                <span style={{ color: MUTED, fontSize: 12, fontWeight: 600, marginLeft: 4 }}>Status:</span>
                 <Badge label={status.label} color={status.color} />
               </div>
             </div>
