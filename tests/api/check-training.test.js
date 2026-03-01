@@ -80,14 +80,14 @@ describe('POST /api/check-training', () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
-  // FIXED: Now rejects non-POST methods with 405
-  it('FIXED: rejects non-POST methods', async () => {
+  // GET is allowed (Vercel Cron uses GET)
+  it('accepts GET requests with valid cron secret', async () => {
     const { req, res } = createMockReqRes({
       method: 'GET',
       headers: { 'x-cron-secret': 'test-cron-secret' },
     });
     await handler(req, res);
-    expect(res.status).toHaveBeenCalledWith(405);
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 
   // FIXED: reset=true is now disabled and returns 403

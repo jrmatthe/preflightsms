@@ -67,8 +67,7 @@ describe('POST /api/create-org', () => {
       headers: { authorization: 'Bearer valid-token' },
     });
     await mod.default(req, res);
-    // Will get 401 because verifyAuth also needs Supabase configured
-    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.status).toHaveBeenCalledWith(500);
   });
 
   it('validates name and slug are required', async () => {

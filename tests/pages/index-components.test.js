@@ -141,19 +141,18 @@ describe('PVTAIRFrat (main component) — offline mode', () => {
     expect(screen.getByText('SAFETY DASHBOARD')).toBeInTheDocument();
   });
 
-  it('renders the sidebar NavBar with navigation tabs', () => {
+  it('renders the sidebar NavBar with navigation section tabs', () => {
     render(<PVTAIRFrat />);
-    // NavBar tab labels
-    expect(screen.getByTitle('FRAT')).toBeInTheDocument();
-    expect(screen.getByTitle('Flight Following')).toBeInTheDocument();
-    expect(screen.getByTitle('Safety Reports')).toBeInTheDocument();
+    // NavBar section labels (grouped navigation)
+    expect(screen.getByTitle('Operations')).toBeInTheDocument();
+    expect(screen.getByTitle('Safety')).toBeInTheDocument();
+    expect(screen.getByTitle('Investigations')).toBeInTheDocument();
   });
 
   it('renders the NavBar with basic tabs (offline mode)', () => {
     render(<PVTAIRFrat />);
     // In offline mode with hasFeature returning true, all feature-gated tabs are shown.
-    // Admin tab is filtered out for non-admin roles but basic tabs are present.
-    expect(screen.getByTitle('Policies')).toBeInTheDocument();
+    expect(screen.getByTitle('Documents')).toBeInTheDocument();
     expect(screen.getByTitle('Training')).toBeInTheDocument();
   });
 
@@ -199,28 +198,22 @@ describe('PVTAIRFrat — view title mapping', () => {
     expect(screen.getByText('SAFETY DASHBOARD')).toBeInTheDocument();
   });
 
-  it('maps "submit" to "NEW FLIGHT RISK ASSESSMENT" when FRAT tab is clicked', () => {
+  it('maps Operations section to "OPERATIONS" heading', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('FRAT'));
-    expect(screen.getByText('NEW FLIGHT RISK ASSESSMENT')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Operations'));
+    expect(screen.getByText('OPERATIONS')).toBeInTheDocument();
   });
 
-  it('maps "flights" to "FLIGHT FOLLOWING" when tab is clicked', () => {
+  it('maps Safety section to "SAFETY" heading', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('Flight Following'));
-    expect(screen.getByText('FLIGHT FOLLOWING')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Safety'));
+    expect(screen.getByText('SAFETY')).toBeInTheDocument();
   });
 
-  it('maps "reports" to "SAFETY REPORTS" when tab is clicked', () => {
+  it('maps Documents section to "DOCUMENTS" heading', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('Safety Reports'));
-    expect(screen.getByText('SAFETY REPORTS')).toBeInTheDocument();
-  });
-
-  it('maps "policy" to "POLICIES" when tab is clicked', () => {
-    render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('Policies'));
-    expect(screen.getByText('POLICIES')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Documents'));
+    expect(screen.getByText('DOCUMENTS')).toBeInTheDocument();
   });
 
   it('maps "cbt" to "TRAINING" when tab is clicked', () => {
@@ -231,84 +224,79 @@ describe('PVTAIRFrat — view title mapping', () => {
 });
 
 describe('PVTAIRFrat — FRAT form (offline mode)', () => {
-  it('shows "No Aircraft Registered" when fleet is empty and on FRAT tab', () => {
+  it('shows "No Aircraft Registered" when fleet is empty and on FRAT view', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('FRAT'));
-    // In offline mode with no fleet, FRATForm shows the "No Aircraft Registered" prompt
+    fireEvent.click(screen.getByTitle('Operations'));
+    // Operations defaults to "submit" (FRAT) view — shows empty fleet state
     expect(screen.getByText('No Aircraft Registered')).toBeInTheDocument();
   });
 
   it('shows the "Go to Fleet Management" button when no fleet', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('FRAT'));
+    fireEvent.click(screen.getByTitle('Operations'));
     expect(screen.getByText((content) => content.includes('Go to Fleet Management'))).toBeInTheDocument();
   });
 
-  it('shows empty state on FRAT tab when fleet is populated via localStorage', () => {
-    // Seed localStorage with fleet data so FRATForm renders fully
+  it('shows empty state on FRAT view when fleet is populated via localStorage', () => {
     localStorage.setItem('pvtair_frat_records', JSON.stringify([]));
-    // The FRATForm gets fleetAircraft from state (fetched from Supabase or empty).
-    // In offline mode with no fleet, it shows the empty state.
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('FRAT'));
+    fireEvent.click(screen.getByTitle('Operations'));
     expect(screen.getByText('No Aircraft Registered')).toBeInTheDocument();
   });
 });
 
 describe('PVTAIRFrat — tab navigation', () => {
-  it('clicking "Flight Following" tab switches the view', () => {
+  it('clicking Operations section switches away from dashboard', () => {
     render(<PVTAIRFrat />);
-    const flightsTab = screen.getByTitle('Flight Following');
-    fireEvent.click(flightsTab);
-    expect(screen.getByText('FLIGHT FOLLOWING')).toBeInTheDocument();
-    // Dashboard title should no longer be present
+    fireEvent.click(screen.getByTitle('Operations'));
+    expect(screen.getByText('OPERATIONS')).toBeInTheDocument();
     expect(screen.queryByText('SAFETY DASHBOARD')).not.toBeInTheDocument();
   });
 
-  it('clicking "Safety Reports" tab switches the view', () => {
+  it('clicking Safety section switches the view', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('Safety Reports'));
-    expect(screen.getByText('SAFETY REPORTS')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Safety'));
+    expect(screen.getByText('SAFETY')).toBeInTheDocument();
   });
 
-  it('clicking back to FRAT tab restores FRAT view', () => {
+  it('clicking back to Operations restores Operations view', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('Safety Reports'));
-    expect(screen.getByText('SAFETY REPORTS')).toBeInTheDocument();
-    fireEvent.click(screen.getByTitle('FRAT'));
-    expect(screen.getByText('NEW FLIGHT RISK ASSESSMENT')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Safety'));
+    expect(screen.getByText('SAFETY')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Operations'));
+    expect(screen.getByText('OPERATIONS')).toBeInTheDocument();
   });
 
-  it('switches between multiple tabs correctly', () => {
+  it('switches between multiple sections correctly', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('Policies'));
-    expect(screen.getByText('POLICIES')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Documents'));
+    expect(screen.getByText('DOCUMENTS')).toBeInTheDocument();
     fireEvent.click(screen.getByTitle('Training'));
     expect(screen.getByText('TRAINING')).toBeInTheDocument();
-    fireEvent.click(screen.getByTitle('FRAT'));
-    expect(screen.getByText('NEW FLIGHT RISK ASSESSMENT')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Operations'));
+    expect(screen.getByText('OPERATIONS')).toBeInTheDocument();
   });
 });
 
 describe('PVTAIRFrat — NavBar tab rendering', () => {
-  it('renders FRAT tab', () => {
+  it('renders Operations section', () => {
     render(<PVTAIRFrat />);
-    expect(screen.getByTitle('FRAT')).toBeInTheDocument();
+    expect(screen.getByTitle('Operations')).toBeInTheDocument();
   });
 
-  it('renders Flight Following tab', () => {
+  it('renders Safety section', () => {
     render(<PVTAIRFrat />);
-    expect(screen.getByTitle('Flight Following')).toBeInTheDocument();
+    expect(screen.getByTitle('Safety')).toBeInTheDocument();
   });
 
-  it('renders Safety Reports tab', () => {
+  it('renders Investigations section', () => {
     render(<PVTAIRFrat />);
-    expect(screen.getByTitle('Safety Reports')).toBeInTheDocument();
+    expect(screen.getByTitle('Investigations')).toBeInTheDocument();
   });
 
-  it('renders Policies tab', () => {
+  it('renders Documents section', () => {
     render(<PVTAIRFrat />);
-    expect(screen.getByTitle('Policies')).toBeInTheDocument();
+    expect(screen.getByTitle('Documents')).toBeInTheDocument();
   });
 
   it('renders Training tab', () => {
@@ -325,15 +313,15 @@ describe('PVTAIRFrat — NavBar tab rendering', () => {
 });
 
 describe('PVTAIRFrat — dynamic component rendering', () => {
-  it('renders SafetyReporting dynamic component when on Safety Reports tab', () => {
+  it('renders SafetyReporting dynamic component when on Safety section', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('Safety Reports'));
+    fireEvent.click(screen.getByTitle('Safety'));
     expect(screen.getByTestId('dynamic-SafetyReporting')).toBeInTheDocument();
   });
 
-  it('renders PolicyTraining dynamic component when on Policies tab', () => {
+  it('renders PolicyTraining dynamic component when on Documents section', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('Policies'));
+    fireEvent.click(screen.getByTitle('Documents'));
     expect(screen.getByTestId('dynamic-PolicyTraining')).toBeInTheDocument();
   });
 
@@ -386,9 +374,9 @@ describe('PVTAIRFrat — AdminGate behavior', () => {
     expect(screen.getByText('Admin Access')).toBeInTheDocument();
   });
 
-  it('does not show AdminGate for "flights" view in offline mode', () => {
+  it('does not show AdminGate for Operations view in offline mode', () => {
     render(<PVTAIRFrat />);
-    fireEvent.click(screen.getByTitle('Flight Following'));
+    fireEvent.click(screen.getByTitle('Operations'));
     expect(screen.queryByText('Admin Access')).not.toBeInTheDocument();
   });
 });

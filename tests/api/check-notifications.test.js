@@ -58,14 +58,14 @@ describe('/api/check-notifications', () => {
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  // FIXED: Now rejects non-POST methods with 405
-  it('FIXED: rejects non-POST methods', async () => {
+  // GET is allowed (Vercel Cron uses GET)
+  it('accepts GET requests with valid cron secret', async () => {
     const { req, res } = createMockReqRes({
       method: 'GET',
       headers: { 'x-cron-secret': 'test-cron-secret' },
     });
     await handler(req, res);
-    expect(res.status).toHaveBeenCalledWith(405);
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 
   it('accepts orgId parameter with valid auth for single-org check', async () => {
