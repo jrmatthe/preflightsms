@@ -300,7 +300,7 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
       </div>
 
       <Field label="Date" error={errors.date}>
-        <input type="date" value={fi.date} onChange={e => setFi(p => ({ ...p, date: e.target.value }))} style={inputStyle} />
+        <input type="date" value={fi.date} onChange={e => setFi(p => ({ ...p, date: e.target.value }))} style={{ ...inputStyle, WebkitAppearance: "none", appearance: "none", maxWidth: "100%" }} />
       </Field>
 
       <Field label="ETD (local)" error={errors.etd}>
