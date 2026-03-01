@@ -101,7 +101,7 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
     description: "",
     dateOccurred: prefill?.dateOccurred || "",
     location: prefill?.location || "",
-    category: "other",
+    category: "",
     severity: "low",
     flightPhase: prefill?.flightPhase || "",
     tailNumber: prefill?.tailNumber || "",
@@ -109,7 +109,6 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
     confidential: false,
     anonymous: false,
   });
-  const [showDetails, setShowDetails] = useState(!!(prefill?.tailNumber || prefill?.flightPhase || prefill?.location));
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -123,6 +122,11 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
     if (!form.reportType) e.reportType = "Select a report type";
     if (!form.title.trim()) e.title = "Title is required";
     if (!form.description.trim()) e.description = "Description is required";
+    if (!form.dateOccurred) e.dateOccurred = "Date is required";
+    if (!form.location.trim()) e.location = "Location is required";
+    if (!form.flightPhase) e.flightPhase = "Flight phase is required";
+    if (!form.category) e.category = "Category is required";
+    if (!form.tailNumber) e.tailNumber = "Aircraft tail is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -142,11 +146,10 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
       // Reset form
       setForm({
         reportType: "", title: "", description: "",
-        dateOccurred: "", location: "", category: "other", severity: "low",
+        dateOccurred: "", location: "", category: "", severity: "low",
         flightPhase: "", tailNumber: "", aircraftType: "",
         confidential: false, anonymous: false,
       });
-      setShowDetails(false);
       setErrors({});
       if (onClearPrefill) onClearPrefill();
     } catch (err) {
@@ -265,60 +268,45 @@ function ReportForm({ onSubmit, fleetAircraft, prefill, onClearPrefill }) {
         />
       </div>
 
-      {/* Add Details (expandable) */}
-      <button
-        onClick={() => setShowDetails(!showDetails)}
-        style={{
-          display: "flex", alignItems: "center", gap: 8, width: "100%",
-          padding: "12px 0", background: "none", border: "none", cursor: "pointer",
-          borderTop: `1px solid ${LIGHT_BORDER}`,
-        }}
-      >
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2"
-          style={{ transform: showDetails ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-        <span style={{ color: CYAN, fontSize: 14, fontWeight: 500 }}>
-          {showDetails ? "Hide" : "Add"} optional details
-        </span>
-      </button>
+      {/* Date & Location */}
+      <Field label="Date Occurred" error={errors.dateOccurred}>
+        <input type="date" value={form.dateOccurred} onChange={e => set("dateOccurred", e.target.value)} style={{ ...inputStyle, WebkitAppearance: "none", appearance: "none", maxWidth: "100%" }} />
+      </Field>
+      <Field label="Location" error={errors.location}>
+        <input value={form.location} onChange={e => set("location", e.target.value)} placeholder="Airport, ramp, etc." style={inputStyle} />
+      </Field>
 
-      {showDetails && (
-        <div style={{ padding: "8px 0 12px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Field label="Date Occurred">
-              <input type="date" value={form.dateOccurred} onChange={e => set("dateOccurred", e.target.value)} style={{ ...inputStyle, minWidth: 0 }} />
-            </Field>
-            <Field label="Location">
-              <input value={form.location} onChange={e => set("location", e.target.value)} placeholder="Airport, ramp, etc." style={inputStyle} />
-            </Field>
-          </div>
-          <Field label="Flight Phase">
-            <select value={form.flightPhase} onChange={e => set("flightPhase", e.target.value)} style={inputStyle}>
-              {FLIGHT_PHASES.map(fp => (
-                <option key={fp.id} value={fp.id}>{fp.label}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Category">
-            <select value={form.category} onChange={e => set("category", e.target.value)} style={inputStyle}>
-              {CATEGORIES.map(c => (
-                <option key={c} value={c}>{titleCase(c)}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Aircraft Tail">
-            {tailOptions.length > 0 ? (
-              <select value={form.tailNumber} onChange={e => set("tailNumber", e.target.value)} style={inputStyle}>
-                <option value="">Select aircraft</option>
-                {tailOptions.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            ) : (
-              <input value={form.tailNumber} onChange={e => set("tailNumber", e.target.value)} placeholder="N-number" style={inputStyle} />
-            )}
-          </Field>
-        </div>
-      )}
+      {/* Flight Phase */}
+      <Field label="Flight Phase" error={errors.flightPhase}>
+        <select value={form.flightPhase} onChange={e => set("flightPhase", e.target.value)} style={inputStyle}>
+          <option value="">Select phase...</option>
+          {FLIGHT_PHASES.filter(fp => fp.id).map(fp => (
+            <option key={fp.id} value={fp.id}>{fp.label}</option>
+          ))}
+        </select>
+      </Field>
+
+      {/* Category */}
+      <Field label="Category" error={errors.category}>
+        <select value={form.category} onChange={e => set("category", e.target.value)} style={inputStyle}>
+          <option value="">Select category...</option>
+          {CATEGORIES.map(c => (
+            <option key={c} value={c}>{titleCase(c)}</option>
+          ))}
+        </select>
+      </Field>
+
+      {/* Aircraft Tail */}
+      <Field label="Aircraft Tail" error={errors.tailNumber}>
+        {tailOptions.length > 0 ? (
+          <select value={form.tailNumber} onChange={e => set("tailNumber", e.target.value)} style={inputStyle}>
+            <option value="">Select aircraft</option>
+            {tailOptions.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        ) : (
+          <input value={form.tailNumber} onChange={e => set("tailNumber", e.target.value)} placeholder="N-number" style={inputStyle} />
+        )}
+      </Field>
 
       {/* Submit */}
       <button
