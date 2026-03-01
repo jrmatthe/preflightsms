@@ -94,7 +94,7 @@ export default function MobileMoreMenu({
   onUpdateAction,
   policies, onAcknowledgePolicy,
   notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead,
-  onSignOut,
+  onSignOut, onUpdatePreferences,
 }) {
   // Sub-view: render appropriate component
   if (subView) {
@@ -115,6 +115,7 @@ export default function MobileMoreMenu({
             <MobileNotificationsView
               notifications={notifications} notifReads={notifReads} profile={profile}
               onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead}
+              onUpdatePreferences={onUpdatePreferences}
             />
           );
         case "profile":

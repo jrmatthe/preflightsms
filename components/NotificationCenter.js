@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { isNotificationEnabled, CATEGORY_LABELS, CATEGORY_DESCRIPTIONS, CATEGORY_ORDER } from "../lib/notificationCategories";
 
 const DARK = "#111111";
 const CARD = "#161616";
@@ -64,8 +65,78 @@ function timeAgo(dateStr) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export default function NotificationCenter({ notifications, reads, onMarkRead, onMarkAllRead, profile, onNavigate }) {
+function NotificationPreferencesPanel({ preferences, onSave }) {
+  const [draft, setDraft] = useState(() => {
+    const initial = {};
+    for (const cat of CATEGORY_ORDER) {
+      initial[cat] = preferences?.[cat] !== false;
+    }
+    return initial;
+  });
+  const [saving, setSaving] = useState(false);
+
+  const toggle = (cat) => {
+    setDraft(prev => ({ ...prev, [cat]: !prev[cat] }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(draft);
+    setSaving(false);
+  };
+
+  const hasChanges = CATEGORY_ORDER.some(cat => draft[cat] !== (preferences?.[cat] !== false));
+
+  return (
+    <div style={{ padding: "12px 16px", overflowY: "auto", maxHeight: 392, flex: 1 }}>
+      <div style={{ fontSize: 11, color: MUTED, marginBottom: 12 }}>
+        Choose which notification categories to show. Overdue flight alerts are always on.
+      </div>
+      {CATEGORY_ORDER.map(cat => (
+        <div key={cat} style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "8px 0", borderBottom: `1px solid ${BORDER}`,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{CATEGORY_LABELS[cat]}</div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>{CATEGORY_DESCRIPTIONS[cat]}</div>
+          </div>
+          <button
+            onClick={() => toggle(cat)}
+            style={{
+              width: 36, height: 20, borderRadius: 10, border: "none", cursor: "pointer",
+              background: draft[cat] ? CYAN : "#333", position: "relative",
+              transition: "background 0.2s", flexShrink: 0, marginLeft: 12,
+            }}
+          >
+            <div style={{
+              width: 16, height: 16, borderRadius: 8, background: WHITE,
+              position: "absolute", top: 2, left: draft[cat] ? 18 : 2,
+              transition: "left 0.2s",
+            }} />
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={handleSave}
+        disabled={!hasChanges || saving}
+        style={{
+          width: "100%", marginTop: 12, padding: "8px 0", borderRadius: 6,
+          border: "none", cursor: hasChanges ? "pointer" : "default",
+          background: hasChanges ? CYAN : "#333", color: hasChanges ? "#000" : MUTED,
+          fontSize: 12, fontWeight: 700, fontFamily: "inherit",
+          opacity: saving ? 0.6 : 1,
+        }}
+      >
+        {saving ? "Saving..." : "Save Preferences"}
+      </button>
+    </div>
+  );
+}
+
+export default function NotificationCenter({ notifications, reads, onMarkRead, onMarkAllRead, profile, onNavigate, onUpdatePreferences }) {
   const [open, setOpen] = useState(false);
+  const [showPrefs, setShowPrefs] = useState(false);
   const ref = useRef(null);
 
   // Close on outside click
@@ -80,6 +151,7 @@ export default function NotificationCenter({ notifications, reads, onMarkRead, o
 
   const userRole = profile?.role || "pilot";
   const userId = profile?.id;
+  const prefs = profile?.notification_preferences || null;
 
   // Filter notifications visible to this user
   const visible = useMemo(() => {
@@ -90,9 +162,10 @@ export default function NotificationCenter({ notifications, reads, onMarkRead, o
         if (n.target_user_id === userId) return true;
         return false;
       }
+      if (!isNotificationEnabled(n.type, prefs)) return false;
       return true;
     });
-  }, [notifications, userRole, userId]);
+  }, [notifications, userRole, userId, prefs]);
 
   const readSet = useMemo(() => new Set(reads || []), [reads]);
   const unreadCount = visible.filter(n => !readSet.has(n.id)).length;
@@ -102,6 +175,11 @@ export default function NotificationCenter({ notifications, reads, onMarkRead, o
     if (n.link_tab) onNavigate(n.link_tab, n.link_id || null);
     setOpen(false);
   };
+
+  const handleSavePrefs = useCallback(async (newPrefs) => {
+    if (onUpdatePreferences) await onUpdatePreferences(newPrefs);
+    setShowPrefs(false);
+  }, [onUpdatePreferences]);
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
@@ -146,82 +224,111 @@ export default function NotificationCenter({ notifications, reads, onMarkRead, o
             padding: "12px 16px", borderBottom: `1px solid ${BORDER}`,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>Notifications</span>
-            {unreadCount > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>
+                {showPrefs ? "Preferences" : "Notifications"}
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {!showPrefs && unreadCount > 0 && (
+                <button
+                  onClick={() => onMarkAllRead()}
+                  style={{
+                    background: "none", border: "none", color: CYAN,
+                    fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    padding: 0, fontFamily: "inherit",
+                  }}
+                >
+                  Mark all read
+                </button>
+              )}
               <button
-                onClick={() => onMarkAllRead()}
+                onClick={() => setShowPrefs(!showPrefs)}
+                title={showPrefs ? "Back to notifications" : "Notification preferences"}
                 style={{
-                  background: "none", border: "none", color: CYAN,
-                  fontSize: 11, fontWeight: 600, cursor: "pointer",
-                  padding: 0, fontFamily: "inherit",
+                  background: "none", border: "none", cursor: "pointer", padding: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: showPrefs ? CYAN : MUTED,
                 }}
               >
-                Mark all read
+                {showPrefs ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                )}
               </button>
-            )}
+            </div>
           </div>
 
-          {/* List */}
-          <div style={{ overflowY: "auto", maxHeight: 392, flex: 1 }}>
-            {visible.length === 0 ? (
-              <div style={{ padding: 32, textAlign: "center", color: MUTED, fontSize: 12 }}>
-                No notifications yet
-              </div>
-            ) : (
-              visible.map(n => {
-                const isRead = readSet.has(n.id);
-                const accentColor = TYPE_COLORS[n.type] || MUTED;
-                return (
-                  <button
-                    key={n.id}
-                    onClick={() => handleClick(n)}
-                    style={{
-                      display: "flex", width: "100%", textAlign: "left",
-                      background: isRead ? "transparent" : "rgba(255,255,255,0.03)",
-                      border: "none", borderBottom: `1px solid ${BORDER}`,
-                      padding: "10px 16px", cursor: "pointer",
-                      gap: 10, fontFamily: "inherit", alignItems: "flex-start",
-                    }}
-                  >
-                    {/* Color accent bar */}
-                    <div style={{
-                      width: 3, minHeight: 32, borderRadius: 2,
-                      background: accentColor, flexShrink: 0, marginTop: 2,
-                    }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                        <span style={{
-                          fontSize: 12, fontWeight: isRead ? 500 : 700,
-                          color: isRead ? OFF_WHITE : WHITE,
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>
-                          {n.title}
-                        </span>
-                        <span style={{ fontSize: 10, color: MUTED, flexShrink: 0 }}>
-                          {timeAgo(n.created_at)}
-                        </span>
-                      </div>
-                      {n.body && (
-                        <div style={{
-                          fontSize: 11, color: MUTED, marginTop: 2,
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>
-                          {n.body}
-                        </div>
-                      )}
-                    </div>
-                    {/* Unread dot */}
-                    {!isRead && (
+          {/* Content */}
+          {showPrefs ? (
+            <NotificationPreferencesPanel preferences={prefs} onSave={handleSavePrefs} />
+          ) : (
+            <div style={{ overflowY: "auto", maxHeight: 392, flex: 1 }}>
+              {visible.length === 0 ? (
+                <div style={{ padding: 32, textAlign: "center", color: MUTED, fontSize: 12 }}>
+                  No notifications yet
+                </div>
+              ) : (
+                visible.map(n => {
+                  const isRead = readSet.has(n.id);
+                  const accentColor = TYPE_COLORS[n.type] || MUTED;
+                  return (
+                    <button
+                      key={n.id}
+                      onClick={() => handleClick(n)}
+                      style={{
+                        display: "flex", width: "100%", textAlign: "left",
+                        background: isRead ? "transparent" : "rgba(255,255,255,0.03)",
+                        border: "none", borderBottom: `1px solid ${BORDER}`,
+                        padding: "10px 16px", cursor: "pointer",
+                        gap: 10, fontFamily: "inherit", alignItems: "flex-start",
+                      }}
+                    >
+                      {/* Color accent bar */}
                       <div style={{
-                        width: 7, height: 7, borderRadius: 4,
-                        background: accentColor, flexShrink: 0, marginTop: 6,
+                        width: 3, minHeight: 32, borderRadius: 2,
+                        background: accentColor, flexShrink: 0, marginTop: 2,
                       }} />
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                          <span style={{
+                            fontSize: 12, fontWeight: isRead ? 500 : 700,
+                            color: isRead ? OFF_WHITE : WHITE,
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          }}>
+                            {n.title}
+                          </span>
+                          <span style={{ fontSize: 10, color: MUTED, flexShrink: 0 }}>
+                            {timeAgo(n.created_at)}
+                          </span>
+                        </div>
+                        {n.body && (
+                          <div style={{
+                            fontSize: 11, color: MUTED, marginTop: 2,
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          }}>
+                            {n.body}
+                          </div>
+                        )}
+                      </div>
+                      {/* Unread dot */}
+                      {!isRead && (
+                        <div style={{
+                          width: 7, height: 7, borderRadius: 4,
+                          background: accentColor, flexShrink: 0, marginTop: 6,
+                        }} />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

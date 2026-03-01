@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
     const { data: expiringRecords, error: recErr } = await supabase
       .from("training_records")
-      .select("*, user:profiles!training_records_user_id_fkey(id, full_name, email, org_id)")
+      .select("*, user:profiles!training_records_user_id_fkey(id, full_name, email, org_id, notification_preferences)")
       .not("expiry_date", "is", null)
       .lte("expiry_date", thresholdDate.toISOString().slice(0, 10))
       .is("expiry_notified_at", null);
@@ -63,6 +63,13 @@ export default async function handler(req, res) {
       const user = record.user;
       if (!user?.email) {
         results.push({ record: record.id, status: "no_email" });
+        await supabase.from("training_records").update({ expiry_notified_at: now.toISOString() }).eq("id", record.id);
+        continue;
+      }
+
+      // Skip email if user has disabled training notifications
+      if (user.notification_preferences?.training === false) {
+        results.push({ record: record.id, status: "training_disabled" });
         await supabase.from("training_records").update({ expiry_notified_at: now.toISOString() }).eq("id", record.id);
         continue;
       }
@@ -121,12 +128,15 @@ export default async function handler(req, res) {
     for (const [orgId, orgRecords] of Object.entries(byOrg)) {
       const { data: adminProfiles } = await supabase
         .from("profiles")
-        .select("id, full_name, email, role")
+        .select("id, full_name, email, role, notification_preferences")
         .eq("org_id", orgId)
         .in("role", ["admin", "safety_manager"])
         .not("email", "is", null);
 
       if (!adminProfiles?.length) continue;
+
+      // Filter out admins who disabled training notifications
+      const filteredAdmins = adminProfiles.filter(p => p.notification_preferences?.training !== false);
 
       const { data: orgData } = await supabase.from("organizations").select("name").eq("id", orgId).single();
       const orgName = orgData?.name || "Your organization";
@@ -134,7 +144,7 @@ export default async function handler(req, res) {
       const expiredCount = orgRecords.filter(r => r.isExpired).length;
       const expiringCount = orgRecords.length - expiredCount;
 
-      for (const contact of adminProfiles) {
+      for (const contact of filteredAdmins) {
         if (!contact.email) continue;
         try {
           const emailRes = await fetch("https://api.resend.com/emails", {

@@ -60,7 +60,7 @@ function UpgradeScreen({ feature, description }) {
 
 export default function MobileLayout({
   session, profile, orgData, notifications, notifReads,
-  onMarkNotifRead, onMarkAllNotifsRead, onSignOut,
+  onMarkNotifRead, onMarkAllNotifsRead, onSignOut, onUpdatePreferences,
   // Phase 2 props
   flights, onUpdateFlight, onSubmitFRAT,
   fleetAircraft, fratTemplate, allFratTemplates, riskLevels,
@@ -231,6 +231,7 @@ export default function MobileLayout({
             onMarkNotifRead={onMarkNotifRead}
             onMarkAllNotifsRead={onMarkAllNotifsRead}
             onSignOut={onSignOut}
+            onUpdatePreferences={onUpdatePreferences}
           />
         );
       default:

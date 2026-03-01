@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
+import { isNotificationEnabled, CATEGORY_LABELS, CATEGORY_DESCRIPTIONS, CATEGORY_ORDER } from "../../lib/notificationCategories";
 
 const BLACK = "#000000";
 const CARD = "#161616";
@@ -171,11 +172,85 @@ function NotificationItem({ notif, isRead, onMarkRead }) {
   );
 }
 
+// ── PREFERENCES PANEL ────────────────────────────────────────
+function MobilePreferencesPanel({ preferences, onSave }) {
+  const [draft, setDraft] = useState(() => {
+    const initial = {};
+    for (const cat of CATEGORY_ORDER) {
+      initial[cat] = preferences?.[cat] !== false;
+    }
+    return initial;
+  });
+  const [saving, setSaving] = useState(false);
+
+  const toggle = (cat) => {
+    setDraft(prev => ({ ...prev, [cat]: !prev[cat] }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(draft);
+    setSaving(false);
+  };
+
+  const hasChanges = CATEGORY_ORDER.some(cat => draft[cat] !== (preferences?.[cat] !== false));
+
+  return (
+    <div style={{ padding: "16px" }}>
+      <div style={{ fontSize: 14, color: MUTED, marginBottom: 16 }}>
+        Choose which notification categories to show. Overdue flight alerts are always on.
+      </div>
+      {CATEGORY_ORDER.map(cat => (
+        <div key={cat} style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 0", borderBottom: `1px solid ${BORDER}`,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: WHITE }}>{CATEGORY_LABELS[cat]}</div>
+            <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>{CATEGORY_DESCRIPTIONS[cat]}</div>
+          </div>
+          <button
+            onClick={() => toggle(cat)}
+            style={{
+              width: 48, height: 28, borderRadius: 14, border: "none", cursor: "pointer",
+              background: draft[cat] ? CYAN : "#333", position: "relative",
+              transition: "background 0.2s", flexShrink: 0, marginLeft: 16,
+              minHeight: 44, display: "flex", alignItems: "center",
+            }}
+          >
+            <div style={{
+              width: 22, height: 22, borderRadius: 11, background: WHITE,
+              position: "absolute", top: 3, left: draft[cat] ? 23 : 3,
+              transition: "left 0.2s",
+            }} />
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={handleSave}
+        disabled={!hasChanges || saving}
+        style={{
+          width: "100%", marginTop: 16, padding: "14px 0", borderRadius: 8,
+          border: "none", cursor: hasChanges ? "pointer" : "default",
+          background: hasChanges ? CYAN : "#333", color: hasChanges ? "#000" : MUTED,
+          fontSize: 15, fontWeight: 700, fontFamily: "inherit",
+          opacity: saving ? 0.6 : 1, minHeight: 44,
+        }}
+      >
+        {saving ? "Saving..." : "Save Preferences"}
+      </button>
+    </div>
+  );
+}
+
 // ── MAIN VIEW ────────────────────────────────────────────────
 export default function MobileNotificationsView({
   notifications, notifReads, profile, onMarkNotifRead, onMarkAllNotifsRead,
+  onUpdatePreferences,
 }) {
+  const [showPrefs, setShowPrefs] = useState(false);
   const readSet = useMemo(() => new Set(notifReads || []), [notifReads]);
+  const prefs = profile?.notification_preferences || null;
 
   // Filter to visible notifications for this user
   const visible = useMemo(() => {
@@ -187,9 +262,10 @@ export default function MobileNotificationsView({
         if (n.target_user_id === userId) return true;
         return false;
       }
+      if (!isNotificationEnabled(n.type, prefs)) return false;
       return true;
     }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  }, [notifications, profile]);
+  }, [notifications, profile, prefs]);
 
   const unreadCount = visible.filter(n => !readSet.has(n.id)).length;
 
@@ -212,23 +288,79 @@ export default function MobileNotificationsView({
     return groups;
   }, [visible]);
 
-  if (visible.length === 0) return <EmptyState />;
+  const handleSavePrefs = useCallback(async (newPrefs) => {
+    if (onUpdatePreferences) await onUpdatePreferences(newPrefs);
+    setShowPrefs(false);
+  }, [onUpdatePreferences]);
 
-  return (
-    <div>
-      {/* Mark all read */}
-      {unreadCount > 0 && (
+  if (showPrefs) {
+    return (
+      <div>
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "center",
           padding: "10px 16px", borderBottom: `1px solid ${BORDER}`,
         }}>
-          <span style={{ fontSize: 14, color: MUTED }}>{unreadCount} unread</span>
-          <button onClick={onMarkAllNotifsRead} aria-label="Mark all notifications as read" style={{
+          <span style={{ fontSize: 15, fontWeight: 600, color: WHITE }}>Notification Preferences</span>
+          <button onClick={() => setShowPrefs(false)} style={{
             background: "none", border: "none", color: CYAN, fontSize: 14, fontWeight: 600,
             cursor: "pointer", padding: "8px 12px", fontFamily: "inherit", minHeight: 44,
-          }}>Mark All Read</button>
+          }}>Done</button>
         </div>
-      )}
+        <MobilePreferencesPanel preferences={prefs} onSave={handleSavePrefs} />
+      </div>
+    );
+  }
+
+  if (visible.length === 0 && !showPrefs) {
+    return (
+      <div>
+        <div style={{
+          display: "flex", justifyContent: "flex-end", padding: "10px 16px",
+          borderBottom: `1px solid ${BORDER}`,
+        }}>
+          <button onClick={() => setShowPrefs(true)} title="Notification preferences" style={{
+            background: "none", border: "none", cursor: "pointer", padding: "8px",
+            color: MUTED, minHeight: 44, display: "flex", alignItems: "center",
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        </div>
+        <EmptyState />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header bar with unread count and gear */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "10px 16px", borderBottom: `1px solid ${BORDER}`,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {unreadCount > 0 && (
+            <span style={{ fontSize: 14, color: MUTED }}>{unreadCount} unread</span>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {unreadCount > 0 && (
+            <button onClick={onMarkAllNotifsRead} aria-label="Mark all notifications as read" style={{
+              background: "none", border: "none", color: CYAN, fontSize: 14, fontWeight: 600,
+              cursor: "pointer", padding: "8px 12px", fontFamily: "inherit", minHeight: 44,
+            }}>Mark All Read</button>
+          )}
+          <button onClick={() => setShowPrefs(true)} title="Notification preferences" style={{
+            background: "none", border: "none", cursor: "pointer", padding: "8px",
+            color: MUTED, minHeight: 44, display: "flex", alignItems: "center",
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
       {grouped.map(group => (
         <div key={group.day}>
