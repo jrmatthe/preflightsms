@@ -163,6 +163,45 @@ function ArrivalSheet({ flight, onConfirm, onCancel }) {
   );
 }
 
+// ── Cancel confirmation sheet ──
+function CancelSheet({ flight, onConfirm, onDismiss }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+      <div onClick={onDismiss} aria-hidden="true" style={{ flex: 1, background: "rgba(0,0,0,0.6)", animation: "arrBackdropIn 0.2s ease-out" }} />
+      <div role="dialog" aria-label="Cancel flight" style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", animation: "arrSlideUp 0.25s ease-out" }}>
+        <div style={{ width: 36, height: 4, background: BORDER, borderRadius: 2, margin: "0 auto 16px" }} />
+        <div style={{ color: WHITE, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+          Cancel Flight
+        </div>
+        <div style={{ color: MUTED, fontSize: 14, marginBottom: 20 }}>
+          {flight.departure} → {flight.destination} · {flight.tailNumber || flight.aircraft}
+        </div>
+        <div style={{ color: OFF_WHITE, fontSize: 14, marginBottom: 20 }}>
+          This will cancel the flight and remove it from active tracking. This cannot be undone.
+        </div>
+        <button
+          onClick={onConfirm}
+          style={{
+            width: "100%", padding: "14px", background: RED, color: WHITE, border: "none",
+            borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer", marginBottom: 10,
+          }}
+        >
+          Cancel Flight
+        </button>
+        <button
+          onClick={onDismiss}
+          style={{
+            width: "100%", padding: "14px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`,
+            borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer",
+          }}
+        >
+          Go Back
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Post-flight nudge toast ──
 function PostFlightNudge({ onFileReport, onDismiss }) {
   return (
@@ -193,7 +232,7 @@ function PostFlightNudge({ onFileReport, onDismiss }) {
 }
 
 // ── Flight Card ──
-function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
+function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSwipeCancel }) {
   const isPending = flight.approvalStatus === "pending" || flight.approvalStatus === "review";
   const isActive = flight.status === "ACTIVE" && !isPending;
   const isArrived = flight.status === "ARRIVED";
@@ -219,25 +258,26 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
     statusColor = MUTED;
   }
 
-  // Swipe state
+  // Swipe state: positive = swiped left (arrive), negative = swiped right (cancel)
   const touchStartX = useRef(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const canArrive = isActive && !isPending;
+  const canCancel = flight.status === "ACTIVE";
 
   const handleTouchStart = (e) => {
-    if (!canArrive) return;
+    if (!canArrive && !canCancel) return;
     touchStartX.current = e.touches[0].clientX;
   };
   const handleTouchMove = (e) => {
     if (touchStartX.current == null) return;
     const diff = touchStartX.current - e.touches[0].clientX;
-    if (diff > 0) setSwipeOffset(Math.min(diff, 100));
+    if (diff > 0 && canArrive) setSwipeOffset(Math.min(diff, 100));
+    else if (diff < 0 && canCancel) setSwipeOffset(Math.max(diff, -100));
     else setSwipeOffset(0);
   };
   const handleTouchEnd = () => {
-    if (swipeOffset > 60) {
-      onSwipeArrive(flight);
-    }
+    if (swipeOffset > 60) onSwipeArrive(flight);
+    else if (swipeOffset < -60) onSwipeCancel(flight);
     setSwipeOffset(0);
     touchStartX.current = null;
   };
@@ -271,7 +311,7 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Swipe reveal: arrive action */}
+      {/* Swipe reveal: arrive action (swipe left) */}
       {canArrive && swipeOffset > 0 && (
         <div style={{
           position: "absolute", right: 0, top: 0, bottom: 0, width: 100,
@@ -281,6 +321,20 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
           <div style={{ color: BLACK, fontSize: 14, fontWeight: 700, textAlign: "center" }}>
             <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             <div>Arrive</div>
+          </div>
+        </div>
+      )}
+
+      {/* Swipe reveal: cancel action (swipe right) */}
+      {canCancel && swipeOffset < 0 && (
+        <div style={{
+          position: "absolute", left: 0, top: 0, bottom: 0, width: 100,
+          background: RED, display: "flex", alignItems: "center", justifyContent: "center",
+          borderRadius: "12px 0 0 12px",
+        }}>
+          <div style={{ color: WHITE, fontSize: 14, fontWeight: 700, textAlign: "center" }}>
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <div>Cancel</div>
           </div>
         </div>
       )}
@@ -334,9 +388,9 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
         </div>
 
         {/* Swipe hint for active flights */}
-        {canArrive && !expanded && (
+        {(canArrive || canCancel) && !expanded && (
           <div style={{ color: MUTED, fontSize: 14, marginTop: 6, opacity: 0.5 }}>
-            \u2190 Swipe to mark arrived
+            {canArrive ? "\u2190 Arrive" : ""}{canArrive && canCancel ? "  \u00B7  " : ""}{canCancel ? "Cancel \u2192" : ""}
           </div>
         )}
 
@@ -372,6 +426,17 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive }) {
                 Mark Arrived
               </button>
             )}
+            {canCancel && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onSwipeCancel(flight); }}
+                style={{
+                  width: "100%", marginTop: 8, padding: "12px", background: "transparent", color: RED,
+                  border: `1px solid ${RED}44`, borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                Cancel Flight
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -396,6 +461,7 @@ export default function MobileFlightsView({
   const [filter, setFilter] = useState("my");
   const [expandedId, setExpandedId] = useState(null);
   const [arrivalFlight, setArrivalFlight] = useState(null);
+  const [cancelFlight, setCancelFlight] = useState(null);
   const [showNudge, setShowNudge] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef(null);
@@ -501,6 +567,13 @@ export default function MobileFlightsView({
     }
   };
 
+  const handleCancelConfirm = () => {
+    if (cancelFlight) {
+      onUpdateFlight(cancelFlight.id, "CANCEL");
+      setCancelFlight(null);
+    }
+  };
+
   const handleNudgeReport = () => {
     setShowNudge(false);
     if (onNudgeSubmitReport) onNudgeSubmitReport();
@@ -590,6 +663,7 @@ export default function MobileFlightsView({
               expanded={expandedId === (f.id || f.dbId)}
               onToggle={() => setExpandedId(prev => prev === (f.id || f.dbId) ? null : (f.id || f.dbId))}
               onSwipeArrive={(fl) => setArrivalFlight(fl)}
+              onSwipeCancel={(fl) => setCancelFlight(fl)}
             />
           ))
         )}
@@ -601,6 +675,15 @@ export default function MobileFlightsView({
           flight={arrivalFlight}
           onConfirm={handleArrivalConfirm}
           onCancel={() => setArrivalFlight(null)}
+        />
+      )}
+
+      {/* Cancel confirmation sheet */}
+      {cancelFlight && (
+        <CancelSheet
+          flight={cancelFlight}
+          onConfirm={handleCancelConfirm}
+          onDismiss={() => setCancelFlight(null)}
         />
       )}
 
