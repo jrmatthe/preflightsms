@@ -299,17 +299,21 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
         </Field>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Date" error={errors.date}>
-          <input type="date" value={fi.date} onChange={e => setFi(p => ({ ...p, date: e.target.value }))} style={{ ...inputStyle, minWidth: 0 }} />
-        </Field>
-        <Field label="ETD (local)" error={errors.etd}>
-          <input type="text" inputMode="numeric" maxLength={5} placeholder="HH:MM"
-            value={(() => { const d = (fi.etd || "").replace(/[^0-9]/g, "").slice(0, 4); return d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d; })()}
-            onFocus={e => e.target.select()}
-            onChange={e => { const d = e.target.value.replace(/[^0-9]/g, "").slice(0, 4); setFi(p => ({ ...p, etd: d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d })); }}
-            style={{ ...inputStyle, minWidth: 0 }} />
-        </Field>
+      <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Field label="Date" error={errors.date}>
+            <input type="date" value={fi.date} onChange={e => setFi(p => ({ ...p, date: e.target.value }))} style={{ ...inputStyle, minWidth: 0, width: "100%", maxWidth: "100%" }} />
+          </Field>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Field label="ETD (local)" error={errors.etd}>
+            <input type="text" inputMode="numeric" maxLength={5} placeholder="HH:MM"
+              value={(() => { const d = (fi.etd || "").replace(/[^0-9]/g, "").slice(0, 4); return d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d; })()}
+              onFocus={e => e.target.select()}
+              onChange={e => { const d = e.target.value.replace(/[^0-9]/g, "").slice(0, 4); setFi(p => ({ ...p, etd: d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d })); }}
+              style={{ ...inputStyle, minWidth: 0, width: "100%" }} />
+          </Field>
+        </div>
       </div>
 
       <Field label="ETE (hours:minutes)" error={errors.ete}>
@@ -680,7 +684,7 @@ function ReviewRow({ label, value }) {
 // ── Shared components ──
 function Field({ label, children, error }) {
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 14, minWidth: 0 }}>
       <label style={{ display: "block", color: OFF_WHITE, fontSize: 14, marginBottom: 6 }}>{label}</label>
       {children}
       {error && <div role="alert" style={{ color: RED, fontSize: 14, marginTop: 4 }}>{error}</div>}
