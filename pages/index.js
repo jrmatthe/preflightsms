@@ -1481,8 +1481,8 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
             { key: "destination", label: "Destination (ICAO)", placeholder: "e.g. KBOI", type: "text", upper: true },
             { key: "cruiseAlt", label: "Cruise Altitude", placeholder: "e.g. FL180 or 12000", type: "text" },
             { key: "date", label: "Flight Date", type: "date" },
-            { key: "etd", label: `Est. Departure (${depTz?.tzAbbr || "local"})`, type: "etd" },
-            { key: "ete", label: "Est. Time Enroute", placeholder: "e.g. 1:30, 45, or 0:30", type: "text" },
+            { key: "etd", label: `Est. Departure (${depTz?.tzAbbr || "local"})`, placeholder: "HH:MM", type: "time" },
+            { key: "ete", label: "Est. Time Enroute", placeholder: "HH:MM", type: "time" },
             { key: "fuelLbs", label: `Fuel Onboard (${fratFuelUnit})`, placeholder: fratFuelUnit === "hrs" ? "e.g. 3.5" : "e.g. 2400", type: "fuel" },
             { key: "numCrew", label: "Number of Crew", placeholder: "e.g. 2", type: "text" },
             { key: "numPax", label: "Number of Passengers", placeholder: "e.g. 4", type: "text" },
@@ -1519,23 +1519,15 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
                   <button type="button" onClick={() => setFratFuelUnit(u => u === "lbs" ? "hrs" : "lbs")}
                     style={{ padding: "8px 10px", background: CARD, border: `1px solid ${err ? RED : BORDER}`, borderTopRightRadius: 6, borderBottomRightRadius: 6, color: WHITE, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{fratFuelUnit}</button>
                 </div>
-              ) : f.type === "etd" ? (() => {
-                const raw = fi.etd || "";
-                const parts = raw.includes(":") ? raw.split(":") : [raw.slice(0, 2), raw.slice(2)];
-                const hh = parts[0] || "";
-                const mm = parts[1] || "";
-                const setEtd = (h, m) => { const v = h + ":" + m; setFi(p => ({ ...p, etd: v })); if (err) setValidationErrors(p => { const n = {...p}; delete n.etd; return n; }); };
+              ) : f.type === "time" ? (() => {
+                const raw = fi[f.key] || "";
+                const digits = raw.replace(/[^0-9]/g, "").slice(0, 4);
+                const display = digits.length > 2 ? digits.slice(0, 2) + ":" + digits.slice(2) : digits;
                 return (
-                  <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                    <input type="text" inputMode="numeric" maxLength={2} placeholder="HH" value={hh}
-                      onChange={e => { const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 2); setEtd(v, mm); if (v.length === 2) { const next = e.target.parentElement.querySelector("[data-mm]"); if (next) next.focus(); } }}
-                      style={{...inp, ...(err ? {borderColor: RED} : {}), width: "3.5em", textAlign: "center", borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: "none", flex: "none"}} />
-                    <span style={{ color: MUTED, fontSize: 18, fontWeight: 700, padding: "0 2px", userSelect: "none" }}>:</span>
-                    <input data-mm type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={mm}
-                      onChange={e => { const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 2); setEtd(hh, v); }}
-                      onKeyDown={e => { if (e.key === "Backspace" && mm === "") { const prev = e.target.parentElement.querySelector("input"); if (prev) prev.focus(); } }}
-                      style={{...inp, ...(err ? {borderColor: RED} : {}), width: "3.5em", textAlign: "center", borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none", flex: "none"}} />
-                  </div>);
+                  <input type="text" inputMode="numeric" maxLength={5} placeholder={f.placeholder} value={display}
+                    onFocus={e => e.target.select()}
+                    onChange={e => { const d = e.target.value.replace(/[^0-9]/g, "").slice(0, 4); const v = d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d; setFi(p => ({ ...p, [f.key]: v })); if (err) setValidationErrors(p => { const n = {...p}; delete n[f.key]; return n; }); }}
+                    style={{...inp, ...(err ? {borderColor: RED} : {})}} />);
               })() : (<input type={f.type === "date" ? "date" : "text"} inputMode={isNum ? "numeric" : undefined} placeholder={f.placeholder} value={fi[f.key]}
                 onChange={e => { let v = f.upper ? e.target.value.toUpperCase() : e.target.value; if (f.key === "cruiseAlt") v = v.toUpperCase(); setFi(p => ({ ...p, [f.key]: v })); if (err) setValidationErrors(p => { const n = {...p}; delete n[f.key]; return n; }); }}
                 onBlur={f.key === "ete" ? () => setFi(p => ({ ...p, ete: formatETE(p.ete) })) : f.key === "cruiseAlt" ? () => setFi(p => { const raw = p.cruiseAlt.trim().toUpperCase(); if (!raw) return p; if (raw.startsWith("FL")) return { ...p, cruiseAlt: "FL" + raw.slice(2) }; const num = parseInt(raw, 10); if (!isNaN(num) && num >= 100 && num <= 999) return { ...p, cruiseAlt: "FL" + num }; if (!isNaN(num) && num >= 18000) return { ...p, cruiseAlt: "FL" + Math.round(num / 100) }; return p; }) : undefined}

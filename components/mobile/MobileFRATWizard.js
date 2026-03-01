@@ -304,29 +304,20 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
           <input type="date" value={fi.date} onChange={e => setFi(p => ({ ...p, date: e.target.value }))} style={{ ...inputStyle, minWidth: 0 }} />
         </Field>
         <Field label="ETD (local)" error={errors.etd}>
-          {(() => {
-            const raw = fi.etd || "";
-            const parts = raw.includes(":") ? raw.split(":") : [raw.slice(0, 2), raw.slice(2)];
-            const hh = parts[0] || "";
-            const mm = parts[1] || "";
-            const setEtd = (h, m) => { const v = h + ":" + m; setFi(p => ({ ...p, etd: v })); };
-            return (
-              <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                <input type="text" inputMode="numeric" maxLength={2} placeholder="HH" value={hh}
-                  onChange={e => { const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 2); setEtd(v, mm); if (v.length === 2) { const next = e.target.parentElement.querySelector("[data-mm]"); if (next) next.focus(); } }}
-                  style={{ ...inputStyle, minWidth: 0, width: "3.5em", textAlign: "center", borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: "none", flex: "none" }} />
-                <span style={{ color: MUTED, fontSize: 18, fontWeight: 700, padding: "0 2px", userSelect: "none" }}>:</span>
-                <input data-mm type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={mm}
-                  onChange={e => { const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 2); setEtd(hh, v); }}
-                  onKeyDown={e => { if (e.key === "Backspace" && mm === "") { const prev = e.target.parentElement.querySelector("input"); if (prev) prev.focus(); } }}
-                  style={{ ...inputStyle, minWidth: 0, width: "3.5em", textAlign: "center", borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none", flex: "none" }} />
-              </div>);
-          })()}
+          <input type="text" inputMode="numeric" maxLength={5} placeholder="HH:MM"
+            value={(() => { const d = (fi.etd || "").replace(/[^0-9]/g, "").slice(0, 4); return d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d; })()}
+            onFocus={e => e.target.select()}
+            onChange={e => { const d = e.target.value.replace(/[^0-9]/g, "").slice(0, 4); setFi(p => ({ ...p, etd: d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d })); }}
+            style={{ ...inputStyle, minWidth: 0 }} />
         </Field>
       </div>
 
       <Field label="ETE (hours:minutes)" error={errors.ete}>
-        <input value={fi.ete} onChange={e => setFi(p => ({ ...p, ete: e.target.value }))} style={inputStyle} placeholder="e.g. 1:30 or 0130" inputMode="numeric" />
+        <input type="text" inputMode="numeric" maxLength={5} placeholder="HH:MM"
+          value={(() => { const d = (fi.ete || "").replace(/[^0-9]/g, "").slice(0, 4); return d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d; })()}
+          onFocus={e => e.target.select()}
+          onChange={e => { const d = e.target.value.replace(/[^0-9]/g, "").slice(0, 4); setFi(p => ({ ...p, ete: d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d })); }}
+          style={inputStyle} />
       </Field>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
