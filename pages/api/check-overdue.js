@@ -16,6 +16,7 @@ export default async function handler(req, res) {
   const authHeader = req.headers["authorization"];
   const cronSecret = req.headers["x-cron-secret"] || req.query.secret || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
   if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
+    console.error("[check-overdue] Unauthorized request rejected");
     return res.status(401).json({ error: "Unauthorized" });
   }
 
@@ -57,12 +58,16 @@ export default async function handler(req, res) {
       .is("overdue_notified_at", null);
 
     if (flightErr) {
+      console.error("[check-overdue] DB query failed:", flightErr.message);
       return res.status(500).json({ error: flightErr.message });
     }
 
     if (!overdueFlights || overdueFlights.length === 0) {
+      console.log("[check-overdue] No overdue flights found");
       return res.status(200).json({ message: "No overdue flights", checked: nowISO });
     }
+
+    console.log(`[check-overdue] Found ${overdueFlights.length} overdue flight(s)`);
 
     let totalEmails = 0;
     let totalSMS = 0;
@@ -204,12 +209,14 @@ export default async function handler(req, res) {
       results.push(flightResults);
     }
 
+    console.log(`[check-overdue] Done — ${totalEmails} emails, ${totalSMS} SMS sent for ${overdueFlights.length} flight(s)`);
     return res.status(200).json({
       message: `Checked ${overdueFlights.length} overdue flights — ${totalEmails} emails, ${totalSMS} SMS sent`,
       results,
       checked: nowISO,
     });
   } catch (err) {
+    console.error("[check-overdue] Unhandled error:", err.message);
     return res.status(500).json({ error: err.message });
   }
 }
