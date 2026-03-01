@@ -212,17 +212,23 @@ function MobilePreferencesPanel({ preferences, onSave }) {
           <button
             onClick={() => toggle(cat)}
             style={{
-              width: 48, height: 28, borderRadius: 14, border: "none", cursor: "pointer",
-              background: draft[cat] ? CYAN : "#333", position: "relative",
-              transition: "background 0.2s", flexShrink: 0, marginLeft: 16,
-              minHeight: 44, display: "flex", alignItems: "center",
+              width: 48, minHeight: 44, border: "none", cursor: "pointer",
+              background: "transparent", flexShrink: 0, marginLeft: 16,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: 0,
             }}
           >
             <div style={{
-              width: 22, height: 22, borderRadius: 11, background: WHITE,
-              position: "absolute", top: 3, left: draft[cat] ? 23 : 3,
-              transition: "left 0.2s",
-            }} />
+              width: 48, height: 28, borderRadius: 14, position: "relative",
+              background: draft[cat] ? CYAN : "#333",
+              transition: "background 0.2s",
+            }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: 11, background: WHITE,
+                position: "absolute", top: 3, left: draft[cat] ? 23 : 3,
+                transition: "left 0.2s",
+              }} />
+            </div>
           </button>
         </div>
       ))}
