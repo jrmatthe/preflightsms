@@ -1967,6 +1967,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
   // Live ADS-B positions
   const [livePositions, setLivePositions] = useState({});
   useEffect(() => {
+    console.log("[adsb] polling check — adsbEnabled:", adsbEnabled, "hasToken:", !!session?.access_token);
     if (!adsbEnabled || !session?.access_token) return;
     let cancelled = false;
     const poll = async () => {
@@ -1974,15 +1975,15 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
         const res = await fetch("/api/flight-positions", {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
-        if (!res.ok || cancelled) return;
         const data = await res.json();
-        if (data.feature_disabled || !data.positions) return;
+        console.log("[adsb] poll result:", { status: res.status, cached: data.cached, positions: data.positions?.length, provider: data.provider, feature_disabled: data.feature_disabled, reason: data.reason });
+        if (!res.ok || cancelled || data.feature_disabled || !data.positions) return;
         const map = {};
         for (const p of data.positions) {
           map[p.flight_id] = { ...p, receivedAt: Date.now() };
         }
         if (!cancelled) setLivePositions(map);
-      } catch {}
+      } catch (err) { console.error("[adsb] poll error:", err); }
     };
     poll();
     const iv = setInterval(poll, 12000);
