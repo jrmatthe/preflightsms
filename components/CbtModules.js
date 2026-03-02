@@ -42,11 +42,11 @@ const CATEGORIES = [
 
 // ── PART 5 TRAINING REQUIREMENTS (pre-seed) ─────────────────────
 const PART5_TRAINING_REQUIREMENTS = [
-  { title: "Safety Policy & SMS Foundations", description: "Training on SMS principles, the four pillars, safety policy, organizational roles and accountability, safety reporting, and just culture per Subpart B (§5.21, §5.23, §5.25).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
-  { title: "Safety Risk Management", description: "Training on hazard identification, system analysis, risk assessment using likelihood/severity matrices, and risk control development per Subpart C (§5.51–§5.55).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
-  { title: "Safety Assurance", description: "Training on safety performance monitoring, data analysis, safety performance assessment, and continuous improvement per Subpart D (§5.71–§5.75).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
-  { title: "Emergency Response Planning", description: "Training on the organization's Emergency Response Plan including delegation of emergency authority, assignment of responsibilities, and coordination with interfacing organizations per §5.27.", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
-  { title: "Safety Promotion", description: "Training on SMS competency requirements, safety communication methods, hazard information dissemination, and explanation of safety actions and procedure changes per Subpart E (§5.91, §5.93).", category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Safety Policy & SMS Foundations", description: "Training on SMS principles, the four pillars, safety policy, organizational roles and accountability, safety reporting, and just culture per Subpart B (§5.21, §5.23, §5.25).", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Safety Risk Management", description: "Training on hazard identification, system analysis, risk assessment using likelihood/severity matrices, and risk control development per Subpart C (§5.51–§5.55).", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Safety Assurance", description: "Training on safety performance monitoring, data analysis, safety performance assessment, and continuous improvement per Subpart D (§5.71–§5.75).", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Emergency Response Planning", description: "Training on the organization's Emergency Response Plan including delegation of emergency authority, assignment of responsibilities, and coordination with interfacing organizations per §5.27.", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+  { title: "Safety Promotion", description: "Training on SMS competency requirements, safety communication methods, hazard information dissemination, and explanation of safety actions and procedure changes per Subpart E (§5.91, §5.93).", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
 ];
 
 // ── PART 5 CBT COURSES (pre-seed) ──────────────────────────────
@@ -54,7 +54,7 @@ const PART5_CBT_COURSES = [
   {
     title: "Safety Policy & SMS Foundations",
     description: "Comprehensive training on Safety Management Systems under 14 CFR Part 5 Subpart B. Covers the four pillars, safety policy, safety reporting, just culture, organizational roles and accountability (§5.21, §5.23, §5.25).",
-    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
     passingScore: 80, estimatedMinutes: 45,
     lessons: [
       {
@@ -146,7 +146,7 @@ const PART5_CBT_COURSES = [
   {
     title: "Safety Risk Management",
     description: "Training on hazard identification, system analysis, risk assessment using likelihood/severity matrices, and risk control development per 14 CFR Part 5 Subpart C (§5.51–§5.55).",
-    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
     passingScore: 80, estimatedMinutes: 25,
     lessons: [
       {
@@ -204,7 +204,7 @@ const PART5_CBT_COURSES = [
   {
     title: "Safety Assurance",
     description: "Training on safety performance monitoring, data analysis, safety performance assessment, and continuous improvement per 14 CFR Part 5 Subpart D (§5.71–§5.75).",
-    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
     passingScore: 80, estimatedMinutes: 30,
     lessons: [
       {
@@ -278,7 +278,7 @@ const PART5_CBT_COURSES = [
   {
     title: "Emergency Response Planning",
     description: "Training on the organization's Emergency Response Plan including delegation of emergency authority, assignment of responsibilities, and coordination with interfacing organizations per §5.27.",
-    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
     passingScore: 80, estimatedMinutes: 15,
     lessons: [
       {
@@ -335,7 +335,7 @@ const PART5_CBT_COURSES = [
   {
     title: "Safety Promotion",
     description: "Training on SMS competency requirements, safety communication methods, hazard information dissemination, and explanation of safety actions and procedure changes per Subpart E (§5.91, §5.93).",
-    category: "sms", requiredFor: ["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
+    category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"],
     passingScore: 80, estimatedMinutes: 20,
     lessons: [
       {

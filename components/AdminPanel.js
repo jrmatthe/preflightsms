@@ -15,6 +15,7 @@ const inp = { width: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`
 const ROLES = [
   { id: "pilot", label: "Pilot", desc: "Submit FRATs, file flight plans, submit safety reports" },
   { id: "dispatcher", label: "Dispatcher", desc: "Create and monitor flights, view FRATs and reports" },
+  { id: "maintenance", label: "Maintenance", desc: "Submit safety reports, view hazards, complete SMS training" },
   { id: "safety_manager", label: "Safety Manager", desc: "Full SMS access — investigate reports, manage hazards, approve FRATs, manage users" },
   { id: "chief_pilot", label: "Chief Pilot", desc: "Approve FRATs, view all data, assign corrective actions, manage users" },
   { id: "accountable_exec", label: "Accountable Executive", desc: "Approve FRATs, view dashboards and audit logs, manage users" },
