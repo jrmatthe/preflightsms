@@ -1258,27 +1258,6 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
         )}
       </div>
 
-      {/* Dashboard Analytics Toggle */}
-      {canManage && (
-        <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>Dashboard</div>
-          {[
-            { label: "Enable Dashboard Analytics", desc: "Show Overview, FRAT Analytics, Safety Metrics, Performance, Insurance, History, and Export tabs on the dashboard. Safety Culture Survey is always available.", key: "dashboard_analytics_enabled", val: orgData?.dashboard_analytics_enabled !== false },
-          ].map(t => (
-            <div key={t.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{t.label}</div>
-                <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{t.desc}</div>
-              </div>
-              <button className="admin-toggle" onClick={() => onUpdateOrg({ [t.key]: !t.val })}
-                style={{ width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: t.val ? GREEN : BORDER, transition: "background 0.2s", flexShrink: 0, marginLeft: 12 }}>
-                <div style={{ width: 16, height: 16, borderRadius: 8, background: WHITE, position: "absolute", top: 3, left: t.val ? 21 : 3, transition: "left 0.2s" }} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Pilot Engagement Settings */}
       {canManage && (
         <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
