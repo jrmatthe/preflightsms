@@ -1937,7 +1937,7 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
     </div>);
 }
 
-function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight }) {
+function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight, adsbEnabled, session }) {
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
@@ -1963,6 +1963,31 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
     const iv = setInterval(() => setNow(Date.now()), 10000);
     return () => clearInterval(iv);
   }, []);
+
+  // Live ADS-B positions
+  const [livePositions, setLivePositions] = useState({});
+  useEffect(() => {
+    if (!adsbEnabled || !session?.access_token) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/flight-positions", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (data.feature_disabled || !data.positions) return;
+        const map = {};
+        for (const p of data.positions) {
+          map[p.flight_id] = { ...p, receivedAt: Date.now() };
+        }
+        if (!cancelled) setLivePositions(map);
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 12000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [adsbEnabled, session?.access_token]);
 
   // Fetch airport coordinates
   useEffect(() => {
@@ -2033,6 +2058,20 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
   };
 
   const getEstimatedPos = (f) => {
+    // Prefer live ADS-B position if available and fresh (<30s)
+    const live = livePositions[f.dbId];
+    if (live && live.latitude != null && live.longitude != null && (Date.now() - (live.receivedAt || 0)) < 30000) {
+      return {
+        lat: live.latitude,
+        lon: live.longitude,
+        isLive: true,
+        heading: live.track,
+        speed: live.ground_speed,
+        alt: live.altitude_baro,
+        verticalRate: live.vertical_rate,
+        onGround: live.on_ground,
+      };
+    }
     const dep = airportCoords[f.departure];
     const dest = airportCoords[f.destination];
     if (!dep || !dest) return null;
@@ -2083,9 +2122,12 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                 <circle cx={dx} cy={dy} r="3" fill={MUTED} />
                 <circle cx={ex} cy={ey} r="3" fill={MUTED} />
                 {pos && (
-                  <g transform={`translate(${toX(pos.lon)},${toY(pos.lat)}) rotate(${angle})`}>
-                    <text textAnchor="middle" dominantBaseline="central" fill={isPending(f) ? YELLOW : WHITE} fontSize="16" fontFamily="sans-serif">&#9992;</text>
+                  <g transform={`translate(${toX(pos.lon)},${toY(pos.lat)}) rotate(${pos.isLive && pos.heading != null ? pos.heading : angle})`}>
+                    <text textAnchor="middle" dominantBaseline="central" fill={isPending(f) ? YELLOW : pos.isLive ? GREEN : WHITE} fontSize="16" fontFamily="sans-serif">&#9992;</text>
                   </g>
+                )}
+                {pos && pos.isLive && (
+                  <text x={toX(pos.lon) + 12} y={toY(pos.lat) - 8} fill={GREEN} fontSize="7" fontWeight="700" fontFamily="monospace">LIVE</text>
                 )}
               </g>);
           })}
@@ -2140,6 +2182,9 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                     {schedaeroTrips?.some(sc => sc.flight_id === f.dbId) && (
                       <span style={{ fontSize: 8, fontWeight: 700, color: "#60A5FA", background: "rgba(96,165,250,0.09)", padding: "2px 6px", borderRadius: 3, border: "1px solid rgba(96,165,250,0.2)" }}>Schedaero</span>
                     )}
+                    {livePositions[f.dbId] && (Date.now() - (livePositions[f.dbId].receivedAt || 0)) < 30000 && (
+                      <span style={{ fontSize: 8, fontWeight: 700, color: GREEN, background: "rgba(74,222,128,0.09)", padding: "2px 6px", borderRadius: 3, border: `1px solid ${GREEN}33` }}>LIVE ADS-B</span>
+                    )}
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
                 </div>
@@ -2177,6 +2222,17 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                 {/* Expanded details */}
                 {selectedFlight === f.id && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+                    {livePositions[f.dbId] && (Date.now() - (livePositions[f.dbId].receivedAt || 0)) < 30000 && (() => {
+                      const lp = livePositions[f.dbId];
+                      return (
+                        <div style={{ display: "flex", gap: 16, marginBottom: 10, padding: "8px 12px", background: "rgba(74,222,128,0.06)", borderRadius: 6, border: `1px solid ${GREEN}22` }}>
+                          {lp.altitude_baro != null && <div style={{ fontSize: 10, color: MUTED }}>Alt <span style={{ color: GREEN, fontWeight: 700 }}>{lp.altitude_baro.toLocaleString()} ft</span></div>}
+                          {lp.ground_speed != null && <div style={{ fontSize: 10, color: MUTED }}>GS <span style={{ color: GREEN, fontWeight: 700 }}>{Math.round(lp.ground_speed)} kts</span></div>}
+                          {lp.track != null && <div style={{ fontSize: 10, color: MUTED }}>Hdg <span style={{ color: GREEN, fontWeight: 700 }}>{Math.round(lp.track)}&deg;</span></div>}
+                          {lp.vertical_rate != null && lp.vertical_rate !== 0 && <div style={{ fontSize: 10, color: MUTED }}>VS <span style={{ color: GREEN, fontWeight: 700 }}>{lp.vertical_rate > 0 ? "+" : ""}{lp.vertical_rate} fpm</span></div>}
+                        </div>
+                      );
+                    })()}
                     <div style={{ color: MUTED, fontSize: 10, lineHeight: 1.8 }}>
                       {f.numCrew && <span>Crew: {f.numCrew} </span>}{f.numPax && <span>Pax: {f.numPax} </span>}{f.fuelLbs && <span>Fuel: {f.fuelLbs} {f.fuelUnit || "lbs"} </span>}
                       <br />ID: {f.id} &middot; Score: {f.score} {f.riskLevel} &middot; Filed {formatDateTime(f.timestamp)}
@@ -2256,7 +2312,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
               </div>); })}
         </div>
       </div>
-      {activeFlights.length > 0 && <div style={{ textAlign: "center", padding: "14px 0 4px", color: SUBTLE, fontSize: 10 }}>Flight positions on map and progress bars are estimates based on departure time and ETA — not live tracking.</div>}
+      {activeFlights.length > 0 && <div style={{ textAlign: "center", padding: "14px 0 4px", color: SUBTLE, fontSize: 10 }}>{adsbEnabled ? "Flights with LIVE ADS-B badges show real-time positions. Others are estimates based on departure time and ETA." : "Flight positions on map and progress bars are estimates based on departure time and ETA \u2014 not live tracking."}</div>}
       <div style={{ textAlign: "center", padding: "8px 16px", color: "#f59e0b", fontSize: 10, lineHeight: 1.5 }}>All users with the Flight Follower permission will be notified if a flight is not marked arrived within 30 minutes of its ETA.</div>
     </div>);
 }
@@ -4759,7 +4815,7 @@ export default function PVTAIRFrat() {
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} />)}
-        {cv === "flights" && <FlightBoard flights={flights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} onApproveFlight={async (flightDbId, fratDbId) => {
+        {cv === "flights" && <FlightBoard flights={flights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} onApproveFlight={async (flightDbId, fratDbId) => {
           setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f));
           if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r));
           setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);

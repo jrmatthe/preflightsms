@@ -20,6 +20,7 @@ const PLAN_COMPARISON = [
   { feature: "FAA Audit Log", free: false, starter: false, professional: true },
   { feature: "ERP Plans", free: "1 (read-only)", starter: "2", professional: "Unlimited" },
   { feature: "Data Export", free: false, starter: true, professional: true },
+  { feature: "Live ADS-B Tracking", free: false, starter: false, professional: true },
 ];
 
 export default function UpgradePrompt({ feature, message, onNavigateToSubscription, onDismiss }) {
