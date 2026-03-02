@@ -37,6 +37,7 @@ export default function InternationalCompliance({
   profile, session, org, orgProfiles,
   complianceFrameworks, checklistItems, complianceStatus, crosswalkData,
   onUpsertFramework, onDeleteFramework, onUpsertStatus, onRefresh,
+  part5ReqStatuses,
 }) {
   const [view, setView] = useState("frameworks");
   const [activeFramework, setActiveFramework] = useState(null);
@@ -69,25 +70,54 @@ export default function InternationalCompliance({
     return m;
   }, [items]);
 
+  // Determine which international checklist items are auto-satisfied by Part 5
+  const part5AutoSatisfied = useMemo(() => {
+    if (!part5ReqStatuses || !crosswalk.length) return {};
+    const result = {};
+    // Helper: check if a Part 5 section (and all its sub-requirements) are compliant
+    const isSectionCompliant = (section) => {
+      const matching = Object.keys(part5ReqStatuses).filter(id =>
+        id === section || (id.startsWith(section) && !/^\d/.test(id.slice(section.length)))
+      );
+      return matching.length > 0 && matching.every(id => part5ReqStatuses[id] === "compliant");
+    };
+    // Build reverse crosswalk: for each international item, find mapped Part 5 sections
+    items.forEach(item => {
+      if (item.framework === "faa_part5") return;
+      const mappings = crosswalk.filter(cw =>
+        cw.target_framework === item.framework &&
+        (cw.target_section === item.section_number ||
+         item.section_number.startsWith(cw.target_section + ".") ||
+         cw.target_section.startsWith(item.section_number + ".") ||
+         cw.target_section === item.section_number)
+      );
+      if (mappings.length === 0) return;
+      const allSourcesCompliant = mappings.every(cw => isSectionCompliant(cw.source_section));
+      if (allSourcesCompliant) result[item.id] = true;
+    });
+    return result;
+  }, [part5ReqStatuses, crosswalk, items]);
+
   // Compliance stats per framework
   const frameworkStats = useMemo(() => {
     const stats = {};
     Object.entries(itemsByFramework).forEach(([fw, fwItems]) => {
       const total = fwItems.length;
-      let compliant = 0, nonCompliant = 0, inProgress = 0, notStarted = 0, na = 0;
+      let compliant = 0, nonCompliant = 0, inProgress = 0, notStarted = 0, na = 0, autoSatisfied = 0;
       fwItems.forEach(item => {
         const s = statusMap[item.id]?.status || "not_started";
         if (s === "compliant") compliant++;
         else if (s === "non_compliant") nonCompliant++;
         else if (s === "in_progress") inProgress++;
         else if (s === "not_applicable") na++;
+        else if (s === "not_started" && part5AutoSatisfied[item.id]) { autoSatisfied++; compliant++; }
         else notStarted++;
       });
       const applicable = total - na;
-      stats[fw] = { total, compliant, nonCompliant, inProgress, notStarted, na, applicable, pct: applicable > 0 ? Math.round((compliant / applicable) * 100) : 0 };
+      stats[fw] = { total, compliant, nonCompliant, inProgress, notStarted, na, autoSatisfied, applicable, pct: applicable > 0 ? Math.round((compliant / applicable) * 100) : 0 };
     });
     return stats;
-  }, [itemsByFramework, statusMap]);
+  }, [itemsByFramework, statusMap, part5AutoSatisfied]);
 
   // Section hierarchy for a framework
   const getSections = useCallback((fw) => {
@@ -141,7 +171,13 @@ export default function InternationalCompliance({
     const fwEntries = Object.values(FRAMEWORKS);
     return (
       <div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 16 }}>Compliance Frameworks</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 12 }}>Compliance Frameworks</div>
+        <div style={{ padding: "12px 16px", marginBottom: 16, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 12, color: OFF_WHITE, lineHeight: 1.6 }}>
+          Activate the international compliance frameworks that apply to your operation.
+          FAA Part 5 is always active as your baseline SMS standard. Once you activate
+          additional frameworks, use the <strong style={{ color: WHITE }}>Checklist</strong> tab to track compliance for each
+          framework's requirements.
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280, 1fr))", gap: 12 }}>
           {fwEntries.map(fw => {
             const isActive = fw.always || activeIds.has(fw.id);
@@ -292,7 +328,10 @@ export default function InternationalCompliance({
         {topLevel.map(section => {
           const sectionChildren = children[section.section_number] || [];
           const allItems = [section, ...sectionChildren];
-          const sectionCompliant = allItems.filter(i => (statusMap[i.id]?.status || "not_started") === "compliant").length;
+          const sectionCompliant = allItems.filter(i => {
+            const s = statusMap[i.id]?.status || "not_started";
+            return s === "compliant" || (s === "not_started" && part5AutoSatisfied[i.id]);
+          }).length;
           const sectionApplicable = allItems.filter(i => (statusMap[i.id]?.status || "not_started") !== "not_applicable").length;
           const sectionPct = sectionApplicable > 0 ? Math.round((sectionCompliant / sectionApplicable) * 100) : 0;
           const isExpanded = expandedSection === section.section_number;
@@ -318,10 +357,10 @@ export default function InternationalCompliance({
               {isExpanded && (
                 <div style={{ borderTop: `1px solid ${BORDER}` }}>
                   {/* Section-level item */}
-                  <ChecklistItem item={section} statusMap={statusMap} onUpdate={handleStatusUpdate} isAdmin={isAdmin} fwColor={fwMeta?.color} profile={profile} />
+                  <ChecklistItem item={section} statusMap={statusMap} onUpdate={handleStatusUpdate} isAdmin={isAdmin} fwColor={fwMeta?.color} profile={profile} autoSatisfied={!!part5AutoSatisfied[section.id]} />
                   {/* Child items */}
                   {sectionChildren.map(child => (
-                    <ChecklistItem key={child.id} item={child} statusMap={statusMap} onUpdate={handleStatusUpdate} isAdmin={isAdmin} fwColor={fwMeta?.color} profile={profile} />
+                    <ChecklistItem key={child.id} item={child} statusMap={statusMap} onUpdate={handleStatusUpdate} isAdmin={isAdmin} fwColor={fwMeta?.color} profile={profile} autoSatisfied={!!part5AutoSatisfied[child.id]} />
                   ))}
                 </div>
               )}
@@ -463,7 +502,9 @@ export default function InternationalCompliance({
         const allItems = [section, ...(children[section.section_number] || [])];
         allItems.forEach(item => {
           const s = statusMap[item.id];
-          const statusLabel = STATUS_OPTIONS.find(o => o.id === (s?.status || "not_started"))?.label || "Not Started";
+          const rawStatus = s?.status || "not_started";
+          const isAutoSat = rawStatus === "not_started" && part5AutoSatisfied[item.id];
+          const statusLabel = isAutoSat ? "Covered by FAA Part 5" : (STATUS_OPTIONS.find(o => o.id === rawStatus)?.label || "Not Started");
           text += `  [${statusLabel}] ${item.section_number} - ${item.requirement_text}\n`;
           if (s?.evidence_notes) text += `    Evidence: ${s.evidence_notes}\n`;
           if (s?.reviewed_at) {
@@ -539,12 +580,13 @@ export default function InternationalCompliance({
 // ════════════════════════════════════════════════════════════
 // CHECKLIST ITEM SUB-COMPONENT
 // ════════════════════════════════════════════════════════════
-function ChecklistItem({ item, statusMap, onUpdate, isAdmin, fwColor, profile }) {
+function ChecklistItem({ item, statusMap, onUpdate, isAdmin, fwColor, profile, autoSatisfied }) {
   const [expanded, setExpanded] = useState(false);
   const [notes, setNotes] = useState("");
   const s = statusMap[item.id];
   const currentStatus = s?.status || "not_started";
-  const sc = STATUS_OPTIONS.find(o => o.id === currentStatus) || STATUS_OPTIONS[0];
+  const showAutoSatisfied = autoSatisfied && currentStatus === "not_started";
+  const displayStatus = showAutoSatisfied ? { id: "auto_satisfied", label: "Covered by FAA Part 5", color: GREEN } : (STATUS_OPTIONS.find(o => o.id === currentStatus) || STATUS_OPTIONS[0]);
 
   useEffect(() => {
     setNotes(s?.evidence_notes || "");
@@ -555,12 +597,12 @@ function ChecklistItem({ item, statusMap, onUpdate, isAdmin, fwColor, profile })
       <div onClick={() => setExpanded(!expanded)}
         style={{ padding: "10px 16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 4, background: sc.color, flexShrink: 0 }} />
+          <span style={{ width: 8, height: 8, borderRadius: 4, background: displayStatus.color, flexShrink: 0 }} />
           <span style={{ fontSize: 11, color: fwColor || CYAN, fontWeight: 700, fontFamily: "monospace", flexShrink: 0 }}>{item.section_number}</span>
           <span style={{ fontSize: 12, color: OFF_WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.section_title}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <span style={badge(`${sc.color}22`, sc.color)}>{sc.label}</span>
+          <span style={badge(`${displayStatus.color}22`, displayStatus.color)}>{displayStatus.label}</span>
           <span style={{ fontSize: 10, color: MUTED }}>{expanded ? "▾" : "▸"}</span>
         </div>
       </div>
@@ -571,6 +613,12 @@ function ChecklistItem({ item, statusMap, onUpdate, isAdmin, fwColor, profile })
           {item.guidance_text && (
             <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, marginBottom: 8, padding: 8, background: DARK, borderRadius: 4, borderLeft: `2px solid ${BORDER}` }}>
               {item.guidance_text}
+            </div>
+          )}
+
+          {showAutoSatisfied && (
+            <div style={{ fontSize: 11, color: GREEN, lineHeight: 1.5, marginBottom: 8, padding: 8, background: `${GREEN}08`, borderRadius: 4, borderLeft: `2px solid ${GREEN}44` }}>
+              This item is automatically covered by your FAA Part 5 compliance. You can still set a manual status if needed.
             </div>
           )}
 

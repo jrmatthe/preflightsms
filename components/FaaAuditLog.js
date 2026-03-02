@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
-import dynamic from "next/dynamic";
 import DeclarationWizard from "./DeclarationWizard";
-const InternationalCompliance = dynamic(() => import("./InternationalCompliance"), { ssr: false });
 
 const BLACK="#000000",NEAR_BLACK="#0A0A0A",CARD="#222222",BORDER="#2E2E2E",LIGHT_BORDER="#3A3A3A";
 const WHITE="#FFFFFF",OFF_WHITE="#E0E0E0",MUTED="#777777";
@@ -434,21 +432,22 @@ export function computePart5Compliance({ frats, flights, reports, hazards, actio
     policyCoversManual: (key) => (policies || []).some(p => p.status === "active" && p.part5_tags?.includes(key)),
   };
   let compliant = 0;
+  const reqStatuses = {};
   PART5_REQUIREMENTS.forEach(req => {
     const manualKeys = REQ_MANUAL_MAP[req.id] || [];
     const manualSatisfied = manualKeys.some(k => dataCtx.manualComplete(k) || dataCtx.policyCoversManual(k));
-    if (manualSatisfied) { compliant++; }
-    else if (req.autoCheck && req.autoCheck(dataCtx)) { compliant++; }
+    if (manualSatisfied) { compliant++; reqStatuses[req.id] = "compliant"; }
+    else if (req.autoCheck && req.autoCheck(dataCtx)) { compliant++; reqStatuses[req.id] = "compliant"; }
+    else { reqStatuses[req.id] = req.autoCheck ? "needs_attention" : "manual_review"; }
   });
-  return { compliant, total: PART5_REQUIREMENTS.length, percent: Math.round(compliant / PART5_REQUIREMENTS.length * 100) };
+  return { compliant, total: PART5_REQUIREMENTS.length, percent: Math.round(compliant / PART5_REQUIREMENTS.length * 100), reqStatuses };
 }
 
 // ══════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals, declarations, onSaveDeclaration, onUpdateDeclaration, onUploadPdf, session, hasIntlCompliance, complianceFrameworks, checklistItems, complianceStatus, crosswalkData, onUpsertFramework, onDeleteFramework, onUpsertStatus, onRefreshCompliance, profile, orgProfiles, defaultTab, onNavigate }) {
-  const [complianceTab, setComplianceTab] = useState(defaultTab || "part5");
+export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals, declarations, onSaveDeclaration, onUpdateDeclaration, onUploadPdf, session, profile, orgProfiles, onNavigate }) {
   const [expandedSubpart, setExpandedSubpart] = useState("B");
   const [expandedReq, setExpandedReq] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -566,34 +565,8 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
   const statusColor = (s) => s === "compliant" ? GREEN : s === "needs_attention" ? AMBER : MUTED;
   const statusLabel = (s) => s === "compliant" ? "Compliant" : s === "needs_attention" ? "Needs Attention" : "Manual Review";
 
-  const compTabBtn = (id, label) => (
-    <button key={id} onClick={() => setComplianceTab(id)}
-      style={{ padding: "8px 20px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
-        background: complianceTab === id ? "rgba(255,255,255,0.1)" : "transparent",
-        border: complianceTab === id ? "1px solid rgba(255,255,255,0.2)" : "1px solid transparent",
-        color: complianceTab === id ? WHITE : MUTED }}>
-      {label}
-    </button>
-  );
-
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-      {/* Top-level compliance tabs */}
-      {hasIntlCompliance && (
-        <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-          {compTabBtn("part5", "FAA Part 5")}
-          {compTabBtn("international", "International Compliance")}
-        </div>
-      )}
-
-      {complianceTab === "international" && hasIntlCompliance ? (
-        <InternationalCompliance
-          profile={profile} session={session} org={org} orgProfiles={orgProfiles}
-          complianceFrameworks={complianceFrameworks} checklistItems={checklistItems}
-          complianceStatus={complianceStatus} crosswalkData={crosswalkData}
-          onUpsertFramework={onUpsertFramework} onDeleteFramework={onDeleteFramework}
-          onUpsertStatus={onUpsertStatus} onRefresh={onRefreshCompliance} />
-      ) : (<>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div>
@@ -824,7 +797,6 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
         </div>
       </div>
       </>}
-      </>)}
     </div>
   );
 }

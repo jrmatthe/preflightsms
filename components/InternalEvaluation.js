@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import dynamic from "next/dynamic";
 const FaaAuditLog = dynamic(() => import("./FaaAuditLog"), { ssr: false });
+const InternationalCompliance = dynamic(() => import("./InternationalCompliance"), { ssr: false });
 
 const DARK = "#0A0A0A", NEAR_BLACK = "#111111", CARD = "#141414";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888";
@@ -273,7 +274,7 @@ export default function InternalEvaluation({
   hasIntlCompliance, complianceFrameworks, checklistItems,
   complianceStatus, crosswalkData, onUpsertFramework,
   onDeleteFramework, onUpsertStatus, onRefreshCompliance,
-  onAiGenerateChecklist, onNavigate,
+  onAiGenerateChecklist, onNavigate, part5ReqStatuses,
 }) {
   const [tab, setTab] = useState("part5");
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -849,32 +850,21 @@ export default function InternalEvaluation({
           trainingRecords={trainingRecords} org={org} smsManuals={smsManuals}
           declarations={declarations} session={session}
           onSaveDeclaration={onSaveDeclaration} onUpdateDeclaration={onUpdateDeclaration}
-          onUploadPdf={onUploadPdf} hasIntlCompliance={false}
+          onUploadPdf={onUploadPdf}
           profile={profile} orgProfiles={orgProfiles}
-          complianceFrameworks={complianceFrameworks} checklistItems={checklistItems}
-          complianceStatus={complianceStatus} crosswalkData={crosswalkData}
-          onUpsertFramework={onUpsertFramework} onDeleteFramework={onDeleteFramework}
-          onUpsertStatus={onUpsertStatus} onRefreshCompliance={onRefreshCompliance}
           onNavigate={onNavigate}
         />
       )}
 
       {/* ── INTERNATIONAL TAB ───────────────────────────────── */}
       {tab === "international" && hasIntlCompliance && (
-        <FaaAuditLog
-          frats={frats} flights={flights} reports={reports} hazards={hazards}
-          actions={actions} policies={policies} profiles={profiles}
-          trainingRecords={trainingRecords} org={org} smsManuals={smsManuals}
-          declarations={declarations} session={session}
-          onSaveDeclaration={onSaveDeclaration} onUpdateDeclaration={onUpdateDeclaration}
-          onUploadPdf={onUploadPdf} hasIntlCompliance={true}
-          profile={profile} orgProfiles={orgProfiles}
+        <InternationalCompliance
+          profile={profile} session={session} org={org} orgProfiles={orgProfiles}
           complianceFrameworks={complianceFrameworks} checklistItems={checklistItems}
           complianceStatus={complianceStatus} crosswalkData={crosswalkData}
           onUpsertFramework={onUpsertFramework} onDeleteFramework={onDeleteFramework}
-          onUpsertStatus={onUpsertStatus} onRefreshCompliance={onRefreshCompliance}
-          onNavigate={onNavigate}
-          defaultTab="international"
+          onUpsertStatus={onUpsertStatus} onRefresh={onRefreshCompliance}
+          part5ReqStatuses={part5ReqStatuses}
         />
       )}
 
