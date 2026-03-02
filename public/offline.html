@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <title>PreflightSMS — Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #111111;
+      color: #D4D4D4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      text-align: center;
+    }
+    .container { max-width: 360px; }
+    .icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 24px;
+      border-radius: 32px;
+      background: rgba(245, 158, 11, 0.07);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+    }
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #666666;
+      margin-bottom: 24px;
+    }
+    .retry-btn {
+      display: inline-block;
+      padding: 12px 28px;
+      border-radius: 10px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #F59E0B;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .retry-btn:hover { background: rgba(245, 158, 11, 0.18); }
+    .status {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #444444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"/>
+        <path d="M16.72 11.06A10.94 10.94 0 0119 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 015.17-2.39"/>
+        <path d="M10.71 5.05A16 16 0 0122.56 9"/>
+        <path d="M1.42 9a15.91 15.91 0 014.7-2.88"/>
+        <path d="M8.53 16.11a6 6 0 016.95 0"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+    </div>
+    <h1>You're offline</h1>
+    <p>PreflightSMS needs an initial connection to load. Once loaded, the app works offline for FRAT submissions and flight updates.</p>
+    <button class="retry-btn" onclick="location.reload()">Retry</button>
+    <div class="status" id="status">Waiting for connection...</div>
+  </div>
+  <script>
+    window.addEventListener('online', function() {
+      document.getElementById('status').textContent = 'Connection restored — reloading...';
+      setTimeout(function() { location.reload(); }, 500);
+    });
+  </script>
+</body>
+</html>
