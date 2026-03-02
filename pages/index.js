@@ -1806,7 +1806,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     </div>);
 }
 
-function HistoryView({ records, onDelete }) {
+function HistoryView({ records, onDelete, onViewDetail }) {
   const [filter, setFilter] = useState("ALL"); const [search, setSearch] = useState("");
   const filtered = useMemo(() => records.filter(r => { if (filter !== "ALL" && r.riskLevel !== filter) return false; if (search && !`${r.pilot} ${r.departure} ${r.destination} ${r.aircraft} ${r.id}`.toLowerCase().includes(search.toLowerCase())) return false; return true; }).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)), [records, filter, search]);
   return (
@@ -1818,7 +1818,7 @@ function HistoryView({ records, onDelete }) {
             {l === "ALL" ? "All" : l.split(" ")[0]}</button>))}</div>
       {filtered.length === 0 ? (<div style={{ textAlign: "center", padding: 60, color: MUTED }}><div style={{ fontSize: 14 }}>No FRAT records found</div></div>)
         : filtered.map(r => { const l = getRiskLevel(r.score); return (
-          <div key={r.id} style={{ ...card, padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", gap: 14 }}>
+          <div key={r.id} onClick={() => onViewDetail && onViewDetail(r.id)} style={{ ...card, padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", gap: 14, cursor: onViewDetail ? "pointer" : "default" }}>
             <div style={{ width: 44, height: 44, borderRadius: 8, background: l.bg, border: `1px solid ${l.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <span style={{ fontWeight: 800, color: l.color, fontSize: 16, fontFamily: "Georgia,serif" }}>{r.score}</span></div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1832,13 +1832,13 @@ function HistoryView({ records, onDelete }) {
               {r.attachments && r.attachments.length > 0 && (
                 <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
                   {r.attachments.map((att, i) => (
-                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", width: 48, height: 48, borderRadius: 6, overflow: "hidden", border: `1px solid ${BORDER}` }}>
+                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ display: "block", width: 48, height: 48, borderRadius: 6, overflow: "hidden", border: `1px solid ${BORDER}` }}>
                       <img src={att.url} alt={att.name || "Attachment"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     </a>
                   ))}
                 </div>
               )}</div>
-            <button onClick={() => onDelete(r.id)} style={{ background: "none", border: "none", color: LIGHT_BORDER, cursor: "pointer", fontSize: 16, padding: 4 }}>×</button></div>); })}</div>);
+            <button onClick={(e) => { e.stopPropagation(); onDelete(r.id); }} style={{ background: "none", border: "none", color: LIGHT_BORDER, cursor: "pointer", fontSize: 16, padding: 4 }}>×</button></div>); })}</div>);
 }
 
 function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove, onApproveFlight, onRejectFlight, onApproveFRAT, onRejectFRAT, onClose }) {
@@ -2375,7 +2375,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
       {sub === "culture" && hasCulture && <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />}
       {sub === "performance" && hasSpi && <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />}
       {sub === "insurance" && hasInsurance && <InsuranceScorecard profile={profile} session={session} org={org} orgProfiles={orgProfiles} records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} trainingReqs={trainingReqs} trainingRecs={trainingRecs} erpPlans={erpPlans} erpDrills={erpDrills} iepAudits={iepAudits} auditSchedules={auditSchedules} insuranceExports={insuranceExports} onGenerateExport={onGenerateExport} onDeleteExport={onDeleteExport} />}
-      {sub === "history" && <HistoryView records={records} onDelete={onDelete} />}
+      {sub === "history" && <HistoryView records={records} onDelete={onDelete} onViewDetail={(id) => setFratDetailId(id)} />}
       {sub === "export" && <ExportView records={records} orgName={org?.name} />}
     </div>
   );
