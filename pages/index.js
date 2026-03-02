@@ -3449,6 +3449,24 @@ export default function PVTAIRFrat() {
   const [notifReads, setNotifReads] = useState([]);
   const [invitations_list, setInvitationsList] = useState([]);
   const isOnline = !!supabase;
+  const [networkOnline, setNetworkOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+
+  // Track actual network connectivity
+  useEffect(() => {
+    const goOnline = () => setNetworkOnline(true);
+    const goOffline = () => setNetworkOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
+  }, []);
+
+  // Cache profile to localStorage for offline use
+  useEffect(() => {
+    if (profile) {
+      try { localStorage.setItem("pvtair_profile", JSON.stringify(profile)); } catch (e) {}
+    }
+  }, [profile]);
+
   const org = profile?.organizations || {};
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -3556,26 +3574,46 @@ export default function PVTAIRFrat() {
 
   // ── Initialize: check session or fall back to localStorage ──
   useEffect(() => {
+    // Helper: restore cached profile + data from localStorage
+    const restoreFromCache = () => {
+      try { const p = localStorage.getItem("pvtair_profile"); if (p) setProfile(JSON.parse(p)); } catch (e) {}
+      try { const d = localStorage.getItem("pvtair_frat_records"); if (d) setRecords(JSON.parse(d)); } catch (e) {}
+      try { const f = localStorage.getItem("pvtair_flights"); if (f) setFlights(JSON.parse(f)); } catch (e) {}
+    };
+
     if (isOnline) {
       getSession().then(({ data }) => {
         if (data.session) {
           setSession(data.session);
-          getProfile().then(p => { setProfile(p); setAuthLoading(false); });
+          getProfile().then(p => {
+            if (p) {
+              setProfile(p);
+            } else if (!navigator.onLine) {
+              // Profile fetch failed while offline — use cached profile
+              restoreFromCache();
+            }
+            setAuthLoading(false);
+          });
         } else {
+          // No session from Supabase — if offline, try cached data
+          if (!navigator.onLine) restoreFromCache();
           setAuthLoading(false);
         }
+      }).catch(() => {
+        // getSession failed (offline) — restore from cache
+        if (!navigator.onLine) restoreFromCache();
+        setAuthLoading(false);
       });
       // Listen for auth changes
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
         setSession(sess);
-        if (sess) { setProfileLoading(true); getProfile().then(p => { setProfile(p); setProfileLoading(false); }); }
+        if (sess) { setProfileLoading(true); getProfile().then(p => { if (p) setProfile(p); else if (!navigator.onLine) restoreFromCache(); setProfileLoading(false); }); }
         else { setProfile(null); setProfileLoading(false); setRecords([]); setFlights([]); }
       });
       return () => subscription.unsubscribe();
     } else {
-      // localStorage fallback
-      try { const d = localStorage.getItem("pvtair_frat_records"); if (d) setRecords(JSON.parse(d)); } catch (e) {}
-      try { const f = localStorage.getItem("pvtair_flights"); if (f) setFlights(JSON.parse(f)); } catch (e) {}
+      // localStorage fallback (supabase not configured at all)
+      restoreFromCache();
     }
   }, []);
 
@@ -4584,7 +4622,7 @@ export default function PVTAIRFrat() {
     return <AuthScreen onAuth={(s) => { setIsPasswordRecovery(false); setSession(s); if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }} initialMode="reset_password" />;
   }
 
-  if (isOnline && !session) {
+  if (isOnline && !session && !profile) {
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
     if (params?.has("signup")) return <SignupFlow onAuth={setSession} />;
     if (params?.has("invite")) return <InviteAcceptScreen token={params.get("invite")} onAuth={setSession} />;
@@ -4592,7 +4630,7 @@ export default function PVTAIRFrat() {
     return <AuthScreen onAuth={setSession} initialMode={initialMode} />;
   }
 
-  if (isOnline && session && !authLoading && !profileLoading && !profile) {
+  if (isOnline && networkOnline && session && !authLoading && !profileLoading && !profile) {
     if (orphanInviteProcessing) {
       return <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: MUTED, fontSize: 14 }}>Joining organization...</div></div>;
     }
