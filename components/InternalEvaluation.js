@@ -962,6 +962,10 @@ export default function InternalEvaluation({
       {/* ── TEMPLATES TAB ──────────────────────────────────── */}
       {tab === "templates" && (
         <div>
+          <div style={{ padding: "12px 16px", marginBottom: 16, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 12, color: OFF_WHITE, lineHeight: 1.6 }}>
+            Create your own internal audit templates or load from a set of premade templates.
+            Internal evaluations are required under <strong style={{ color: WHITE }}>14 CFR Part 5 § 5.71–5.75</strong> (Safety Assurance) to monitor safety performance and drive continuous improvement.
+          </div>
           {isAdmin && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <span style={{ fontSize: 13, color: OFF_WHITE, fontWeight: 700 }}>{templates.length} Template{templates.length !== 1 ? "s" : ""}</span>
