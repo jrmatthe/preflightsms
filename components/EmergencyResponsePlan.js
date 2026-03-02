@@ -148,6 +148,7 @@ const ERP_TEMPLATES = [
     category: "overdue",
     description: "Response procedures for missing or overdue aircraft including search coordination with ATC, AFRCC, and SAR resources.",
     checklist: [
+      { action_text: "Attempt to contact pilot directly — cell phone, satellite phone, company messaging", responsible_role: "Operations", time_target: "Immediate", is_critical: true },
       { action_text: "Confirm aircraft is overdue — check ETA, fuel endurance, alternate destinations", responsible_role: "Operations", time_target: "Immediate", is_critical: true },
       { action_text: "Attempt radio contact on all frequencies (CTAF, company, 121.5)", responsible_role: "Operations", time_target: "Immediate", is_critical: true },
       { action_text: "Contact destination airport for arrival confirmation", responsible_role: "Operations", time_target: "Within 15 min", is_critical: true },

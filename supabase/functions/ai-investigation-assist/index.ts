@@ -161,7 +161,7 @@ Provide 2-4 root causes, 2-4 recommended actions, and note any similar patterns 
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 1500,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -192,7 +192,7 @@ Provide 2-4 root causes, 2-4 recommended actions, and note any similar patterns 
     });
 
     return new Response(
-      JSON.stringify({ ...analysis, model: "claude-sonnet-4-20250514" }),
+      JSON.stringify({ ...analysis, model: "claude-sonnet-4-6" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {

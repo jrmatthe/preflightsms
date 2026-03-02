@@ -126,7 +126,7 @@ Analyze the report and respond ONLY with a JSON object:
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 512,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -157,7 +157,7 @@ Analyze the report and respond ONLY with a JSON object:
     });
 
     return new Response(
-      JSON.stringify({ suggestion, model: "claude-sonnet-4-20250514" }),
+      JSON.stringify({ suggestion, model: "claude-sonnet-4-6" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
