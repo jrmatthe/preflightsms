@@ -2312,50 +2312,6 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
           <TeamEngagement orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} orgProfiles={orgProfiles} records={records} reports={reports} />
         </div>
       )}
-      {/* Compliance Overview (Enterprise only) */}
-      {hasFeature(org, "international_compliance") && complianceFrameworks && complianceFrameworks.length > 0 && (() => {
-        const activeFws = (complianceFrameworks || []).filter(f => f.is_active);
-        if (activeFws.length === 0) return null;
-        const statusMap = {};
-        (complianceStatusData || []).forEach(s => { statusMap[s.checklist_item_id] = s.status; });
-        const itemsByFw = {};
-        (complianceChecklistItems || []).forEach(item => {
-          if (!itemsByFw[item.framework]) itemsByFw[item.framework] = [];
-          itemsByFw[item.framework].push(item);
-        });
-        const fwLabels = { icao_annex19: "ICAO Annex 19", is_bao: "IS-BAO", easa: "EASA", transport_canada: "Transport Canada" };
-        const fwColors = { icao_annex19: "#3B82F6", is_bao: "#F59E0B", easa: "#4ADE80", transport_canada: "#EF4444" };
-        const fwStats = activeFws.map(f => {
-          const fwItems = itemsByFw[f.framework] || [];
-          let compliant = 0, nonCompliant = 0, total = 0, na = 0;
-          fwItems.forEach(item => {
-            const s = statusMap[item.id] || "not_started";
-            if (s === "not_applicable") { na++; } else { total++; if (s === "compliant") compliant++; else if (s === "non_compliant") nonCompliant++; }
-          });
-          return { framework: f.framework, label: fwLabels[f.framework] || f.framework, color: fwColors[f.framework] || CYAN, compliant, total, nonCompliant, pct: total > 0 ? Math.round((compliant / total) * 100) : 0 };
-        });
-        return (
-          <div style={{ background: CARD, borderRadius: 10, border: `1px solid ${BORDER}`, padding: 16, marginBottom: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>Compliance Overview</div>
-              <span style={{ fontSize: 10, color: MUTED }}>International Standards</span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(fwStats.length, 4)}, 1fr)`, gap: 10 }}>
-              {fwStats.map(fw => (
-                <div key={fw.framework} style={{ padding: 10, background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${BORDER}` }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: fw.color, marginBottom: 6 }}>{fw.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: fw.pct >= 80 ? GREEN : fw.pct >= 50 ? AMBER : fw.pct > 0 ? RED : MUTED }}>{fw.pct}%</div>
-                  <div style={{ width: "100%", height: 3, background: BORDER, borderRadius: 2, overflow: "hidden", margin: "4px 0" }}>
-                    <div style={{ width: `${fw.pct}%`, height: "100%", background: fw.pct >= 80 ? GREEN : fw.pct >= 50 ? AMBER : RED, borderRadius: 2 }} />
-                  </div>
-                  <div style={{ fontSize: 9, color: MUTED }}>{fw.compliant}/{fw.total} items</div>
-                  {fw.nonCompliant > 0 && <div style={{ fontSize: 9, color: RED, marginTop: 2 }}>{fw.nonCompliant} non-compliant</div>}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
       <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
         {[["analytics", "Overview"], ...(hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ...(hasInsurance ? [["insurance", "Insurance & Export"]] : []), ["history", "FRAT History"], ...(isDashboardFree ? [] : [["export", "Export"]])].map(([id, label]) => (
           <button key={id} onClick={() => setSub(id)}
