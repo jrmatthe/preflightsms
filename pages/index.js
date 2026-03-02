@@ -2308,12 +2308,93 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
           <PilotEngagement engagement={pilotEngagement} recognitions={safetyRecognitions} onAcknowledge={onAcknowledgeRecognition} />
         </div>
       )}
-      {/* Team Engagement Widget (admin only) */}
-      {gamificationOn && isAdmin && (
+      {/* Team Engagement Widget */}
+      {gamificationOn && (
         <div style={{ marginBottom: 16 }}>
           <TeamEngagement orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} orgProfiles={orgProfiles} records={records} reports={reports} />
         </div>
       )}
+      {/* Quick Actions & Training Summary — non-admin roles */}
+      {!analyticsOn && (() => {
+        const userId = session?.user?.id;
+        const userRole = profile?.role || "pilot";
+        const myReqs = (trainingReqs || []).filter(r => !r.required_for || r.required_for.length === 0 || r.required_for.includes(userRole));
+        const myRecs = (trainingRecs || []).filter(r => r.user_id === userId);
+        const now = new Date();
+        const soon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const reqStatus = myReqs.map(req => {
+          const rec = myRecs.filter(r => r.requirement_id === req.id).sort((a, b) => new Date(b.completed_date) - new Date(a.completed_date))[0];
+          if (!rec) return { req, status: "not_started" };
+          const exp = rec.expiry_date ? new Date(rec.expiry_date) : null;
+          if (exp && exp < now) return { req, status: "overdue", expiry: exp };
+          if (exp && exp < soon) return { req, status: "expiring", expiry: exp };
+          return { req, status: "current", expiry: exp };
+        });
+        const overdue = reqStatus.filter(r => r.status === "overdue");
+        const expiring = reqStatus.filter(r => r.status === "expiring");
+        const current = reqStatus.filter(r => r.status === "current");
+        const notStarted = reqStatus.filter(r => r.status === "not_started");
+        return (<>
+          {/* Quick Actions */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+            <button onClick={() => onNavigate("submit")} style={{ ...card, padding: "16px 14px", border: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(34,211,238,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{"\u2708"}</div>
+              <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>Submit FRAT</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Start a new flight risk assessment</div></div>
+            </button>
+            <button onClick={() => onNavigate("reports")} style={{ ...card, padding: "16px 14px", border: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{"\u26A0"}</div>
+              <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>File Safety Report</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Report a hazard, incident, or near-miss</div></div>
+            </button>
+          </div>
+          {/* Training Summary */}
+          {myReqs.length > 0 && (
+            <div style={{ ...card, padding: "18px 20px", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>Training Status</div>
+                <button onClick={() => onNavigate("cbt")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>
+              </div>
+              {overdue.length > 0 && (
+                <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: RED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Overdue</div>
+                  {overdue.map(({ req, expiry }) => (
+                    <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
+                      <span>{req.title}</span>
+                      {expiry && <span style={{ color: RED, fontSize: 10 }}>Expired {expiry.toLocaleDateString()}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {expiring.length > 0 && (
+                <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: AMBER, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Expiring Soon</div>
+                  {expiring.map(({ req, expiry }) => (
+                    <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
+                      <span>{req.title}</span>
+                      {expiry && <span style={{ color: AMBER, fontSize: 10 }}>Expires {expiry.toLocaleDateString()}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {notStarted.length > 0 && (
+                <div style={{ padding: "8px 12px", borderRadius: 6, background: `rgba(255,255,255,0.02)`, border: `1px solid ${BORDER}`, marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Not Completed</div>
+                  {notStarted.map(({ req }) => (
+                    <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0" }}>{req.title}</div>
+                  ))}
+                </div>
+              )}
+              {current.length > 0 && overdue.length === 0 && expiring.length === 0 && notStarted.length === 0 && (
+                <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.2)" }}>
+                  <div style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>All {current.length} training requirement{current.length !== 1 ? "s" : ""} current</div>
+                </div>
+              )}
+              {current.length > 0 && (overdue.length > 0 || expiring.length > 0 || notStarted.length > 0) && (
+                <div style={{ fontSize: 10, color: MUTED, padding: "4px 0" }}>{current.length} other requirement{current.length !== 1 ? "s" : ""} current</div>
+              )}
+            </div>
+          )}
+        </>);
+      })()}
       <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
         {[...(analyticsOn ? [["analytics", "Overview"]] : []), ...(analyticsOn && hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(analyticsOn && hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ...(analyticsOn && hasInsurance ? [["insurance", "Insurance & Export"]] : []), ...(analyticsOn ? [["history", "FRAT History"]] : []), ...(analyticsOn && !isDashboardFree ? [["export", "Export"]] : [])].map(([id, label]) => (
           <button key={id} onClick={() => setSub(id)}
