@@ -135,7 +135,7 @@ const ttStyle = { borderRadius: 6, border: `1px solid ${BORDER}`, background: CA
 // ════════════════════════════════════════════════════════════════
 // OVERVIEW TAB — high-level SMS health across all modules
 // ════════════════════════════════════════════════════════════════
-function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate }) {
+function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, part5Compliance }) {
   const stats = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 86400000;
@@ -178,12 +178,17 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
       });
     }
 
-    // Compliance score (simple heuristic)
-    let compliance = 100;
-    if (overdueActions > 0) compliance -= overdueActions * 10;
-    if (openHazards > 3) compliance -= (openHazards - 3) * 5;
-    if (r30.length === 0 && f30 > 0) compliance -= 20; // flights without FRATs
-    compliance = Math.max(0, Math.min(100, compliance));
+    // Compliance score — use Part 5 data when available, otherwise heuristic
+    let compliance;
+    if (part5Compliance && part5Compliance.total > 0) {
+      compliance = part5Compliance.percent;
+    } else {
+      compliance = 100;
+      if (overdueActions > 0) compliance -= overdueActions * 10;
+      if (openHazards > 3) compliance -= (openHazards - 3) * 5;
+      if (r30.length === 0 && f30 > 0) compliance -= 20;
+      compliance = Math.max(0, Math.min(100, compliance));
+    }
 
     // ERP stats
     const activePlans = (erpPlans || []).filter(p => p.is_active).length;
@@ -239,7 +244,9 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: WHITE, marginBottom: 4 }}>SMS Compliance Health{onNavigate && <span style={{ fontSize: 11, color: complianceHovered ? OFF_WHITE : MUTED, marginLeft: 6, transition: "color 0.15s" }}> →</span>}</div>
             <div style={{ fontSize: 10, color: MUTED }}>
-              {stats.overdueActions > 0 ? `${stats.overdueActions} overdue action${stats.overdueActions > 1 ? "s" : ""}` : "No overdue actions"}
+              {part5Compliance && part5Compliance.total > 0
+                ? `${part5Compliance.compliant}/${part5Compliance.total} Part 5 requirements met`
+                : stats.overdueActions > 0 ? `${stats.overdueActions} overdue action${stats.overdueActions > 1 ? "s" : ""}` : "No overdue actions"}
               {stats.openHazards > 0 ? ` · ${stats.openHazards} open hazard${stats.openHazards > 1 ? "s" : ""}` : ""}
               {stats.openReports > 0 ? ` · ${stats.openReports} open report${stats.openReports > 1 ? "s" : ""}` : ""}
             </div>
@@ -1250,14 +1257,14 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAi
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus, part5Compliance }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
   const h = hazards || [];
   const a = actions || [];
 
-  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} />;
+  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} part5Compliance={part5Compliance} />;
   if (view === "fleet") return <FleetStatusView flights={f} fleetAircraft={fleetAircraft} fleetStatusFields={fleetStatusFields} onUpdateAircraftStatus={onUpdateAircraftStatus} />;
   if (view === "frat") return <FRATAnalytics records={r} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;

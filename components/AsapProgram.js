@@ -45,6 +45,12 @@ const FLIGHT_PHASES = [
 
 const CONTRIBUTING_FACTORS = ["Fatigue", "Training", "Communication", "Equipment", "Procedures", "Weather", "Other"];
 
+const ERC_ROLES = [
+  { id: "faa_representative", label: "FAA Representative", short: "FAA" },
+  { id: "management", label: "Management Representative", short: "Mgmt" },
+  { id: "employee", label: "Employee Group Representative", short: "Employee" },
+];
+
 const DISPOSITIONS = [
   { id: "accept_no_action", label: "Accept — No Action Needed" },
   { id: "accept_corrective_action", label: "Accept — Corrective Action Required" },
@@ -140,6 +146,7 @@ export default function AsapProgram({
   const [newAcceptance, setNewAcceptance] = useState("");
   const [newExclusion, setNewExclusion] = useState("");
   const [showHelp, setShowHelp] = useState(false);
+  const [deidentified, setDeidentified] = useState(false);
 
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const userId = session?.user?.id;
@@ -147,6 +154,29 @@ export default function AsapProgram({
   const corrActions = asapCorrActions || [];
   const meetings = asapMeetings || [];
   const userName = profile?.full_name || session?.user?.email || "Unknown";
+
+  // De-identification helpers
+  const reporterMap = useMemo(() => {
+    if (!deidentified) return null;
+    const map = {};
+    let counter = 1;
+    reports.forEach(r => {
+      if (r.reporter_id && !map[r.reporter_id]) { map[r.reporter_id] = `Reporter #${counter}`; counter++; }
+    });
+    return map;
+  }, [deidentified, reports]);
+  const deid = useCallback((text, field) => {
+    if (!deidentified || !text) return text;
+    if (field === "reporter") return reporterMap?.[text] || "Reporter #?";
+    if (field === "reporter_name") return reporterMap ? (Object.values(reporterMap).find((_, i) => Object.keys(reporterMap)[i]) || "Reporter") : "Reporter";
+    if (field === "tail") return "N•••••";
+    if (field === "airport") return "••••";
+    return text;
+  }, [deidentified, reporterMap]);
+  const deidReport = useCallback((r) => {
+    if (!deidentified) return r;
+    return { ...r, reporter_name: reporterMap?.[r.reporter_id] || "Reporter #?", tail_number: r.tail_number ? "N•••••" : null, airport: r.airport ? "••••" : null };
+  }, [deidentified, reporterMap]);
 
   useEffect(() => {
     if (asapConfig) setConfigForm({ ...asapConfig });
@@ -183,6 +213,35 @@ export default function AsapProgram({
     return counts;
   }, [reports]);
 
+  // Annual review check
+  const annualReviewStatus = useMemo(() => {
+    const annualMeetings = meetings.filter(m => (m.decisions || []).some(d => d.type === "annual_review"));
+    if (annualMeetings.length === 0) {
+      const mouDate = asapConfig?.mou_effective_date;
+      if (mouDate) {
+        const start = new Date(mouDate);
+        const now = new Date();
+        const monthsSince = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+        if (monthsSince >= 12) return { overdue: true, lastReview: null, message: "No annual program review has been conducted since the MOU effective date." };
+      }
+      return { overdue: false, lastReview: null, message: null };
+    }
+    const sorted = annualMeetings.sort((a, b) => new Date(b.meeting_date) - new Date(a.meeting_date));
+    const last = sorted[0];
+    const lastDate = new Date(last.meeting_date);
+    const now = new Date();
+    const monthsSince = (now.getFullYear() - lastDate.getFullYear()) * 12 + (now.getMonth() - lastDate.getMonth());
+    if (monthsSince >= 12) return { overdue: true, lastReview: lastDate, message: `Annual review overdue — last conducted ${lastDate.toLocaleDateString()}.` };
+    if (monthsSince >= 10) return { overdue: false, upcoming: true, lastReview: lastDate, message: `Annual review due soon — last conducted ${lastDate.toLocaleDateString()}.` };
+    return { overdue: false, lastReview: lastDate, message: null };
+  }, [meetings, asapConfig]);
+
+  // Overdue CAs check
+  const overdueCAsCount = useMemo(() => {
+    const now = new Date();
+    return corrActions.filter(ca => ca.status !== "completed" && ca.due_date && new Date(ca.due_date) < now).length;
+  }, [corrActions]);
+
   // ── Tab Button ──
   const tabBtn = (id, label) => (
     <button key={id} onClick={() => { setView(id); setSelectedReport(null); }}
@@ -199,6 +258,32 @@ export default function AsapProgram({
   // ════════════════════════════════════════════════════════════════
   const renderDashboard = () => (
     <div>
+      {/* Annual review banner */}
+      {annualReviewStatus.overdue && (
+        <div style={{ padding: 12, marginBottom: 16, borderRadius: 6, background: `${RED}12`, border: `1px solid ${RED}33`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: RED, marginBottom: 2 }}>Annual Program Review Required</div>
+            <div style={{ fontSize: 11, color: MUTED }}>{annualReviewStatus.message} AC 120-66C requires an annual effectiveness review of the ASAP.</div>
+          </div>
+          {isAdmin && <button onClick={() => { setView("meetings"); setShowMeetingForm(true); setMeetingForm({ is_annual_review: true }); }} style={btn(RED, WHITE)}>Schedule Review</button>}
+        </div>
+      )}
+      {annualReviewStatus.upcoming && !annualReviewStatus.overdue && (
+        <div style={{ padding: 12, marginBottom: 16, borderRadius: 6, background: `${AMBER}12`, border: `1px solid ${AMBER}33`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: AMBER, marginBottom: 2 }}>Annual Review Coming Due</div>
+            <div style={{ fontSize: 11, color: MUTED }}>{annualReviewStatus.message}</div>
+          </div>
+          {isAdmin && <button onClick={() => { setView("meetings"); setShowMeetingForm(true); setMeetingForm({ is_annual_review: true }); }} style={btn(AMBER, "#000")}>Schedule Review</button>}
+        </div>
+      )}
+      {/* Overdue CAs banner */}
+      {overdueCAsCount > 0 && (
+        <div style={{ padding: 12, marginBottom: 16, borderRadius: 6, background: `${RED}12`, border: `1px solid ${RED}33` }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: RED, marginBottom: 2 }}>{overdueCAsCount} Overdue Corrective Action{overdueCAsCount > 1 ? "s" : ""}</div>
+          <div style={{ fontSize: 11, color: MUTED }}>Reports with overdue corrective actions may be excluded from the program per AC 120-66C.</div>
+        </div>
+      )}
       {/* Stats bar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
         {[
@@ -264,7 +349,7 @@ export default function AsapProgram({
                       <td style={{ padding: "10px", color: OFF_WHITE }}>{r.event_date ? new Date(r.event_date).toLocaleDateString() : "—"}</td>
                       <td style={{ padding: "10px", color: OFF_WHITE }}>{(EVENT_TYPES.find(e => e.id === r.event_type) || {}).label || r.event_type}</td>
                       <td style={{ padding: "10px" }}><span style={badge(sc.bg, sc.color)}>{sc.label}</span></td>
-                      {isAdmin && <td style={{ padding: "10px", color: MUTED }}>{r.reporter_name || "—"}</td>}
+                      {isAdmin && <td style={{ padding: "10px", color: MUTED }}>{deidentified ? (reporterMap?.[r.reporter_id] || "Reporter") : (r.reporter_name || "—")}</td>}
                     </tr>
                   );
                 })}
@@ -300,7 +385,8 @@ export default function AsapProgram({
         weather_conditions: reportForm.weather_conditions || null,
         contributing_factors: factors,
         immediate_actions_taken: reportForm.immediate_actions_taken || null,
-        within_reporting_window: reportForm.within_reporting_window !== false,
+        is_sole_source: !!reportForm.is_sole_source,
+        within_reporting_window: reportForm.is_sole_source ? true : reportForm.within_reporting_window !== false,
       });
       setReportForm({});
       setView("dashboard");
@@ -390,10 +476,26 @@ export default function AsapProgram({
             style={{ ...inp, minHeight: 60, resize: "vertical" }} placeholder="Describe any immediate actions taken..." />
         </div>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: OFF_WHITE, marginBottom: 20, cursor: "pointer" }}>
-          <input type="checkbox" checked={reportForm.within_reporting_window !== false}
+        <div style={{ padding: 12, background: `${CYAN}08`, border: `1px solid ${CYAN}22`, borderRadius: 6, marginBottom: 12 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: CYAN, cursor: "pointer", fontWeight: 600, marginBottom: 4 }}>
+            <input type="checkbox" checked={!!reportForm.is_sole_source}
+              onChange={e => {
+                set("is_sole_source", e.target.checked);
+                if (e.target.checked) set("within_reporting_window", true);
+              }} />
+            This is a sole source report
+          </label>
+          <div style={{ fontSize: 10, color: MUTED, marginLeft: 22 }}>
+            A sole source report is one where the FAA would have no knowledge of this event except through this ASAP report. Reporting window requirements do not apply to sole source reports.
+          </div>
+        </div>
+
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: OFF_WHITE, marginBottom: 20, cursor: "pointer", opacity: reportForm.is_sole_source ? 0.5 : 1 }}>
+          <input type="checkbox" checked={reportForm.is_sole_source ? true : reportForm.within_reporting_window !== false}
+            disabled={!!reportForm.is_sole_source}
             onChange={e => set("within_reporting_window", e.target.checked)} />
           I am reporting within the required reporting window ({asapConfig?.reporting_window_hours || 24} hours)
+          {reportForm.is_sole_source && <span style={{ fontSize: 10, color: CYAN }}>(waived — sole source)</span>}
         </label>
 
         <button onClick={handleSubmit}
@@ -479,13 +581,22 @@ export default function AsapProgram({
           &larr; Back to Dashboard
         </button>
 
+        {r.is_sole_source && (
+          <div style={{ padding: "8px 14px", marginBottom: 12, borderRadius: 6, background: `${CYAN}12`, border: `1px solid ${CYAN}33`, fontSize: 11, color: CYAN, fontWeight: 600 }}>
+            Sole Source Report — FAA has no independent knowledge of this event. Reporting window waived.
+          </div>
+        )}
+
         <div style={{ ...card, padding: 20, marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 12, color: CYAN, fontWeight: 700, fontFamily: "monospace", marginBottom: 4 }}>{r.report_number}</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>{(EVENT_TYPES.find(e => e.id === r.event_type) || {}).label || r.event_type} Report</div>
             </div>
-            <span style={badge(sc.bg, sc.color)}>{sc.label}</span>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              {r.is_sole_source && <span style={badge(`${CYAN}22`, CYAN)}>Sole Source</span>}
+              <span style={badge(sc.bg, sc.color)}>{sc.label}</span>
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
@@ -494,11 +605,12 @@ export default function AsapProgram({
               { label: "Date Reported", value: r.date_reported ? new Date(r.date_reported).toLocaleDateString() : "—" },
               { label: "Flight Phase", value: (FLIGHT_PHASES.find(p => p.id === r.flight_phase) || {}).label || r.flight_phase || "—" },
               { label: "Aircraft", value: r.aircraft_type || "—" },
-              { label: "Tail Number", value: r.tail_number || "—" },
-              { label: "Airport", value: r.airport || "—" },
+              { label: "Tail Number", value: deidentified && r.tail_number ? "N•••••" : (r.tail_number || "—") },
+              { label: "Airport", value: deidentified && r.airport ? "••••" : (r.airport || "—") },
               { label: "Altitude", value: r.altitude || "—" },
               { label: "Weather", value: r.weather_conditions || "—" },
-              { label: "Reporting Window", value: r.within_reporting_window ? "Yes" : "No" },
+              { label: "Sole Source", value: r.is_sole_source ? "Yes" : "No" },
+              { label: "Reporting Window", value: r.is_sole_source ? "Waived (sole source)" : r.within_reporting_window ? "Yes" : "No" },
             ].map((f, i) => (
               <div key={i}>
                 <div style={{ fontSize: 10, color: MUTED, fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>{f.label}</div>
@@ -530,10 +642,17 @@ export default function AsapProgram({
             </div>
           )}
 
-          {isAdmin && r.reporter_name && (
+          {isAdmin && r.reporter_name && !deidentified && (
             <div style={{ marginTop: 12, padding: 8, background: DARK, borderRadius: 4 }}>
               <span style={{ fontSize: 10, color: MUTED }}>Reporter: </span>
               <span style={{ fontSize: 12, color: OFF_WHITE }}>{r.reporter_name}</span>
+            </div>
+          )}
+          {isAdmin && deidentified && (
+            <div style={{ marginTop: 12, padding: 8, background: DARK, borderRadius: 4 }}>
+              <span style={{ fontSize: 10, color: MUTED }}>Reporter: </span>
+              <span style={{ fontSize: 12, color: AMBER }}>{reporterMap?.[r.reporter_id] || "Reporter #?"}</span>
+              <span style={{ fontSize: 10, color: MUTED, marginLeft: 8 }}>(de-identified)</span>
             </div>
           )}
         </div>
@@ -580,36 +699,59 @@ export default function AsapProgram({
         )}
 
         {/* Corrective Actions for this report */}
-        {reportCAs.length > 0 && (
-          <div style={{ ...card, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 }}>Corrective Actions</div>
-            {reportCAs.map(ca => {
-              const casc = CA_STATUS_COLORS[ca.status] || CA_STATUS_COLORS.open;
-              return (
-                <div key={ca.id} style={{ padding: 12, background: DARK, borderRadius: 6, border: `1px solid ${BORDER}`, marginBottom: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 11, color: CYAN, fontWeight: 700, fontFamily: "monospace" }}>{ca.action_number}</span>
-                      <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{ca.title}</span>
-                    </div>
-                    <span style={badge(casc.bg, casc.color)}>{ca.status}</span>
+        {reportCAs.length > 0 && (() => {
+          const now = new Date();
+          const overdueCAs = reportCAs.filter(ca => ca.status !== "completed" && ca.due_date && new Date(ca.due_date) < now);
+          const hasOverdue = overdueCAs.length > 0;
+          return (
+            <div style={{ ...card, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 }}>Corrective Actions</div>
+
+              {hasOverdue && r.status !== "excluded" && (
+                <div style={{ padding: 12, marginBottom: 12, borderRadius: 6, background: `${RED}12`, border: `1px solid ${RED}33` }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: RED, marginBottom: 4 }}>
+                    {overdueCAs.length} Corrective Action{overdueCAs.length > 1 ? "s" : ""} Overdue
                   </div>
-                  {ca.description && <div style={{ fontSize: 11, color: MUTED, marginBottom: 4 }}>{ca.description}</div>}
-                  <div style={{ display: "flex", gap: 12, fontSize: 10, color: MUTED }}>
-                    {ca.assigned_to_name && <span>Assigned: {ca.assigned_to_name}</span>}
-                    {ca.due_date && <span>Due: {new Date(ca.due_date).toLocaleDateString()}</span>}
+                  <div style={{ fontSize: 11, color: MUTED, marginBottom: 8 }}>
+                    Per AC 120-66C, failure to complete corrective actions may result in this report being excluded from the ASAP program.
                   </div>
-                  {isAdmin && ca.status !== "completed" && (
-                    <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
-                      {ca.status === "open" && <button onClick={() => onUpdateCorrAction(ca.id, { status: "in_progress" })} style={btn(`${ASAP_BLUE}22`, ASAP_BLUE)}>Start</button>}
-                      <button onClick={() => onUpdateCorrAction(ca.id, { status: "completed", completed_at: new Date().toISOString() })} style={btn(`${GREEN}22`, GREEN)}>Complete</button>
-                    </div>
+                  {isAdmin && (
+                    <button onClick={() => handleStatusChange("excluded")} style={btn(RED, WHITE)}>
+                      Exclude Report — CA Non-Compliance
+                    </button>
                   )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              )}
+
+              {reportCAs.map(ca => {
+                const isOverdue = ca.status !== "completed" && ca.due_date && new Date(ca.due_date) < now;
+                const casc = isOverdue ? CA_STATUS_COLORS.overdue : (CA_STATUS_COLORS[ca.status] || CA_STATUS_COLORS.open);
+                return (
+                  <div key={ca.id} style={{ padding: 12, background: DARK, borderRadius: 6, border: `1px solid ${isOverdue ? `${RED}44` : BORDER}`, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 11, color: CYAN, fontWeight: 700, fontFamily: "monospace" }}>{ca.action_number}</span>
+                        <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{ca.title}</span>
+                      </div>
+                      <span style={badge(casc.bg, casc.color)}>{isOverdue ? "Overdue" : ca.status}</span>
+                    </div>
+                    {ca.description && <div style={{ fontSize: 11, color: MUTED, marginBottom: 4 }}>{ca.description}</div>}
+                    <div style={{ display: "flex", gap: 12, fontSize: 10, color: MUTED }}>
+                      {ca.assigned_to_name && <span>Assigned: {ca.assigned_to_name}</span>}
+                      {ca.due_date && <span style={{ color: isOverdue ? RED : MUTED }}>Due: {new Date(ca.due_date).toLocaleDateString()}{isOverdue ? " (OVERDUE)" : ""}</span>}
+                    </div>
+                    {isAdmin && ca.status !== "completed" && (
+                      <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
+                        {ca.status === "open" && <button onClick={() => onUpdateCorrAction(ca.id, { status: "in_progress" })} style={btn(`${ASAP_BLUE}22`, ASAP_BLUE)}>Start</button>}
+                        <button onClick={() => onUpdateCorrAction(ca.id, { status: "completed", completed_at: new Date().toISOString() })} style={btn(`${GREEN}22`, GREEN)}>Complete</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* ERC Review Section — admin only */}
         {canReview && (r.status === "erc_review" || r.status === "submitted") && (
@@ -766,7 +908,7 @@ export default function AsapProgram({
                     <span style={badge(sc.bg, sc.color)}>{sc.label}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: 11, color: MUTED }}>{r.reporter_name || "—"}</span>
+                    <span style={{ fontSize: 11, color: MUTED }}>{deidentified ? (reporterMap?.[r.reporter_id] || "Reporter") : (r.reporter_name || "—")}</span>
                     <span style={{ fontSize: 11, color: MUTED }}>{r.event_date ? new Date(r.event_date).toLocaleDateString() : "—"}</span>
                   </div>
                 </div>
@@ -789,10 +931,15 @@ export default function AsapProgram({
   const renderMeetings = () => {
     const handleSaveMeeting = async () => {
       if (!meetingForm.meeting_date) return;
+      const payload = { ...meetingForm };
+      const decisions = [...(payload.decisions || [])];
+      if (payload.is_annual_review) decisions.push({ type: "annual_review", date: payload.meeting_date });
+      payload.decisions = decisions;
+      delete payload.is_annual_review;
       if (editingMeeting) {
-        await onUpdateMeeting(editingMeeting.id, meetingForm);
+        await onUpdateMeeting(editingMeeting.id, payload);
       } else {
-        await onCreateMeeting(meetingForm);
+        await onCreateMeeting(payload);
       }
       setMeetingForm({});
       setEditingMeeting(null);
@@ -820,23 +967,84 @@ export default function AsapProgram({
               </div>
             </div>
             <div style={{ marginBottom: 10 }}>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Attendees</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                {(orgProfiles || []).map(p => {
-                  const sel = (meetingForm.attendees || []).includes(p.full_name);
-                  return (
-                    <button key={p.id} onClick={() => {
-                      const att = meetingForm.attendees || [];
-                      setMeetingForm(f => ({ ...f, attendees: sel ? att.filter(a => a !== p.full_name) : [...att, p.full_name] }));
-                    }} style={{ padding: "3px 10px", borderRadius: 12, fontSize: 11, cursor: "pointer",
-                      background: sel ? `${ASAP_BLUE}22` : "transparent",
-                      border: sel ? `1px solid ${ASAP_BLUE}` : `1px solid ${BORDER}`,
-                      color: sel ? ASAP_BLUE : MUTED }}>
-                      {p.full_name}
-                    </button>
-                  );
-                })}
-              </div>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>ERC Attendees</label>
+              {(() => {
+                const ercMembers = (asapConfig?.erc_members || []).filter(m => typeof m === "object");
+                const attendees = meetingForm.attendees || [];
+                const getAtt = (att) => typeof att === "object" ? att : { name: att, role: "" };
+                const hasRole = (roleId) => attendees.some(a => getAtt(a).role === roleId);
+                const quorum = ERC_ROLES.every(r => hasRole(r.id));
+                return (
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 8 }}>
+                      {ERC_ROLES.map(role => {
+                        const roleMembers = ercMembers.filter(m => m.role === role.id);
+                        const roleColor = role.id === "faa_representative" ? CYAN : role.id === "management" ? AMBER : GREEN;
+                        const present = hasRole(role.id);
+                        return (
+                          <div key={role.id}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: roleColor, marginBottom: 4 }}>
+                              {role.short} {present ? <span style={{ color: GREEN }}>Present</span> : <span style={{ color: RED }}>Absent</span>}
+                            </div>
+                            {roleMembers.length > 0 ? roleMembers.map(m => {
+                              const sel = attendees.some(a => getAtt(a).id === m.id);
+                              return (
+                                <button key={m.id} onClick={() => {
+                                  if (sel) {
+                                    setMeetingForm(f => ({ ...f, attendees: attendees.filter(a => getAtt(a).id !== m.id) }));
+                                  } else {
+                                    setMeetingForm(f => ({ ...f, attendees: [...attendees, { id: m.id, name: m.name, role: m.role }] }));
+                                  }
+                                }} style={{ display: "block", width: "100%", padding: "3px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", textAlign: "left", marginBottom: 2,
+                                  background: sel ? `${roleColor}18` : "transparent",
+                                  border: sel ? `1px solid ${roleColor}44` : `1px solid ${BORDER}`,
+                                  color: sel ? roleColor : MUTED }}>
+                                  {m.name}
+                                </button>
+                              );
+                            }) : <div style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>None configured</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ padding: "6px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                      background: quorum ? `${GREEN}15` : `${RED}15`,
+                      border: `1px solid ${quorum ? GREEN : RED}33`,
+                      color: quorum ? GREEN : RED }}>
+                      {quorum ? "Quorum met — all ERC roles represented" : "Quorum not met — at least 1 FAA, 1 Management, and 1 Employee rep required"}
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 10, color: MUTED, marginBottom: 4 }}>Other Attendees</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        {(orgProfiles || []).filter(p => !ercMembers.some(m => m.id === p.id)).map(p => {
+                          const sel = attendees.some(a => getAtt(a).id === p.id || getAtt(a).name === p.full_name);
+                          return (
+                            <button key={p.id} onClick={() => {
+                              if (sel) {
+                                setMeetingForm(f => ({ ...f, attendees: attendees.filter(a => getAtt(a).id !== p.id && getAtt(a).name !== p.full_name) }));
+                              } else {
+                                setMeetingForm(f => ({ ...f, attendees: [...attendees, { id: p.id, name: p.full_name, role: "other" }] }));
+                              }
+                            }} style={{ padding: "3px 10px", borderRadius: 12, fontSize: 11, cursor: "pointer",
+                              background: sel ? `${ASAP_BLUE}22` : "transparent",
+                              border: sel ? `1px solid ${ASAP_BLUE}` : `1px solid ${BORDER}`,
+                              color: sel ? ASAP_BLUE : MUTED }}>
+                              {p.full_name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: AMBER, cursor: "pointer" }}>
+                <input type="checkbox" checked={!!meetingForm.is_annual_review}
+                  onChange={e => setMeetingForm(f => ({ ...f, is_annual_review: e.target.checked }))} />
+                This is an Annual Program Effectiveness Review (required by AC 120-66C)
+              </label>
             </div>
             <div style={{ marginBottom: 10 }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Reports Reviewed</label>
@@ -874,29 +1082,41 @@ export default function AsapProgram({
             <div style={{ fontSize: 14 }}>No ERC meetings recorded</div>
           </div>
         ) : (
-          meetings.map(m => (
-            <div key={m.id} style={{ ...card, padding: 16, marginBottom: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>{m.meeting_date ? new Date(m.meeting_date).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" }) : "—"}</div>
+          meetings.map(m => {
+            const attendees = (m.attendees || []);
+            const getAtt = (a) => typeof a === "object" ? a : { name: a, role: "" };
+            const mQuorum = ERC_ROLES.every(r => attendees.some(a => getAtt(a).role === r.id));
+            const isAnnual = (m.decisions || []).some(d => d.type === "annual_review");
+            return (
+              <div key={m.id} style={{ ...card, padding: 16, marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>{m.meeting_date ? new Date(m.meeting_date).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" }) : "—"}</div>
+                    {isAnnual && <span style={badge(`${AMBER}22`, AMBER)}>Annual Review</span>}
+                    <span style={badge(mQuorum ? `${GREEN}22` : `${RED}22`, mQuorum ? GREEN : RED)}>{mQuorum ? "Quorum" : "No Quorum"}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => { setEditingMeeting(m); setMeetingForm({ ...m, meeting_date: m.meeting_date ? m.meeting_date.slice(0, 16) : "", next_meeting_date: m.next_meeting_date ? m.next_meeting_date.slice(0, 16) : "", is_annual_review: (m.decisions || []).some(d => d.type === "annual_review") }); setShowMeetingForm(true); }} style={btn("rgba(255,255,255,0.06)", MUTED)}>Edit</button>
+                    <button onClick={() => onDeleteMeeting(m.id)} style={btn("rgba(239,68,68,0.1)", RED)}>Delete</button>
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => { setEditingMeeting(m); setMeetingForm({ ...m, meeting_date: m.meeting_date ? m.meeting_date.slice(0, 16) : "", next_meeting_date: m.next_meeting_date ? m.next_meeting_date.slice(0, 16) : "" }); setShowMeetingForm(true); }} style={btn("rgba(255,255,255,0.06)", MUTED)}>Edit</button>
-                  <button onClick={() => onDeleteMeeting(m.id)} style={btn("rgba(239,68,68,0.1)", RED)}>Delete</button>
+                <div style={{ display: "flex", gap: 16, fontSize: 11, color: MUTED, marginBottom: 8, flexWrap: "wrap" }}>
+                  {ERC_ROLES.map(r => {
+                    const present = attendees.filter(a => getAtt(a).role === r.id);
+                    const roleColor = r.id === "faa_representative" ? CYAN : r.id === "management" ? AMBER : GREEN;
+                    return <span key={r.id} style={{ color: present.length > 0 ? roleColor : RED }}>{r.short}: {present.length > 0 ? present.map(a => getAtt(a).name).join(", ") : "Absent"}</span>;
+                  })}
+                  <span>Reports: {(m.report_ids || []).length}</span>
+                  {m.next_meeting_date && <span>Next: {new Date(m.next_meeting_date).toLocaleDateString()}</span>}
                 </div>
+                {m.minutes && (
+                  <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.5, whiteSpace: "pre-wrap", maxHeight: 100, overflow: "hidden" }}>
+                    {m.minutes}
+                  </div>
+                )}
               </div>
-              <div style={{ display: "flex", gap: 16, fontSize: 11, color: MUTED, marginBottom: 8 }}>
-                <span>Attendees: {(m.attendees || []).length}</span>
-                <span>Reports Reviewed: {(m.report_ids || []).length}</span>
-                {m.next_meeting_date && <span>Next: {new Date(m.next_meeting_date).toLocaleDateString()}</span>}
-              </div>
-              {m.minutes && (
-                <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.5, whiteSpace: "pre-wrap", maxHeight: 100, overflow: "hidden" }}>
-                  {m.minutes}
-                </div>
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     );
@@ -999,20 +1219,38 @@ export default function AsapProgram({
         </div>
 
         <div style={{ ...card, padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 }}>ERC Members</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {(orgProfiles || []).map(p => {
-              const sel = (configForm.erc_members || []).includes(p.id);
+          <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 4 }}>ERC Composition</div>
+          <div style={{ fontSize: 11, color: MUTED, marginBottom: 16 }}>Per AC 120-66C, the ERC must include at least one representative from each party to the MOU.</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+            {ERC_ROLES.map(role => {
+              const members = (configForm.erc_members || []).filter(m => typeof m === "object" && m.role === role.id);
+              const roleColor = role.id === "faa_representative" ? CYAN : role.id === "management" ? AMBER : GREEN;
               return (
-                <button key={p.id} onClick={() => {
-                  const members = configForm.erc_members || [];
-                  setConfigForm(f => ({ ...f, erc_members: sel ? members.filter(m => m !== p.id) : [...members, p.id] }));
-                }} style={{ padding: "4px 12px", borderRadius: 12, fontSize: 11, cursor: "pointer",
-                  background: sel ? `${ASAP_BLUE}22` : "transparent",
-                  border: sel ? `1px solid ${ASAP_BLUE}` : `1px solid ${BORDER}`,
-                  color: sel ? ASAP_BLUE : MUTED }}>
-                  {p.full_name}
-                </button>
+                <div key={role.id}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: roleColor, marginBottom: 8 }}>
+                    {role.label} {members.length === 0 && <span style={{ color: RED, fontSize: 9, marginLeft: 4 }}>REQUIRED</span>}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {(orgProfiles || []).map(p => {
+                      const sel = members.some(m => m.id === p.id);
+                      return (
+                        <button key={p.id} onClick={() => {
+                          const all = (configForm.erc_members || []).filter(m => typeof m === "object");
+                          if (sel) {
+                            setConfigForm(f => ({ ...f, erc_members: all.filter(m => !(m.id === p.id && m.role === role.id)) }));
+                          } else {
+                            setConfigForm(f => ({ ...f, erc_members: [...all, { id: p.id, name: p.full_name, role: role.id }] }));
+                          }
+                        }} style={{ padding: "4px 12px", borderRadius: 6, fontSize: 11, cursor: "pointer", textAlign: "left",
+                          background: sel ? `${roleColor}18` : "transparent",
+                          border: sel ? `1px solid ${roleColor}44` : `1px solid ${BORDER}`,
+                          color: sel ? roleColor : MUTED }}>
+                          {p.full_name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -1172,9 +1410,21 @@ export default function AsapProgram({
           <div style={{ fontSize: 20, fontWeight: 800, color: WHITE }}>{asapConfig?.program_name || "ASAP"}<button onClick={() => setShowHelp(!showHelp)} title="What's this?" style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: MUTED, fontSize: 10, fontWeight: 700, marginLeft: 8, verticalAlign: "middle" }}>?</button></div>
           <div style={{ fontSize: 11, color: MUTED }}>Aviation Safety Action Program — AC 120-66C</div>
         </div>
-        <button onClick={onRefresh} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Refresh</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={() => setDeidentified(d => !d)}
+            style={{ fontSize: 11, color: deidentified ? AMBER : MUTED, background: deidentified ? `${AMBER}12` : "none", border: `1px solid ${deidentified ? `${AMBER}44` : BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer", fontWeight: deidentified ? 700 : 400 }}>
+            {deidentified ? "De-identified" : "De-identify"}
+          </button>
+          <button onClick={onRefresh} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Refresh</button>
+        </div>
       </div>
       {showHelp && <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.6, padding: "10px 14px", marginBottom: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6 }}>The Aviation Safety Action Program provides a voluntary, confidential reporting system. Reports are reviewed by an Event Review Committee (ERC) who determines corrective actions.</div>}
+
+      {deidentified && (
+        <div style={{ padding: "8px 14px", marginBottom: 12, borderRadius: 6, background: `${AMBER}12`, border: `1px solid ${AMBER}33`, fontSize: 11, color: AMBER }}>
+          De-identified mode active — reporter names, tail numbers, and airports are masked. Safe for sharing data outside the ERC per AC 120-66C confidentiality requirements.
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
         {tabBtn("dashboard", "Dashboard")}

@@ -5,6 +5,7 @@ import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPas
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures, isFreeTier, FREE_TIER_LIMITS } from "../lib/tiers";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
+import { computePart5Compliance } from "../components/FaaAuditLog";
 const SafetyReporting = dynamic(() => import("../components/SafetyReporting"), { ssr: false });
 const HazardRegister = dynamic(() => import("../components/HazardRegister"), { ssr: false });
 const CorrectiveActions = dynamic(() => import("../components/CorrectiveActions"), { ssr: false });
@@ -2368,7 +2369,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
           </div>
         )}
       </div>
-      {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={(target) => target === "spiDashboard" ? setSub("performance") : onNavigate(target)} fleetAircraft={fleetAircraft} />}
+      {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={(target) => target === "spiDashboard" ? setSub("performance") : onNavigate(target)} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} />}
       {sub === "frat" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "safety" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "culture" && hasCulture && <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />}
@@ -3409,6 +3410,12 @@ export default function PVTAIRFrat() {
   // Derived template config
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
   const riskLevels = fratTemplate?.risk_thresholds ? buildRiskLevels(fratTemplate.risk_thresholds) : DEFAULT_RISK_LEVELS;
+
+  // Part 5 compliance for dashboard
+  const part5Compliance = useMemo(() =>
+    computePart5Compliance({ frats: records, flights, reports, hazards, actions, policies, profiles: orgProfiles, trainingRecords: trainingRecs, smsManuals }),
+    [records, flights, reports, hazards, actions, policies, orgProfiles, trainingRecs, smsManuals]
+  );
 
   // Init offline queue
   useEffect(() => {

@@ -310,6 +310,37 @@ const MANUAL_LABELS = {
   org_system_description: "Org. System Description",
 };
 
+// ── Exported helper: compute Part 5 compliance % without rendering ──
+export function computePart5Compliance({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, smsManuals }) {
+  const dataCtx = {
+    fratCount: (frats||[]).length,
+    flightCount: (flights||[]).length,
+    reportCount: (reports||[]).length,
+    hazardCount: (hazards||[]).length,
+    actionCount: (actions||[]).length,
+    trainingCount: (trainingRecords||[]).length,
+    policyAckCount: (policies||[]).reduce((n, p) => n + (p.acknowledged_by||[]).length, 0),
+    policies: policies||[],
+    profiles: profiles||[],
+    hasFrat: true, hasReports: true, hasHazards: true,
+    hasPolicies: (policies||[]).length > 0,
+    hasDashboard: true, hasNotifications: true,
+    hasRoles: (profiles||[]).some(p => p.role === "admin" || p.role === "safety_manager"),
+    smsManuals: smsManuals || [],
+    hasManuals: (smsManuals || []).length > 0,
+    manualComplete: (key) => { const m = (smsManuals || []).find(x => x.manual_key === key); if (!m) return false; const secs = m.sections || []; return secs.length > 0 && secs.every(s => s.completed); },
+    policyCoversManual: (key) => (policies || []).some(p => p.status === "active" && p.part5_tags?.includes(key)),
+  };
+  let compliant = 0;
+  PART5_REQUIREMENTS.forEach(req => {
+    const manualKeys = REQ_MANUAL_MAP[req.id] || [];
+    const manualSatisfied = manualKeys.some(k => dataCtx.manualComplete(k) || dataCtx.policyCoversManual(k));
+    if (manualSatisfied) { compliant++; }
+    else if (req.autoCheck && req.autoCheck(dataCtx)) { compliant++; }
+  });
+  return { compliant, total: PART5_REQUIREMENTS.length, percent: Math.round(compliant / PART5_REQUIREMENTS.length * 100) };
+}
+
 // ══════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
