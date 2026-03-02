@@ -24,10 +24,11 @@ const STATUSES = [
 ];
 
 function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation, orgProfiles }) {
+  const prefill = fromInvestigation?._prefill;
   const [form, setForm] = useState({
-    title: fromInvestigation ? `Action for: ${fromInvestigation.title}` : "",
-    description: fromInvestigation ? `Source investigation: ${fromInvestigation.hazard_code}\n\n${fromInvestigation.description || ""}` : "",
-    assignedTo: "", assignedToName: "", dueDate: "", priority: "medium",
+    title: prefill?.title || (fromInvestigation ? `Action for: ${fromInvestigation.title}` : ""),
+    description: fromInvestigation ? `Source investigation: ${fromInvestigation.hazard_code}${fromInvestigation.related_report_id ? `\nSource report: ${(fromInvestigation._linkedReportCode) || ""}` : ""}\n\n${prefill?.description || fromInvestigation.description || ""}` : "",
+    assignedTo: "", assignedToName: "", dueDate: "", priority: prefill?.priority || "medium",
     hazardId: fromInvestigation?.id || null,
     reportId: fromInvestigation?.related_report_id || null,
   });
