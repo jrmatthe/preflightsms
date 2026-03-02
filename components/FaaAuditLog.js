@@ -198,6 +198,11 @@ const PART5_REQUIREMENTS = [
     evidence: "system", autoCheck: (d) => d.fratCount > 0,
     evidenceDesc: "Dashboard analytics provide continuous trend analysis of FRAT scores, safety reports, and hazard data over time." },
 
+  { id: "5.71a6", subpart: "D", title: "Management Systems Integration", section: "§ 5.71(a)(6)",
+    requirement: "Integrate data from other management systems (operations, maintenance, quality) into safety performance monitoring.",
+    evidence: "system", autoCheck: (d) => d.fratCount > 0 && d.reportCount > 0 && d.hazardCount > 0,
+    evidenceDesc: "PreflightSMS integrates flight risk assessment (FRAT), safety reporting, hazard register, corrective actions, fleet management, and training records into unified dashboards and trend analytics." },
+
   { id: "5.71a7", subpart: "D", title: "Employee Safety Reporting", section: "§ 5.71(a)(7)",
     requirement: "Provide a confidential employee safety reporting system.",
     evidence: "system", autoCheck: (d) => d.reportCount >= 0,
@@ -542,7 +547,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       {/* Compliance bar */}
       <div data-tour="tour-audit-progress" style={{ ...card, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-          <span style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Overall Compliance</span>
+          <span style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Part 5 Readiness</span>
           <span style={{ fontSize: 11, color: WHITE, fontWeight: 700 }}>{Math.round(summary.compliant / summary.total * 100)}%</span>
         </div>
         <div style={{ height: 8, background: NEAR_BLACK, borderRadius: 4, overflow: "hidden", display: "flex" }}>
@@ -550,6 +555,11 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
           <div style={{ width: `${summary.needs_attention/summary.total*100}%`, background: AMBER }} />
           <div style={{ width: `${summary.manual_review/summary.total*100}%`, background: MUTED, borderRadius: "0 4px 4px 0" }} />
         </div>
+      </div>
+
+      {/* Compliance disclaimer */}
+      <div style={{ fontSize: 10, color: AMBER, lineHeight: 1.5, padding: "8px 12px", marginBottom: 12, background: `${AMBER}08`, border: `1px solid ${AMBER}22`, borderRadius: 6 }}>
+        <span style={{ fontWeight: 700 }}>Important:</span> This is a self-assessment tool that checks for the presence of SMS data and documentation in PreflightSMS. It does not constitute a legal determination of regulatory compliance. Verify each requirement with your FAA Principal Operations Inspector (POI) before filing a Declaration of Compliance.
       </div>
 
       {/* SMS Manual Documentation Status */}
