@@ -273,7 +273,7 @@ export default function InternalEvaluation({
   hasIntlCompliance, complianceFrameworks, checklistItems,
   complianceStatus, crosswalkData, onUpsertFramework,
   onDeleteFramework, onUpsertStatus, onRefreshCompliance,
-  onAiGenerateChecklist,
+  onAiGenerateChecklist, onNavigate,
 }) {
   const [tab, setTab] = useState("part5");
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -855,6 +855,7 @@ export default function InternalEvaluation({
           complianceStatus={complianceStatus} crosswalkData={crosswalkData}
           onUpsertFramework={onUpsertFramework} onDeleteFramework={onDeleteFramework}
           onUpsertStatus={onUpsertStatus} onRefreshCompliance={onRefreshCompliance}
+          onNavigate={onNavigate}
         />
       )}
 
@@ -872,6 +873,7 @@ export default function InternalEvaluation({
           complianceStatus={complianceStatus} crosswalkData={crosswalkData}
           onUpsertFramework={onUpsertFramework} onDeleteFramework={onDeleteFramework}
           onUpsertStatus={onUpsertStatus} onRefreshCompliance={onRefreshCompliance}
+          onNavigate={onNavigate}
           defaultTab="international"
         />
       )}
