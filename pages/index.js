@@ -3846,23 +3846,29 @@ export default function PVTAIRFrat() {
     // Use approval mode determined by FRATForm (from the template the pilot actually used)
     const approvalMode = entry.approvalMode || "none";
     const isApprover = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role) || (profile?.permissions || []).includes("approver");
-    const needsBlock = approvalMode === "required";
+    let needsBlock = approvalMode === "required";
     // Determine approval status and notification behavior based on submitter + mode
     let fratApprovalStatus = "auto_approved";
     let shouldNotify = false;
     let toastMsg = "";
     if (approvalMode === "review" && isApprover) {
-      // Scenario 3: Approver + review → auto-approved, no notifications
+      // Approver + review → auto-approved, no notifications
       fratApprovalStatus = "auto_approved";
       shouldNotify = false;
       toastMsg = `${entry.riskLevel} FRAT submitted`;
     } else if (approvalMode === "review" && !isApprover) {
-      // Scenario 1: Non-approver + review → review status, notify approvers
+      // Non-approver + review → review status, notify approvers
       fratApprovalStatus = "review";
       shouldNotify = true;
       toastMsg = `${entry.riskLevel} FRAT submitted, all FRAT approvers notified`;
+    } else if (approvalMode === "required" && isApprover) {
+      // Approver + required → auto-approved, no block, no notifications
+      fratApprovalStatus = "auto_approved";
+      needsBlock = false;
+      shouldNotify = false;
+      toastMsg = `${entry.riskLevel} FRAT submitted`;
     } else if (approvalMode === "required") {
-      // Scenarios 2 & 4: Required → pending, notify approvers (regardless of submitter)
+      // Non-approver + required → pending, notify approvers
       fratApprovalStatus = "pending";
       shouldNotify = true;
       toastMsg = `${entry.riskLevel} FRAT submitted, management approval required`;
