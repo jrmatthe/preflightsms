@@ -566,6 +566,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   const sectionFullyGated = (sec) => sec.id !== "admin" && sec.id !== "dashboard" && !sec.cvs.some(cv => cvPassesGate(cv));
   const visibleSections = NAV_SECTIONS.filter(sec => {
     if (sec.id === "admin") return isAdminRole;
+    if (sec.id === "compliance") return isAdminRole;
     return true; // Show all sections, even gated ones
   });
   const activeSection = getSection(currentView);
@@ -2283,7 +2284,8 @@ function ExportView({ records, orgName }) {
 }
 
 function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills, profile, session, spis, spiMeasurements, onCreateSpi, onUpdateSpi, onDeleteSpi, onLoadTargets, onCreateTarget, onUpdateTarget, onDeleteTarget, onLoadMeasurements, onCreateMeasurement, onInitSpiDefaults, cultureSurveys, orgProfiles, onCreateSurvey, onUpdateSurvey, onDeleteSurvey, onFetchSurveyResponses, onSubmitSurveyResponse, onCheckUserSurveyResponse, onFetchSurveyResults, onUpsertSurveyResults, trendAlerts, onAcknowledgeTrendAlert, pilotEngagement, safetyRecognitions, orgEngagement, orgRecognitions, onAcknowledgeRecognition, complianceFrameworks, complianceChecklistItems, complianceStatusData, trainingReqs, trainingRecs, policies, iepAudits, auditSchedules, mocItems, insuranceExports, onGenerateExport, onDeleteExport, onNavigateSubscription, onNavigate, fleetAircraft, part5Compliance, onViewDetail }) {
-  const [sub, setSub] = useState("analytics");
+  const analyticsOn = org?.dashboard_analytics_enabled !== false;
+  const [sub, setSub] = useState(analyticsOn ? "analytics" : "culture");
   const hasAnalytics = hasFeature(org, "dashboard_analytics");
   const hasSpi = hasFeature(org, "dashboard_analytics"); // SPIs require Professional+ (same gate as analytics)
   const hasCulture = hasFeature(org, "safety_culture_survey");
@@ -2313,7 +2315,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         </div>
       )}
       <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
-        {[["analytics", "Overview"], ...(hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ...(hasInsurance ? [["insurance", "Insurance & Export"]] : []), ["history", "FRAT History"], ...(isDashboardFree ? [] : [["export", "Export"]])].map(([id, label]) => (
+        {[...(analyticsOn ? [["analytics", "Overview"]] : []), ...(analyticsOn && hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(analyticsOn && hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ...(analyticsOn && hasInsurance ? [["insurance", "Insurance & Export"]] : []), ...(analyticsOn ? [["history", "FRAT History"]] : []), ...(analyticsOn && !isDashboardFree ? [["export", "Export"]] : [])].map(([id, label]) => (
           <button key={id} onClick={() => setSub(id)}
             style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${sub === id ? WHITE : BORDER}`,
               background: sub === id ? WHITE : "transparent", color: sub === id ? BLACK : MUTED,
@@ -2325,14 +2327,14 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
           </div>
         )}
       </div>
-      {sub === "analytics" && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={(target) => target === "spiDashboard" ? setSub("performance") : onNavigate(target)} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} />}
-      {sub === "frat" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" erpPlans={erpPlans} erpDrills={erpDrills} />}
-      {sub === "safety" && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" erpPlans={erpPlans} erpDrills={erpDrills} />}
+      {sub === "analytics" && analyticsOn && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={(target) => target === "spiDashboard" ? setSub("performance") : onNavigate(target)} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} />}
+      {sub === "frat" && analyticsOn && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" erpPlans={erpPlans} erpDrills={erpDrills} />}
+      {sub === "safety" && analyticsOn && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" erpPlans={erpPlans} erpDrills={erpDrills} />}
       {sub === "culture" && hasCulture && <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />}
-      {sub === "performance" && hasSpi && <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />}
-      {sub === "insurance" && hasInsurance && <InsuranceScorecard profile={profile} session={session} org={org} orgProfiles={orgProfiles} records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} trainingReqs={trainingReqs} trainingRecs={trainingRecs} erpPlans={erpPlans} erpDrills={erpDrills} iepAudits={iepAudits} auditSchedules={auditSchedules} insuranceExports={insuranceExports} onGenerateExport={onGenerateExport} onDeleteExport={onDeleteExport} />}
-      {sub === "history" && <HistoryView records={records} onDelete={onDelete} onViewDetail={onViewDetail} />}
-      {sub === "export" && <ExportView records={records} orgName={org?.name} />}
+      {sub === "performance" && analyticsOn && hasSpi && <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />}
+      {sub === "insurance" && analyticsOn && hasInsurance && <InsuranceScorecard profile={profile} session={session} org={org} orgProfiles={orgProfiles} records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} trainingReqs={trainingReqs} trainingRecs={trainingRecs} erpPlans={erpPlans} erpDrills={erpDrills} iepAudits={iepAudits} auditSchedules={auditSchedules} insuranceExports={insuranceExports} onGenerateExport={onGenerateExport} onDeleteExport={onDeleteExport} />}
+      {sub === "history" && analyticsOn && <HistoryView records={records} onDelete={onDelete} onViewDetail={onViewDetail} />}
+      {sub === "export" && analyticsOn && <ExportView records={records} orgName={org?.name} />}
     </div>
   );
 }
