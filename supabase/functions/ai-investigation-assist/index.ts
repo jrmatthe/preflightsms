@@ -3,7 +3,7 @@
 // AI Investigation Assistance — analyzes hazards and suggests root causes,
 // recommended corrective actions, and similar patterns.
 //
-// Deploy: supabase functions deploy ai-investigation-assist
+// Deploy: supabase functions deploy ai-investigation-assist --no-verify-jwt
 // Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
