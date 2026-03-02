@@ -262,7 +262,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
 
       {/* KPI cards */}
       <div className="stat-grid" data-tour="tour-dashboard-kpi" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
-        <StatCard label="FRATs (30d)" value={stats.r7Count} sub={`${stats.totalFrats} total`} icon="📋" onClick={onNavigate ? () => onNavigate("submit") : undefined} />
+        <StatCard label="FRATs (30d)" value={stats.r7Count} sub={`${stats.totalFrats} total`} icon="📋" onClick={onNavigate ? () => onNavigate("history") : undefined} />
         <StatCard label="Avg Risk Score" value={stats.avgScore.toFixed(1)} color={getRiskColor(Math.round(stats.avgScore))} sub="30-day average" icon="📊" />
         <StatCard label="Active Flights" value={stats.activeFlights} sub={`${stats.f30} in last 30d`} icon="✈️" onClick={onNavigate ? () => onNavigate("flights") : undefined} />
         <StatCard label="Open Items" value={stats.openReports + stats.openHazards + stats.openActions} color={stats.overdueActions > 0 ? RED : WHITE} sub={stats.overdueActions > 0 ? `${stats.overdueActions} overdue` : "On track"} icon="⚠️" onClick={onNavigate ? () => onNavigate("actions") : undefined} />
@@ -487,10 +487,10 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         </div>
       )}
 
-      {/* Active Changes (MOC) */}
+      {/* Management of Change (MOC) */}
       {!isDashboardFree && (!mocItems || mocItems.length === 0 || mocItems.filter(m => m.status !== "closed").length === 0) && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
-          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Active Changes</h3>
+          <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Management of Change</h3>
           <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No active change management items</div>
         </div>
       )}
@@ -500,7 +500,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         open.forEach(m => { if (byPriority.hasOwnProperty(m.priority)) byPriority[m.priority]++; });
         return open.length > 0 ? (
           <div style={{ ...card, padding: 18, marginTop: 16 }}>
-            <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Active Changes</h3>
+            <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Management of Change</h3>
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
               {[
                 { label: "Critical", count: byPriority.critical, color: RED },
@@ -566,7 +566,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
               ))}
             </div>
             <div style={{ ...card, padding: 18 }}>
-              <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Active Changes</h3>
+              <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Management of Change</h3>
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 {[{ l: "Critical", n: 0, c: RED }, { l: "High", n: 2, c: AMBER }, { l: "Medium", n: 3, c: YELLOW }, { l: "Low", n: 1, c: GREEN }].map(p => (
                   <div key={p.l} style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -641,10 +641,23 @@ function FRATAnalytics({ records }) {
       count: d.count,
     }));
 
-    // By aircraft
+    // By aircraft (normalize variants like "PC-12", "PC12", "pc12" into one group)
+    const normalizeAircraftKey = (name) => (name || "").toLowerCase().replace(/[-\s.]/g, "");
+    const canonicalCount = {};
+    filtered.forEach(r => {
+      const raw = r.aircraft || "Unknown";
+      const key = normalizeAircraftKey(raw);
+      if (!canonicalCount[key]) canonicalCount[key] = {};
+      canonicalCount[key][raw] = (canonicalCount[key][raw] || 0) + 1;
+    });
+    const canonicalName = {};
+    Object.entries(canonicalCount).forEach(([key, variants]) => {
+      canonicalName[key] = Object.entries(variants).sort((a, b) => b[1] - a[1])[0][0];
+    });
+
     const aircraftMap = {};
     filtered.forEach(r => {
-      const ac = r.aircraft || "Unknown";
+      const ac = canonicalName[normalizeAircraftKey(r.aircraft || "Unknown")] || r.aircraft || "Unknown";
       if (!aircraftMap[ac]) aircraftMap[ac] = { name: ac, flights: 0, totalScore: 0 };
       aircraftMap[ac].flights++;
       aircraftMap[ac].totalScore += r.score;

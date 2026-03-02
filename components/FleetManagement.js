@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+
+const normalizeAircraftKey = (name) => (name || "").toLowerCase().replace(/[-\s.]/g, "");
 
 const BLACK="#000000",NEAR_BLACK="#0A0A0A",CARD="#222222",BORDER="#2E2E2E",LIGHT_BORDER="#3A3A3A";
 const WHITE="#FFFFFF",OFF_WHITE="#E0E0E0",MUTED="#777777";
@@ -105,7 +107,7 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
           })}
         </div>
         {(selected||editing)&&<div style={{...card,padding:"20px 24px",overflowY:"auto",maxHeight:"calc(100vh - 200px)"}}>
-          {editing?<AircraftForm form={form} setField={setField} onSave={save} onCancel={()=>setEditing(false)} isNew={!selected} />
+          {editing?<AircraftForm form={form} setField={setField} onSave={save} onCancel={()=>setEditing(false)} isNew={!selected} aircraft={fleet} />
           :selected?<DetailView aircraft={selected} canManage={canManage} onEdit={startEdit} onDelete={handleDelete} confirmDelete={confirmDelete} setConfirmDelete={setConfirmDelete} />
           :null}
         </div>}
@@ -144,7 +146,24 @@ function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfi
   </div>);
 }
 
-function AircraftForm({form,setField,onSave,onCancel,isNew}) {
+function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
+  const [suggestion, setSuggestion] = useState(null);
+
+  const existingTypes = useMemo(() => {
+    const seen = {};
+    (aircraft || []).forEach(a => { if (a.type) seen[normalizeAircraftKey(a.type)] = a.type; });
+    return seen;
+  }, [aircraft]);
+
+  useEffect(() => {
+    const typed = form.type || "";
+    if (!typed.trim()) { setSuggestion(null); return; }
+    const key = normalizeAircraftKey(typed);
+    const match = existingTypes[key];
+    if (match && match !== typed) setSuggestion(match);
+    else setSuggestion(null);
+  }, [form.type, existingTypes]);
+
   const field = (l,key,type="text") => (<div style={{marginBottom:8}}>
     <div style={{...lbl}}>{l}</div>
     <input type={type} value={form[key]||""} onChange={e=>{
@@ -152,6 +171,12 @@ function AircraftForm({form,setField,onSave,onCancel,isNew}) {
       if (key === "registration" || key === "type") v = v.toUpperCase();
       setField(key,v);
     }} style={inp} />
+    {key === "type" && suggestion && (
+      <div style={{marginTop:4,padding:"6px 10px",background:"rgba(74,222,128,0.08)",border:`1px solid ${GREEN}44`,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <span style={{fontSize:11,color:OFF_WHITE}}>Did you mean <strong style={{color:WHITE}}>{suggestion}</strong>?</span>
+        <button onClick={()=>setField("type",suggestion)} style={{padding:"3px 10px",background:GREEN,color:BLACK,border:"none",borderRadius:4,fontWeight:700,fontSize:10,cursor:"pointer"}}>Accept</button>
+      </div>
+    )}
   </div>);
 
   return (<div>
