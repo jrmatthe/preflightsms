@@ -4713,7 +4713,7 @@ export default function PVTAIRFrat() {
           const { url, error } = await uploadOrgLogo(orgId, file);
           if (!error && url) {
             // Refresh profile to pick up new logo
-            const { data: prof } = await getProfile();
+            const prof = await getProfile();
             if (prof) setProfile(prof);
           }
           return { url, error };
@@ -4721,7 +4721,7 @@ export default function PVTAIRFrat() {
           const orgId = profile?.org_id;
           if (!orgId) return;
           await updateOrg(orgId, updates);
-          const { data: prof } = await getProfile();
+          const prof = await getProfile();
           if (prof) setProfile(prof);
           setToast({ message: "Settings updated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
           setTimeout(() => setToast(null), 3000);
