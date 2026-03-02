@@ -20,16 +20,19 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log("ai-investigation-assist: invoked");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
 
     if (!anthropicKey) {
+      console.error("ai-investigation-assist: ANTHROPIC_API_KEY not configured");
       return new Response(
         JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    console.log("ai-investigation-assist: API key found");
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -44,13 +47,16 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
+      console.error("ai-investigation-assist: auth failed", authError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log("ai-investigation-assist: authenticated user", user.id);
 
     const { orgId, hazardId } = await req.json();
+    console.log("ai-investigation-assist: orgId", orgId, "hazardId", hazardId);
     if (!orgId || !hazardId) {
       return new Response(JSON.stringify({ error: "orgId and hazardId required" }), {
         status: 400,
@@ -152,6 +158,7 @@ Provide your analysis as JSON with this exact structure:
 
 Provide 2-4 root causes, 2-4 recommended actions, and note any similar patterns from the data above.`;
 
+    console.log("ai-investigation-assist: calling Claude API");
     // Call Claude API
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -168,6 +175,8 @@ Provide 2-4 root causes, 2-4 recommended actions, and note any similar patterns 
     });
 
     const claudeData = await claudeRes.json();
+    console.log("ai-investigation-assist: Claude response status", claudeRes.status);
+    if (!claudeRes.ok) console.error("ai-investigation-assist: Claude error", JSON.stringify(claudeData));
     const responseText = claudeData.content?.[0]?.text || "{}";
 
     // Parse analysis from response
