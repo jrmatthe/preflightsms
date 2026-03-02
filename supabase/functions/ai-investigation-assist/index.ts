@@ -34,11 +34,14 @@ Deno.serve(async (req) => {
     }
     console.log("ai-investigation-assist: API key found");
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     // Parse auth token
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("ai-investigation-assist: no auth header");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -47,7 +50,7 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      console.error("ai-investigation-assist: auth failed", authError?.message);
+      console.error("ai-investigation-assist: auth failed", authError?.message, "token prefix", token.substring(0, 20));
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
