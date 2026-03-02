@@ -165,9 +165,10 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
   useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
 
   // If fromInvestigation changes, switch to new form
-  const [lastFromInvestigation, setLastFromInvestigation] = useState(fromInvestigation?.id);
-  if (fromInvestigation?.id && fromInvestigation.id !== lastFromInvestigation) {
-    setLastFromInvestigation(fromInvestigation.id);
+  const fromKey = fromInvestigation ? `${fromInvestigation.id}_${fromInvestigation._prefill?.title || ""}` : null;
+  const [lastFromKey, setLastFromKey] = useState(fromKey);
+  if (fromKey && fromKey !== lastFromKey) {
+    setLastFromKey(fromKey);
     setView("new");
   }
 
@@ -216,7 +217,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
   }, [processed]);
 
   if (view === "new") {
-    return <ActionForm existingCount={actions.length} fromInvestigation={fromInvestigation} orgProfiles={orgProfiles}
+    return <ActionForm key={fromKey || "new"} existingCount={actions.length} fromInvestigation={fromInvestigation} orgProfiles={orgProfiles}
       onSubmit={a => { onCreateAction(a); setView("list"); if (onClearFromInvestigation) onClearFromInvestigation(); }}
       onCancel={() => { setView("list"); if (onClearFromInvestigation) onClearFromInvestigation(); }} />;
   }
