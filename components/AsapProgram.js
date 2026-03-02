@@ -129,7 +129,7 @@ export default function AsapProgram({
   onFetchErcReviews, onCreateErcReview, onUpdateErcReview,
   onCreateCorrAction, onUpdateCorrAction, onDeleteCorrAction,
   onCreateMeeting, onUpdateMeeting, onDeleteMeeting,
-  onRefresh, onCreateAction, onInitSetup,
+  onRefresh, onCreateAction,
 }) {
   const [view, setView] = useState("dashboard");
   const [selectedReport, setSelectedReport] = useState(null);
@@ -179,7 +179,19 @@ export default function AsapProgram({
   }, [deidentified, reporterMap]);
 
   useEffect(() => {
-    if (asapConfig) setConfigForm({ ...asapConfig });
+    if (asapConfig) {
+      setConfigForm({ ...asapConfig });
+    } else {
+      setConfigForm({
+        program_name: "ASAP",
+        mou_text: DEFAULT_MOU_TEXT,
+        acceptance_criteria: DEFAULT_ACCEPTANCE_CRITERIA,
+        exclusion_criteria: DEFAULT_EXCLUSION_CRITERIA,
+        reporting_window_hours: 24,
+        auto_number_prefix: "ASAP",
+        erc_members: [],
+      });
+    }
   }, [asapConfig]);
 
   const loadReviews = useCallback(async (reportId) => {
@@ -1145,7 +1157,6 @@ export default function AsapProgram({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Aviation Safety Action Program (ASAP) Setup</div>
           <div style={{ display: "flex", gap: 8 }}>
-            {!asapConfig && <button onClick={onInitSetup} style={btn(ASAP_BLUE, WHITE)}>Initialize ASAP Program</button>}
             <button onClick={handleSave} style={btn(GREEN, "#000")}>Save Configuration</button>
           </div>
         </div>
