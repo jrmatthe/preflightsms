@@ -3087,18 +3087,26 @@ function AuthScreen({ onAuth, initialMode }) {
           method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${authData.session?.access_token}` },
           body: JSON.stringify({ name: orgName.trim(), slug, tier, feature_flags: features,
             subscription_status: isFree ? "free" : "trial",
-            max_aircraft: isFree ? 1 : tier === "enterprise" ? 999 : tier === "professional" ? 15 : 5 }),
+            max_aircraft: isFree ? 1 : tier === "enterprise" ? 999 : tier === "professional" ? 15 : 5,
+            userId: authData.user?.id }),
         });
         const orgJson = await orgRes.json();
         if (!orgRes.ok || !orgJson.data) { setError(orgJson.error || "Failed to create organization"); setLoading(false); return; }
-        // 3. Create profile linked to org
+        // 3. Create profile linked to org (use API route to bypass RLS when no session)
         if (authData.user) {
-          await supabase.from("profiles").insert({ id: authData.user.id, org_id: orgJson.data.id, full_name: name.trim(), email, role: "pilot" });
+          if (authData.session) {
+            await supabase.from("profiles").insert({ id: authData.user.id, org_id: orgJson.data.id, full_name: name.trim(), email, role: "admin" });
+          } else {
+            await fetch("/api/create-org", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "create-profile", userId: authData.user.id, orgId: orgJson.data.id, fullName: name.trim(), email }),
+            });
+          }
         }
-        // 4. Sign in and set as admin
+        // 4. Sign in
         const { data: session } = await signIn(email, password);
         if (session?.session) {
-          await supabase.from("profiles").update({ role: "admin" }).eq("id", session.session.user.id);
+          if (authData.session) await supabase.from("profiles").update({ role: "admin" }).eq("id", session.session.user.id);
           onAuth(session.session);
           setLoading(false);
           return;
