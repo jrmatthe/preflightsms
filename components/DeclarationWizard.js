@@ -158,23 +158,47 @@ export default function DeclarationWizard({
     return result;
   }, [subpartGroups, reqStatuses]);
 
-  // Generate PDF
+  // Generate PDF — formal letter per AC 120-92D / Notice 8900.700
   const generatePdf = async () => {
     setGenerating(true);
     try {
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF({ unit: "pt", format: "letter" });
       const W = doc.internal.pageSize.getWidth();
-      const margin = 50;
-      let y = 50;
+      const H = doc.internal.pageSize.getHeight();
+      const margin = 72; // 1-inch margins
+      const textW = W - margin * 2;
+      let y = 72;
+      const leading = 15; // line spacing for body text
+      const paraGap = 10; // extra space between paragraphs
 
       const checkPage = (needed) => {
-        if (y + needed > doc.internal.pageSize.getHeight() - 50) {
+        if (y + needed > H - 72) {
           doc.addPage();
-          y = 50;
+          y = 72;
         }
       };
 
+      // Helper: write wrapped paragraph
+      const writePara = (text, opts = {}) => {
+        const fontSize = opts.fontSize || 11;
+        const font = opts.font || "normal";
+        const indent = opts.indent || 0;
+        doc.setFontSize(fontSize);
+        doc.setFont("helvetica", font);
+        const lines = doc.splitTextToSize(text, textW - indent);
+        lines.forEach(line => {
+          checkPage(leading);
+          doc.text(line, margin + indent, y);
+          y += leading;
+        });
+        y += paraGap;
+      };
+
+      const today = new Date();
+      const dateStr = today.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+      // ── LETTERHEAD ──
       // Try to load org logo
       if (org?.logo_url) {
         try {
@@ -185,162 +209,236 @@ export default function DeclarationWizard({
             img.onerror = reject;
             img.src = org.logo_url;
           });
-          doc.addImage(img, "PNG", margin, y, 60, 60);
-          y += 70;
+          doc.addImage(img, "PNG", margin, y, 50, 50);
+          y += 58;
         } catch { /* logo load failed, skip */ }
       }
 
-      // Title
-      doc.setFontSize(20);
+      // Organization block
+      doc.setFontSize(13);
       doc.setFont("helvetica", "bold");
-      doc.text("Declaration of Compliance", W / 2, y, { align: "center" });
-      y += 20;
+      doc.text(orgInfo.orgName || "[Organization Name]", margin, y);
+      y += 16;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      if (orgInfo.mailingAddress) { doc.text(orgInfo.mailingAddress, margin, y); y += 13; }
+      if (orgInfo.certificateNumber) { doc.text(`FAA Certificate No. ${orgInfo.certificateNumber}`, margin, y); y += 13; }
+      y += 10;
+
+      // Date
+      doc.setFontSize(11);
+      doc.text(dateStr, margin, y);
+      y += 24;
+
+      // Addressee
+      const chdoLine = [orgInfo.chdoName, orgInfo.chdoLocation].filter(Boolean).join(", ");
+      writePara(chdoLine || "[Certificate Holding District Office]");
+      writePara("Federal Aviation Administration");
+      y -= paraGap; // tighten address block
+      y += 10;
+
+      // Subject line
+      doc.setFont("helvetica", "bold");
+      doc.text("Re: Declaration of Compliance — 14 CFR Part 5 Safety Management System", margin, y);
+      y += 24;
+
+      // ── SALUTATION ──
+      writePara("Dear Sir or Madam:");
+
+      // ── PARAGRAPH 1: FORMAL DECLARATION ──
+      writePara(
+        `This letter serves as the Declaration of Compliance for ${orgInfo.orgName || "[Organization Name]"}, ` +
+        `holder of FAA Certificate No. ${orgInfo.certificateNumber || "[Certificate Number]"}, ` +
+        `in accordance with 14 CFR Part 5 and the guidance set forth in Advisory Circular (AC) 120-92D ` +
+        `and FAA Notice 8900.700.`
+      );
+
+      writePara(
+        `${orgInfo.orgName || "[Organization Name]"} hereby declares that it has developed and implemented ` +
+        `a Safety Management System (SMS) that meets the requirements of Title 14 of the Code of Federal ` +
+        `Regulations (14 CFR) Part 5, Safety Management Systems. This SMS has been designed, documented, ` +
+        `and integrated into the operations of this certificate holder as described herein.`
+      );
+
+      // ── PARAGRAPH 2: SMS COMPONENTS ──
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      checkPage(20);
+      doc.text("SMS Components", margin, y);
+      y += 18;
+
+      writePara(
+        `The SMS implemented by ${orgInfo.orgName || "[Organization Name]"} encompasses all four ` +
+        `components required by 14 CFR Part 5:`
+      );
+
+      // Component 1: Safety Policy (Subpart B)
+      writePara("1.  Safety Policy (Subpart B, §§ 5.21–5.27)", { font: "bold", indent: 10 });
+      writePara(
+        `The accountable executive, ${orgInfo.aeName || "[Name]"} (${orgInfo.aeTitle || "Accountable Executive"}), ` +
+        `has established and signed a safety policy that defines the organization's safety objectives and ` +
+        `commitment to the SMS. This policy communicates management's commitment to safety, defines methods ` +
+        `for employee safety reporting, and clearly designates safety accountabilities and authorities ` +
+        `throughout the organization. An emergency response plan has been developed and is maintained ` +
+        `in accordance with § 5.27.`,
+        { indent: 28 }
+      );
+
+      // Component 2: SRM (Subpart C)
+      writePara("2.  Safety Risk Management (Subpart C, §§ 5.51–5.57)", { font: "bold", indent: 10 });
+      writePara(
+        `The organization has implemented a Safety Risk Management (SRM) process for identifying hazards, ` +
+        `analyzing and assessing risk, and developing mitigations to an acceptable level of safety. ` +
+        `Hazards are identified through employee safety reporting, operational data analysis, internal ` +
+        `evaluations, and other systematic methods. Risk is assessed using a documented risk matrix ` +
+        `that evaluates severity and likelihood. When risk is found to be unacceptable, mitigations ` +
+        `are developed, implemented, and tracked to completion. The SRM process is applied when ` +
+        `designing new systems, making operational changes, or when existing operations are found ` +
+        `to have unacceptable risk as described in § 5.51.`,
+        { indent: 28 }
+      );
+
+      // Component 3: Safety Assurance (Subpart D)
+      writePara("3.  Safety Assurance (Subpart D, §§ 5.71–5.75)", { font: "bold", indent: 10 });
+      writePara(
+        `The organization has established Safety Assurance processes to evaluate the continued ` +
+        `effectiveness of risk mitigations and the SMS itself. These processes include continuous ` +
+        `monitoring of operational data, employee reporting programs, internal evaluations and ` +
+        `audits, and analysis of safety performance against established safety performance ` +
+        `indicators. When deficiencies are identified, corrective actions are developed and ` +
+        `tracked through resolution in accordance with § 5.75.`,
+        { indent: 28 }
+      );
+
+      // Component 4: Safety Promotion (Subpart E)
+      writePara("4.  Safety Promotion (Subpart E, §§ 5.91–5.95)", { font: "bold", indent: 10 });
+      writePara(
+        `The organization provides SMS training and education to all personnel commensurate with ` +
+        `their safety responsibilities. Safety communication ensures that all employees are aware ` +
+        `of the SMS, that safety-critical information is conveyed, and that personnel understand ` +
+        `why safety actions are taken. The organization maintains documentation of the SMS, ` +
+        `including all safety policies, SRM processes, and safety assurance activities, in ` +
+        `accordance with § 5.95.`,
+        { indent: 28 }
+      );
+
+      // ── PARAGRAPH 3: ACCOUNTABLE EXECUTIVE RESPONSIBILITIES ──
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      checkPage(20);
+      doc.text("Accountable Executive Responsibilities", margin, y);
+      y += 18;
+
+      writePara(
+        `In accordance with § 5.25, the accountable executive, ${orgInfo.aeName || "[Name]"}, ` +
+        `is the person who has ultimate responsibility for the operations and activities authorized ` +
+        `under the certificate, has full authority over operations conducted under the certificate, ` +
+        `has final authority over SMS activities, and controls the financial resources required for ` +
+        `SMS operations. The accountable executive is responsible for ensuring the SMS is properly ` +
+        `implemented, performing as designed, and regularly reviewed. The accountable executive ` +
+        `ensures that the SRM process is integrated into operational decision-making and that ` +
+        `adequate resources are allocated for safety management activities.`
+      );
+
+      // ── PARAGRAPH 4: SAFETY MANAGER / SMS POINT OF CONTACT ──
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      checkPage(20);
+      doc.text("SMS Point of Contact", margin, y);
+      y += 18;
+
+      writePara(
+        `${orgInfo.smName || "[Name]"} (${orgInfo.smTitle || "Safety Manager"}) serves as the designated SMS ` +
+        `point of contact for this organization and is responsible for the day-to-day administration of the ` +
+        `SMS. This individual may be contacted regarding any matters related to SMS implementation, ` +
+        `compliance, or coordination with the FAA Certificate Management Office.`
+      );
+
+      // ── PARAGRAPH 5: SUPPORTING DOCUMENTATION ──
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      checkPage(20);
+      doc.text("Supporting Documentation", margin, y);
+      y += 18;
+
+      writePara(
+        `The following documentation is maintained by ${orgInfo.orgName || "[Organization Name]"} and ` +
+        `is available for review upon request by the FAA Certificate Management Office:`
+      );
+
+      const supportingDocs = [
+        "Safety Management System Manual",
+        "Safety Policy, signed by the Accountable Executive",
+        "Safety Risk Management procedures and records",
+        "Hazard register and risk assessments",
+        "Emergency Response Plan",
+        "Safety Assurance program and internal evaluation records",
+        "Safety Performance Indicators and targets",
+        "Safety Promotion and training program records",
+        "Employee safety reporting system records",
+        "Corrective action tracking records",
+      ];
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
-      doc.text("14 CFR Part 5 — Safety Management System", W / 2, y, { align: "center" });
-      y += 14;
-      doc.text("Part 135 Certificate Holder", W / 2, y, { align: "center" });
-      y += 30;
+      supportingDocs.forEach(item => {
+        checkPage(leading);
+        doc.text(`•   ${item}`, margin + 20, y);
+        y += leading;
+      });
+      y += paraGap;
 
-      // Org info section
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text("1. Organization Information", margin, y);
-      y += 18;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      const orgLines = [
-        `Organization: ${orgInfo.orgName}`,
-        `Certificate Number: ${orgInfo.certificateNumber || "N/A"}`,
-        `Mailing Address: ${orgInfo.mailingAddress || "N/A"}`,
-        `CHDO: ${orgInfo.chdoName || "N/A"} — ${orgInfo.chdoLocation || "N/A"}`,
-        `Accountable Executive: ${orgInfo.aeName || "N/A"} (${orgInfo.aeTitle || "N/A"})`,
-        `Safety Manager: ${orgInfo.smName || "N/A"} (${orgInfo.smTitle || "N/A"})`,
-      ];
-      orgLines.forEach(line => { doc.text(line, margin + 10, y); y += 14; });
+      // ── CLOSING DECLARATION ──
+      writePara(
+        `By signing below, the undersigned accountable executive hereby certifies that ` +
+        `${orgInfo.orgName || "[Organization Name]"} has developed and implemented a Safety ` +
+        `Management System that meets all applicable requirements of 14 CFR Part 5. This declaration ` +
+        `is submitted in accordance with § 5.7 and the guidance provided in AC 120-92D and ` +
+        `FAA Notice 8900.700.`
+      );
+
+      writePara("Respectfully submitted,");
       y += 10;
 
-      // SMS Structure
+      // ── SIGNATURE BLOCKS ──
       checkPage(120);
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text("2. SMS Structure Overview", margin, y);
-      y += 18;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      const pillars = [
-        { name: "Safety Policy", items: smsChecklist.safetyPolicy },
-        { name: "Safety Risk Management", items: smsChecklist.safetyRiskManagement },
-        { name: "Safety Assurance", items: smsChecklist.safetyAssurance },
-        { name: "Safety Promotion", items: smsChecklist.safetyPromotion },
-      ];
-      pillars.forEach(p => {
-        checkPage(60);
-        doc.setFont("helvetica", "bold");
-        doc.text(p.name, margin + 10, y);
-        y += 14;
-        doc.setFont("helvetica", "normal");
-        p.items.forEach(item => {
-          doc.text(`${item.ok ? "[X]" : "[ ]"} ${item.label}`, margin + 20, y);
-          y += 12;
-        });
-        y += 6;
-      });
-      y += 10;
 
-      // Compliance Summary
-      checkPage(100);
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text("3. Part 5 Compliance Summary", margin, y);
-      y += 18;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Total Requirements: ${summary.total}`, margin + 10, y); y += 14;
-      doc.text(`Compliant: ${summary.compliant} (${Math.round(summary.compliant / summary.total * 100)}%)`, margin + 10, y); y += 14;
-      doc.text(`Needs Attention: ${summary.needs_attention}`, margin + 10, y); y += 14;
-      doc.text(`Manual Review: ${summary.manual_review}`, margin + 10, y); y += 14;
-      y += 6;
-      Object.entries(subpartCompliance).forEach(([sp, data]) => {
-        checkPage(16);
-        doc.text(`Subpart ${sp} (${(subpartNames || {})[sp] || sp}): ${data.compliant}/${data.total} — ${data.pct}%`, margin + 10, y);
-        y += 14;
-      });
-      y += 10;
-
-      // Evidence
-      checkPage(120);
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text("4. Supporting Evidence Summary", margin, y);
-      y += 18;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      const evLines = [
-        `First FRAT Date: ${evidenceStats.firstFrat}`,
-        `Total FRATs: ${evidenceStats.totalFrats}`,
-        `Safety Reports: ${evidenceStats.totalReports}`,
-        `Hazard Investigations: ${evidenceStats.totalHazards}`,
-        `Corrective Actions: ${evidenceStats.totalActions} (${evidenceStats.closedActions} closed)`,
-        `Training Compliance: ${evidenceStats.trainingCompliance}%`,
-        `Published Policies: ${evidenceStats.totalPolicies} (${evidenceStats.policyAckCount} acknowledgments)`,
-      ];
-      evLines.forEach(line => { checkPage(14); doc.text(line, margin + 10, y); y += 14; });
-      // Add evidence notes
-      Object.entries(wizardData.evidence || {}).forEach(([key, val]) => {
-        if (val && typeof val === "string" && val.trim()) {
-          checkPage(28);
-          doc.setFont("helvetica", "italic");
-          doc.text(`Note (${key}): ${val}`, margin + 10, y, { maxWidth: W - margin * 2 - 20 });
-          y += 14;
-          doc.setFont("helvetica", "normal");
-        }
-      });
-      y += 10;
-
-      // Timeline
-      checkPage(80);
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text("5. Schedule of Events", margin, y);
-      y += 18;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      allMilestones.forEach(m => {
-        checkPage(14);
-        doc.text(`${m.date}  —  ${m.title}`, margin + 10, y);
-        y += 14;
-      });
-      y += 20;
-
-      // Signature block
-      checkPage(100);
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text("6. Certification", margin, y);
-      y += 18;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text("I hereby declare that the Safety Management System described herein meets the", margin + 10, y); y += 14;
-      doc.text("requirements of 14 CFR Part 5 for Part 135 certificate holders.", margin + 10, y); y += 30;
-      doc.line(margin + 10, y, margin + 250, y);
+      // AE signature
+      doc.line(margin, y, margin + 240, y);
       y += 14;
-      doc.text(`Accountable Executive: ${orgInfo.aeName || "___________________"}`, margin + 10, y);
-      y += 20;
-      doc.text(`Date: ___________________`, margin + 10, y);
-      y += 30;
-      doc.line(margin + 10, y, margin + 250, y);
+      doc.setFont("helvetica", "bold");
+      doc.text(orgInfo.aeName || "___________________________", margin, y);
       y += 14;
-      doc.text(`Safety Manager: ${orgInfo.smName || "___________________"}`, margin + 10, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(orgInfo.aeTitle || "Accountable Executive", margin, y);
+      y += 14;
+      doc.text(`${orgInfo.orgName || "[Organization Name]"}`, margin, y);
       y += 20;
-      doc.text(`Date: ___________________`, margin + 10, y);
-      y += 30;
+      doc.text("Date: ___________________________", margin, y);
+      y += 36;
 
-      // Footer
-      doc.setFontSize(8);
-      doc.setTextColor(150);
-      doc.text(`Generated by PreflightSMS on ${new Date().toLocaleDateString()}`, W / 2, doc.internal.pageSize.getHeight() - 30, { align: "center" });
-      doc.setTextColor(0);
+      // SM signature
+      doc.line(margin, y, margin + 240, y);
+      y += 14;
+      doc.setFont("helvetica", "bold");
+      doc.text(orgInfo.smName || "___________________________", margin, y);
+      y += 14;
+      doc.setFont("helvetica", "normal");
+      doc.text(orgInfo.smTitle || "Safety Manager / SMS Point of Contact", margin, y);
+      y += 14;
+      doc.text(`${orgInfo.orgName || "[Organization Name]"}`, margin, y);
+      y += 20;
+      doc.text("Date: ___________________________", margin, y);
+
+      // Footer on every page
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`${orgInfo.orgName || ""} — Declaration of Compliance — 14 CFR Part 5`, W / 2, H - 30, { align: "center" });
+        doc.text(`Page ${i} of ${totalPages}`, W - margin, H - 30, { align: "right" });
+        doc.setTextColor(0);
+      }
 
       // Save record
       const pdfBlob = doc.output("blob");
