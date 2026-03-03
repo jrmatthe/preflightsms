@@ -533,7 +533,7 @@ export default function InternationalCompliance({
     <button key={id} onClick={() => {
       setView(id);
       setExpandedSection(null);
-      if (id === "checklist") {
+      if (id === "checklist" || id === "crosswalk") {
         // Auto-select first active framework if none selected
         if (!activeFramework) {
           const first = activeFrameworks.find(f => f.framework !== "faa_part5");
@@ -762,92 +762,164 @@ export default function InternationalCompliance({
   // CROSSWALK VIEW
   // ════════════════════════════════════════════════════════════
   const renderCrosswalk = () => {
-    // Group crosswalk by source section
-    const groupedMap = {};
-    crosswalk.forEach(cw => {
-      const key = cw.source_section;
-      if (!groupedMap[key]) groupedMap[key] = { source_framework: cw.source_framework, source_section: cw.source_section, mappings: [] };
-      groupedMap[key].mappings.push(cw);
-    });
-    const grouped = Object.values(groupedMap).sort((a, b) => a.source_section.localeCompare(b.source_section, undefined, { numeric: true }));
+    const fw = activeFramework;
+    const targetFws = ["icao_annex19", "is_bao", "easa", "transport_canada"].filter(f => activeIds.has(f));
 
-    // Find the Part 5 requirement title for a section
+    if (targetFws.length === 0) {
+      return (
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Compliance Crosswalk</div>
+          <div style={{ ...card, padding: 40, textAlign: "center", color: MUTED, marginTop: 16 }}>
+            <div style={{ fontSize: 14, marginBottom: 4 }}>No additional frameworks activated</div>
+            <div style={{ fontSize: 11 }}>Activate ICAO, IS-BAO, EASA, or Transport Canada from the Frameworks tab.</div>
+          </div>
+        </div>
+      );
+    }
+
+    if (!fw) return <div style={{ color: MUTED, textAlign: "center", padding: 40 }}>Select a framework from the dropdown above</div>;
+    const fwMeta = FRAMEWORKS[fw];
+    const fwItems = itemsByFramework[fw] || [];
+
+    // Part 5 section title lookup
     const getPart5Title = (section) => {
-      // Match against common Part 5 section numbers
       const sectionMap = {
-        "5.21": "Safety Policy", "5.23": "Safety Accountability", "5.25": "Accountable Executive",
-        "5.27": "Emergency Response", "5.51": "SRM Applicability", "5.53": "System Analysis / Hazard ID",
-        "5.55": "Risk Assessment & Controls", "5.71": "Safety Performance Monitoring",
-        "5.73": "Management of Change", "5.75": "Continuous Improvement",
-        "5.91": "Safety Training", "5.93": "Safety Communication", "5.17": "System Description / Documentation",
+        "5.17": "System Description / Documentation", "5.21": "Safety Policy", "5.23": "Safety Accountability",
+        "5.25": "Accountable Executive", "5.27": "Emergency Response", "5.51": "SRM Applicability",
+        "5.53": "System Analysis / Hazard ID", "5.55": "Risk Assessment & Controls",
+        "5.71": "Safety Performance Monitoring", "5.73": "Management of Change",
+        "5.75": "Continuous Improvement", "5.91": "Safety Training", "5.93": "Safety Communication",
       };
       return sectionMap[section] || section;
     };
 
-    // Determine if a crosswalk mapping is satisfied
-    const isSatisfied = (targetFw, targetSection) => {
-      const targetItems = (itemsByFramework[targetFw] || []).filter(i => i.section_number === targetSection || i.section_number.startsWith(targetSection + "."));
-      if (targetItems.length === 0) return null; // no items to check
-      return targetItems.every(i => {
-        const s = statusMap[i.id]?.status;
-        return s === "compliant" || s === "not_applicable";
+    // Build reverse crosswalk: for each international item, find mapped Part 5 section(s)
+    const getP5Mappings = (item) => {
+      const mappings = crosswalk.filter(cw =>
+        cw.target_framework === item.framework &&
+        (cw.target_section === item.section_number ||
+         item.section_number.startsWith(cw.target_section + ".") ||
+         cw.target_section.startsWith(item.section_number + "."))
+      );
+      // Deduplicate by source_section
+      const seen = new Set();
+      return mappings.filter(m => {
+        if (seen.has(m.source_section)) return false;
+        seen.add(m.source_section);
+        return true;
       });
     };
 
-    const targetFws = ["icao_annex19", "is_bao", "easa", "transport_canada"].filter(fw => activeIds.has(fw));
+    // Section hierarchy
+    const topLevel = fwItems.filter(i => !i.parent_section).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    const childrenMap = {};
+    fwItems.filter(i => i.parent_section).forEach(i => {
+      if (!childrenMap[i.parent_section]) childrenMap[i.parent_section] = [];
+      childrenMap[i.parent_section].push(i);
+    });
+    Object.values(childrenMap).forEach(arr => arr.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+
+    // Stats
+    let totalMapped = 0, totalGaps = 0;
+    fwItems.forEach(item => {
+      if (getP5Mappings(item).length > 0) totalMapped++;
+      else totalGaps++;
+    });
+
+    // Render a single row
+    const renderRow = (item, isChild) => {
+      const p5Mappings = getP5Mappings(item);
+      const hasMapping = p5Mappings.length > 0;
+      const isAutoSat = !!part5AutoSatisfied[item.id];
+      const isGap = !!noP5Crosswalk[item.id];
+      const s = statusMap[item.id]?.status || "not_started";
+      const effectiveStatus = (s === "not_started" && isAutoSat) ? "auto_satisfied" : s;
+
+      const statusDisplay = {
+        auto_satisfied: { label: "Covered by Part 5", color: GREEN },
+        compliant: { label: "Compliant", color: GREEN },
+        in_progress: { label: "In Progress", color: AMBER },
+        non_compliant: { label: "Non-Compliant", color: RED },
+        not_applicable: { label: "N/A", color: MUTED },
+        not_started: { label: "Not Started", color: MUTED },
+      }[effectiveStatus] || { label: "Not Started", color: MUTED };
+
+      return (
+        <tr key={item.id} style={{ borderBottom: `1px solid ${BORDER}`, background: !isChild ? "rgba(255,255,255,0.02)" : "transparent" }}>
+          {/* Section number + title */}
+          <td style={{ padding: isChild ? "8px 12px 8px 28px" : "10px 12px", verticalAlign: "top" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ color: fwMeta?.color || CYAN, fontWeight: 700, fontFamily: "monospace", fontSize: 11, flexShrink: 0 }}>{item.section_number}</span>
+              <span style={{ color: isChild ? OFF_WHITE : WHITE, fontSize: isChild ? 11 : 12, fontWeight: isChild ? 400 : 600 }}>{item.section_title}</span>
+            </div>
+          </td>
+
+          {/* Part 5 mapping */}
+          <td style={{ padding: "8px 12px", verticalAlign: "top" }}>
+            {hasMapping ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {p5Mappings.map((m, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                    <span style={{ color: CYAN, fontWeight: 700, fontFamily: "monospace", fontSize: 11, flexShrink: 0 }}>{"\u00A7"}{m.source_section}</span>
+                    <span style={{ color: OFF_WHITE, fontSize: 10 }}>{getPart5Title(m.source_section)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span style={{ color: AMBER, fontSize: 11, fontWeight: 600 }}>No Part 5 Equivalent</span>
+            )}
+          </td>
+
+          {/* Status */}
+          <td style={{ padding: "8px 12px", textAlign: "center", verticalAlign: "top" }}>
+            <span style={badge(`${statusDisplay.color}22`, statusDisplay.color)}>{statusDisplay.label}</span>
+          </td>
+        </tr>
+      );
+    };
 
     return (
       <div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Compliance Crosswalk</div>
-        <div style={{ fontSize: 11, color: MUTED, marginBottom: 16 }}>Shows how FAA Part 5 compliance maps to other frameworks. Green = satisfied by current compliance status.</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Compliance Crosswalk</div>
+            <div style={{ fontSize: 11, color: MUTED }}>All {fwMeta?.label} requirements and their FAA Part 5 mappings</div>
+          </div>
+          <select value={fw} onChange={e => { setActiveFramework(e.target.value); }} style={{ ...inp, width: "auto", fontSize: 11 }}>
+            {targetFws.map(k => (
+              <option key={k} value={k}>{FRAMEWORKS[k]?.label}</option>
+            ))}
+          </select>
+        </div>
 
-        {targetFws.length === 0 ? (
-          <div style={{ ...card, padding: 40, textAlign: "center", color: MUTED }}>
-            <div style={{ fontSize: 14, marginBottom: 4 }}>No additional frameworks activated</div>
-            <div style={{ fontSize: 11 }}>Activate ICAO, IS-BAO, EASA, or Transport Canada from the Frameworks tab.</div>
-          </div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
-                  <th style={{ textAlign: "left", padding: "10px 12px", color: MUTED, fontWeight: 600, fontSize: 10, textTransform: "uppercase", minWidth: 180 }}>FAA Part 5</th>
-                  {targetFws.map(fw => (
-                    <th key={fw} style={{ textAlign: "center", padding: "10px 12px", color: FRAMEWORKS[fw]?.color || MUTED, fontWeight: 600, fontSize: 10, textTransform: "uppercase", minWidth: 120 }}>
-                      {FRAMEWORKS[fw]?.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {grouped.map(row => (
-                  <tr key={row.source_section} style={{ borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: "10px 12px" }}>
-                      <div style={{ color: CYAN, fontWeight: 700, fontFamily: "monospace", fontSize: 11 }}>&#167; {row.source_section}</div>
-                      <div style={{ color: OFF_WHITE, fontSize: 11 }}>{getPart5Title(row.source_section)}</div>
-                    </td>
-                    {targetFws.map(fw => {
-                      const mapping = row.mappings.find(m => m.target_framework === fw);
-                      if (!mapping) return <td key={fw} style={{ textAlign: "center", padding: "10px 12px", color: MUTED }}>—</td>;
-                      const satisfied = isSatisfied(fw, mapping.target_section);
-                      return (
-                        <td key={fw} style={{ textAlign: "center", padding: "10px 12px" }}>
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                            {satisfied === true && <span style={{ fontSize: 14, color: GREEN }}>&#10003;</span>}
-                            {satisfied === false && <span style={{ fontSize: 14, color: AMBER }}>&#9888;</span>}
-                            {satisfied === null && <span style={{ fontSize: 14, color: MUTED }}>&#8212;</span>}
-                            <span style={{ fontSize: 10, color: OFF_WHITE, fontFamily: "monospace" }}>{mapping.target_section}</span>
-                            {mapping.mapping_notes && <span style={{ fontSize: 9, color: MUTED, maxWidth: 140, textAlign: "center" }}>{mapping.mapping_notes.substring(0, 60)}</span>}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {/* Summary bar */}
+        <div style={{ ...card, padding: 14, marginBottom: 16, display: "flex", gap: 20, alignItems: "center" }}>
+          <div style={{ fontSize: 11, color: OFF_WHITE }}><strong style={{ color: WHITE }}>{fwItems.length}</strong> total requirements</div>
+          <div style={{ fontSize: 11, color: GREEN }}><strong>{totalMapped}</strong> mapped to Part 5</div>
+          <div style={{ fontSize: 11, color: AMBER }}><strong>{totalGaps}</strong> no Part 5 equivalent</div>
+        </div>
+
+        {/* Table */}
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${BORDER}` }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: fwMeta?.color || MUTED, fontWeight: 600, fontSize: 10, textTransform: "uppercase", minWidth: 220 }}>{fwMeta?.label} Requirement</th>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: CYAN, fontWeight: 600, fontSize: 10, textTransform: "uppercase", minWidth: 180 }}>FAA Part 5 Mapping</th>
+                <th style={{ textAlign: "center", padding: "10px 12px", color: MUTED, fontWeight: 600, fontSize: 10, textTransform: "uppercase", minWidth: 100 }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topLevel.map(section => {
+                const sectionChildren = childrenMap[section.section_number] || [];
+                return [
+                  renderRow(section, false),
+                  ...sectionChildren.map(child => renderRow(child, true)),
+                ];
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   };
