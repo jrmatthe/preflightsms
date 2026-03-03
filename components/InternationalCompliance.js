@@ -259,34 +259,6 @@ EAP Provider: [Name, phone, website]`,
   },
 
   // SMS gaps
-  "is_bao:7.1": {
-    guidance: "Part 5 §5.21 maps to IS-BAO 1.1 (Management Commitment) but not to IS-BAO 7.1 (Safety Policy under the SMS section). If you have completed §5.21 through your Part 5 compliance, your safety policy likely satisfies this requirement. Verify your policy includes IS-BAO-specific language on management commitment, reporting, resource commitment, and just culture.",
-  },
-  "is_bao:7.6": {
-    guidance: "Part 5 requires safety performance monitoring (§5.71) but does not explicitly require a safety data analysis program. IS-BAO expects systematic analysis of safety data to identify trends, emerging hazards, and improvement areas. Establish a documented process for collecting, analyzing, and acting on safety data.",
-    template: `SAFETY DATA ANALYSIS PROCEDURE
-
-1. Data Sources:
-   • Safety reports (voluntary and mandatory)
-   • Flight risk assessments (FRAT scores and trends)
-   • Audit and inspection findings
-   • Maintenance discrepancy reports
-   • Flight data monitoring (if equipped)
-   • External data (ASRS, NTSB, industry alerts)
-
-2. Analysis Methods:
-   • Monthly trend review of safety report categories and frequency
-   • Quarterly FRAT score analysis by route, crew, and risk factor
-   • Annual safety data summary with year-over-year comparison
-   • Ad hoc analysis in response to emerging trends or events
-
-3. Reporting and Action:
-   • Safety data findings are presented at [monthly/quarterly] safety meetings
-   • Identified trends that exceed alert levels trigger a safety risk assessment
-   • Analysis results are shared with relevant personnel through safety bulletins
-
-4. Responsible Party: [Safety Manager] owns the safety data analysis process and presents findings to the Safety Committee and Accountable Executive.`,
-  },
   "is_bao:7.8": {
     guidance: "Part 5 does not require third-party SMS audits. IS-BAO requires periodic independent audits to achieve and maintain IS-BAO registration (Stage I, II, or III). Contact IBAC to schedule an audit. Stage I confirms SMS framework is established, Stage II confirms SMS processes are producing results, and Stage III confirms the SMS is mature and self-improving. Budget for audit fees, auditor travel, and pre-audit preparation time.",
   },
@@ -322,28 +294,6 @@ EAP Provider: [Name, phone, website]`,
    • Observations: Tracked for improvement; no formal corrective action required
 
 5. Management Review: Compliance monitoring results are presented to the Accountable Manager at least [annually] as part of the management review.`,
-  },
-  "easa:4.3": {
-    guidance: "Part 5 requires safety communication (§5.93) but does not explicitly require a lessons-learned dissemination process. EASA expects systematic sharing of lessons learned from both internal events and relevant industry occurrences. Establish a process for capturing, packaging, and distributing lessons learned to relevant personnel.",
-    template: `LESSONS LEARNED DISSEMINATION PROCESS
-
-1. Sources: Lessons are drawn from:
-   • Internal investigation findings and safety reports
-   • EASA Safety Information Bulletins (SIBs)
-   • National authority safety communications
-   • Industry occurrence databases and peer operator sharing
-   • IATA/ICAO safety alerts
-
-2. Review and Packaging: The Safety Manager reviews source material, extracts applicable lessons, and prepares a summary including:
-   • Brief description of the event or finding
-   • Relevance to our operations
-   • Recommended actions or awareness points
-
-3. Distribution: Lessons learned are communicated via:
-   • Safety bulletins posted to [platform] and emailed to relevant groups
-   • Inclusion in recurrent training and crew briefings
-   • Discussion at safety committee meetings
-   • Case studies in annual safety review presentations`,
   },
   "easa:5": {
     guidance: "This section covers EASA-specific regulatory requirements not addressed by Part 5 or the standard four-pillar SMS structure. These requirements apply specifically to operators under EASA oversight and involve European regulatory obligations.",
@@ -396,30 +346,6 @@ EAP Provider: [Name, phone, website]`,
   },
 
   // ── TRANSPORT CANADA ─────────────────────────────────────
-  "transport_canada:1.2": {
-    guidance: "Part 5 §5.21 requires a safety policy but does not explicitly mandate non-punitive reporting provisions. Transport Canada CARs 107 requires the safety policy to specifically include a commitment to non-punitive reporting with clearly defined boundaries between acceptable and unacceptable behavior. Add explicit just culture language to your safety policy.",
-    template: `NON-PUNITIVE REPORTING POLICY
-
-[Organization] is committed to a just culture that encourages open safety reporting without fear of retribution. All employees are expected to report safety hazards, occurrences, and concerns through the safety reporting system.
-
-Non-Punitive Commitment:
-No disciplinary action will be taken against any employee who reports a safety hazard, occurrence, or concern in good faith, even if the report involves their own error or action.
-
-Boundaries:
-This non-punitive commitment does not apply to:
-• Willful violations of regulations or company procedures
-• Gross negligence or reckless disregard for safety
-• Substance abuse or impairment
-• Deliberate concealment of a safety event
-• Criminal activity
-
-All determinations regarding the applicability of these boundaries are made by [Accountable Executive / designated authority] after a fair review of the circumstances.
-
-This policy is endorsed by:
-
-_________________________ Date: _________
-Accountable Executive`,
-  },
   "transport_canada:1.5": {
     guidance: "Part 5 does not require formal safety planning with measurable objectives. Transport Canada requires the organization to establish safety objectives and develop plans to achieve them, supported by safety performance indicators. Define clear, measurable safety objectives annually and create action plans to achieve each one.",
     template: `SAFETY PLANNING AND OBJECTIVES
@@ -455,35 +381,6 @@ Safety Objectives for [Year]:
 Approved by: _________________________ Date: _________
               Accountable Executive`,
   },
-  "transport_canada:1.7": {
-    guidance: "Part 5 requires continuous improvement (§5.75) but does not mandate a structured management review process. Transport Canada requires senior management to review SMS effectiveness at planned intervals. Conduct formal management reviews at least annually, covering safety performance, resource adequacy, and improvement opportunities.",
-    template: `MANAGEMENT REVIEW PROCEDURE
-
-Frequency: [Annually / Semi-annually], or more often if warranted by safety performance.
-
-Attendees: Accountable Executive, Safety Manager, Director of Operations, Chief Pilot, Director of Maintenance, [others as applicable].
-
-Agenda:
-1. Review of previous management review action items
-2. Safety performance indicator trends and target achievement
-3. Safety reporting statistics and trends
-4. Summary of investigations, hazards, and corrective actions
-5. Internal audit and evaluation findings
-6. Regulatory changes and compliance status
-7. Resource adequacy (personnel, budget, tools)
-8. Training completion status
-9. Status of safety objectives and plans
-10. Emerging risks and industry safety issues
-11. New action items and resource decisions
-
-Outputs:
-• Updated safety objectives and targets (if applicable)
-• Resource allocation decisions
-• Corrective actions and responsible parties
-• Minutes distributed to attendees within [X] days
-
-Records: Management review minutes are retained for a minimum of [3–5] years.`,
-  },
   "transport_canada:2.2": {
     guidance: "Part 5 §5.17 addresses SMS documentation but does not specifically require a records management program. Transport Canada requires safety records to be maintained, protected, and retained per regulatory requirements. Establish formal retention periods, storage methods, access controls, and backup procedures for all safety records.",
     template: `SAFETY RECORDS MANAGEMENT
@@ -503,101 +400,6 @@ Storage: Records are stored in [system/location] with regular backups to [backup
 Access Control: Safety records are accessible to the Safety Manager, Accountable Executive, and authorized personnel. Personal information in safety reports is restricted to the Safety Manager.
 
 Disposal: Records past their retention period are reviewed by the Safety Manager before disposal. Disposal is documented.`,
-  },
-  "transport_canada:3.1": {
-    guidance: "Part 5 SRM addresses hazard identification broadly but does not mandate specific reactive processes for occurrence reporting and investigation. Transport Canada requires reactive processes including mandatory reporting to the Transportation Safety Board (TSB) and a structured internal reporting system. Ensure your reactive processes cover TSB-reportable occurrences and internal safety event capture.",
-    template: `REACTIVE SAFETY PROCESSES
-
-1. Mandatory Reporting (TSB):
-   Occurrences meeting TSB reporting criteria under the Transportation Safety Board Regulations are reported immediately by the most expedient means available.
-   • TSB Contact: [phone number]
-   • Internal notification: [Safety Manager / Operations Control] is notified immediately for assessment and TSB reporting
-
-2. Internal Safety Reporting:
-   All safety occurrences, hazards, and concerns are reported through [reporting system].
-   • Reportable events include: incidents, near-misses, hazards, equipment malfunctions, procedural deviations, and any safety concern
-   • Reports are reviewed by the Safety Manager within [24–48] hours
-   • Reporter receives acknowledgment within [48] hours and outcome feedback within [30] days
-
-3. Investigation Trigger Criteria:
-   A formal investigation is initiated for:
-   • All accidents and serious incidents
-   • Events with high severity potential regardless of actual outcome
-   • Repeated occurrences or emerging trends
-   • Events at the discretion of the Safety Manager or Accountable Executive`,
-  },
-  "transport_canada:3.3": {
-    guidance: "Part 5 addresses SRM (§5.51–5.55) but does not mandate a structured investigation methodology. Transport Canada requires safety occurrences to be investigated to identify causes and contributing factors. Adopt a recognized investigation methodology (e.g., HFACS, Reason Model, BowTie) and document investigation procedures, responsibilities, and reporting timelines.",
-    template: `SAFETY INVESTIGATION PROCEDURE
-
-1. Investigation Authority: The Safety Manager has authority to initiate and conduct safety investigations. Investigations are independent from operational management decisions.
-
-2. Methodology: Investigations use [HFACS / Reason Model / other] to identify:
-   • Direct causes (what happened)
-   • Contributing factors (conditions that enabled the event)
-   • Systemic/organizational factors (why defenses failed)
-
-3. Investigation Steps:
-   a. Notification and initial response (within 24 hours)
-   b. Evidence collection (statements, data, photographs, records)
-   c. Analysis using selected methodology
-   d. Identification of findings and contributing factors
-   e. Development of corrective/preventive actions
-   f. Report preparation and distribution
-   g. Follow-up to verify corrective action effectiveness
-
-4. Timeline: Investigations are completed within [30–60] days of the event. Complex investigations may be extended with Safety Manager approval.
-
-5. Reporting: Investigation reports are distributed to the Accountable Executive, relevant department heads, and Safety Committee. Lessons learned are communicated per the safety communication process.`,
-  },
-  "transport_canada:4.2": {
-    guidance: "Part 5 requires safety training (§5.91) but does not specify recurrent training intervals. Transport Canada requires recurrent SMS training at defined intervals. Establish a recurrent training cycle (typically annual) that covers SMS updates, lessons learned, new procedures, and refresher content on core SMS concepts.",
-    template: `RECURRENT SMS TRAINING
-
-Frequency: Annual, delivered within [Q1 / Q4 / anniversary month] each year.
-
-Content:
-• Review of safety policy and any changes
-• Safety reporting system refresher and reporting statistics
-• Summary of safety events, investigations, and lessons learned from the past year
-• Updates to SMS procedures, forms, or systems
-• Safety performance indicator trends and targets
-• Relevant industry safety information and alerts
-• Role-specific refresher content as applicable
-
-Delivery: [Online modules / classroom / briefing], tracked in [training records system].
-
-Completion Requirement: All personnel must complete recurrent SMS training within [30] days of the scheduled date. Non-completion is escalated to the department manager and Safety Manager.`,
-  },
-  "transport_canada:4.3": {
-    guidance: "Part 5 requires safety training (§5.91) but does not distinguish specialized training for SMS role-holders. Transport Canada requires personnel with specific SMS responsibilities to receive role-specific training. Safety managers, investigators, auditors, and safety committee members should receive training beyond general SMS awareness.",
-    template: `SPECIALIZED SMS TRAINING REQUIREMENTS
-
-Safety Manager:
-• Formal SMS training course (e.g., Transport Canada-recognized SMS course)
-• Safety investigation methodology training
-• Risk management and safety data analysis
-• Human factors in aviation safety
-• Recurrent: Annual refresher or conference attendance
-
-Safety Investigators:
-• Investigation methodology training (HFACS, BowTie, or equivalent)
-• Interview techniques for safety investigations
-• Evidence collection and preservation
-• Report writing
-• Recurrent: Refresher every [2] years
-
-Internal Auditors / Evaluators:
-• Audit principles and techniques (ISO 19011 or equivalent)
-• SMS evaluation criteria and tools
-• Findings classification and corrective action development
-• Recurrent: Refresher every [2] years
-
-Safety Committee Members:
-• SMS overview and committee role orientation
-• Risk assessment methodology
-• Safety data interpretation
-• Recurrent: Briefing at the start of each committee term`,
   },
 };
 
