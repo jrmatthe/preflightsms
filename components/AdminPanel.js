@@ -425,7 +425,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
   const flags = orgData?.feature_flags || {};
   const status = orgData?.subscription_status || "trial";
   const trialEnds = orgData?.trial_ends_at;
-  const [billingInterval, setBillingInterval] = useState("annual");
+  const [billingInterval, setBillingInterval] = useState("monthly");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
