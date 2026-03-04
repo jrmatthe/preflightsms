@@ -45,7 +45,7 @@ function emailWrapper(content: string): string {
 <tr><td align="center">
 <table width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
 <tr><td align="center" style="padding-bottom:32px;">
-  <img src="${LOGO_URL}" alt="PreflightSMS" width="60" style="display:block;" />
+  <img src="${LOGO_URL}" alt="PreflightSMS" width="160" style="display:block;" />
 </td></tr>
 <tr><td style="background:#161616;border:1px solid #232323;border-radius:12px;padding:40px 36px;">
 ${content}
