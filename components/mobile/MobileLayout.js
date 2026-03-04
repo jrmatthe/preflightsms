@@ -78,6 +78,7 @@ export default function MobileLayout({
   policies, onAcknowledgePolicy,
   // Feature gating
   hasFlights, hasTraining,
+  onUpdateEmail,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -232,6 +233,7 @@ export default function MobileLayout({
             onMarkAllNotifsRead={onMarkAllNotifsRead}
             onSignOut={onSignOut}
             onUpdatePreferences={onUpdatePreferences}
+            onUpdateEmail={onUpdateEmail}
           />
         );
       default:

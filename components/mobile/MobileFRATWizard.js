@@ -979,6 +979,17 @@ export default function MobileFRATWizard({
   const score = categories.reduce((total, cat) =>
     total + cat.factors.reduce((sum, f) => sum + (checked[f.id] ? f.score : 0), 0), 0);
 
+  if (!fleetAircraft || fleetAircraft.length === 0) {
+    return (
+      <div style={{ padding: "60px 24px", textAlign: "center" }}>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, marginBottom: 16 }}><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.3.4.7.5 1.1.3l.5-.3c.4-.2.6-.7.5-1.1z"/></svg>
+        <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>No Aircraft Registered</div>
+        <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 20 }}>Add your fleet in the Admin panel under Fleet Management before submitting a FRAT.</div>
+        <button onClick={onCancel} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Go Back</button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
       <StepIndicator current={step} total={4} />

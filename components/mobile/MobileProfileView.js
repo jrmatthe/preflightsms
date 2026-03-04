@@ -20,9 +20,12 @@ const ROLE_LABELS = {
   pilot: "Pilot",
 };
 
-export default function MobileProfileView({ profile, orgData, onSignOut }) {
+export default function MobileProfileView({ profile, orgData, onSignOut, onUpdateEmail }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState(profile?.email || "");
+  const [savingEmail, setSavingEmail] = useState(false);
 
   const initials = (profile?.full_name || "")
     .split(" ")
@@ -92,9 +95,7 @@ export default function MobileProfileView({ profile, orgData, onSignOut }) {
         <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, padding: "12px 16px 6px" }}>Account</div>
         {[
           { label: "Full Name", value: profile?.full_name },
-          { label: "Email", value: profile?.email },
           { label: "Role", value: roleLabel },
-          { label: "User ID", value: profile?.id?.slice(0, 8) + "..." },
         ].filter(r => r.value).map((row, i) => (
           <div key={i} style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -104,6 +105,34 @@ export default function MobileProfileView({ profile, orgData, onSignOut }) {
             <span style={{ fontSize: 14, color: OFF_WHITE, fontWeight: 500 }}>{row.value}</span>
           </div>
         ))}
+        <div style={{ padding: "12px 16px", borderTop: `1px solid ${BORDER}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 14, color: MUTED }}>Email</span>
+            {!editingEmail ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14, color: OFF_WHITE, fontWeight: 500 }}>{profile?.email}</span>
+                {onUpdateEmail && <button onClick={() => { setEditingEmail(true); setNewEmail(profile?.email || ""); }}
+                  style={{ background: "none", border: "none", color: CYAN, fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}>Edit</button>}
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 6, flex: 1, marginLeft: 12 }}>
+                <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                  style={{ flex: 1, padding: "8px 10px", borderRadius: 8, fontSize: 14, background: BLACK, color: OFF_WHITE, border: `1px solid ${BORDER}`, boxSizing: "border-box" }} />
+                <button disabled={savingEmail || newEmail === profile?.email || !newEmail.trim()} onClick={async () => {
+                  setSavingEmail(true);
+                  await onUpdateEmail(newEmail.trim());
+                  setSavingEmail(false);
+                  setEditingEmail(false);
+                }} style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: savingEmail ? "default" : "pointer",
+                  background: savingEmail || newEmail === profile?.email ? "transparent" : `${GREEN}22`, color: savingEmail || newEmail === profile?.email ? MUTED : GREEN,
+                  border: `1px solid ${savingEmail || newEmail === profile?.email ? BORDER : GREEN + "44"}` }}>{savingEmail ? "..." : "Save"}</button>
+                <button onClick={() => setEditingEmail(false)}
+                  style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                    background: "transparent", color: MUTED, border: `1px solid ${BORDER}` }}>Cancel</button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Sign out */}

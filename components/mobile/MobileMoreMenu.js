@@ -94,7 +94,7 @@ export default function MobileMoreMenu({
   onUpdateAction,
   policies, onAcknowledgePolicy,
   notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead,
-  onSignOut, onUpdatePreferences,
+  onSignOut, onUpdatePreferences, onUpdateEmail,
 }) {
   // Sub-view: render appropriate component
   if (subView) {
@@ -119,7 +119,7 @@ export default function MobileMoreMenu({
             />
           );
         case "profile":
-          return <MobileProfileView profile={profile} orgData={orgData} onSignOut={onSignOut} />;
+          return <MobileProfileView profile={profile} orgData={orgData} onSignOut={onSignOut} onUpdateEmail={onUpdateEmail} />;
         default:
           return (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 24px", textAlign: "center" }}>
