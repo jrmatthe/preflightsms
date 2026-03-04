@@ -968,12 +968,6 @@ function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, 
                 <span style={{ color: GREEN, fontSize: 16 }}>{"\u2713"}</span>
                 <span style={{ color: OFF_WHITE, fontSize: 13 }}>{invSent} invite{invSent !== 1 ? "s" : ""} sent</span>
               </div>}
-              {orgSlug && (
-                <div style={{ padding: "10px 14px", borderRadius: 6, background: NEAR_BLACK, border: `1px solid ${BORDER}`, marginBottom: 16 }}>
-                  <div style={{ fontSize: 10, color: MUTED, marginBottom: 2 }}>Or share your join code</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: CYAN, fontFamily: "monospace" }}>{orgSlug}</div>
-                </div>
-              )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <button onClick={goBack} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Back</button>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -2805,12 +2799,6 @@ function SignupFlow({ onAuth }) {
                   </select>
                 </div>
               </div>
-              {orgName.trim() && (
-                <div style={{ padding: "10px 14px", borderRadius: 6, background: NEAR_BLACK, border: `1px solid ${BORDER}`, marginBottom: 4 }}>
-                  <div style={{ fontSize: 10, color: MUTED }}>Team join code</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: CYAN, fontFamily: "monospace" }}>{orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}</div>
-                </div>
-              )}
             </>)}
             {step === 3 && (<>
               <h1 style={{ fontSize: 24, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Pick your plan — no credit card required.</h1>

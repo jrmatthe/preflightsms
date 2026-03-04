@@ -1223,17 +1223,10 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
       {/* Org Info */}
       <div style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 8 }}>Organization</div>
-        <div className="admin-org-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Name</div>
-            <div style={{ fontSize: 14, color: WHITE, fontWeight: 600 }}>{orgName}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Join Code</div>
-            <div style={{ fontSize: 14, color: CYAN, fontFamily: "monospace", fontWeight: 600 }}>{orgSlug}</div>
-          </div>
+        <div>
+          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Name</div>
+          <div style={{ fontSize: 14, color: WHITE, fontWeight: 600 }}>{orgName}</div>
         </div>
-        <div style={{ fontSize: 10, color: MUTED, marginTop: 8 }}>Share the join code with team members so they can create accounts and join your organization.</div>
         
         {/* Logo Upload */}
         {canManage && (

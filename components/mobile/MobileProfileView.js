@@ -83,7 +83,6 @@ export default function MobileProfileView({ profile, orgData, onSignOut }) {
           )}
           <div>
             <div style={{ fontSize: 16, fontWeight: 600, color: WHITE }}>{orgName}</div>
-            {orgData?.slug && <div style={{ fontSize: 14, color: MUTED }}>{orgData.slug}</div>}
           </div>
         </div>
       </div>
