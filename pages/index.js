@@ -3006,21 +3006,14 @@ function InviteAcceptScreen({ token, onAuth }) {
 }
 
 function AuthScreen({ onAuth, initialMode }) {
-  const [mode, setMode] = useState(initialMode || "login"); // login | signup | join | forgot | reset_password
-  const [step, setStep] = useState(1); // signup steps: 1=account, 2=org, 3=plan
+  const [mode, setMode] = useState(initialMode || "login"); // login | forgot | reset_password
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
-  const [orgName, setOrgName] = useState("");
-  const [certType, setCertType] = useState("Part 135");
-  const [selectedPlan, setSelectedPlan] = useState("starter");
-  const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
-  const [agreedTos, setAgreedTos] = useState(false);
 
   // Check for recovery token in URL hash on mount
   useEffect(() => {
@@ -3064,101 +3057,11 @@ function AuthScreen({ onAuth, initialMode }) {
     }
   };
 
-  const handleSignup = async () => {
-    if (!name.trim()) { setError("Name is required"); return; }
-    if (mode === "signup" && step === 1) { if (!email || !password || password.length < 6) { setError("Email and password (min 6 chars) required"); return; } setError(""); setStep(2); return; }
-    if (mode === "signup" && step === 2) { if (!orgName.trim()) { setError("Organization name is required"); return; } setError(""); setStep(3); return; }
-    if (!agreedTos) { setError("Please agree to the Terms of Service and Privacy Policy"); return; }
-    setError(""); setLoading(true);
-    try {
-      if (mode === "signup") {
-        // 1. Validate email by attempting auth signup first (before creating org)
-        const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
-        if (authErr) { setError(authErr.message); setLoading(false); return; }
-        if (authData.user && (!authData.user.identities || authData.user.identities.length === 0)) {
-          setError("An account with this email already exists. Please log in or reset your password."); setLoading(false); return;
-        }
-        // 2. Create org via API route (uses service role to bypass RLS)
-        const slug = orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-        const tier = selectedPlan;
-        const features = getTierFeatures(tier);
-        const isFree = tier === "free";
-        const orgRes = await fetch("/api/create-org", {
-          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${authData.session?.access_token}` },
-          body: JSON.stringify({ name: orgName.trim(), slug, tier, feature_flags: features,
-            subscription_status: isFree ? "free" : "trial",
-            max_aircraft: isFree ? 1 : tier === "enterprise" ? 999 : tier === "professional" ? 15 : 5,
-            userId: authData.user?.id }),
-        });
-        const orgJson = await orgRes.json();
-        if (!orgRes.ok || !orgJson.data) { setError(orgJson.error || "Failed to create organization"); setLoading(false); return; }
-        // 3. Create profile linked to org (use API route to bypass RLS when no session)
-        if (authData.user) {
-          if (authData.session) {
-            await supabase.from("profiles").insert({ id: authData.user.id, org_id: orgJson.data.id, full_name: name.trim(), email, role: "admin" });
-          } else {
-            await fetch("/api/create-org", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ action: "create-profile", userId: authData.user.id, orgId: orgJson.data.id, fullName: name.trim(), email }),
-            });
-          }
-        }
-        // 4. Sign in
-        const { data: session } = await signIn(email, password);
-        if (session?.session) {
-          if (authData.session) await supabase.from("profiles").update({ role: "admin" }).eq("id", session.session.user.id);
-          onAuth(session.session);
-          setLoading(false);
-          return;
-        }
-      } else {
-        const { data: orgData, error: orgErr } = await supabase.from("organizations").select("id").eq("slug", joinCode.trim().toLowerCase()).single();
-        if (orgErr || !orgData) { setError("Organization not found. Check your join code."); setLoading(false); return; }
-        const { error: signupErr } = await signUp(email, password, name.trim(), orgData.id);
-        if (signupErr) { setError(signupErr.message); setLoading(false); return; }
-      }
-      setError("Check your email to confirm your account, then log in.");
-      setMode("login");
-    } catch (e) { setError(e.message); }
-    setLoading(false);
-  };
-
-  const plans = [
-    { id: "free", name: "Free", price: "$0", period: "", desc: "Solo pilot SMS — free forever", features: ["Flight Risk Assessment (FRAT)", "Safety Reporting", "Up to 5 Corrective Actions", "3 Policies", "Basic Dashboard", "1 aircraft, 1 user"] },
-    { id: "starter", name: "Starter", price: "$149", period: "/mo", desc: "Core SMS for small operators", features: ["Everything in Free, plus:", "Flight Following", "Full Investigations", "Unlimited Corrective Actions", "Training Records", "Basic Dashboard", "Up to 5 aircraft & unlimited users"], trial: true },
-    { id: "professional", name: "Professional", price: "$349", period: "/mo", desc: "Full SMS with analytics & compliance", features: ["Everything in Starter, plus:", "Dashboard Analytics & Trends", "Safety Trend Alerts", "FAA Part 5 Audit Log", "Scheduled PDF Reports", "Document Library", "Custom FRAT Templates", "Approval Workflows", "Up to 15 aircraft"], trial: true },
-  ];
-
   return (
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <style>{`@media(max-width:768px){.auth-plan-grid{grid-template-columns:1fr !important}} @media(min-width:769px) and (max-width:900px){.auth-plan-grid{grid-template-columns:1fr 1fr !important}}`}</style>
-      <div style={{ ...card, padding: "32px 28px", maxWidth: mode === "signup" && step === 3 ? 820 : 400, width: "100%", transition: "max-width 0.3s" }}>
+      <div style={{ ...card, padding: "32px 28px", maxWidth: 400, width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <img src={LOGO_URL} alt="PreflightSMS" style={{ height: 200, objectFit: "contain" }} onError={e => { e.target.style.display = "none"; }} /></div>
-
-        {/* Mode tabs - only show on login/signup/join step 1 */}
-        {(mode !== "signup" || step === 1) && mode !== "forgot" && mode !== "reset_password" && <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
-          {[["login", "Log In"], ["signup", "New Org"], ["join", "Join Org"]].map(([m, label]) => (
-            <button key={m} onClick={() => { setMode(m); setStep(1); setError(""); }}
-              style={{ flex: 1, padding: "8px 0", borderRadius: 6, border: `1px solid ${mode === m ? WHITE : BORDER}`,
-                background: mode === m ? WHITE : "transparent", color: mode === m ? BLACK : MUTED,
-                fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{label}</button>))}</div>}
-
-        {/* Signup step indicator */}
-        {mode === "signup" && step > 1 && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 20, justifyContent: "center" }}>
-            {["Account", "Organization", "Plan"].map((s, i) => (
-              <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700,
-                  background: step > i + 1 ? GREEN : step === i + 1 ? WHITE : NEAR_BLACK,
-                  color: step > i + 1 ? BLACK : step === i + 1 ? BLACK : MUTED,
-                  border: `1px solid ${step >= i + 1 ? "transparent" : BORDER}` }}>{step > i + 1 ? "\u2713" : i + 1}</div>
-                <span style={{ fontSize: 10, color: step === i + 1 ? WHITE : MUTED, fontWeight: 600 }}>{s}</span>
-                {i < 2 && <span style={{ color: BORDER, fontSize: 10 }}>{"\u2014"}</span>}
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Login form */}
         {mode === "login" && (<>
@@ -3217,99 +3120,10 @@ function AuthScreen({ onAuth, initialMode }) {
           )}
         </>)}
 
-        {/* Signup Step 1: Account info */}
-        {mode === "signup" && step === 1 && (<>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Full Name</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inp} /></div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="pilot@company.com" style={inp} /></div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters"
-              style={inp} onKeyDown={e => { if (e.key === "Enter") handleSignup(); }} /></div>
-        </>)}
-
-        {/* Signup Step 2: Organization info */}
-        {mode === "signup" && step === 2 && (<>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Organization Name</label>
-            <input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="e.g. SkyCharter Aviation" style={inp} /></div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Certificate Type</label>
-            <select value={certType} onChange={e => setCertType(e.target.value)} style={{ ...inp, appearance: "auto" }}>
-              <option value="Part 135">Part 135 — Commuter & On-Demand</option>
-              <option value="Part 121">Part 121 — Scheduled Carriers</option>
-              <option value="Part 91">Part 91 — General Aviation</option>
-              <option value="Part 91K">Part 91K — Fractional Ownership</option>
-              <option value="Other">Other</option>
-            </select></div>
-          <div style={{ fontSize: 10, color: MUTED, marginBottom: 16, padding: "8px 10px", borderRadius: 6, background: NEAR_BLACK }}>
-            Your join code will be: <strong style={{ color: CYAN }}>{orgName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "..."}</strong>
-            <br />Share this with your team so they can join your organization.</div>
-        </>)}
-
-        {/* Signup Step 3: Plan selection */}
-        {mode === "signup" && step === 3 && (<>
-          <div style={{ textAlign: "center", marginBottom: 16 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Choose Your Plan</div>
-            <div style={{ fontSize: 11, color: MUTED }}>Start free or try Starter/Professional with a 14-day trial. No credit card required.</div>
-          </div>
-          <div className="auth-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
-            {plans.map(p => (
-              <div key={p.id} onClick={() => setSelectedPlan(p.id)}
-                style={{ ...card, padding: "16px 14px", cursor: "pointer", position: "relative",
-                  border: `2px solid ${selectedPlan === p.id ? WHITE : BORDER}`,
-                  background: selectedPlan === p.id ? "rgba(255,255,255,0.03)" : CARD }}>
-                {p.id === "starter" && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>RECOMMENDED</div>}
-                <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 2 }}>{p.name}</div>
-                <div style={{ marginBottom: 6 }}><span style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{p.price}</span><span style={{ fontSize: 10, color: MUTED }}>{p.period}</span></div>
-                <div style={{ fontSize: 9, color: MUTED, marginBottom: 10 }}>{p.desc}</div>
-                {p.features.map((f, i) => (
-                  <div key={i} style={{ fontSize: 9, color: f.startsWith("Everything") ? CYAN : OFF_WHITE, padding: "2px 0", display: "flex", alignItems: "flex-start", gap: 5 }}>
-                    <span style={{ color: GREEN, flexShrink: 0, marginTop: 1 }}>{f.startsWith("Everything") ? "\u2605" : "\u2713"}</span>{f}
-                  </div>
-                ))}
-                {p.trial && <div style={{ fontSize: 8, color: YELLOW, marginTop: 8, textAlign: "center" }}>14-day free trial</div>}
-                {p.id === "free" && <div style={{ fontSize: 8, color: GREEN, marginTop: 8, textAlign: "center" }}>Free forever</div>}
-              </div>
-            ))}
-          </div>
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 4, cursor: "pointer" }}>
-            <input type="checkbox" checked={agreedTos} onChange={e => setAgreedTos(e.target.checked)} style={{ marginTop: 2, accentColor: CYAN }} />
-            <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>I agree to the <a href="/terms" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Terms of Service</a> and <a href="/privacy" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Privacy Policy</a></span>
-          </label>
-        </>)}
-
-        {/* Join Org form */}
-        {mode === "join" && (<>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Full Name</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inp} /></div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Organization Code</label>
-            <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="e.g. pvtair" style={inp} /></div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="pilot@company.com" style={inp} /></div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters"
-              style={inp} onKeyDown={e => { if (e.key === "Enter") handleSignup(); }} /></div>
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", marginBottom: 8 }}>
-            <input type="checkbox" checked={agreedTos} onChange={e => setAgreedTos(e.target.checked)} style={{ marginTop: 2, accentColor: CYAN }} />
-            <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>I agree to the <a href="/terms" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Terms of Service</a> and <a href="/privacy" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Privacy Policy</a></span>
-          </label>
-        </>)}
 
         {error && <div style={{ color: error.includes("Check your email") ? GREEN : RED, fontSize: 11, marginBottom: 12, padding: "8px 10px", borderRadius: 6, background: error.includes("Check your email") ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)" }}>{error}</div>}
 
         <div style={{ display: "flex", gap: 8 }}>
-          {mode === "signup" && step > 1 && (
-            <button onClick={() => { setStep(step - 1); setError(""); }}
-              style={{ padding: "12px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Back</button>
-          )}
           {mode === "forgot" && resetSent ? (
             <button onClick={() => { setMode("login"); setError(""); setResetSent(false); }}
               style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Back to Login</button>
@@ -3317,9 +3131,9 @@ function AuthScreen({ onAuth, initialMode }) {
             <button onClick={() => { setMode("login"); setError(""); setPasswordUpdated(false); setPassword(""); setConfirmPassword(""); if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }}
               style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Log In</button>
           ) : (
-            <button onClick={mode === "login" ? handleLogin : mode === "forgot" ? handleForgotPassword : mode === "reset_password" ? handleSetNewPassword : handleSignup} disabled={loading}
+            <button onClick={mode === "login" ? handleLogin : mode === "forgot" ? handleForgotPassword : handleSetNewPassword} disabled={loading}
               style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1 }}>
-              {loading ? "..." : mode === "login" ? "Log In" : mode === "forgot" ? "Send Reset Link" : mode === "reset_password" ? "Update Password" : mode === "signup" && step === 1 ? "Next \u2192" : mode === "signup" && step === 2 ? "Next \u2192" : mode === "signup" && step === 3 ? (selectedPlan === "free" ? "Start Free Plan" : "Start Free Trial") : "Join Organization"}</button>
+              {loading ? "..." : mode === "login" ? "Log In" : mode === "forgot" ? "Send Reset Link" : "Update Password"}</button>
           )}
         </div>
 
@@ -3331,7 +3145,7 @@ function AuthScreen({ onAuth, initialMode }) {
 
         {mode === "login" && (
           <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: MUTED }}>
-            New to PreflightSMS? <button onClick={() => { setMode("signup"); setStep(1); setError(""); }} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Create an account</button>
+            New to PreflightSMS? <a href="?signup" style={{ color: CYAN, textDecoration: "none", fontSize: 11, fontWeight: 600 }}>Create an account</a>
           </div>
         )}
       </div></div>);
@@ -4634,8 +4448,7 @@ export default function PVTAIRFrat() {
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
     if (params?.has("signup")) return <SignupFlow onAuth={setSession} />;
     if (params?.has("invite")) return <InviteAcceptScreen token={params.get("invite")} onAuth={setSession} />;
-    const initialMode = params?.has("join") ? "join" : "login";
-    return <AuthScreen onAuth={setSession} initialMode={initialMode} />;
+    return <AuthScreen onAuth={setSession} />;
   }
 
   if (isOnline && networkOnline && session && !authLoading && !profileLoading && !profile) {
