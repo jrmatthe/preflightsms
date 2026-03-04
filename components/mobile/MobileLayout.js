@@ -7,12 +7,15 @@ import MobileFRATWizard from "./MobileFRATWizard";
 import MobileReportsView from "./MobileReportsView";
 import MobileTrainingView from "./MobileTrainingView";
 import { getQueueCount } from "../../lib/offlineQueue";
+import SetupChecklist, { SETUP_CHECKLIST_ITEMS, SETUP_CHECKLIST_SHIP_DATE } from "../SetupChecklist";
+import { hasFeature } from "../../lib/tiers";
 
 const DARK = "#111111";
 const MUTED = "#666666";
 const WHITE = "#FFFFFF";
 const OFF_WHITE = "#D4D4D4";
 const BORDER = "#232323";
+const GREEN = "#4ADE80";
 const AMBER = "#F59E0B";
 const CYAN = "#22D3EE";
 
@@ -79,6 +82,9 @@ export default function MobileLayout({
   // Feature gating
   hasFlights, hasTraining,
   onUpdateEmail,
+  // Setup checklist
+  setupChecklistState, onSetupChecklistSave, onSetupChecklistDismiss, onSetupChecklistNavigate,
+  org, orgProfiles, records,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -145,6 +151,17 @@ export default function MobileLayout({
     setMoreSubView("profile");
   };
 
+  // Setup checklist banner visibility
+  const isAdminRole = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
+  const showSetupBanner = !!(setupChecklistState && !setupChecklistState.completed_at && !setupChecklistState.dismissed_at && isAdminRole && activeTab !== "setup");
+  const setupCompletedCount = showSetupBanner ? SETUP_CHECKLIST_ITEMS.filter(item => {
+    if (item.featureGate && !hasFeature(org, item.featureGate)) return false;
+    const s = setupChecklistState?.items?.[item.id]?.status;
+    return s === "completed" || s === "skipped";
+  }).length : 0;
+  const setupTotalCount = showSetupBanner ? SETUP_CHECKLIST_ITEMS.filter(item => !item.featureGate || hasFeature(org, item.featureGate)).length : 0;
+  const setupProgress = setupTotalCount > 0 ? setupCompletedCount / setupTotalCount : 0;
+
   const renderContent = () => {
     switch (activeTab) {
       case "flights":
@@ -207,6 +224,18 @@ export default function MobileLayout({
             onRefresh={refreshCbt}
           />
         );
+      case "setup":
+        return (
+          <div style={{ padding: "12px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <button onClick={() => setActiveTab(prevTabRef.current || "flights")} style={{ background: "none", border: "none", cursor: "pointer", color: WHITE, padding: 4, display: "flex", alignItems: "center" }}>
+                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              </button>
+              <span style={{ color: WHITE, fontSize: 16, fontWeight: 600 }}>Setup Guide</span>
+            </div>
+            <SetupChecklist checklistState={setupChecklistState} onSave={onSetupChecklistSave} onDismiss={onSetupChecklistDismiss} onNavigate={onSetupChecklistNavigate} org={org} fleetAircraft={fleetAircraft} orgProfiles={orgProfiles} records={records} reports={reports} erpPlans={erpPlans} policies={policies} hasFeature={hasFeature} />
+          </div>
+        );
       case "more":
         return (
           <MobileMoreMenu
@@ -234,6 +263,8 @@ export default function MobileLayout({
             onSignOut={onSignOut}
             onUpdatePreferences={onUpdatePreferences}
             onUpdateEmail={onUpdateEmail}
+            setupChecklistActive={showSetupBanner}
+            onSetupGuide={() => handleTabChange("setup")}
           />
         );
       default:
@@ -277,9 +308,30 @@ export default function MobileLayout({
         </div>
       )}
 
+      {/* Setup checklist banner */}
+      {showSetupBanner && (
+        <div
+          onClick={() => handleTabChange("setup")}
+          style={{
+            position: "fixed", top: (!isOnline || pendingCount > 0) ? 56 + 36 : 56,
+            left: 0, right: 0, zIndex: 998,
+            background: DARK, borderBottom: `1px solid ${BORDER}`,
+            padding: "8px 16px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: OFF_WHITE, whiteSpace: "nowrap" }}>
+            Setup: {setupCompletedCount}/{setupTotalCount}
+          </span>
+          <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)" }}>
+            <div style={{ width: `${setupProgress * 100}%`, height: "100%", borderRadius: 2, background: GREEN, transition: "width 0.4s ease" }} />
+          </div>
+          <span style={{ fontSize: 11, fontWeight: 600, color: CYAN, whiteSpace: "nowrap" }}>Continue →</span>
+        </div>
+      )}
+
       {/* Content area — scrollable, between header and tab bar */}
       <div style={{
-        paddingTop: (!isOnline || pendingCount > 0) ? 56 + 36 : 56,
+        paddingTop: ((!isOnline || pendingCount > 0) ? 56 + 36 : 56) + (showSetupBanner ? 38 : 0),
         paddingBottom: 96,
         minHeight: "100vh", overflowY: "auto",
         opacity: tabOpacity,
