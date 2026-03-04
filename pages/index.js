@@ -1135,7 +1135,7 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip, org }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip, org, prefill, onClearPrefill }) {
   // AI Risk Suggestions state
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
@@ -1162,6 +1162,12 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
   const getLocalDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
   const [fi, setFi] = useState({ pilot: userName || "", aircraft: "", tailNumber: "", departure: "", destination: "", cruiseAlt: "", date: getLocalDate(), etd: "", ete: "", fuelLbs: "", numCrew: "1", numPax: "", remarks: "" });
   const [fratFuelUnit, setFratFuelUnit] = useState("hrs");
+  // Apply prefill from setup checklist
+  useEffect(() => {
+    if (!prefill) return;
+    setFi(prev => ({ ...prev, ...prefill }));
+    if (onClearPrefill) onClearPrefill();
+  }, [prefill]);
   // Sync initial aircraft + tail with first fleet entry when fleet loads
   useEffect(() => {
     if (fleetList.length > 0 && !fi.aircraft) {
@@ -3658,9 +3664,20 @@ export default function PVTAIRFrat() {
     if (profile?.org_id) saveOnboardingStatus(profile.org_id, { setup_checklist: dismissed });
     setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), setup_checklist: dismissed } } } : prev);
   };
+  const [fratPrefill, setFratPrefill] = useState(null);
   const handleSetupChecklistNavigate = (tab, adminTab) => {
     setCv(tab);
     if (adminTab) setInitialAdminTab(adminTab);
+    // Pre-fill FRAT form with sample data when coming from setup checklist
+    if (tab === "submit" && fleetAircraft.length > 0) {
+      const ac = fleetAircraft[0];
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes() + 15;
+      const etdH = m >= 60 ? h + 1 : h;
+      const etdM = m >= 60 ? m - 60 : m;
+      setFratPrefill({ pilot: userName || "", aircraft: ac.type || "", tailNumber: ac.registration || "", departure: "KSFF", destination: "KBOI", cruiseAlt: "FL180", etd: `${String(etdH).padStart(2, "0")}${String(etdM).padStart(2, "0")}`, ete: "1:30", fuelLbs: "4", numCrew: "1", numPax: "0", remarks: "Setup checklist — sample FRAT" });
+    }
   };
 
   // ── Poll notifications every 60s ──
@@ -4704,7 +4721,7 @@ export default function PVTAIRFrat() {
         <main style={{ padding: "20px 32px 50px" }}>
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} />)}
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
         {cv === "flights" && <FlightBoard flights={flights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} onApproveFlight={async (flightDbId, fratDbId) => {
           setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f));
           if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r));

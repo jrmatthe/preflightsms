@@ -13,6 +13,50 @@ const colorMap = { green: GREEN, yellow: YELLOW, amber: AMBER, red: RED };
 
 function genId(prefix) { return `${prefix}_${Date.now().toString(36)}`; }
 
+const DEFAULT_CATEGORIES = [
+  { id: "weather", name: "Weather", icon: "", factors: [
+    { id: "wx_ceiling", label: "Ceiling < 1000' AGL at departure or destination", score: 4 },
+    { id: "wx_vis", label: "Visibility < 3 SM at departure or destination", score: 4 },
+    { id: "wx_xwind", label: "Crosswind > 15 kts (or > 50% of max demonstrated)", score: 3 },
+    { id: "wx_ts", label: "Thunderstorms forecast along route or at terminals", score: 5 },
+    { id: "wx_ice", label: "Known or forecast icing conditions", score: 4 },
+    { id: "wx_turb", label: "Moderate or greater turbulence forecast", score: 3 },
+    { id: "wx_wind_shear", label: "Wind shear advisories or PIREPs", score: 5 },
+    { id: "wx_mountain", label: "Mountain obscuration or high DA affecting performance", score: 4 },
+  ]},
+  { id: "pilot", name: "Pilot / Crew", icon: "", factors: [
+    { id: "plt_fatigue", label: "Crew rest < 10 hours or significant fatigue factors", score: 5 },
+    { id: "plt_recency", label: "PIC < 3 flights in aircraft type in last 30 days", score: 3 },
+    { id: "plt_new_crew", label: "First time flying together as a crew pairing", score: 2 },
+    { id: "plt_stress", label: "Significant personal stressors affecting crew", score: 4 },
+    { id: "plt_duty", label: "Approaching max duty time limitations", score: 3 },
+    { id: "plt_unfam_apt", label: "PIC unfamiliar with departure or destination airport", score: 3 },
+  ]},
+  { id: "aircraft", name: "Aircraft", icon: "", factors: [
+    { id: "ac_mel", label: "Operating with MEL items", score: 3 },
+    { id: "ac_mx_defer", label: "Deferred maintenance items", score: 3 },
+    { id: "ac_recent_mx", label: "Aircraft recently out of major maintenance", score: 2 },
+    { id: "ac_perf_limit", label: "Operating near weight/performance limits", score: 4 },
+    { id: "ac_known_issue", label: "Known recurring squawk or system anomaly", score: 3 },
+  ]},
+  { id: "environment", name: "Environment", icon: "", factors: [
+    { id: "env_night", label: "Night operations", score: 2 },
+    { id: "env_terrain", label: "Mountainous terrain along route", score: 3 },
+    { id: "env_unfam_airspace", label: "Complex or unfamiliar airspace", score: 2 },
+    { id: "env_short_runway", label: "Runway length < 4000' or contaminated surface", score: 4 },
+    { id: "env_remote", label: "Limited alternate airports available", score: 3 },
+    { id: "env_notams", label: "Significant NOTAMs affecting operation", score: 2 },
+  ]},
+  { id: "operational", name: "Operational", icon: "", factors: [
+    { id: "ops_pax_pressure", label: "Significant schedule pressure from passengers/client", score: 3 },
+    { id: "ops_time_pressure", label: "Tight schedule with minimal buffer", score: 3 },
+    { id: "ops_vip", label: "High-profile passengers or sensitive mission", score: 2 },
+    { id: "ops_multi_leg", label: "3+ legs in a single duty period", score: 3 },
+    { id: "ops_unfam_mission", label: "Unusual mission profile or first-time operation type", score: 3 },
+    { id: "ops_hazmat", label: "Hazardous materials on board", score: 2 },
+  ]},
+];
+
 const DEFAULT_THRESHOLDS = [
   { level: "LOW", label: "LOW RISK", min: 0, max: 15, color: "green", action: "Flight authorized \u2014 standard procedures", approval_mode: "none" },
   { level: "MODERATE", label: "MODERATE RISK", min: 16, max: 30, color: "yellow", action: "Enhanced awareness \u2014 brief crew on elevated risk factors", approval_mode: "none" },
@@ -180,7 +224,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
   const selectedTemplate = allTemplates.find(t => t.id === selectedId);
   const activeTemplate = allTemplates.find(t => t.is_active);
 
-  const handleCreate = async () => { if (onCreateTemplate) await onCreateTemplate({ name: "New Template", categories: [], risk_thresholds: [...DEFAULT_THRESHOLDS], assigned_aircraft: [] }); };
+  const handleCreate = async () => { if (onCreateTemplate) await onCreateTemplate({ name: "New Template", categories: DEFAULT_CATEGORIES.map(c => ({ ...c, factors: c.factors.map(f => ({ ...f })) })), risk_thresholds: [...DEFAULT_THRESHOLDS], assigned_aircraft: [] }); };
   const handleDuplicate = async (t) => { if (onCreateTemplate) await onCreateTemplate({ name: `${t.name} (Copy)`, categories: t.categories || [], risk_thresholds: t.risk_thresholds || [...DEFAULT_THRESHOLDS], assigned_aircraft: [] }); };
   const handleDelete = async (t) => {
     if (t.is_active) { alert("Cannot delete the active template. Set another as active first."); return; }
