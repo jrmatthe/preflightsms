@@ -69,103 +69,59 @@ function featureRow(icon: string, text: string): string {
 }
 
 const templates = {
-  // ── DAY 2: ACTIVATION ──────────────────────────────────────
-  // Goal: Get the ONE action that predicts conversion — a submitted FRAT.
-  // Psychology: They signed up for a reason. Something triggered it —
-  // an upcoming audit, a new FSDO inspector, a safety event, or they're
-  // just tired of paper. Remind them of that pain and show the fix is fast.
   getting_started: {
     subject: "Your next FSDO visit just got easier",
     html: (orgName: string) => emailWrapper(`
-      <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">You're 2 Minutes Away From a Working SMS</h1>
-      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">Most Part 135 operators we talk to are running their SMS on spreadsheets, paper forms, or not at all. You signed up because you know that's not going to hold up — not with your FSDO, not with your insurance, and not when something goes wrong.</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">Here's the fastest way to see what PreflightSMS actually does:</p>
-
-      <div style="background:#0A0A0A;border:1px solid #232323;border-radius:8px;padding:20px 24px;margin-bottom:20px;">
-        <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#FFFFFF;">Submit a FRAT right now.</p>
-        <p style="margin:0;font-size:13px;color:#AAAAAA;line-height:1.6;">Open PreflightSMS, tap <strong style="color:#FFFFFF;">FRAT</strong>, and fill one out for your next flight. It takes under 2 minutes. The risk categories are already configured for Part 135 — weather, MEL items, crew rest, unfamiliar airports, all of it. When you're done, you'll have your first auditable FRAT record with a timestamped risk score.</p>
-      </div>
-
-      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">That one FRAT is already more documentation than most operators produce in a month. Now imagine every pilot on your crew doing this before every flight — from their phone, in 90 seconds, without you chasing anyone.</p>
+      <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">Submit your first FRAT — it takes 2 minutes</h1>
+      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">Open PreflightSMS, tap <strong style="color:#FFFFFF;">FRAT</strong>, and fill one out. Risk categories are pre-configured for Part 135. When you're done, you have your first auditable, timestamped risk assessment.</p>
 
       ${ctaButton("Submit Your First FRAT", APP_URL)}
 
-      <p style="margin:0 0 6px;font-size:13px;color:#AAAAAA;line-height:1.6;">Three things that make this different from what you've tried before:</p>
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
-        ${featureRow("", "<strong style='color:#FFFFFF;'>Your FRAT, your way.</strong> Add categories, adjust weights, build templates for different aircraft or mission types. This isn't a generic checklist — it's configurable for your operation.")}
-        ${featureRow("", "<strong style='color:#FFFFFF;'>Pilots will actually use it.</strong> Clean mobile interface, no app download, loads instantly. The #1 reason SMS programs fail is pilot adoption. We solved that.")}
-        ${featureRow("", "<strong style='color:#FFFFFF;'>Audit-ready from day one.</strong> Every FRAT, safety report, and hazard assessment is timestamped, attributed, and exportable. When your POI asks for evidence of a functioning SMS, you hand them a login.")}
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+        ${featureRow("", "<strong style='color:#FFFFFF;'>Your FRAT, your way.</strong> Add categories, adjust weights, build templates per aircraft or mission type.")}
+        ${featureRow("", "<strong style='color:#FFFFFF;'>Pilots will actually use it.</strong> Clean mobile UI, no app download, 90 seconds from the ramp.")}
+        ${featureRow("", "<strong style='color:#FFFFFF;'>Audit-ready from day one.</strong> Every record is timestamped, attributed, and exportable.")}
       </table>
 
       <div style="border-top:1px solid #232323;margin:4px 0 20px;"></div>
-      <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">Full access for 14 days. No credit card. Reply to this email anytime — a real person answers.</p>
+      <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">Full access for 14 days. No credit card. Reply anytime — a real person answers.</p>
     `),
   },
 
-  // ── DAY 7: DEPTH ───────────────────────────────────────────
-  // Goal: Show the closed-loop SMS workflow that justifies the price.
-  // Psychology: By day 7 they've either poked around or forgotten.
-  // Either way, show them the SYSTEM — not a list of features, but how
-  // the pieces connect to create a defensible safety program.
   mid_trial: {
     subject: "The difference between an SMS and a filing cabinet",
     html: (orgName: string) => emailWrapper(`
-      <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">A FRAT Is Just the Beginning</h1>
-      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">Collecting FRATs is easy. What separates a real SMS from a checkbox exercise is what happens <em style="color:#FFFFFF;">after</em> someone identifies a risk.</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">Here's the workflow that Part 135 safety managers tell us saves them hours every week:</p>
+      <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">What happens after a pilot flags a risk?</h1>
+      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">Collecting FRATs is easy. What separates a real SMS from a checkbox exercise is the closed loop:</p>
 
-      <div style="background:#0A0A0A;border-left:3px solid #22D3EE;padding:16px 20px;margin-bottom:12px;border-radius:0 8px 8px 0;">
-        <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#22D3EE;">1. A pilot flags something</p>
-        <p style="margin:0;font-size:13px;color:#AAAAAA;line-height:1.5;">FRAT score comes back elevated, or they submit a safety report from the field. Takes 90 seconds on their phone.</p>
+      <div style="background:#0A0A0A;border-left:3px solid #22D3EE;padding:14px 20px;margin-bottom:8px;border-radius:0 8px 8px 0;">
+        <p style="margin:0;font-size:13px;color:#AAAAAA;"><strong style="color:#22D3EE;">1. Report</strong> — Pilot submits a FRAT or safety report from their phone</p>
       </div>
-      <div style="background:#0A0A0A;border-left:3px solid #F59E0B;padding:16px 20px;margin-bottom:12px;border-radius:0 8px 8px 0;">
-        <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#F59E0B;">2. You open a hazard investigation</p>
-        <p style="margin:0;font-size:13px;color:#AAAAAA;line-height:1.5;">Link it to the original report. Score it on the risk matrix — probability vs. severity. The hazard register tracks every open item across your operation.</p>
+      <div style="background:#0A0A0A;border-left:3px solid #F59E0B;padding:14px 20px;margin-bottom:8px;border-radius:0 8px 8px 0;">
+        <p style="margin:0;font-size:13px;color:#AAAAAA;"><strong style="color:#F59E0B;">2. Investigate</strong> — Open a hazard, score it on the risk matrix</p>
       </div>
-      <div style="background:#0A0A0A;border-left:3px solid #4ADE80;padding:16px 20px;margin-bottom:12px;border-radius:0 8px 8px 0;">
-        <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#4ADE80;">3. You assign a corrective action</p>
-        <p style="margin:0;font-size:13px;color:#AAAAAA;line-height:1.5;">Specific person, specific deadline. They get notified. You track open vs. closed. Nothing falls through the cracks.</p>
+      <div style="background:#0A0A0A;border-left:3px solid #4ADE80;padding:14px 20px;margin-bottom:8px;border-radius:0 8px 8px 0;">
+        <p style="margin:0;font-size:13px;color:#AAAAAA;"><strong style="color:#4ADE80;">3. Mitigate</strong> — Assign a corrective action with a name and a deadline</p>
       </div>
-      <div style="background:#0A0A0A;border-left:3px solid #FFFFFF;padding:16px 20px;margin-bottom:24px;border-radius:0 8px 8px 0;">
-        <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#FFFFFF;">4. Your dashboard shows the trend</p>
-        <p style="margin:0;font-size:13px;color:#AAAAAA;line-height:1.5;">Risk scores over time, reporting frequency, open items, crew compliance. When your FSDO asks "how do you know your SMS is working?" — this is your answer.</p>
+      <div style="background:#0A0A0A;border-left:3px solid #FFFFFF;padding:14px 20px;margin-bottom:24px;border-radius:0 8px 8px 0;">
+        <p style="margin:0;font-size:13px;color:#AAAAAA;"><strong style="color:#FFFFFF;">4. Measure</strong> — Dashboard shows the trend. Your FSDO sees a system that works.</p>
       </div>
-
-      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">That closed loop — report, investigate, mitigate, measure — is exactly what Part 5 requires and exactly what most operators can't demonstrate. PreflightSMS makes it automatic.</p>
 
       ${ctaButton("Try the Full Workflow", APP_URL)}
 
       <div style="border-top:1px solid #232323;margin:4px 0 20px;"></div>
-      <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">7 days left in your trial. Reply anytime — we're here to help you get set up.</p>
+      <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">7 days left in your trial. Reply anytime.</p>
     `),
   },
 
-  // ── DAY 11: URGENCY ────────────────────────────────────────
-  // Goal: Convert. Make the cost of inaction feel real.
-  // Psychology: Loss aversion > feature lists. Frame it as risk —
-  // they already know they need this, remind them what happens without it.
   expiring_soon: {
-    subject: "What happens at your next FSDO audit without an SMS?",
+    subject: "What happens at your next audit without this?",
     html: (orgName: string) => emailWrapper(`
       <div style="background:#F59E0B22;border:1px solid #F59E0B44;border-radius:8px;padding:12px 16px;margin-bottom:24px;">
-        <p style="margin:0;font-size:13px;color:#F59E0B;font-weight:700;">3 days remaining in your trial</p>
+        <p style="margin:0;font-size:13px;color:#F59E0B;font-weight:700;">3 days left in your trial</p>
       </div>
-      <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">You Know What Happens Next</h1>
-      <p style="margin:0 0 20px;font-size:14px;color:#AAAAAA;line-height:1.7;">Your POI shows up. They ask for your safety policy. Your hazard register. Evidence of risk assessments. Corrective action follow-through. Training records.</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">You can scramble to pull together spreadsheets and email threads — or you can hand them a login to PreflightSMS and show them a system that's been running every day since you set it up.</p>
-
-      <div style="background:#0A0A0A;border:1px solid #232323;border-radius:8px;padding:20px 24px;margin-bottom:24px;">
-        <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#FFFFFF;">What ${orgName} loses in 3 days:</p>
-        <table width="100%" cellpadding="0" cellspacing="0">
-          ${featureRow("", "<span style='color:#AAAAAA;'>FRAT templates configured for your operation</span>")}
-          ${featureRow("", "<span style='color:#AAAAAA;'>Mobile reporting your pilots can use from anywhere</span>")}
-          ${featureRow("", "<span style='color:#AAAAAA;'>Hazard register with risk matrix scoring</span>")}
-          ${featureRow("", "<span style='color:#AAAAAA;'>Corrective action tracking with accountability</span>")}
-          ${featureRow("", "<span style='color:#AAAAAA;'>A dashboard that proves your SMS is actually working</span>")}
-        </table>
-      </div>
-
-      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">Subscribe now and everything stays exactly as you set it up. Your pilots keep submitting, your data keeps building, and your next audit is a non-event.</p>
+      <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">Your POI asks for your hazard register. What do you hand them?</h1>
+      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">Subscribe and everything stays live — your FRAT templates, hazard register, corrective actions, crew accounts. Your pilots keep submitting. Your data keeps building.</p>
 
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
         <tr>
@@ -186,26 +142,20 @@ const templates = {
       ${ctaButton("Subscribe Now", APP_URL + "?tab=subscription")}
 
       <div style="border-top:1px solid #232323;margin:4px 0 20px;"></div>
-      <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">Need more than 15 aircraft or want a custom setup? Reply to this email.</p>
+      <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">Need more than 15 aircraft? Reply to this email.</p>
     `),
   },
 
-  // ── DAY 14: LAST CHANCE ────────────────────────────────────
-  // Goal: Reactivate. Short, direct, no feature dump.
-  // Psychology: They didn't convert yet. Don't repeat yourself.
-  // Acknowledge the decision, reduce friction, leave the door open.
   trial_expired: {
     subject: "Your SMS is offline",
     html: (orgName: string) => emailWrapper(`
-      <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">Your Trial Has Ended</h1>
-      <p style="margin:0 0 20px;font-size:14px;color:#AAAAAA;line-height:1.7;">The PreflightSMS trial for ${orgName} expired today. Your pilots can no longer submit FRATs or safety reports, and your SMS data is no longer accumulating.</p>
-      <p style="margin:0 0 24px;font-size:14px;color:#AAAAAA;line-height:1.7;">But nothing has been deleted. Your FRAT templates, hazard register, corrective actions, crew accounts, and every record submitted during your trial are preserved. Subscribe and it all comes back online immediately — no re-setup, no data loss.</p>
+      <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#FFFFFF;font-family:Georgia,serif;">Your trial has ended</h1>
+      <p style="margin:0 0 20px;font-size:14px;color:#AAAAAA;line-height:1.7;">Your pilots can no longer submit FRATs or safety reports. But nothing has been deleted — subscribe and it all comes back online immediately.</p>
 
-      ${ctaButton("Reactivate Now — $149/mo", APP_URL + "?tab=subscription")}
+      ${ctaButton("Reactivate — $149/mo", APP_URL + "?tab=subscription")}
 
       <div style="border-top:1px solid #232323;margin:4px 0 20px;"></div>
-      <p style="margin:0 0 12px;font-size:13px;color:#AAAAAA;line-height:1.6;">If PreflightSMS wasn't the right fit, we'd genuinely like to know why. Reply to this email and tell us — it helps us build a better product for operators like you.</p>
-      <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">If you need a custom plan, a longer evaluation, or want to talk through your SMS requirements, just reply. We'll figure it out.</p>
+      <p style="margin:0;font-size:12px;color:#555555;line-height:1.5;">Not the right fit? Reply and tell us why — it helps us build better software for operators like you.</p>
     `),
   },
 };
