@@ -2071,7 +2071,7 @@ function LandingPage() {
             </div>
           ))}
         </div>
-        <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: MUTED }}>Need more than 15 aircraft or custom integrations? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Contact us for Enterprise pricing</button></div>
+        <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: MUTED }}>Need more than 15 aircraft or custom integrations? <button onClick={() => window.location.href = "mailto:sales@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Contact us for Enterprise pricing</button></div>
       </section>
 
       {/* CTA */}
@@ -2344,7 +2344,7 @@ function SignupFlow({ onAuth }) {
             </div>
             <div style={{ textAlign: "center", marginTop: 20, fontSize: 11, color: MUTED }}>
               {step === 1 && <>Already have an account? <button onClick={() => { window.location.search = "login"; }} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Log in</button></>}
-              {step === 3 && <>16+ aircraft? <button onClick={() => window.location.href = "mailto:support@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Contact us for Enterprise</button></>}
+              {step === 3 && <>16+ aircraft? <button onClick={() => window.location.href = "mailto:sales@preflightsms.com"} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Contact us for Enterprise</button></>}
             </div>
           </div>
         </div>
