@@ -2831,6 +2831,8 @@ export default function PVTAIRFrat() {
     };
     await persistOnboarding(next);
   }, [activeFlow, activeFlowStep, onboardingState, persistOnboarding]);
+  const flowStepAdvanceRef = useRef(handleFlowStepAdvance);
+  useEffect(() => { flowStepAdvanceRef.current = handleFlowStepAdvance; }, [handleFlowStepAdvance]);
 
   const handleFlowComplete = useCallback(async (flowId) => {
     if (!onboardingState) return;
@@ -3522,6 +3524,10 @@ export default function PVTAIRFrat() {
     if (id === "FRAT-DEMO" && demoFlightRef.current) {
       const status = action === "CANCEL" ? "CANCELLED" : action;
       demoFlightRef.current = { ...demoFlightRef.current, status, arrivedAt: status === "ARRIVED" ? new Date().toISOString() : demoFlightRef.current.arrivedAt, ...extra };
+      // Advance onboarding past the arrival form step → nudge step
+      if (status === "ARRIVED" && activeFlowRef.current === "flights") {
+        flowStepAdvanceRef.current?.();
+      }
       return;
     }
     if (isOnline && profile) {
