@@ -2348,7 +2348,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
   const hasCulture = hasFeature(org, "safety_culture_survey");
   const hasInsurance = hasFeature(org, "insurance_export");
   const isDashboardFree = isFreeTier(org);
-  const gamificationOn = org?.gamification_enabled !== false;
+  const gamificationOn = org?.gamification_enabled === true;
   const fleetStatusOn = org?.fleet_status_enabled !== false;
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   return (
@@ -3644,7 +3644,7 @@ export default function PVTAIRFrat() {
   const saveFlightsLocal = useCallback(nf => { setFlights(nf); try { localStorage.setItem("pvtair_flights", JSON.stringify(nf)); } catch (e) {} }, []);
 
   // ── Engagement helpers ──
-  const gamificationOn = org?.gamification_enabled !== false; // default true
+  const gamificationOn = org?.gamification_enabled === true; // default true
   const updateEngagement = useCallback(async (metricType, newValue, bestValue) => {
     if (!profile || !session?.user?.id || !gamificationOn) return;
     await upsertEngagementMetric(session.user.id, profile.org_id, metricType, newValue, bestValue);
