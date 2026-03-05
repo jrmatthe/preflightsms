@@ -17,6 +17,67 @@ const GREEN = "#4ADE80";
 const AMBER = "#F59E0B";
 const CYAN = "#22D3EE";
 
+const ADMIN_ROLES = ["admin", "safety_manager", "accountable_exec", "chief_pilot"];
+
+function MobileAddAircraftPrompt({ onAdd }) {
+  const [type, setType] = useState("");
+  const [reg, setReg] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const canSave = type.trim().length > 0 && reg.trim().length > 0;
+
+  const handleSave = async () => {
+    if (!canSave || saving) return;
+    setSaving(true);
+    setError(null);
+    const registration = reg.trim().toUpperCase().startsWith("N") ? reg.trim().toUpperCase() : "N" + reg.trim().toUpperCase();
+    const result = await onAdd({ type: type.trim().toUpperCase(), registration });
+    if (result?.error) {
+      setError(result.error.message || "Failed to add aircraft");
+      setSaving(false);
+    }
+  };
+
+  const inp = { width: "100%", padding: "14px 16px", background: "#1A1A1A", border: `1px solid ${BORDER}`, borderRadius: 10, color: WHITE, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: DARK, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 360 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16, opacity: 0.8 }}>
+            <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.3.4.7.5 1.1.3l.5-.3c.4-.2.6-.7.5-1.1z"/>
+          </svg>
+          <div style={{ fontSize: 20, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Add Your First Aircraft</div>
+          <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.5 }}>Register an aircraft to start submitting FRATs and tracking flights.</div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Aircraft Type</label>
+          <input type="text" placeholder="e.g. C172, R44, PC-12" value={type} onChange={e => setType(e.target.value)} style={inp} autoFocus />
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Tail Number</label>
+          <input type="text" placeholder="e.g. 123AB" value={reg} onChange={e => setReg(e.target.value)} style={inp} />
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>N prefix added automatically</div>
+        </div>
+
+        {error && <div style={{ fontSize: 13, color: "#EF4444", marginBottom: 16, textAlign: "center" }}>{error}</div>}
+
+        <button onClick={handleSave} disabled={!canSave || saving} style={{
+          width: "100%", padding: "16px 0", background: canSave ? WHITE : `${WHITE}18`,
+          color: canSave ? "#000" : MUTED, border: "none", borderRadius: 10,
+          fontWeight: 700, fontSize: 15, cursor: canSave ? "pointer" : "not-allowed",
+          fontFamily: "inherit", transition: "all 0.15s",
+        }}>
+          {saving ? "Adding..." : "Add Aircraft"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PlaceholderScreen({ title }) {
   return (
     <div style={{
@@ -81,6 +142,7 @@ export default function MobileLayout({
   hasFlights, hasTraining,
   onUpdateEmail,
   org, orgProfiles, records,
+  onCreateAircraft,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -277,6 +339,11 @@ export default function MobileLayout({
               : `${pendingCount} pending change${pendingCount !== 1 ? "s" : ""} syncing...`}
           </span>
         </div>
+      )}
+
+      {/* First-time aircraft prompt for admin users with no fleet */}
+      {fleetAircraft.length === 0 && ADMIN_ROLES.includes(profile?.role) && onCreateAircraft && (
+        <MobileAddAircraftPrompt onAdd={onCreateAircraft} />
       )}
 
       {/* Content area — scrollable, between header and tab bar */}
