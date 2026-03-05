@@ -25,7 +25,6 @@ const I = (d, s = 20) => (
 const GREEN = "#4ADE80";
 
 const menuIcons = {
-  setup: I(<><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></>),
   fleet: I(<><path d="M17.8 19.2L16 11l3.5-3.5C20.3 6.7 21 5.1 21 4.5c0-1-.5-1.5-1.5-1.5-.6 0-2.2.7-3 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.3 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></>),
   erp: I(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>),
   hazards: I(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>),
@@ -98,7 +97,6 @@ export default function MobileMoreMenu({
   policies, onAcknowledgePolicy,
   notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead,
   onSignOut, onUpdatePreferences, onUpdateEmail,
-  setupChecklistActive, onSetupGuide,
 }) {
   // Sub-view: render appropriate component
   if (subView) {
@@ -166,18 +164,10 @@ export default function MobileMoreMenu({
     );
   }
 
-  // Build sections with optional setup guide item
-  const sections = SECTIONS.map(section => {
-    if (section.label === "Account" && setupChecklistActive) {
-      return { ...section, items: [{ id: "setup", label: "Setup Guide", icon: "setup", isSetupGuide: true }, ...section.items] };
-    }
-    return section;
-  });
-
   // Main menu grid
   return (
     <div style={{ padding: "8px 0" }}>
-      {sections.map(section => (
+      {SECTIONS.map(section => (
         <div key={section.label}>
           <div style={{
             padding: "16px 16px 6px", fontSize: 14, fontWeight: 600,
@@ -192,7 +182,7 @@ export default function MobileMoreMenu({
             return (
             <button
               key={item.id}
-              onClick={() => item.isSetupGuide ? onSetupGuide?.() : onNavigate(item.id)}
+              onClick={() => onNavigate(item.id)}
               aria-label={ariaLabel}
               style={{
                 width: "100%", minHeight: 48, display: "flex", alignItems: "center",
@@ -200,10 +190,10 @@ export default function MobileMoreMenu({
                 cursor: "pointer", textAlign: "left",
               }}
             >
-              <span aria-hidden="true" style={{ color: item.isSetupGuide ? GREEN : MUTED, display: "flex", alignItems: "center" }}>
+              <span aria-hidden="true" style={{ color: MUTED, display: "flex", alignItems: "center" }}>
                 {menuIcons[item.icon]}
               </span>
-              <span style={{ flex: 1, color: item.isSetupGuide ? GREEN : OFF_WHITE, fontSize: 15 }}>
+              <span style={{ flex: 1, color: OFF_WHITE, fontSize: 15 }}>
                 {item.label}
               </span>
               {item.showBadge && unreadCount > 0 && (
