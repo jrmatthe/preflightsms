@@ -90,8 +90,9 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     const check = () => {
       const el = document.querySelector(step.target);
       if (!el) { setContinueEnabled(false); return; }
-      const input = el.querySelector("input") || el.querySelector("textarea") || el.querySelector("select");
-      setContinueEnabled(input ? input.value.trim().length > 0 : false);
+      const input = el.querySelector("input:not([type='file']):not([type='hidden'])") || el.querySelector("textarea") || el.querySelector("select");
+      // If no user-facing input found (container with checkboxes, buttons, or informational), always enable
+      setContinueEnabled(input ? input.value.trim().length > 0 : true);
     };
     check();
     const interval = setInterval(check, 300);

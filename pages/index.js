@@ -971,7 +971,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
           <button onClick={onClearScTrip} style={{ background: "none", border: "none", color: MUTED, fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>{"\u00D7"}</button>
         </div>
       )}
-      <div data-tour="tour-frat-flight-info" style={{ ...card, padding: "24px 28px 28px", marginBottom: 18 }}>
+      <div data-tour="tour-frat-flight-info" data-onboarding="frat-flight-info" style={{ ...card, padding: "24px 28px 28px", marginBottom: 18 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 16 }}>Flight Information</div>
         <div className="flight-info-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, minWidth: 0 }}>
           {[{ key: "pilot", label: "Pilot in Command", placeholder: "Full name", type: "text" },
@@ -990,7 +990,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
             const err = validationErrors[f.key];
             const isNum = ["fuelLbs","numCrew","numPax"].includes(f.key);
             return (
-            <div key={f.key} data-field={f.key} style={{ minWidth: 0, overflow: "hidden" }}>
+            <div key={f.key} data-field={f.key} {...(["pilot","aircraft","departure","destination"].includes(f.key) ? {"data-onboarding": "frat-" + f.key} : {})} style={{ minWidth: 0, overflow: "hidden" }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: err ? RED : MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{f.label}</label>
               {f.type === "fleet-type" ? (
                 <select value={fi.aircraft} onChange={e => {
@@ -1056,7 +1056,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       )}
 
       {/* Photo Attachments */}
-      <div style={{ ...card, padding: "18px 22px", marginBottom: 18, borderRadius: 10 }}>
+      <div data-onboarding="frat-photos" style={{ ...card, padding: "18px 22px", marginBottom: 18, borderRadius: 10 }}>
         <div style={{ color: MUTED, fontSize: 11, marginBottom: 12 }}>Attach photos of HAZMAT PIC notifications or other documents</div>
         {attachments.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8, marginBottom: 12 }}>
@@ -1088,7 +1088,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
 
       {/* AI Risk Suggestions Panel */}
       {hasFeature(org, "safety_trend_alerts") && (
-        <div style={{ ...card, padding: "14px 18px", marginBottom: 18, borderRadius: 10, border: `1px solid ${aiPanelOpen ? CYAN + "44" : BORDER}` }}>
+        <div data-onboarding="frat-ai-panel" style={{ ...card, padding: "14px 18px", marginBottom: 18, borderRadius: 10, border: `1px solid ${aiPanelOpen ? CYAN + "44" : BORDER}` }}>
           <button onClick={async () => {
             if (!aiPanelOpen) {
               setAiPanelOpen(true);
@@ -1141,7 +1141,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
         <div data-tour="tour-frat-risk-categories">
           <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${BORDER}` }}>Risk Categories</div>
           {RISK_CATEGORIES.map(cat => { const catScore = cat.factors.reduce((s, f) => s + (checked[f.id] ? f.score : 0), 0); return (
-            <div key={cat.id} style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10 }}>
+            <div key={cat.id} data-onboarding={"frat-cat-" + cat.id} style={{ ...card, padding: "18px 22px", marginBottom: 14, borderRadius: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                 <h3 style={{ margin: 0, color: WHITE, fontSize: 15, fontWeight: 700 }}>{cat.name}</h3>
                 {catScore > 0 && <span style={{ fontWeight: 700, fontSize: 14, color: GREEN }}>+{catScore}</span>}
@@ -1263,7 +1263,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
           })()}
         </div>
 
-        <div className="score-panel-desktop" data-tour="tour-frat-score-panel" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
+        <div className="score-panel-desktop" data-tour="tour-frat-score-panel" data-onboarding="frat-score-panel" style={{ position: "sticky", top: 20, alignSelf: "start" }}>
           <div style={{ ...card, padding: 24, border: `1px solid ${getRL(score).border}`, borderRadius: 10 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, textAlign: "center", marginBottom: 8 }}>Risk Score</div>
             <div style={{ fontSize: 56, fontWeight: 800, color: getRL(score).color, textAlign: "center", lineHeight: 1, marginBottom: 12 }}>{score}</div>
@@ -2791,6 +2791,10 @@ export default function PVTAIRFrat() {
       }, 100);
       setTimeout(() => clearInterval(poll), 3000);
     }
+    // FRAT flow: navigate to the submit (FRAT form) view
+    if (flowId === "frat") {
+      setCv("submit");
+    }
   }, [onboardingState, persistOnboarding]);
 
   const handleFlowStepAdvance = useCallback(async () => {
@@ -2836,6 +2840,15 @@ export default function PVTAIRFrat() {
       handleFlowStepAdvance();
     }
   }, [fleetAircraft.length, activeFlow, activeFlowStep]);
+
+  // Auto-detect: when a FRAT is submitted on step 12 (score panel), advance to congrats (step 13)
+  const prevRecordsLenRef = useRef(records.length);
+  useEffect(() => {
+    if (activeFlow === "frat" && activeFlowStep === 12 && records.length > prevRecordsLenRef.current) {
+      handleFlowStepAdvance();
+    }
+    prevRecordsLenRef.current = records.length;
+  }, [records.length, activeFlow, activeFlowStep]);
 
   const showOnboarding = onboardingState
     && !onboardingState.dismissed_at
