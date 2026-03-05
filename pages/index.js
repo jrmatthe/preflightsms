@@ -56,78 +56,6 @@ const DEFAULT_RISK_LEVELS = {
   CRITICAL: { label: "CRITICAL RISK", color: RED, bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", min: 46, max: 100, action: "Flight should not depart without risk mitigation and executive approval", approval_mode: "required" },
 };
 
-const ONBOARDING_STEPS = [
-  { id: "welcome", phase: "setup", title: "Welcome to PreflightSMS", desc: "Let\u2019s get your safety management system set up in about 3 minutes.", descNonAdmin: "Here\u2019s a quick tour of your organization\u2019s safety management system." },
-  { id: "fleet", phase: "setup", adminOnly: true, title: "Add Your Fleet", desc: "Register the aircraft your organization operates." },
-  { id: "invite", phase: "setup", adminOnly: true, title: "Invite Your Team", desc: "Bring your pilots and safety officers on board." },
-  // Overview phase — one step per nav tab with brief description
-  { id: "ov-frat", phase: "overview", tab: "submit", target: "nav-operations", placement: "right", title: "FRAT", feature: null, desc: "Submit Flight Risk Assessment Tools before every departure to quantify and manage operational risk.", descNonAdmin: "Submit a risk assessment before each flight to flag hazards and get departure authorization." },
-  { id: "ov-flights", phase: "overview", tab: "flights", target: "nav-operations", placement: "right", title: "Flight Following", feature: null, desc: "Track live flights from departure to arrival with automatic overdue alerts.", descNonAdmin: "Track your flights from departure to arrival and update your status in real time." },
-  { id: "ov-reports", phase: "overview", tab: "reports", target: "nav-safety", placement: "right", title: "Safety Reporting", feature: null, desc: "Receive and manage anonymous hazard and safety reports from your team.", descNonAdmin: "Submit anonymous or confidential safety reports to help your organization improve." },
-  { id: "ov-hazards", phase: "overview", tab: "hazards", target: "nav-investigations", placement: "right", title: "Investigations", adminOnly: true, feature: "hazard_register", desc: "Investigate escalated safety reports with risk-scored severity tracking." },
-  { id: "ov-actions", phase: "overview", tab: "actions", target: "nav-investigations", placement: "right", title: "Corrective Actions", adminOnly: true, feature: "corrective_actions", desc: "Assign and track corrective and preventative actions through to resolution." },
-  { id: "ov-policy", phase: "overview", tab: "policy", target: "nav-documents", placement: "right", title: "Policies & Manuals", feature: "policy_library", desc: "Publish policies with acknowledgment tracking and build Part 5 SMS manuals.", descNonAdmin: "Read and acknowledge your organization\u2019s safety policies and SMS manuals." },
-  { id: "ov-cbt", phase: "overview", tab: "cbt", target: "nav-training", placement: "right", title: "Training", feature: "cbt_modules", desc: "Create training courses, set requirements, and monitor crew compliance.", descNonAdmin: "Complete assigned training courses and track your certification requirements." },
-  { id: "ov-audits", phase: "overview", tab: "audits", target: "nav-compliance", placement: "right", title: "Audits & Compliance", adminOnly: true, feature: "audit_program", desc: "FAA Part 5 compliance tracking, internal evaluations, audit scheduling, and templates." },
-  { id: "ov-dashboard", phase: "overview", tab: "dashboard", target: "nav-dashboard", placement: "right", title: "Safety Dashboard", adminOnly: true, feature: "dashboard_basic", desc: "KPI cards, trend charts, and an overall SMS Health Score for your organization." },
-  { id: "ov-admin", phase: "overview", tab: "admin", target: "nav-admin", placement: "right", title: "Admin Panel", adminOnly: true, feature: null, desc: "Organization settings, fleet, FRAT templates, user management, and billing." },
-  { id: "ov-erp", phase: "overview", tab: "erp", target: "nav-safety", placement: "right", title: "Emergency Response", feature: null, desc: "Pre-built emergency response plans with checklists, call trees, and drill tracking." },
-  { id: "ov-asap", phase: "overview", tab: "asap", target: "nav-safety", placement: "right", title: "ASAP Program", adminOnly: true, feature: "asap_program", desc: "Aviation Safety Action Program with ERC review workflow and corrective action tracking." },
-  { id: "ov-moc", phase: "overview", tab: "moc", target: "nav-investigations", placement: "right", title: "Change Management", adminOnly: true, feature: "management_of_change", desc: "Track operational changes through hazard analysis and mitigation with a Kanban workflow." },
-  { id: "tour-frat", phase: "tour", tab: "submit", title: "Flight Risk Assessment", feature: null, subSteps: [
-    { target: "tour-frat-flight-info", placement: "bottom", title: "Flight Information", desc: "Enter flight details including PIC, aircraft, route, and times. Use ICAO airport codes to auto-fetch live weather data and flag risk factors.", descNonAdmin: "Enter your flight details including aircraft, route, and times. ICAO airport codes auto-fetch live weather data and flag risk factors for you." },
-    { target: "tour-frat-risk-categories", placement: "right", title: "Risk Scoring", desc: "Five weighted risk categories \u2014 Weather, Pilot/Crew, Aircraft, Environment, and Operational. Check applicable factors; weather items are auto-detected from METAR/TAF data." },
-    { target: "tour-frat-score-panel", placement: "left", title: "Live Risk Score", desc: "The cumulative risk score updates in real time. Color-coded thresholds determine if the flight is authorized or requires additional consideration before departure.", descNonAdmin: "Your cumulative risk score updates in real time. Color-coded thresholds show whether the flight is authorized or requires additional consideration before flying." },
-  ]},
-  { id: "tour-flights", phase: "tour", tab: "flights", title: "Flight Following", feature: null, subSteps: [
-    { target: "tour-flights-board", placement: "bottom", title: "Live Flight Board", desc: "Every submitted FRAT creates a live flight. Track departures and arrivals on an interactive route map with real-time aircraft position estimates.", descNonAdmin: "Every FRAT you submit creates a live flight. View your departures and arrivals on an interactive route map with real-time position estimates." },
-    { target: "tour-flights-arrived", placement: "right", title: "Mark Arrived", desc: "When a flight lands, tap Mark Arrived to close it out. Overdue flights automatically trigger email alerts to your notification contacts.", descNonAdmin: "When you land, tap Mark Arrived to close out your flight. Overdue flights automatically alert your safety team \u2014 so marking arrived on time matters." },
-  ]},
-  { id: "tour-reports", phase: "tour", tab: "reports", title: "Safety Reporting", feature: null, subSteps: [
-    { target: "tour-reports-new-btn", placement: "bottom", title: "Submit Reports", desc: "Pilots and crew can submit anonymous or confidential hazard and safety reports \u2014 the backbone of a just-culture SMS.", descNonAdmin: "Submit anonymous or confidential hazard and safety reports here. This is the backbone of a just-culture SMS \u2014 your reports help keep everyone safe." },
-    { target: "tour-reports-stats", placement: "bottom", title: "Report Queue", titleNonAdmin: "Your Reports", desc: "Track report status across your organization. See open, in-review, and closed counts at a glance.", descNonAdmin: "Track the status of reports you\u2019ve submitted. See whether they\u2019re open, in review, or closed." },
-    { target: null, placement: "top-right", title: "Admin Escalation", desc: "Safety managers review incoming reports and can escalate them directly into formal investigations with a single click.", adminOnly: true },
-  ]},
-  { id: "tour-hazards", phase: "tour", tab: "hazards", title: "Investigations", adminOnly: true, feature: "hazard_register", subSteps: [
-    { target: "tour-hazards-stats", placement: "bottom", title: "Investigation Dashboard", desc: "Risk-scored investigations from escalated safety reports. Track open, in-progress, and closed investigations with severity ratings." },
-    { target: null, placement: "top-right", title: "Risk Matrix & Escalation", desc: "Each investigation uses a 5\u00d75 risk matrix (severity \u00d7 likelihood). When corrective or preventative action is needed, escalate directly to the Actions tab." },
-  ]},
-  { id: "tour-actions", phase: "tour", tab: "actions", title: "Corrective Actions", adminOnly: true, feature: "corrective_actions", subSteps: [
-    { target: "tour-actions-stats", placement: "bottom", title: "Action Tracking", desc: "Monitor open, overdue, and completed corrective and preventative actions. Each action links back to its source investigation." },
-    { target: null, placement: "top-right", title: "Status Workflow", desc: "Assign owners, set due dates, and track completion \u2014 closing the loop from hazard report all the way through to resolution." },
-  ]},
-  { id: "tour-policy", phase: "tour", tab: "policy", title: "Policies & SMS Manuals", feature: "policy_library", subSteps: [
-    { target: "tour-policy-tabs", placement: "bottom", title: "Policy Library", desc: "Publish company policies and track who has acknowledged them. See at a glance how many team members still need to sign off on each document.", descNonAdmin: "Read and acknowledge your organization\u2019s safety policies here. You\u2019ll be notified when new policies are published that need your sign-off.", componentTab: { component: "policy", value: "policies" } },
-    { target: "tour-policy-tabs", placement: "bottom", title: "SMS Manual Templates", desc: "Build Part 5 manuals with guided autofill templates. Each section maps to FAA requirements \u2014 no starting from scratch.", adminOnly: true, componentTab: { component: "policy", value: "manuals" } },
-  ]},
-  { id: "tour-cbt", phase: "tour", tab: "cbt", title: "Training & CBT", feature: "cbt_modules", subSteps: [
-    { target: "tour-cbt-tabs", placement: "bottom", title: "CBT Courses", desc: "Create and assign video-based training courses with quizzes and completion tracking. Enroll crew members and monitor progress.", descNonAdmin: "Complete your assigned training courses here. Each course includes video lessons and quizzes \u2014 your progress is tracked automatically.", componentTab: { component: "cbt", value: "cbt" } },
-    { target: "tour-cbt-tabs", placement: "bottom", title: "Training Requirements", desc: "Set recurring training requirements with due dates. Log completion records and monitor employee compliance across your entire organization.", descNonAdmin: "View your training requirements and due dates. Log completion records to stay current with your organization\u2019s training program.", componentTab: { component: "cbt", value: "requirements" } },
-  ]},
-  { id: "tour-audits", phase: "tour", tab: "audits", title: "Audits & Compliance", adminOnly: true, feature: "audit_program", subSteps: [
-    { target: "tour-audit-stats", placement: "bottom", title: "Part 5 Compliance", desc: "A real-time 42-point Part 5 compliance checklist. Each item syncs automatically with data across the platform \u2014 FRATs, flights, reports, investigations, actions, policies, and training." },
-    { target: "tour-audit-progress", placement: "bottom", title: "Compliance Progress", desc: "See your overall compliance percentage and drill into each subpart. Present this to the FAA during an audit to prove Part 5 compliance." },
-    { target: "tour-audits-templates", placement: "bottom", title: "Audit Templates", desc: "Create audit templates with sections and questions, or use one of the pre-built templates." },
-    { target: "tour-audits-schedule", placement: "right", title: "Scheduling", desc: "Schedule recurring audits with automated reminders. Assign auditors and track completion." },
-  ]},
-  { id: "tour-dashboard", phase: "tour", tab: "dashboard", title: "Safety Dashboard", adminOnly: true, feature: "dashboard_basic", subSteps: [
-    { target: "tour-dashboard-health", placement: "bottom", title: "SMS Health Score", desc: "Your organization\u2019s overall SMS Compliance Health score \u2014 a single number that reflects how well your safety system is performing across all areas." },
-    { target: "tour-dashboard-kpi", placement: "bottom", title: "KPI Cards & Trends", desc: "Risk score distributions, reporting frequency, hazard categories, action completion rates, and training compliance \u2014 spot patterns before they become problems." },
-  ]},
-  { id: "tour-admin", phase: "tour", tab: "admin", title: "Admin Panel", adminOnly: true, feature: null, subSteps: [
-    { target: "tour-admin-tabs", placement: "bottom", title: "Command Center", desc: "Five sections: Organization settings, Fleet management, FRAT Templates, User management, and Subscription & billing.", componentTab: { component: "admin", value: "org" } },
-    { target: "tour-admin-invite", placement: "right", title: "Invite & Manage Users", desc: "Invite new team members by email with role-based access. Manage permissions for pilots, safety managers, chief pilots, and admins.", componentTab: { component: "admin", value: "users" } },
-    { target: "tour-admin-tabs", placement: "bottom", title: "FRAT Templates", desc: "Customize FRAT risk categories and scoring to match your company\u2019s specific operations. Create multiple templates and assign them to different aircraft types.", componentTab: { component: "admin", value: "frat" } },
-  ]},
-  { id: "tour-erp", phase: "tour", tab: "erp", title: "Emergency Response Plans", feature: null, subSteps: [
-    { target: "tour-erp-plans", placement: "bottom", title: "Response Plans", desc: "Pre-built templates for aircraft accidents, medical emergencies, security threats, and more. Each plan includes step-by-step checklists and call trees." },
-    { target: "tour-erp-drills", placement: "right", title: "Drill Tracking", desc: "Schedule and record emergency drills. Log lessons learned and create corrective actions from findings." },
-  ]},
-  { id: "tour-moc", phase: "tour", tab: "moc", title: "Management of Change", adminOnly: true, feature: "management_of_change", subSteps: [
-    { target: "tour-moc-board", placement: "bottom", title: "Change Board", desc: "Track changes through 6 stages on a Kanban board. Each change includes hazard analysis and mitigation plans." },
-  ]},
-];
-
 const DEFAULT_RISK_CATEGORIES = [
   { id: "weather", name: "Weather", icon: "", factors: [
     { id: "wx_ceiling", label: "Ceiling < 1000' AGL at departure or destination", score: 4 },
@@ -682,439 +610,6 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
       </div>
     </nav>
   </>);
-}
-
-function OnboardingWizard({ onComplete, onDismiss, onTourStart, onSubTabChange, setCv, fleetAircraft, onAddAircraft, onInviteUser, orgName, userName, org, orgSlug, userRole }) {
-  const [step, setStep] = useState(0);
-  const [subStep, setSubStep] = useState(0);
-  const [cardPos, setCardPos] = useState(null);
-  const [highlightRect, setHighlightRect] = useState(null);
-  // Fleet mini-form state
-  const [acType, setAcType] = useState("");
-  const [acTail, setAcTail] = useState("");
-  const [acAdded, setAcAdded] = useState(0);
-  // Invite mini-form state
-  const [invEmail, setInvEmail] = useState("");
-  const [invRole, setInvRole] = useState("pilot");
-  const [invSent, setInvSent] = useState(0);
-  const [invError, setInvError] = useState("");
-  const [invSuccess, setInvSuccess] = useState("");
-  const [busy, setBusy] = useState(false);
-  const prevStepRef = useRef(step);
-
-  // Filter steps by org features and user role
-  const isAdminRole = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(userRole);
-  const orgSettings = org?.settings || {};
-  const steps = useMemo(() => ONBOARDING_STEPS.filter(s => {
-    if (s.adminOnly && !isAdminRole) return false;
-    if (s.id === "fleet" && fleetAircraft.length > 0) return false;
-    if (s.id === "invite" && (orgSettings.onboarding_completed || isFreeTier(org))) return false;
-    if (s.feature && !hasFeature(org, s.feature)) return false;
-    return true;
-  }), [org, isAdminRole, fleetAircraft, orgSettings.onboarding_completed]);
-
-  const current = steps[step] || steps[0];
-  const setupSteps = steps.filter(s => s.phase === "setup");
-  const overviewSteps = steps.filter(s => s.phase === "overview");
-  const tourSteps = steps.filter(s => s.phase === "tour");
-  const isSetup = current.phase === "setup";
-  const isOverview = current.phase === "overview";
-  const overviewIdx = overviewSteps.indexOf(current);
-  const tourIdx = tourSteps.indexOf(current);
-  // Filter sub-steps by role (remove adminOnly sub-steps for non-admins)
-  const filterSubs = useCallback((subs) => subs ? subs.filter(s => !s.adminOnly || isAdminRole) : null, [isAdminRole]);
-  const filteredSubSteps = filterSubs(current.subSteps);
-  const currentSub = filteredSubSteps ? filteredSubSteps[subStep] : null;
-
-  // Count total sub-steps for global progress
-  const totalSubSteps = useMemo(() => tourSteps.reduce((sum, s) => sum + (filterSubs(s.subSteps) ? filterSubs(s.subSteps).length : 1), 0), [tourSteps, filterSubs]);
-  const globalSubIdx = useMemo(() => {
-    let count = 0;
-    for (let i = 0; i < tourIdx; i++) count += (filterSubs(tourSteps[i].subSteps) ? filterSubs(tourSteps[i].subSteps).length : 1);
-    return count + subStep;
-  }, [tourIdx, subStep, tourSteps, filterSubs]);
-  const isLastGlobal = tourIdx === tourSteps.length - 1 && (!filteredSubSteps || subStep === filteredSubSteps.length - 1);
-
-  // Navigate to the tab when entering a tour or overview step (only when tab-level step changes)
-  useEffect(() => {
-    if ((current.phase === "tour" || current.phase === "overview") && current.tab && step !== prevStepRef.current) {
-      setCv(current.tab);
-    }
-    prevStepRef.current = step;
-    // Switch component sub-tabs when sub-step has componentTab
-    if (currentSub?.componentTab && onSubTabChange) {
-      onSubTabChange(currentSub.componentTab.component, currentSub.componentTab.value);
-    }
-  }, [step, subStep, current, currentSub]);
-
-  // Highlight ring for overview phase — target the nav button
-  const [overviewHighlight, setOverviewHighlight] = useState(null);
-  useEffect(() => {
-    if (!isOverview || !current.target) { setOverviewHighlight(null); return; }
-    const timer = setTimeout(() => {
-      const el = document.querySelector(`[data-tour="${current.target}"]`);
-      if (!el) { setOverviewHighlight(null); return; }
-      const rect = el.getBoundingClientRect();
-      setOverviewHighlight({ top: rect.top - 4, left: rect.left - 4, width: rect.width + 8, height: rect.height + 8 });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [step, isOverview, current]);
-
-  // Position calculation for tour card
-  useEffect(() => {
-    if (!currentSub) { setCardPos(null); setHighlightRect(null); return; }
-    const timer = setTimeout(() => {
-      if (!currentSub.target) {
-        setCardPos({ top: 80, right: 24, arrowDir: null });
-        setHighlightRect(null);
-        return;
-      }
-      const el = document.querySelector(`[data-tour="${currentSub.target}"]`);
-      if (!el) {
-        setCardPos({ top: 80, right: 24, arrowDir: null });
-        setHighlightRect(null);
-        return;
-      }
-      const isMobile = window.innerWidth <= 768;
-      el.scrollIntoView({ behavior: "smooth", block: isMobile ? "start" : "center" });
-      // Re-measure after scroll settles
-      setTimeout(() => {
-        const rect = el.getBoundingClientRect();
-        const cardW = 340;
-        const cardH = 220;
-        const margin = 16;
-        let pos = {};
-        let arrowDir = null;
-        const placement = currentSub.placement || "bottom";
-        if (placement === "bottom") {
-          pos.top = Math.min(rect.bottom + 12, window.innerHeight - cardH - margin);
-          pos.left = Math.max(margin, Math.min(rect.left + rect.width / 2 - cardW / 2, window.innerWidth - cardW - margin));
-          arrowDir = "up";
-        } else if (placement === "right") {
-          pos.top = Math.max(margin, Math.min(rect.top + rect.height / 2 - cardH / 2, window.innerHeight - cardH - margin));
-          pos.left = Math.min(rect.right + 12, window.innerWidth - cardW - margin);
-          arrowDir = "left";
-        } else if (placement === "left") {
-          pos.top = Math.max(margin, Math.min(rect.top + rect.height / 2 - cardH / 2, window.innerHeight - cardH - margin));
-          pos.left = Math.max(margin, rect.left - cardW - 12);
-          arrowDir = "right";
-        } else if (placement === "top") {
-          pos.top = Math.max(margin, rect.top - cardH - 12);
-          pos.left = Math.max(margin, Math.min(rect.left + rect.width / 2 - cardW / 2, window.innerWidth - cardW - margin));
-          arrowDir = "down";
-        } else {
-          pos.top = 80;
-          pos.right = 24;
-        }
-        // Clamp
-        if (pos.top !== undefined) pos.top = Math.max(margin, Math.min(pos.top, window.innerHeight - cardH - margin));
-        if (pos.left !== undefined) pos.left = Math.max(margin, Math.min(pos.left, window.innerWidth - cardW - margin));
-        pos.arrowDir = arrowDir;
-        setCardPos(pos);
-        setHighlightRect({ top: rect.top - 4, left: rect.left - 4, width: rect.width + 8, height: rect.height + 8 });
-      }, 300);
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [step, subStep, currentSub]);
-
-  const goNext = () => {
-    if (current.phase === "tour" && filteredSubSteps) {
-      if (subStep < filteredSubSteps.length - 1) { setSubStep(subStep + 1); return; }
-    }
-    const nextIdx = step + 1;
-    if (nextIdx < steps.length) {
-      if (current.phase === "setup" && steps[nextIdx].phase !== "setup" && onTourStart) onTourStart();
-      setStep(nextIdx); setSubStep(0);
-    } else onComplete();
-  };
-
-  const goBack = () => {
-    if (current.phase === "tour" && subStep > 0) { setSubStep(subStep - 1); return; }
-    if (step > 0) {
-      const prevStep = steps[step - 1];
-      const prevSubs = filterSubs(prevStep.subSteps);
-      setStep(step - 1);
-      setSubStep(prevSubs ? prevSubs.length - 1 : 0);
-    }
-  };
-
-  const skipToTour = () => {
-    const firstTourIdx = steps.findIndex(s => s.phase === "tour");
-    if (firstTourIdx >= 0) {
-      setStep(firstTourIdx);
-      setSubStep(0);
-    }
-  };
-
-  const handleAddAircraft = async () => {
-    if (!acType.trim() || !acTail.trim()) return;
-    setBusy(true);
-    try {
-      let reg = acTail.trim().toUpperCase();
-      if (reg && !reg.startsWith("N")) reg = "N" + reg;
-      await onAddAircraft({ type: acType.trim().toUpperCase(), registration: reg });
-      setAcAdded(prev => prev + 1);
-      setAcType("");
-      setAcTail("");
-    } catch (e) { console.error(e); }
-    setBusy(false);
-  };
-
-  const handleInvite = async () => {
-    if (!invEmail.trim()) return;
-    setBusy(true);
-    setInvError("");
-    setInvSuccess("");
-    try {
-      const result = await onInviteUser(invEmail.trim(), invRole);
-      if (result?.error) { setInvError(typeof result.error === "string" ? result.error : result.error.message || "Failed to send invite"); }
-      else { setInvSent(prev => prev + 1); setInvSuccess(`Invite sent to ${invEmail.trim()}`); setInvEmail(""); }
-    } catch (e) { setInvError("Failed to send invite"); }
-    setBusy(false);
-  };
-
-  const inp = { width: "100%", padding: "10px 12px", borderRadius: 6, border: `1px solid ${BORDER}`, background: NEAR_BLACK, color: WHITE, fontSize: 13, fontFamily: "inherit" };
-  const btnPrimary = { padding: "10px 28px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" };
-  const btnSecondary = { padding: "10px 28px", background: "transparent", color: OFF_WHITE, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" };
-
-  // Arrow component
-  const TourArrow = ({ dir }) => {
-    if (!dir) return null;
-    const size = 10;
-    const styles = {
-      position: "absolute", width: 0, height: 0,
-      ...(dir === "up" && { top: -size, left: "50%", transform: "translateX(-50%)", borderLeft: `${size}px solid transparent`, borderRight: `${size}px solid transparent`, borderBottom: `${size}px solid ${CARD}` }),
-      ...(dir === "down" && { bottom: -size, left: "50%", transform: "translateX(-50%)", borderLeft: `${size}px solid transparent`, borderRight: `${size}px solid transparent`, borderTop: `${size}px solid ${CARD}` }),
-      ...(dir === "left" && { left: -size, top: "50%", transform: "translateY(-50%)", borderTop: `${size}px solid transparent`, borderBottom: `${size}px solid transparent`, borderRight: `${size}px solid ${CARD}` }),
-      ...(dir === "right" && { right: -size, top: "50%", transform: "translateY(-50%)", borderTop: `${size}px solid transparent`, borderBottom: `${size}px solid transparent`, borderLeft: `${size}px solid ${CARD}` }),
-    };
-    return <div style={styles} />;
-  };
-
-  // Setup phase — full-screen modal
-  if (isSetup) {
-    return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div style={{ ...card, maxWidth: 520, width: "100%", padding: "36px 32px", position: "relative" }}>
-          {/* Step dots */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 28 }}>
-            {setupSteps.map((s, i) => {
-              const stepIdx = steps.indexOf(s);
-              return <div key={s.id} style={{ width: 8, height: 8, borderRadius: 4, background: stepIdx <= step ? WHITE : BORDER, transition: "background 0.2s" }} />;
-            })}
-          </div>
-
-          {/* Step 0: Welcome */}
-          {current.id === "welcome" && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ width: 56, height: 56, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 28 }}>{"\u2708\uFE0F"}</div>
-              <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 22 }}>Welcome, {(userName || "").split(" ")[0] || "there"}!</h2>
-              {isAdminRole
-                ? <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 8px" }}>You&apos;ve created <strong style={{ color: WHITE }}>{orgName}</strong> on PreflightSMS.</p>
-                : <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 8px" }}>You&apos;ve joined <strong style={{ color: WHITE }}>{orgName}</strong> on PreflightSMS.</p>
-              }
-              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: "0 0 28px" }}>{isAdminRole ? current.desc : (current.descNonAdmin || current.desc)}</p>
-              <button onClick={goNext} style={btnPrimary}>{isAdminRole ? "Let\u2019s Go" : "Start Tour"}</button>
-            </div>
-          )}
-
-          {/* Step 1: Add Fleet */}
-          {current.id === "fleet" && (
-            <div>
-              <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 6px", fontSize: 20 }}>{current.title}</h2>
-              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 20px" }}>{current.desc}</p>
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                <input value={acType} onChange={e => setAcType(e.target.value)} placeholder="Aircraft type (e.g. PC-12)" style={{ ...inp, flex: 1 }} onKeyDown={e => e.key === "Enter" && handleAddAircraft()} />
-                <input value={acTail} onChange={e => setAcTail(e.target.value)} placeholder="Tail # (e.g. N123AB)" style={{ ...inp, flex: 1 }} onKeyDown={e => e.key === "Enter" && handleAddAircraft()} />
-              </div>
-              <button onClick={handleAddAircraft} disabled={busy || !acType.trim() || !acTail.trim()} style={{ ...btnSecondary, width: "100%", marginBottom: 16, opacity: (!acType.trim() || !acTail.trim()) ? 0.4 : 1 }}>
-                {busy ? "Adding..." : "+ Add Aircraft"}
-              </button>
-              {(acAdded > 0 || (fleetAircraft && fleetAircraft.length > 0)) && (
-                <div style={{ padding: "10px 14px", borderRadius: 6, background: NEAR_BLACK, border: `1px solid ${BORDER}`, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ color: GREEN, fontSize: 16 }}>{"\u2713"}</span>
-                  <span style={{ color: OFF_WHITE, fontSize: 13 }}>{fleetAircraft?.length || acAdded} aircraft registered</span>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <button onClick={goBack} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Back</button>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={goNext} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Skip</button>
-                  {(fleetAircraft?.length > 0 || acAdded > 0) && <button onClick={goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>Next</button>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Invite Team */}
-          {current.id === "invite" && (
-            <div>
-              <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 6px", fontSize: 20 }}>{current.title}</h2>
-              <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 20px" }}>{current.desc}</p>
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <input value={invEmail} onChange={e => { setInvEmail(e.target.value); setInvError(""); setInvSuccess(""); }} placeholder="Email address" type="email" style={{ ...inp, flex: 2 }} onKeyDown={e => e.key === "Enter" && handleInvite()} />
-                <select value={invRole} onChange={e => setInvRole(e.target.value)} style={{ ...inp, flex: 1, appearance: "auto" }}>
-                  <option value="pilot">Pilot</option>
-                  <option value="safety_manager">Safety Manager</option>
-                  <option value="chief_pilot">Chief Pilot</option>
-                </select>
-              </div>
-              <button onClick={handleInvite} disabled={busy || !invEmail.trim()} style={{ ...btnSecondary, width: "100%", marginBottom: 12, opacity: !invEmail.trim() ? 0.4 : 1 }}>
-                {busy ? "Sending..." : "Send Invite"}
-              </button>
-              {invError && <div style={{ color: RED, fontSize: 12, marginBottom: 8 }}>{invError}</div>}
-              {invSuccess && <div style={{ color: GREEN, fontSize: 12, marginBottom: 8 }}>{invSuccess}</div>}
-              {invSent > 0 && <div style={{ padding: "10px 14px", borderRadius: 6, background: NEAR_BLACK, border: `1px solid ${BORDER}`, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ color: GREEN, fontSize: 16 }}>{"\u2713"}</span>
-                <span style={{ color: OFF_WHITE, fontSize: 13 }}>{invSent} invite{invSent !== 1 ? "s" : ""} sent</span>
-              </div>}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <button onClick={goBack} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Back</button>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={goNext} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12 }}>Skip</button>
-                  {invSent > 0 && <button onClick={goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>Next</button>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Skip setup link */}
-          <div style={{ textAlign: "center", marginTop: 20 }}>
-            <button onClick={onDismiss} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>Skip setup entirely</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Overview phase — centered modal with nav highlight ring
-  if (isOverview) {
-    const ovDesc = !isAdminRole && current.descNonAdmin ? current.descNonAdmin : current.desc;
-    // Find the icon for this tab from the tabs array context
-    const TAB_ICONS = { submit: "\u{1F4CB}", flights: "\u{1F4CD}", reports: "\u26A0\uFE0F", hazards: "\u{1F50D}", actions: "\u2705", policy: "\u{1F4C4}", cbt: "\u{1F393}", audit: "\u{1F6E1}\uFE0F", dashboard: "\u{1F4CA}", admin: "\u2699\uFE0F" };
-    const tabIcon = TAB_ICONS[current.tab] || "\u2708\uFE0F";
-    return (
-      <>
-        {/* Light dim overlay so nav is visible */}
-        <div style={{ position: "fixed", inset: 0, zIndex: 1998, background: "rgba(0,0,0,0.4)", pointerEvents: "none" }} />
-
-        {/* Highlight ring on nav button */}
-        {overviewHighlight && (
-          <div style={{
-            position: "fixed", top: overviewHighlight.top, left: overviewHighlight.left,
-            width: overviewHighlight.width, height: overviewHighlight.height,
-            borderRadius: 6, pointerEvents: "none", zIndex: 1999,
-            boxShadow: "0 0 0 3px #FFFFFF, 0 0 20px rgba(255,255,255,0.35)",
-            animation: "tourPulse 2s ease-in-out infinite",
-          }} />
-        )}
-
-        {/* Centered card */}
-        <div style={{ position: "fixed", inset: 0, zIndex: 2001, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, pointerEvents: "none" }}>
-          <div style={{ ...card, maxWidth: 480, width: "100%", padding: "36px 32px", position: "relative", pointerEvents: "auto", boxShadow: "0 16px 48px rgba(0,0,0,0.6)" }}>
-            {/* Segmented progress bar */}
-            <div style={{ display: "flex", gap: 3, marginBottom: 24 }}>
-              {overviewSteps.map((s, i) => (
-                <div key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i < overviewIdx ? WHITE : i === overviewIdx ? CYAN : BORDER, transition: "background 0.2s" }} />
-              ))}
-            </div>
-
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>{tabIcon}</div>
-              <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>{current.title}</h2>
-              <p style={{ color: OFF_WHITE, fontSize: 13, lineHeight: 1.6, margin: "0 0 24px" }}>{ovDesc}</p>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <button onClick={goBack} disabled={overviewIdx === 0} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12, opacity: overviewIdx === 0 ? 0.3 : 1 }}>Back</button>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <button onClick={skipToTour} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>Skip to tour</button>
-                <button onClick={goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>Next</button>
-              </div>
-            </div>
-
-            <div style={{ textAlign: "center", marginTop: 16, fontSize: 10, color: SUBTLE }}>
-              Step {overviewIdx + 1} of {overviewSteps.length}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // Tour phase — dynamic positioned card with highlight ring
-  const subSteps = filteredSubSteps || [];
-  const subTitle = currentSub ? (!isAdminRole && currentSub.titleNonAdmin ? currentSub.titleNonAdmin : currentSub.title) : current.title;
-  const subDesc = currentSub ? (!isAdminRole && currentSub.descNonAdmin ? currentSub.descNonAdmin : currentSub.desc) : "";
-  const pos = cardPos || { top: 80, right: 24, arrowDir: null };
-
-  return (
-    <>
-      {/* Dim overlay — pointer-events: none so user can see underlying app */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 1998, background: "rgba(0,0,0,0.3)", pointerEvents: "none" }} />
-
-      {/* Highlight ring around target element */}
-      {highlightRect && (
-        <div className="tour-highlight-ring" style={{
-          position: "fixed", top: highlightRect.top, left: highlightRect.left,
-          width: highlightRect.width, height: highlightRect.height,
-          borderRadius: 8, pointerEvents: "none", zIndex: 1999,
-          boxShadow: "0 0 0 3px #FFFFFF, 0 0 16px rgba(255,255,255,0.2)",
-          animation: "tourPulse 2s ease-in-out infinite",
-        }} />
-      )}
-
-      {/* Tour card */}
-      <div className="onboarding-tour-card" style={{
-        position: "fixed",
-        top: pos.top != null ? pos.top : undefined,
-        left: pos.left != null ? pos.left : undefined,
-        right: pos.right != null ? pos.right : undefined,
-        width: 340, ...card, padding: "24px 22px",
-        boxShadow: "0 16px 48px rgba(0,0,0,0.6)", zIndex: 2001,
-        transition: "top 0.3s ease, left 0.3s ease, right 0.3s ease",
-      }}>
-        <TourArrow dir={pos.arrowDir} />
-
-        {/* Tab-level segmented progress bar */}
-        <div style={{ display: "flex", gap: 3, marginBottom: 8 }}>
-          {tourSteps.map((s, i) => (
-            <div key={s.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i < tourIdx ? WHITE : i === tourIdx ? CYAN : BORDER, transition: "background 0.2s" }} />
-          ))}
-        </div>
-
-        {/* Sub-step dots */}
-        {subSteps.length > 1 && (
-          <div style={{ display: "flex", gap: 5, justifyContent: "center", marginBottom: 10 }}>
-            {subSteps.map((_, i) => (
-              <div key={i} style={{ width: 6, height: 6, borderRadius: 3, background: i <= subStep ? WHITE : BORDER, transition: "background 0.2s" }} />
-            ))}
-          </div>
-        )}
-
-        <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>
-          Feature tour — Tab {tourIdx + 1} of {tourSteps.length}
-        </div>
-        <div style={{ fontSize: 10, color: SUBTLE, marginBottom: 10 }}>{current.title}</div>
-        <h3 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 6px", fontSize: 17 }}>{subTitle}</h3>
-        <p style={{ color: OFF_WHITE, fontSize: 13, lineHeight: 1.6, margin: "0 0 20px" }}>{subDesc}</p>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <button onClick={goBack} disabled={tourIdx === 0 && subStep === 0} style={{ ...btnSecondary, padding: "8px 16px", fontSize: 12, opacity: (tourIdx === 0 && subStep === 0) ? 0.3 : 1 }}>Back</button>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button onClick={onDismiss} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>Skip tour</button>
-            <button onClick={isLastGlobal ? onComplete : goNext} style={{ ...btnPrimary, padding: "8px 20px", fontSize: 12 }}>
-              {isLastGlobal ? "Get Started" : "Next"}
-            </button>
-          </div>
-        </div>
-
-        {/* Global sub-step counter */}
-        <div style={{ textAlign: "center", marginTop: 12, fontSize: 10, color: SUBTLE }}>
-          {globalSubIdx + 1} of {totalSubSteps}
-        </div>
-      </div>
-    </>
-  );
 }
 
 function RiskScoreGauge({ score }) {
@@ -3145,70 +2640,6 @@ function AuthScreen({ onAuth, initialMode }) {
       </div></div>);
 }
 
-// ── Tour seed data generator (state-only, never written to DB) ──
-function buildTourSeedData(today, userName, fleet) {
-  const d = new Date(today + "T12:00:00Z");
-  const iso = (offset) => { const dt = new Date(d); dt.setDate(dt.getDate() + offset); return dt.toISOString(); };
-  const dateStr = (offset) => { const dt = new Date(d); dt.setDate(dt.getDate() + offset); return dt.toISOString().slice(0, 10); };
-  const pilot = userName || "J. Smith";
-  const ac = fleet && fleet[0] ? fleet[0].aircraft_type || "PC-12" : "PC-12";
-  const tail = fleet && fleet[0] ? fleet[0].tail_number || "N123AB" : "N123AB";
-
-  // ETA helpers for active flights
-  const now = new Date();
-  const eta2h = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString();
-  const eta4h = new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
-
-  return {
-    records: [
-      { id: "_seed_FRAT001", dbId: "_seed_r1", pilot, aircraft: ac, tailNumber: tail, departure: "KSFF", destination: "KBOI", cruiseAlt: "FL250", date: dateStr(-1), etd: "14:00", ete: "1:45", eta: "15:45", fuelLbs: 2800, numCrew: 2, numPax: 3, score: 8, riskLevel: "LOW", factors: ["Day VFR", "Familiar route"], wxBriefing: "VFR conditions", remarks: "", attachments: [], timestamp: iso(-1) },
-      { id: "_seed_FRAT002", dbId: "_seed_r2", pilot, aircraft: ac, tailNumber: tail, departure: "KBOI", destination: "KSEA", cruiseAlt: "FL270", date: dateStr(-2), etd: "09:00", ete: "1:30", eta: "10:30", fuelLbs: 2600, numCrew: 2, numPax: 5, score: 22, riskLevel: "MODERATE", factors: ["Mountain terrain", "IFR required", "Gusty winds"], wxBriefing: "IFR with moderate turbulence", remarks: "Mountain wave advisory", attachments: [], timestamp: iso(-2) },
-      { id: "_seed_FRAT003", dbId: "_seed_r3", pilot, aircraft: ac, tailNumber: tail, departure: "KDEN", destination: "KASE", cruiseAlt: "FL250", date: dateStr(-3), etd: "07:00", ete: "0:55", eta: "07:55", fuelLbs: 2200, numCrew: 2, numPax: 4, score: 35, riskLevel: "HIGH", factors: ["Mountain terrain", "Short runway", "Night approach", "Icing conditions", "Gusty crosswind"], wxBriefing: "Marginal VFR, icing above 12000", remarks: "Chief pilot approval obtained", attachments: [], timestamp: iso(-3) },
-    ],
-    flights: [
-      { id: "_seed_FLT001", dbId: "_seed_f1", pilot, aircraft: ac, tailNumber: tail, departure: "KSFF", destination: "KBOI", cruiseAlt: "FL250", etd: new Date(now.getTime() - 30 * 60 * 1000).toISOString(), ete: "1:45", eta: eta2h, fuelLbs: 2800, numCrew: 2, numPax: 3, score: 8, riskLevel: "LOW", status: "ACTIVE", timestamp: iso(0), arrivedAt: null, cancelled: false },
-      { id: "_seed_FLT002", dbId: "_seed_f2", pilot, aircraft: ac, tailNumber: tail, departure: "KBOI", destination: "KSEA", cruiseAlt: "FL270", etd: new Date(now.getTime() - 15 * 60 * 1000).toISOString(), ete: "1:30", eta: eta4h, fuelLbs: 2600, numCrew: 2, numPax: 5, score: 22, riskLevel: "MODERATE", status: "ACTIVE", timestamp: iso(0), arrivedAt: null, cancelled: false },
-      { id: "_seed_FLT003", dbId: "_seed_f3", pilot, aircraft: ac, tailNumber: tail, departure: "KDEN", destination: "KASE", cruiseAlt: "FL250", etd: iso(-1), ete: "0:55", eta: iso(-1), fuelLbs: 2200, numCrew: 2, numPax: 4, score: 35, riskLevel: "HIGH", status: "ARRIVED", timestamp: iso(-1), arrivedAt: iso(-1), cancelled: false },
-    ],
-    reports: [
-      { id: "_seed_rp1", org_id: "_seed", report_code: "RPT-SEED01", title: "Bird Strike on Departure", report_type: "hazard", description: "Large bird strike during initial climb out of KSFF runway 21. Minor leading edge dent, no engine ingestion.", reporter_id: "_seed_u1", anonymous: false, confidential: false, status: "open", severity: "medium", category: "wildlife", location: "KSFF", tail_number: tail, aircraft_type: ac, flight_phase: "climb", date_occurred: dateStr(-2), created_at: iso(-2) },
-      { id: "_seed_rp2", org_id: "_seed", report_code: "RPT-SEED02", title: "Cabin Pressure Fluctuation", report_type: "incident", description: "Intermittent cabin pressure fluctuations noted between FL250-FL270 on KBOI-KSEA segment. Returned to normal after descent.", reporter_id: "_seed_u2", anonymous: false, confidential: false, status: "under_review", severity: "high", category: "mechanical", location: "KBOI", tail_number: tail, aircraft_type: ac, flight_phase: "cruise", date_occurred: dateStr(-5), created_at: iso(-5) },
-      { id: "_seed_rp3", org_id: "_seed", report_code: "RPT-SEED03", title: "Runway Incursion Avoided", report_type: "near_miss", description: "Ground vehicle crossed runway 28L during taxi. Stopped short per tower instruction. No conflict.", reporter_id: "_seed_u1", anonymous: false, confidential: false, status: "closed", severity: "high", category: "ground_ops", location: "KSEA", tail_number: tail, aircraft_type: ac, flight_phase: "taxi", date_occurred: dateStr(-10), created_at: iso(-10) },
-    ],
-    hazards: [
-      { id: "_seed_h1", org_id: "_seed", hazard_code: "HAZ-SEED01", title: "Icing Conditions — Mountain Routes", description: "Persistent moderate icing reported on KDEN-KASE and KBOI-KSEA mountain segments above FL180.", status: "active", initial_severity: 4, initial_likelihood: 3, initial_risk_score: 12, residual_severity: 3, residual_likelihood: 2, residual_risk_score: 6, category: "weather", source: "safety_report", mitigations: "Verify anti-ice/de-ice systems operational. Brief alternate routes below icing layer.", responsible_person: pilot, review_date: dateStr(14), created_at: iso(-4), related_report_id: null },
-      { id: "_seed_h2", org_id: "_seed", hazard_code: "HAZ-SEED02", title: "Fuel Contamination — KSFF", description: "Water contamination found in sumped fuel sample at KSFF FBO. FBO notified and filters replaced.", status: "mitigated", initial_severity: 4, initial_likelihood: 3, initial_risk_score: 12, residual_severity: 2, residual_likelihood: 1, residual_risk_score: 2, category: "maintenance", source: "pilot_debrief", mitigations: "Fuel filters replaced. Double sump checks required for 30 days.", responsible_person: "M. Davis", review_date: dateStr(-7), created_at: iso(-14), related_report_id: null },
-    ],
-    actions: [
-      { id: "_seed_a1", org_id: "_seed", action_code: "CA-SEED01", title: "Verify anti-ice systems on all fleet aircraft", description: "Perform functional check of all anti-ice and de-ice systems prior to winter operations.", status: "open", priority: "high", assigned_to_name: pilot, due_date: dateStr(14), created_at: iso(-3), hazard_id: "_seed_h1", completed_at: null },
-      { id: "_seed_a2", org_id: "_seed", action_code: "CA-SEED02", title: "Update winter operations SOP", description: "Revise winter ops SOP to include mandatory icing briefings for mountain routes.", status: "in_progress", priority: "medium", assigned_to_name: pilot, due_date: dateStr(30), created_at: iso(-7), hazard_id: "_seed_h1", completed_at: null },
-      { id: "_seed_a3", org_id: "_seed", action_code: "CA-SEED03", title: "Replace fuel filters at KSFF", description: "Coordinate with FBO to replace all fuel filters and verify fuel quality.", status: "completed", priority: "high", assigned_to_name: "M. Davis", due_date: dateStr(-3), created_at: iso(-14), hazard_id: "_seed_h2", completed_at: iso(-7) },
-    ],
-    policies: [
-      { id: "_seed_p1", org_id: "_seed", title: "Safety Policy Statement", category: "safety_policy", description: "Company-wide safety commitment", content: "Our organization is committed to achieving the highest level of aviation safety...", status: "active", version: 1, effective_date: dateStr(-30), acknowledgments: [{ user_id: "_seed_u1", user_name: pilot, acknowledged_at: iso(-5) }], created_at: iso(-30) },
-      { id: "_seed_p2", org_id: "_seed", title: "Standard Operating Procedures", category: "sop", description: "Normal and emergency operations procedures", content: "These procedures govern normal, abnormal, and emergency operations...", status: "active", version: 2, effective_date: dateStr(-60), acknowledgments: [], created_at: iso(-60) },
-    ],
-    trainingReqs: [
-      { id: "_seed_tr1", org_id: "_seed", title: "Annual Safety Recurrent", description: "Annual SMS and safety awareness recurrent training.", category: "recurrent", frequency_months: 12, required_for: ["pilot", "captain", "first_officer"], created_at: iso(-90) },
-    ],
-    trainingRecs: [
-      { id: "_seed_trr1", org_id: "_seed", requirement_id: "_seed_tr1", user_id: "_seed_u1", title: "Annual Safety Recurrent", user: { full_name: pilot }, completed_date: dateStr(-15), expiry_date: dateStr(350), notes: "Completed online module and check ride", created_at: iso(-15) },
-    ],
-    cbtCourses: [
-      { id: "_seed_cbt1", org_id: "_seed", title: "SMS Fundamentals", description: "Introduction to Safety Management Systems for Part 5 compliance.", status: "published", category: "sms", estimated_minutes: 45, passing_score: 80, created_at: iso(-60) },
-    ],
-    smsManuals: [
-      { id: "_seed_sm1", org_id: "_seed", title: "Safety Policy Manual", manual_key: "safety_policy", status: "draft", sections: [
-        { id: "sp1", title: "Safety Policy Statement", content: "Our organization is committed to the highest standards of aviation safety.", completed: true },
-        { id: "sp2", title: "Safety Objectives", content: "Achieve zero preventable accidents through proactive hazard identification.", completed: true },
-        { id: "sp3", title: "Management Commitment", content: "Senior management allocates adequate resources for SMS implementation.", completed: true },
-        { id: "sp4", title: "Accountable Executive", content: "", completed: false },
-        { id: "sp5", title: "Safety Accountabilities", content: "", completed: false },
-      ], created_at: iso(-20), updated_at: iso(-5) },
-    ],
-  };
-}
-
 export default function PVTAIRFrat() {
   const isMobile = useIsMobile();
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -3285,7 +2716,6 @@ export default function PVTAIRFrat() {
 
   const org = profile?.organizations || {};
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [upgradePrompt, setUpgradePrompt] = useState(null); // { feature, message } or null
   // Redirect gated tabs to dashboard with upgrade prompt
   useEffect(() => {
@@ -3305,7 +2735,6 @@ export default function PVTAIRFrat() {
     defaultViewSetRef.current = true;
     if (!isAdmin) setCv("frat");
   }, [profile]);
-  const [tourSubTabs, setTourSubTabs] = useState({});
   const [nudgeFlight, setNudgeFlight] = useState(null);
   const [nudgeResponses, setNudgeResponses] = useState([]);
   const [foreflightConfig, setForeflightConfig] = useState(null);
@@ -3614,18 +3043,6 @@ export default function PVTAIRFrat() {
   // by the check-audit-schedules and check-moc-reviews cron edge functions,
   // which dedup server-side. Removed in-app useEffects that duplicated these
   // because having notifications in the dependency array caused re-fire loops.
-
-  // Onboarding wizard trigger — per-user via localStorage
-  useEffect(() => {
-    if (!profile || !isOnline || !session?.user?.id) return;
-    const subStatus = profile.organizations?.subscription_status || "active";
-    if (["canceled", "suspended"].includes(subStatus)) return;
-    const trialCreatedAt = profile.organizations?.created_at ? new Date(profile.organizations.created_at) : null;
-    if (subStatus === "trial" && subStatus !== "free" && trialCreatedAt && Math.floor((Date.now() - trialCreatedAt.getTime()) / (1000 * 60 * 60 * 24)) >= 14) return;
-    const key = `preflightsms_onboarding_${session.user.id}`;
-    const done = localStorage.getItem(key);
-    if (!done) setShowOnboarding(true);
-  }, [profile, isOnline, session]);
 
   const [fratPrefill, setFratPrefill] = useState(null);
 
@@ -4527,51 +3944,6 @@ export default function PVTAIRFrat() {
   const userName = profile?.full_name || "";
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
 
-  // Onboarding handlers
-  const handleSubTabChange = (component, value) => {
-    setTourSubTabs(prev => ({ ...prev, [component]: value }));
-  };
-  const handleTourStart = () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const seed = buildTourSeedData(today, userName, fleetAircraft);
-    setRecords(seed.records);
-    setFlights(seed.flights);
-    setReports(seed.reports);
-    setHazards(seed.hazards);
-    setActions(seed.actions);
-    setPolicies(seed.policies);
-    setTrainingReqs(seed.trainingReqs);
-    setTrainingRecs(seed.trainingRecs);
-    setCbtCourses(seed.cbtCourses);
-    setSmsManuals(seed.smsManuals);
-  };
-  const handleOnboardingComplete = async () => {
-    setShowOnboarding(false);
-    setTourSubTabs({});
-    setCv("dashboard");
-    if (session?.user?.id) localStorage.setItem(`preflightsms_onboarding_${session.user.id}`, "completed");
-    if (profile?.org_id) {
-      refreshAllData(profile.org_id);
-      if (isAdmin) {
-        await saveOnboardingStatus(profile.org_id, { onboarding_completed: true });
-        setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true } } } : prev);
-      }
-    }
-  };
-  const handleOnboardingDismiss = async () => {
-    setShowOnboarding(false);
-    setTourSubTabs({});
-    setCv("dashboard");
-    if (session?.user?.id) localStorage.setItem(`preflightsms_onboarding_${session.user.id}`, "skipped");
-    if (profile?.org_id) {
-      refreshAllData(profile.org_id);
-      if (isAdmin) {
-        await saveOnboardingStatus(profile.org_id, { onboarding_completed: true, onboarding_skipped: true });
-        setProfile(prev => prev ? { ...prev, organizations: { ...prev.organizations, settings: { ...(prev.organizations?.settings || {}), onboarding_completed: true, onboarding_skipped: true } } } : prev);
-      }
-    }
-  };
-
   // Read-only guard for canceled subscriptions
   const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: isTrialExpired ? "Your trial has expired — subscribe to continue" : "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
 
@@ -4590,7 +3962,6 @@ export default function PVTAIRFrat() {
   );
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
-    {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} onDismiss={handleOnboardingDismiss} onTourStart={handleTourStart} onSubTabChange={handleSubTabChange} setCv={setCv} fleetAircraft={fleetAircraft} onAddAircraft={async (record) => { const orgId = profile?.org_id; if (!orgId) return; await createAircraft(orgId, record); const { data } = await fetchAircraft(orgId); setFleetAircraft(data || []); }} onInviteUser={async (email, role) => { const orgId = profile?.org_id; if (!orgId) return { error: "No org" }; const { data, error } = await createInvitation(orgId, email, role, session.user.id); if (error) return { error: error.message }; try { await supabase.functions.invoke('send-invite', { body: { email, orgName, role, token: data.token } }); } catch (e) { console.error("Invite email error:", e); } fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || [])); return { success: true }; }} orgName={orgName} userName={userName} org={org} orgSlug={profile?.organizations?.slug || ""} userRole={profile?.role} />}
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} />
       <div className="main-content" style={{ marginLeft: 140 }}>
@@ -4671,7 +4042,7 @@ export default function PVTAIRFrat() {
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
-        {cv === "flights" && <FlightBoard flights={flights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} initialSelectedFlight={showOnboarding ? "_seed_FLT001" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} onApproveFlight={async (flightDbId, fratDbId) => {
+        {cv === "flights" && <FlightBoard flights={flights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} initialSelectedFlight={null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} onApproveFlight={async (flightDbId, fratDbId) => {
           setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f));
           if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r));
           setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
@@ -4712,11 +4083,11 @@ export default function PVTAIRFrat() {
         {cv === "moc" && <ManagementOfChange profile={profile} session={session} orgProfiles={orgProfiles} mocItems={mocItems} onCreateMoc={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; const { data: newItem } = await createMocItem(orgId, data); if (newItem?.responsible_id && newItem.responsible_id !== profile?.id) { createNotification(orgId, { type: "moc_assigned", title: "Change Request Assigned", body: `You have been assigned: ${newItem.title}`, link_tab: "moc", link_id: newItem.id, target_user_id: newItem.responsible_id }); } fetchMocItems(orgId).then(({ data: d }) => setMocItems(d || [])); })} onUpdateMoc={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = mocItems.find(i => i.id === id); await updateMocItem(id, updates); if (updates.responsible_id && updates.responsible_id !== existing?.responsible_id && updates.responsible_id !== profile?.id) { createNotification(orgId, { type: "moc_assigned", title: "Change Request Assigned", body: `You have been assigned: ${existing?.title || "Change request"}`, link_tab: "moc", link_id: id, target_user_id: updates.responsible_id }); } fetchMocItems(orgId).then(({ data: d }) => setMocItems(d || [])); })} onDeleteMoc={roGuard(async (id) => { await deleteMocItem(id); const orgId = profile?.org_id; if (orgId) fetchMocItems(orgId).then(({ data: d }) => setMocItems(d || [])); })} onUploadFile={async (mocId, file) => { const orgId = profile?.org_id; if (!orgId) return { url: null, error: { message: "No org" } }; return uploadMocFile(orgId, mocId, file); }} onFetchAttachments={async (mocId) => { const { data } = await fetchMocAttachments(mocId); return data || []; }} onCreateAttachment={async (mocId, att) => { await createMocAttachment(mocId, att); }} onDeleteAttachment={async (id) => { await deleteMocAttachment(id); }} onAiIdentifyHazards={hasFeature(org, "safety_trend_alerts") ? async ({ mocTitle, changeType, mocDescription }) => { try { const { data, error } = await supabase.functions.invoke('ai-draft-assist', { body: { orgId: profile?.org_id, mode: "moc_hazards", mocTitle, changeType, mocDescription } }); if (error) { setToast({ message: "AI hazard identification unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data?.result || null; } catch { setToast({ message: "AI hazard identification unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } } : undefined} />}
         {cv === "hazards" && <HazardRegister profile={profile} session={session} onCreateHazard={isFree ? (() => showUpgrade("investigations", "Full investigation capabilities are available on the Starter plan. Free plan is view-only.")) : roGuard(onCreateHazard)} onUpdateHazard={isFree ? (() => showUpgrade("investigations", "Full investigation capabilities are available on the Starter plan. Free plan is view-only.")) : roGuard(onUpdateHazard)} hazards={hazards} reports={reports} fromReport={hazardFromReport} onClearFromReport={() => setHazardFromReport(null)} actions={actions} onCreateAction={(hazard) => { setActionFromInvestigation(hazard); setCv("actions"); }} org={org} onAiInvestigate={async (hazardId) => { try { const { data, error } = await supabase.functions.invoke('ai-investigation-assist', { body: { orgId: profile?.org_id, hazardId } }); if (error) { setToast({ message: "AI analysis unavailable — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data; } catch { setToast({ message: "AI analysis unavailable — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } }} onGenerateLessonsLearned={hasFeature(org, "safety_trend_alerts") ? async (hazardId) => { try { const { data, error } = await supabase.functions.invoke('ai-lessons-learned', { body: { orgId: profile?.org_id, hazardId } }); if (error) { setToast({ message: "AI lessons learned unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return; } if (data?.lessonsLearned) { await updateHazard(hazardId, { lessons_learned: data.lessonsLearned }); const orgId = profile?.org_id; if (orgId) { const { data: h } = await fetchHazards(orgId); setHazards(h || []); } setToast({ message: "Lessons learned generated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } } catch { setToast({ message: "AI lessons learned unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); } } : undefined} onPublishBulletin={hasFeature(org, "safety_trend_alerts") ? (hazard) => { if (!hazard.lessons_learned) return; const orgId = profile?.org_id; if (!orgId) return; createNotification(orgId, { type: "safety_bulletin", title: `Safety Bulletin: ${hazard.title}`, body: hazard.lessons_learned.summary || `Lessons learned from investigation ${hazard.hazard_code}`, link_tab: "hazards", target_roles: null }); setToast({ message: "Safety bulletin published to all org members", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } : undefined} onCreateTrainingModule={hasFeature(org, "safety_trend_alerts") ? async (hazard) => { if (!hazard.lessons_learned) return; const orgId = profile?.org_id; if (!orgId) return; const ll = hazard.lessons_learned; const courseData = { title: `Lessons Learned: ${hazard.title}`, description: ll.summary || `Safety lessons from investigation ${hazard.hazard_code}`, status: "draft" }; const { data: course, error } = await createCbtCourse(orgId, session.user.id, courseData); if (error || !course) { setToast({ message: "Failed to create training module", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return; } const lessonContent = [{ type: "text", content: ll.summary || "" }, ...(ll.takeaways || []).map(t => ({ type: "text", content: `**Key Takeaway:** ${t}` })), ...(ll.prevention_tips || []).map(t => ({ type: "text", content: `**Prevention Tip:** ${t}` }))]; await upsertCbtLesson(orgId, course.id, { title: `${hazard.hazard_code} — Lessons Learned`, content_blocks: lessonContent, order_index: 0 }); await refreshCbt(); setToast({ message: "Training module created from lessons learned", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } : undefined} />}
         {cv === "actions" && <CorrectiveActions actions={actions} onCreateAction={freeGuard(roGuard(onCreateAction), "corrective actions", () => isFree && (actions || []).filter(a => a.status !== "completed").length >= FREE_TIER_LIMITS.maxOpenActions, `Free plan allows up to ${FREE_TIER_LIMITS.maxOpenActions} open corrective actions. Upgrade to Starter for unlimited.`)} onUpdateAction={roGuard(onUpdateAction)} fromInvestigation={actionFromInvestigation} hazards={hazards} onClearFromInvestigation={() => setActionFromInvestigation(null)} orgProfiles={orgProfiles} />}
-        {cv === "policy" && <PolicyTraining tourTab={tourSubTabs.policy} profile={profile} session={session} policies={policies} onCreatePolicy={freeGuard(roGuard(onCreatePolicy), "policy library", () => isFree && (policies || []).length >= FREE_TIER_LIMITS.maxPolicies, `Free plan allows up to ${FREE_TIER_LIMITS.maxPolicies} policies. Upgrade to Starter for unlimited.`)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} showManuals={(hasFeature(org, "sms_manuals") || isFree) && ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role)} readOnlyManuals={isFree} templateVariables={templateVariables} signatures={smsSignatures} fleetAircraft={fleetAircraft} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onAiDraftPolicy={hasFeature(org, "safety_trend_alerts") ? async ({ policyTitle, policyCategory }) => { try { const { data, error } = await supabase.functions.invoke('ai-draft-assist', { body: { orgId: profile?.org_id, mode: "policy_draft", policyTitle, policyCategory } }); if (error) { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data?.result || null; } catch { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } } : undefined} />}
-        {cv === "cbt" && <CbtModules tourTab={tourSubTabs.cbt} profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
+        {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={freeGuard(roGuard(onCreatePolicy), "policy library", () => isFree && (policies || []).length >= FREE_TIER_LIMITS.maxPolicies, `Free plan allows up to ${FREE_TIER_LIMITS.maxPolicies} policies. Upgrade to Starter for unlimited.`)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} showManuals={(hasFeature(org, "sms_manuals") || isFree) && ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role)} readOnlyManuals={isFree} templateVariables={templateVariables} signatures={smsSignatures} fleetAircraft={fleetAircraft} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onAiDraftPolicy={hasFeature(org, "safety_trend_alerts") ? async ({ policyTitle, policyCategory }) => { try { const { data, error } = await supabase.functions.invoke('ai-draft-assist', { body: { orgId: profile?.org_id, mode: "policy_draft", policyTitle, policyCategory } }); if (error) { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data?.result || null; } catch { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } } : undefined} />}
+        {cv === "cbt" && <CbtModules profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} pilotEngagement={pilotEngagement} safetyRecognitions={safetyRecognitions} orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} onAcknowledgeRecognition={async (recId) => { await acknowledgeRecognition(recId); if (session?.user?.id) fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || [])); }} complianceFrameworks={complianceFrameworks} complianceChecklistItems={complianceChecklistItems} complianceStatusData={complianceStatusData} trainingReqs={trainingReqs} trainingRecs={trainingRecs} policies={policies} iepAudits={iepAudits} auditSchedules={auditSchedulesData} mocItems={mocItems} insuranceExports={insuranceExports} onGenerateExport={roGuard(async (exportData, pdfBlob) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await createInsuranceExport(orgId, exportData); if (data && pdfBlob) { const { data: pdfUrl } = await uploadInsuranceExportPdf(orgId, data.id, pdfBlob); if (pdfUrl) { await supabase.from('insurance_exports').update({ pdf_path: pdfUrl }).eq('id', data.id); } } fetchInsuranceExports(orgId).then(({ data: d }) => setInsuranceExports(d || [])); setToast({ message: "Insurance export generated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onDeleteExport={roGuard(async (exportId) => { await deleteInsuranceExport(exportId); const orgId = profile?.org_id; if (orgId) fetchInsuranceExports(orgId).then(({ data }) => setInsuranceExports(data || [])); })} onNavigateSubscription={() => { setInitialAdminTab("subscription"); setCv("admin"); }} onNavigate={setCv} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} onViewDetail={(id) => setFratDetailId(id)} />}
-        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel tourTab={tourSubTabs.admin} profile={profile} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onUpdateEmail={async (userId, email) => { await updateProfileEmail(userId, email); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
+        {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onUpdateEmail={async (userId, email) => { await updateProfileEmail(userId, email); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
           const { data, error } = await upsertFratTemplate(orgId, templateData);
@@ -4981,8 +4352,6 @@ export default function PVTAIRFrat() {
 .fade-in{animation:fadeIn 0.2s ease-out}
 button:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
-@keyframes tourPulse{0%,100%{box-shadow:0 0 0 3px #ffffff,0 0 12px rgba(255,255,255,0.15)}50%{box-shadow:0 0 0 3px #22d3ee,0 0 24px rgba(34,211,238,0.35)}}
-.tour-highlight-ring{animation:tourPulse 2s ease-in-out infinite}
 @media(max-width:768px){
 .fab-container{bottom:calc(72px + env(safe-area-inset-bottom, 8px)) !important;right:16px !important}
 .mobile-bottom-nav{display:flex !important;padding:8px 24px calc(10px + env(safe-area-inset-bottom, 0px)) 24px !important}
@@ -5019,8 +4388,6 @@ a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 .flight-board-grid{grid-template-columns:1fr !important}
 .plan-grid{grid-template-columns:1fr 1fr !important}
 .report-grid{grid-template-columns:1fr !important}
-.onboarding-tour-card{top:auto !important;bottom:0 !important;right:0 !important;left:0 !important;width:100% !important;border-radius:16px 16px 0 0 !important;max-height:60vh;overflow-y:auto}
-.tour-highlight-ring{display:none !important}
 button,a,[role="button"]{min-height:44px;min-width:44px}
 input,select,textarea{min-height:44px;font-size:16px !important}
 }
