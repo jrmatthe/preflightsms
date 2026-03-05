@@ -5,7 +5,7 @@ const CARD = "#222222", BORDER = "#2E2E2E", LIGHT_BORDER = "#3A3A3A";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777";
 const GREEN = "#4ADE80", AMBER = "#F59E0B", CYAN = "#22D3EE";
 
-export default function OnboardingDashboard({ onboardingState, onStartFlow, onDismiss }) {
+export default function OnboardingDashboard({ onboardingState, onStartFlow, onDismiss, isTrial, onStartFresh }) {
   const [collapsed, setCollapsed] = useState(false);
 
   if (!onboardingState) return null;
@@ -202,6 +202,44 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
           );
         })}
       </div>
+
+      {/* Sandbox callout */}
+      {isTrial && (
+        <div style={{
+          margin: "4px 24px 12px",
+          padding: "16px 20px",
+          background: "rgba(245,158,11,0.04)",
+          border: "1px solid rgba(245,158,11,0.15)",
+          borderRadius: 10,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 14 }}>{"\uD83E\uDDEA"}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: AMBER }}>Sandbox Mode</span>
+          </div>
+          <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.5, marginBottom: 12 }}>
+            Go ahead — fill your system with dummy data to explore every feature.
+            When you're ready to go live, one-click delete everything and start fresh while you're still in trial.
+          </div>
+          <button
+            onClick={onStartFresh}
+            style={{
+              padding: "8px 20px",
+              background: "transparent",
+              color: AMBER,
+              border: `1px solid rgba(245,158,11,0.3)`,
+              borderRadius: 8,
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; e.currentTarget.style.borderColor = "rgba(245,158,11,0.5)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "rgba(245,158,11,0.3)"; }}
+          >
+            Start Fresh — Delete All Data
+          </button>
+        </div>
+      )}
 
       {/* Dismiss link */}
       <div style={{ padding: "6px 24px 16px", textAlign: "center" }}>

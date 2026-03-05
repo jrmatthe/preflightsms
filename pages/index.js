@@ -2662,6 +2662,9 @@ export default function PVTAIRFrat() {
   });
   const [initialAdminTab, setInitialAdminTab] = useState(_initTab === "subscription" ? "subscription" : null);
   const [onboardingState, setOnboardingState] = useState(null);
+  const [showStartFreshConfirm, setShowStartFreshConfirm] = useState(false);
+  const [startFreshLoading, setStartFreshLoading] = useState(false);
+  const [showPostPaymentModal, setShowPostPaymentModal] = useState(false);
   const [activeFlow, setActiveFlow] = useState(null);
   const [activeFlowStep, setActiveFlowStep] = useState(0);
   const activeFlowRef = useRef(null);
@@ -2887,6 +2890,63 @@ export default function PVTAIRFrat() {
     await persistOnboarding(next);
   }, [onboardingState, persistOnboarding]);
 
+  const handleStartFresh = useCallback(async () => {
+    setStartFreshLoading(true);
+    try {
+      const token = (await supabase.auth.getSession())?.data?.session?.access_token;
+      const res = await fetch("/api/reset-org-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orgId: profile?.org_id }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Reset failed");
+
+      // Reset all local data state
+      setRecords([]); setFlights([]); setReports([]); setHazards([]);
+      setActions([]); setFleetAircraft([]); setPolicies([]);
+      setTrainingReqs([]); setTrainingRecs([]);
+      setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]);
+      setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({});
+      setFratTemplate(null); setFratTemplates([]);
+      setNotifications([]); setNotifReads([]); setInvitationsList([]);
+      setErpPlans([]); setErpDrills([]);
+      setSpis([]); setSpiMeasurements([]);
+      setAuditTemplatesData([]); setIepAudits([]); setAuditSchedulesData([]);
+      setTrendAlerts([]); setDeclarations([]); setMocItems([]);
+      setCultureSurveys([]); setPilotEngagement([]); setOrgEngagement([]);
+      setSafetyRecognitions([]); setOrgRecognitions([]);
+      setApiKeys([]); setWebhooksData([]);
+      setAsapConfig(null); setAsapReports([]); setAsapCorrActions([]); setAsapMeetings([]);
+      setComplianceFrameworks([]); setComplianceStatusData([]);
+      setInsuranceExports([]);
+      setForeflightConfig(null); setForeflightFlights([]); setPendingFfFlights([]);
+      setSchedaeroConfig(null); setSchedaeroTrips([]); setPendingScTrips([]);
+      setNudgeResponses([]); setReportPrefill(null);
+
+      // Reset onboarding
+      const initial = {
+        started_at: new Date().toISOString(),
+        completed_at: null, dismissed_at: null,
+        flows: Object.fromEntries(FLOW_ORDER.map(id => [id, { status: "not_started", current_step: 0 }])),
+      };
+      setOnboardingState(initial);
+
+      // Refresh profile, navigate to dashboard
+      getProfile().then(p => { if (p) setProfile(p); });
+      setCv("dashboard");
+      setShowStartFreshConfirm(false);
+      setShowPostPaymentModal(false);
+      setToast({ message: "All data deleted. You're starting fresh!", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+      setTimeout(() => setToast(null), 5000);
+    } catch (err) {
+      setToast({ message: "Reset failed: " + err.message, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
+      setTimeout(() => setToast(null), 5000);
+    } finally {
+      setStartFreshLoading(false);
+    }
+  }, [profile]);
+
   // Auto-detect: when fleet data appears while on the save step (step 3 → index 3), advance to congrats (step 4)
   useEffect(() => {
     if (activeFlow === "fleet" && activeFlowStep === 2 && fleetAircraft.length > 0) {
@@ -3069,7 +3129,7 @@ export default function PVTAIRFrat() {
     if (params.has("payment")) {
       const status = params.get("payment");
       if (status === "success") {
-        setToast({ message: "Payment successful! Your subscription is now active.", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+        setShowPostPaymentModal(true);
         // Refresh profile to get updated subscription status
         setTimeout(() => { getProfile().then(p => { if (p) setProfile(p); }); }, 2000);
       } else if (status === "canceled") {
@@ -4291,7 +4351,7 @@ export default function PVTAIRFrat() {
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={freeGuard(roGuard(onCreatePolicy), "policy library", () => isFree && (policies || []).length >= FREE_TIER_LIMITS.maxPolicies, `Free plan allows up to ${FREE_TIER_LIMITS.maxPolicies} policies. Upgrade to Starter for unlimited.`)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} showManuals={(hasFeature(org, "sms_manuals") || isFree) && ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role)} readOnlyManuals={isFree} templateVariables={templateVariables} signatures={smsSignatures} fleetAircraft={fleetAircraft} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onAiDraftPolicy={hasFeature(org, "safety_trend_alerts") ? async ({ policyTitle, policyCategory }) => { try { const { data, error } = await supabase.functions.invoke('ai-draft-assist', { body: { orgId: profile?.org_id, mode: "policy_draft", policyTitle, policyCategory } }); if (error) { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data?.result || null; } catch { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } } : undefined} />}
         {cv === "cbt" && <CbtModules profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
-        {cv === "dashboard" && showOnboarding && <OnboardingDashboard onboardingState={onboardingState} onStartFlow={handleStartFlow} onDismiss={handleDismissOnboarding} />}
+        {cv === "dashboard" && showOnboarding && <OnboardingDashboard onboardingState={onboardingState} onStartFlow={handleStartFlow} onDismiss={handleDismissOnboarding} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} />}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} pilotEngagement={pilotEngagement} safetyRecognitions={safetyRecognitions} orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} onAcknowledgeRecognition={async (recId) => { await acknowledgeRecognition(recId); if (session?.user?.id) fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || [])); }} complianceFrameworks={complianceFrameworks} complianceChecklistItems={complianceChecklistItems} complianceStatusData={complianceStatusData} trainingReqs={trainingReqs} trainingRecs={trainingRecs} policies={policies} iepAudits={iepAudits} auditSchedules={auditSchedulesData} mocItems={mocItems} insuranceExports={insuranceExports} onGenerateExport={roGuard(async (exportData, pdfBlob) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await createInsuranceExport(orgId, exportData); if (data && pdfBlob) { const { data: pdfUrl } = await uploadInsuranceExportPdf(orgId, data.id, pdfBlob); if (pdfUrl) { await supabase.from('insurance_exports').update({ pdf_path: pdfUrl }).eq('id', data.id); } } fetchInsuranceExports(orgId).then(({ data: d }) => setInsuranceExports(d || [])); setToast({ message: "Insurance export generated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onDeleteExport={roGuard(async (exportId) => { await deleteInsuranceExport(exportId); const orgId = profile?.org_id; if (orgId) fetchInsuranceExports(orgId).then(({ data }) => setInsuranceExports(data || [])); })} onNavigateSubscription={() => { setInitialAdminTab("subscription"); setCv("admin"); }} onNavigate={setCv} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} onViewDetail={(id) => setFratDetailId(id)} />}
         {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onUpdateEmail={async (userId, email) => { await updateProfileEmail(userId, email); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
@@ -4527,7 +4587,7 @@ export default function PVTAIRFrat() {
             });
             return await res.json();
           } catch (e) { return { success: false, error: e.message }; }
-        }} />}
+        }} onStartFresh={() => setShowStartFreshConfirm(true)} />}
       </main>
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
         {orgName} Safety Management System · PreflightSMS · 14 CFR Part 5 SMS · {new Date().getFullYear()}</footer>
@@ -4551,6 +4611,60 @@ export default function PVTAIRFrat() {
             onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.5)"; }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
           </button>
+        </div>
+      )}
+      {/* ── Start Fresh Confirmation Modal ─────────────── */}
+      {showStartFreshConfirm && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => !startFreshLoading && setShowStartFreshConfirm(false)}>
+          <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 32, maxWidth: 440, width: "100%", textAlign: "center" }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: `1px solid rgba(239,68,68,0.2)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={RED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: WHITE, marginBottom: 8 }}>Delete All Organization Data?</div>
+            <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 24 }}>
+              This will permanently delete all FRATs, flights, safety reports, aircraft, training records, and every other piece of data. User accounts will be preserved. This cannot be undone.
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button onClick={() => setShowStartFreshConfirm(false)} disabled={startFreshLoading}
+                style={{ padding: "10px 24px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                Cancel
+              </button>
+              <button onClick={handleStartFresh} disabled={startFreshLoading}
+                style={{ padding: "10px 24px", background: startFreshLoading ? "rgba(239,68,68,0.3)" : RED, color: WHITE, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: startFreshLoading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                {startFreshLoading && <span style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: WHITE, borderRadius: "50%", animation: "spin 0.6s linear infinite", display: "inline-block" }} />}
+                {startFreshLoading ? "Deleting..." : "Yes, Delete Everything"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Post-Payment Modal ─────────────────────────── */}
+      {showPostPaymentModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 32, maxWidth: 440, width: "100%", textAlign: "center" }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(74,222,128,0.1)", border: `1px solid rgba(74,222,128,0.2)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: WHITE, marginBottom: 8 }}>Thanks for subscribing!</div>
+            <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 24 }}>
+              Your subscription is now active. Would you like to start with a clean slate, or keep the data you entered during your trial?
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button onClick={() => { setShowPostPaymentModal(false); setShowStartFreshConfirm(true); }}
+                style={{ padding: "12px 24px", background: `linear-gradient(135deg, ${CYAN}, ${GREEN})`, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                Start Fresh — Delete All Trial Data
+              </button>
+              <button onClick={() => { setShowPostPaymentModal(false); setToast({ message: "Welcome aboard! Your data has been preserved.", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 5000); }}
+                style={{ padding: "12px 24px", background: "transparent", color: OFF_WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                Keep My Data
+              </button>
+            </div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 16 }}>You can always manage your data from Admin Settings.</div>
+          </div>
         </div>
       )}
       <style>{`*{box-sizing:border-box}input:focus,select:focus,textarea:focus{outline:none;border-color:${WHITE} !important;box-shadow:0 0 0 2px rgba(255,255,255,0.15) !important}select option{background:${NEAR_BLACK};color:${OFF_WHITE}}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}

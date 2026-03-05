@@ -419,7 +419,7 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
   );
 }
 
-function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillingPortal }) {
+function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillingPortal, onStartFresh }) {
   const tier = orgData?.tier || "starter";
   const tierDef = TIER_DEFS[tier] || TIER_DEFS.starter;
   const flags = orgData?.feature_flags || {};
@@ -464,6 +464,34 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
           </div>
         </div>
       </div>
+
+      {/* Start Fresh */}
+      {isTrial && canManage && onStartFresh && (
+        <div style={{ ...card, padding: "20px 24px", marginBottom: 16, borderLeft: `4px solid ${AMBER}` }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Start Fresh</div>
+          <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 14 }}>
+            Delete all organization data and start over. User accounts will be preserved.
+          </div>
+          <button
+            onClick={onStartFresh}
+            style={{
+              padding: "8px 20px",
+              background: "transparent",
+              color: AMBER,
+              border: `1px solid ${AMBER}44`,
+              borderRadius: 6,
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = `${AMBER}11`; e.currentTarget.style.borderColor = `${AMBER}88`; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = `${AMBER}44`; }}
+          >
+            Start Fresh
+          </button>
+        </div>
+      )}
 
       {/* Subscribe / Change Plan */}
       {canManage && (isFree || isTrial || !hasStripe) && (
@@ -1145,7 +1173,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook, onStartFresh }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -1362,7 +1390,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
 
       {/* Subscription */}
       {activeTab === "subscription" && (<>
-        <SubscriptionTab orgData={orgData} onUpdateOrg={onUpdateOrg} canManage={canManage} onCheckout={onCheckout} onBillingPortal={onBillingPortal} />
+        <SubscriptionTab orgData={orgData} onUpdateOrg={onUpdateOrg} canManage={canManage} onCheckout={onCheckout} onBillingPortal={onBillingPortal} onStartFresh={onStartFresh} />
       </>)}
     </div>
   );
