@@ -1084,7 +1084,9 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
         {uploadingPhotos && <div style={{ color: CYAN, fontSize: 11, marginTop: 8, textAlign: "center" }}>Uploading photos...</div>}
       </div>
 
-      <WeatherBriefing briefing={wxAnalysis.briefing} reasons={wxAnalysis.reasons} flags={wxAnalysis.flags} stationSummaries={wxAnalysis.stationSummaries} wxLoading={wxLoading} wxError={wxError} />
+      <div data-onboarding="frat-weather-briefing">
+        <WeatherBriefing briefing={wxAnalysis.briefing} reasons={wxAnalysis.reasons} flags={wxAnalysis.flags} stationSummaries={wxAnalysis.stationSummaries} wxLoading={wxLoading} wxError={wxError} />
+      </div>
 
       {/* AI Risk Suggestions Panel */}
       {hasFeature(org, "safety_trend_alerts") && (
@@ -2841,10 +2843,10 @@ export default function PVTAIRFrat() {
     }
   }, [fleetAircraft.length, activeFlow, activeFlowStep]);
 
-  // Auto-detect: when a FRAT is submitted on step 12 (score panel), advance to congrats (step 13)
+  // Auto-detect: when a FRAT is submitted on step 13 (score panel), advance to congrats (step 14)
   const prevRecordsLenRef = useRef(records.length);
   useEffect(() => {
-    if (activeFlow === "frat" && activeFlowStep === 12 && records.length > prevRecordsLenRef.current) {
+    if (activeFlow === "frat" && activeFlowStep === 13 && records.length > prevRecordsLenRef.current) {
       handleFlowStepAdvance();
     }
     prevRecordsLenRef.current = records.length;
