@@ -77,11 +77,19 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
   // ── Click advance: listen on the REAL target element ──
   useEffect(() => {
     if (step.advanceOn !== "click" || !step.target) return;
-    const el = document.querySelector(step.target);
-    if (!el) return;
+    let el = document.querySelector(step.target);
     const handler = () => setTimeout(() => onAdvance(), 100);
-    el.addEventListener("click", handler);
-    return () => el.removeEventListener("click", handler);
+    let pollTimer;
+    if (el) {
+      el.addEventListener("click", handler);
+    } else {
+      // Poll for element (dynamic imports may delay DOM availability)
+      pollTimer = setInterval(() => {
+        el = document.querySelector(step.target);
+        if (el) { clearInterval(pollTimer); pollTimer = null; el.addEventListener("click", handler); }
+      }, 200);
+    }
+    return () => { if (pollTimer) clearInterval(pollTimer); if (el) el.removeEventListener("click", handler); };
   }, [step.advanceOn, step.target, currentStep, onAdvance]);
 
   // ── Continue button: watch for input value ──
