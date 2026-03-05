@@ -2782,6 +2782,25 @@ export default function PVTAIRFrat() {
     if (flow.adminTab) setInitialAdminTab(flow.adminTab);
     setActiveFlow(flowId);
     setActiveFlowStep(0);
+    // Flights flow: inject dummy flight BEFORE await so it's in the same React batch
+    if (flowId === "flights") {
+      activeFlowRef.current = "flights";
+      setFlights(prev => [{
+        id: "FRAT-DEMO", dbId: null,
+        pilot: profile?.full_name || "Demo Pilot",
+        aircraft: fleetAircraft[0]?.type || "C172",
+        tailNumber: fleetAircraft[0]?.registration || "N12345",
+        departure: "KSFF", destination: "KBOI",
+        cruiseAlt: "FL180", etd: "14:00", ete: "1:30",
+        eta: new Date(Date.now() + 90 * 60000).toISOString(),
+        fuelLbs: "48", fuelUnit: "hrs",
+        numCrew: "1", numPax: "2",
+        score: 5, riskLevel: "LOW RISK",
+        status: "ACTIVE", timestamp: new Date().toISOString(),
+        arrivedAt: null, approvalStatus: "auto_approved",
+        factors: [], attachments: [],
+      }, ...prev]);
+    }
     const next = {
       ...onboardingState,
       flows: { ...onboardingState.flows, [flowId]: { ...onboardingState.flows[flowId], status: "in_progress", current_step: 0 } },
@@ -2798,25 +2817,6 @@ export default function PVTAIRFrat() {
     // FRAT flow: navigate to the submit (FRAT form) view
     if (flowId === "frat") {
       setCv("submit");
-    }
-    // Flights flow: inject a dummy flight client-side
-    if (flowId === "flights") {
-      setCv("flights");
-      setFlights(prev => [{
-        id: "FRAT-DEMO", dbId: null,
-        pilot: profile?.full_name || "Demo Pilot",
-        aircraft: fleetAircraft[0]?.type || "C172",
-        tailNumber: fleetAircraft[0]?.registration || "N12345",
-        departure: "KSFF", destination: "KBOI",
-        cruiseAlt: "FL180", etd: "14:00", ete: "1:30",
-        eta: new Date(Date.now() + 90 * 60000).toISOString(),
-        fuelLbs: "48", fuelUnit: "hrs",
-        numCrew: "1", numPax: "2",
-        score: 5, riskLevel: "LOW RISK",
-        status: "ACTIVE", timestamp: new Date().toISOString(),
-        arrivedAt: null, approvalStatus: "auto_approved",
-        factors: [], attachments: [],
-      }, ...prev]);
     }
   }, [onboardingState, persistOnboarding, profile?.full_name, fleetAircraft]);
 
