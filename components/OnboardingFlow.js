@@ -74,7 +74,15 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     setTooltipPos({ top, left, transform: "none" });
   }, [targetRect, currentStep]);
 
-  // ── Click advance: handled via onHoleClick below ──
+  // ── Click advance: listen on the REAL target element ──
+  useEffect(() => {
+    if (step.advanceOn !== "click" || !step.target) return;
+    const el = document.querySelector(step.target);
+    if (!el) return;
+    const handler = () => setTimeout(() => onAdvance(), 100);
+    el.addEventListener("click", handler);
+    return () => el.removeEventListener("click", handler);
+  }, [step.advanceOn, step.target, currentStep, onAdvance]);
 
   // ── Continue button: watch for input value ──
   useEffect(() => {
@@ -95,10 +103,7 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     if (step.advanceOn !== "save") return;
     const btn = document.querySelector("[data-onboarding='fleet-save-btn']");
     if (!btn) return;
-    const handler = () => {
-      // Wait for save to process, then advance
-      setTimeout(() => onAdvance(), 600);
-    };
+    const handler = () => setTimeout(() => onAdvance(), 600);
     btn.addEventListener("click", handler);
     return () => btn.removeEventListener("click", handler);
   }, [step.advanceOn, currentStep, onAdvance]);
@@ -112,14 +117,7 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     }
   }, [isFinal]);
 
-  // Make target clickable by creating a transparent "hole"
-  const overlayStyle = {
-    position: "fixed",
-    inset: 0,
-    zIndex: 10000,
-    pointerEvents: "none",
-  };
-
+  // ── Visual backdrop: box-shadow creates the dark surround, pointerEvents:none ──
   const backdropStyle = targetRect ? {
     position: "fixed",
     top: targetRect.top,
@@ -139,49 +137,23 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     pointerEvents: isFinal ? "auto" : "none",
   };
 
-  // When the hole is clicked, forward click to the real target and advance if needed
-  const onHoleClick = useCallback(() => {
-    if (!step.target) return;
-    const el = document.querySelector(step.target);
-    if (el) el.click();
-    if (step.advanceOn === "click") {
-      setTimeout(() => onAdvance(), 100);
-    }
-  }, [step.target, step.advanceOn, onAdvance]);
-
-  // Only render the click-intercepting hole on "click" steps.
-  // On "continue"/"save" steps the user needs direct access to inputs,
-  // so we skip the hole and let the spotlight cutout (pointerEvents:none) pass events through.
-  const needsHole = step.advanceOn === "click";
-  const holeStyle = targetRect && needsHole ? {
-    position: "fixed",
-    top: targetRect.top,
-    left: targetRect.left,
-    width: targetRect.width,
-    height: targetRect.height,
-    zIndex: 10001,
-    pointerEvents: "auto",
-    background: "transparent",
-    cursor: "pointer",
-  } : null;
-
-  // Clip-path that cuts out the target rect so clicks reach real elements there
+  // ── Click blocker: covers the entire screen with a clip-path hole over the target ──
+  // This blocks clicks on the dark area while letting clicks through to the real target elements.
   const blockerClipPath = targetRect
     ? `polygon(0% 0%, 0% 100%, ${targetRect.left}px 100%, ${targetRect.left}px ${targetRect.top}px, ${targetRect.left + targetRect.width}px ${targetRect.top}px, ${targetRect.left + targetRect.width}px ${targetRect.top + targetRect.height}px, ${targetRect.left}px ${targetRect.top + targetRect.height}px, ${targetRect.left}px 100%, 100% 100%, 100% 0%)`
-    : "none";
+    : undefined;
 
   return (
     <>
-      {/* Full-screen click blocker with cutout for target area (non-click steps can interact with real inputs) */}
-      {targetRect && !needsHole && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 10001, pointerEvents: "auto", background: "transparent", clipPath: blockerClipPath }} />
-      )}
-      {/* On click steps, block everything and use the hole to forward clicks */}
-      {needsHole && <div style={{ position: "fixed", inset: 0, zIndex: 9999, pointerEvents: "auto", background: "transparent" }} />}
-      {/* Backdrop with spotlight hole */}
+      {/* Click blocker with cutout — blocks dark area clicks, allows target area interaction */}
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 10001,
+        pointerEvents: targetRect ? "auto" : "none",
+        background: "transparent",
+        clipPath: blockerClipPath,
+      }} />
+      {/* Visual backdrop (dark overlay with spotlight hole) — purely visual, no pointer events */}
       <div style={backdropStyle} />
-      {/* On "click" steps: hole intercepts click and forwards it + advances */}
-      {holeStyle && <div style={holeStyle} onClick={onHoleClick} />}
 
       {/* Tooltip card */}
       <div
