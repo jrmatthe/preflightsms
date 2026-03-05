@@ -2831,8 +2831,6 @@ export default function PVTAIRFrat() {
     };
     await persistOnboarding(next);
   }, [activeFlow, activeFlowStep, onboardingState, persistOnboarding]);
-  const flowStepAdvanceRef = useRef(handleFlowStepAdvance);
-  useEffect(() => { flowStepAdvanceRef.current = handleFlowStepAdvance; }, [handleFlowStepAdvance]);
 
   const handleFlowComplete = useCallback(async (flowId) => {
     if (!onboardingState) return;
@@ -2887,12 +2885,6 @@ export default function PVTAIRFrat() {
     prevRecordsLenRef.current = records.length;
   }, [records.length, activeFlow, activeFlowStep]);
 
-  // Auto-mark dummy flight arrived when advancing to step 5 (nudge step) in flights flow
-  useEffect(() => {
-    if (activeFlow === "flights" && activeFlowStep === 5 && demoFlightRef.current) {
-      demoFlightRef.current = { ...demoFlightRef.current, status: "ARRIVED", arrivedAt: new Date().toISOString() };
-    }
-  }, [activeFlow, activeFlowStep]);
 
   const showOnboarding = onboardingState
     && !onboardingState.dismissed_at
@@ -3524,10 +3516,6 @@ export default function PVTAIRFrat() {
     if (id === "FRAT-DEMO" && demoFlightRef.current) {
       const status = action === "CANCEL" ? "CANCELLED" : action;
       demoFlightRef.current = { ...demoFlightRef.current, status, arrivedAt: status === "ARRIVED" ? new Date().toISOString() : demoFlightRef.current.arrivedAt, ...extra };
-      // Advance onboarding past the arrival form step → nudge step
-      if (status === "ARRIVED" && activeFlowRef.current === "flights") {
-        flowStepAdvanceRef.current?.();
-      }
       return;
     }
     if (isOnline && profile) {
@@ -4218,23 +4206,6 @@ export default function PVTAIRFrat() {
         })()}
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
         {nudgeFlight && <PostFlightNudge flight={nudgeFlight} onSubmitReport={onNudgeSubmitReport} onNothingToReport={onNudgeNothingToReport} onRemindLater={onNudgeRemindLater} onDismiss={onNudgeDismiss} />}
-        {activeFlow === "flights" && activeFlowStep === 5 && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-            <div data-onboarding="ff-nudge" style={{ background: "#161616", border: "1px solid #232323", borderRadius: 12, padding: "32px 28px", maxWidth: 420, width: "100%", textAlign: "center" }}>
-              <div style={{ fontSize: 28, marginBottom: 4 }}>&#9992;&#65039;</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Flight Complete</div>
-              <div style={{ fontSize: 12, color: "#888888", marginBottom: 20, lineHeight: 1.5 }}>Nice work! Before you move on — anything worth noting for safety?</div>
-              <div style={{ background: "#0A0A0A", border: "1px solid #2E2E2E", borderRadius: 8, padding: "12px 16px", marginBottom: 24, textAlign: "left" }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: OFF_WHITE, marginBottom: 4 }}>KSFF → KBOI</div>
-                <div style={{ fontSize: 11, color: "#888888" }}>{fleetAircraft[0]?.type || "C172"} · {fleetAircraft[0]?.registration || "N12345"}</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <button onClick={handleFlowStepAdvance} style={{ width: "100%", padding: "13px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Submit a Safety Report</button>
-                <button onClick={handleFlowStepAdvance} style={{ width: "100%", padding: "12px 0", background: "transparent", color: GREEN, border: `1px solid rgba(74,222,128,0.27)`, borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Nothing to Report — All Good</button>
-              </div>
-            </div>
-          </div>
-        )}
         {fratDetailId && <FRATDetailModal fratId={fratDetailId} records={records} flights={flights} riskCategories={riskCategories} canApprove={["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role) || (profile?.permissions || []).includes("approver")} onApproveFlight={async (flightDbId, fratDbId) => { setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f)); if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r)); setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); await approveFlight(flightDbId, session.user.id); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: fl } = await fetchFlights(profile.org_id); setFlights(prev => mapDbFlights(fl, prev)); }} onRejectFlight={async (flightDbId, fratDbId) => { const fratRecord = fratDbId ? records.find(r => r.dbId === fratDbId) : null; await deleteFlight(flightDbId); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); if (fratRecord?.userId) { createNotification(profile.org_id, { type: "frat_rejected", title: "FRAT Rejected", body: `Your FRAT ${fratDetailId} was rejected`, target_user_id: fratRecord.userId, link_tab: "submit" }); } const { data: fl } = await fetchFlights(profile.org_id); setFlights(prev => mapDbFlights(fl, prev)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, fuelUnit: r.fuel_unit || "lbs", numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "Flight rejected and removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onApproveFRAT={async (fratDbId) => { const matchedFlight = flights.find(f => f.fratDbId === fratDbId); setFlights(prev => prev.map(f => f.fratDbId === fratDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f)); setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r)); setToast({ message: "FRAT approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); if (matchedFlight) await approveFlight(matchedFlight.dbId, session.user.id); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, fuelUnit: r.fuel_unit || "lbs", numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); const { data: fl } = await fetchFlights(profile.org_id); setFlights(prev => mapDbFlights(fl, prev)); }} onRejectFRAT={async (fratDbId) => { await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, fuelUnit: r.fuel_unit || "lbs", numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "FRAT rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onClose={() => setFratDetailId(null)} />}
         {upgradePrompt && <UpgradePrompt feature={upgradePrompt.feature} message={upgradePrompt.message} onNavigateToSubscription={() => { setUpgradePrompt(null); setInitialAdminTab("subscription"); setCv("admin"); }} onDismiss={() => setUpgradePrompt(null)} />}
         {isPastDue && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{"\u26A0"} Your subscription payment is past due. Update your payment method to restore access.</span>{isAdmin && <button onClick={async () => { const customerId = org?.stripe_customer_id; if (!customerId) return; const { data } = await supabase.functions.invoke('stripe-portal', { body: { customerId, returnUrl: window.location.origin } }); if (data?.url) window.location.href = data.url; }} style={{ background: "none", border: "1px solid currentColor", borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>Update Payment</button>}</div>}
