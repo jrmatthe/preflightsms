@@ -47,12 +47,15 @@ function generateReportCode() {
   return `RPT-${Date.now().toString(36).toUpperCase()}`;
 }
 
-function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCategorize }) {
+function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCategorize, activeFlow }) {
   const [form, setForm] = useState({
-    reportType: "hazard", title: "", description: "",
+    reportType: initialData?.reportType || "hazard",
+    title: initialData?.title || "",
+    description: initialData?.description || "",
     dateOccurred: initialData?.dateOccurred || "",
     location: initialData?.location || "",
-    category: "other", severity: "low",
+    category: initialData?.category || "other",
+    severity: initialData?.severity || "low",
     flightPhase: initialData?.flightPhase || "",
     tailNumber: initialData?.tailNumber || "",
     aircraftType: initialData?.aircraftType || "",
@@ -85,7 +88,7 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
       </div>
 
       {/* Report Type */}
-      <div style={{ marginBottom: 16 }}>
+      <div data-onboarding="sr-type" style={{ marginBottom: 16 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Report Type</label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
           {REPORT_TYPES.map(t => (
@@ -101,13 +104,13 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
       </div>
 
       {/* Title */}
-      <div style={{ marginBottom: 12 }}>
+      <div data-onboarding="sr-title" style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Title *</label>
         <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="Brief summary of the hazard or event" style={inp} />
       </div>
 
       {/* Description */}
-      <div style={{ marginBottom: 12 }}>
+      <div data-onboarding="sr-description" style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Description *</label>
         <textarea value={form.description} onChange={e => set("description", e.target.value)}
           placeholder="What happened? What were the conditions? What was the outcome or potential outcome?"
@@ -142,7 +145,8 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
         </div>
       )}
 
-      {/* 3-column grid: Date, Location, Category */}
+      {/* 3-column grid: Date, Location, Category + Severity + Flight Phase + Aircraft */}
+      <div data-onboarding="sr-details">
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }} className="report-grid">
         <div>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Date Occurred</label>
@@ -191,6 +195,7 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
           )}
         </div>
       </div>
+      </div>{/* end sr-details */}
 
       {/* Confidentiality options */}
       <div style={{ ...card, padding: "12px 16px", marginBottom: 20 }}>
@@ -211,7 +216,7 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
         </label>
       </div>
 
-      <button onClick={handleSubmit} disabled={!form.title.trim() || !form.description.trim()}
+      <button data-onboarding="sr-submit-btn" onClick={handleSubmit} disabled={!form.title.trim() || !form.description.trim()}
         style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.title.trim() || !form.description.trim()) ? 0.4 : 1 }}>
         Submit Report
       </button>
@@ -306,7 +311,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard, orgP
   );
 }
 
-export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles, reportPrefill, onClearPrefill, org, onAiSearch, onAiCategorize }) {
+export default function SafetyReporting({ profile, session, onSubmitReport, reports, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles, reportPrefill, onClearPrefill, org, onAiSearch, onAiCategorize, activeFlow, onReportSubmitted }) {
   const [view, setView] = useState("list"); // list | new
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
@@ -366,7 +371,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
   }, [reports]);
 
   if (view === "new") {
-    return <ReportForm onSubmit={(report) => { onSubmitReport(report); setView("list"); if (onClearPrefill) onClearPrefill(); }} onCancel={() => { setView("list"); if (onClearPrefill) onClearPrefill(); }} fleetAircraft={fleetAircraft} initialData={reportPrefill} onAiCategorize={onAiCategorize} />;
+    return <ReportForm onSubmit={(report) => { onSubmitReport(report); if (onReportSubmitted) onReportSubmitted(); if (activeFlow !== "safety_report") { setView("list"); if (onClearPrefill) onClearPrefill(); } }} onCancel={() => { setView("list"); if (onClearPrefill) onClearPrefill(); }} fleetAircraft={fleetAircraft} initialData={reportPrefill} onAiCategorize={onAiCategorize} activeFlow={activeFlow} />;
   }
 
   return (
@@ -377,7 +382,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Safety Reports</div>
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR §5.71 — Safety Assurance: Internal reporting of hazards and incidents</div>
         </div>
-        <button data-tour="tour-reports-new-btn" onClick={() => setView("new")}
+        <button data-onboarding="sr-new-btn" onClick={() => setView("new")}
           style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
           + New Report
         </button>
