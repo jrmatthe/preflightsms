@@ -1752,8 +1752,8 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                       </div>
                     )}
                     {f.status === "ACTIVE" && !pending && arrivedForm !== f.id && (
-                      <div data-tour="tour-flights-arrived" data-onboarding="ff-arrived-btn" style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                        <button onClick={(e) => { e.stopPropagation(); setArrivedForm(f.id); setParkingSpot(""); setFuelRemaining(""); setFuelUnit("lbs"); }}
+                      <div data-tour="tour-flights-arrived" style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                        <button data-onboarding="ff-arrived-btn" onClick={(e) => { e.stopPropagation(); setArrivedForm(f.id); setParkingSpot(""); setFuelRemaining(""); setFuelUnit("lbs"); }}
                           style={{ flex: 1, padding: "10px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "CANCEL"); }}
                           style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
@@ -2666,6 +2666,7 @@ export default function PVTAIRFrat() {
   const [activeFlowStep, setActiveFlowStep] = useState(0);
   const activeFlowRef = useRef(null);
   useEffect(() => { activeFlowRef.current = activeFlow; }, [activeFlow]);
+  const demoFlightRef = useRef(null);
   const [fratDetailId, setFratDetailId] = useState(null);
   useEffect(() => { if (_initTab && typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }, []);
   const [records, setRecords] = useState([]);
@@ -2782,10 +2783,10 @@ export default function PVTAIRFrat() {
     if (flow.adminTab) setInitialAdminTab(flow.adminTab);
     setActiveFlow(flowId);
     setActiveFlowStep(0);
-    // Flights flow: inject dummy flight BEFORE await so it's in the same React batch
+    // Flights flow: store dummy flight in ref (merged at render time so data fetches can't wipe it)
     if (flowId === "flights") {
       activeFlowRef.current = "flights";
-      setFlights(prev => [{
+      demoFlightRef.current = {
         id: "FRAT-DEMO", dbId: null,
         pilot: profile?.full_name || "Demo Pilot",
         aircraft: fleetAircraft[0]?.type || "C172",
@@ -2799,7 +2800,7 @@ export default function PVTAIRFrat() {
         status: "ACTIVE", timestamp: new Date().toISOString(),
         arrivedAt: null, approvalStatus: "auto_approved",
         factors: [], attachments: [],
-      }, ...prev]);
+      };
     }
     const next = {
       ...onboardingState,
@@ -2839,10 +2840,7 @@ export default function PVTAIRFrat() {
     };
     const allDone = FLOW_ORDER.every(id => (id === flowId ? true : next.flows[id]?.status === "completed"));
     if (allDone) next.completed_at = new Date().toISOString();
-    // Clean up dummy flight if completing flights flow
-    if (flowId === "flights") {
-      setFlights(prev => prev.filter(f => f.id !== "FRAT-DEMO"));
-    }
+    if (flowId === "flights") demoFlightRef.current = null;
     setActiveFlow(null);
     setActiveFlowStep(0);
     setCv("dashboard");
@@ -2850,10 +2848,7 @@ export default function PVTAIRFrat() {
   }, [onboardingState, persistOnboarding]);
 
   const handleFlowSkip = useCallback(() => {
-    // Clean up dummy flight if skipping flights flow
-    if (activeFlow === "flights") {
-      setFlights(prev => prev.filter(f => f.id !== "FRAT-DEMO"));
-    }
+    if (activeFlow === "flights") demoFlightRef.current = null;
     setActiveFlow(null);
     setActiveFlowStep(0);
     setCv("dashboard");
@@ -2892,10 +2887,8 @@ export default function PVTAIRFrat() {
 
   // Auto-mark dummy flight arrived when advancing to step 5 (nudge step) in flights flow
   useEffect(() => {
-    if (activeFlow === "flights" && activeFlowStep === 5) {
-      setFlights(prev => prev.map(f =>
-        f.id === "FRAT-DEMO" ? { ...f, status: "ARRIVED", arrivedAt: new Date().toISOString() } : f
-      ));
+    if (activeFlow === "flights" && activeFlowStep === 5 && demoFlightRef.current) {
+      demoFlightRef.current = { ...demoFlightRef.current, status: "ARRIVED", arrivedAt: new Date().toISOString() };
     }
   }, [activeFlow, activeFlowStep]);
 
@@ -3525,6 +3518,12 @@ export default function PVTAIRFrat() {
 
   // ── Update flight status ──
   const onUpdateFlight = useCallback(async (id, action, extra = {}) => {
+    // During flights onboarding, handle demo flight locally (no DB, no queue)
+    if (id === "FRAT-DEMO" && demoFlightRef.current) {
+      const status = action === "CANCEL" ? "CANCELLED" : action;
+      demoFlightRef.current = { ...demoFlightRef.current, status, arrivedAt: status === "ARRIVED" ? new Date().toISOString() : demoFlightRef.current.arrivedAt, ...extra };
+      return;
+    }
     if (isOnline && profile) {
       const flight = flights.find(f => f.id === id);
       if (flight && flight.dbId) {
@@ -4133,6 +4132,10 @@ export default function PVTAIRFrat() {
       return fn(...args);
     };
   };
+  // Merge demo flight from ref during flights onboarding (immune to data fetches)
+  const boardFlights = activeFlow === "flights" && demoFlightRef.current
+    ? [demoFlightRef.current, ...flights.filter(f => f.id !== "FRAT-DEMO")]
+    : flights;
   if (isMobile) return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
     <MobileLayout session={session} profile={profile} orgData={profile?.organizations || {}} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} flights={flights} onUpdateFlight={roGuard(onUpdateFlight)} onSubmitFRAT={roGuard(onSubmit)} fleetAircraft={fleetAircraft} fratTemplate={fratTemplate} allFratTemplates={fratTemplates} riskLevels={riskLevels} nudgeFlight={nudgeFlight} onNudgeSubmitReport={onNudgeSubmitReport} onNudgeDismiss={onNudgeDismiss} reportPrefill={reportPrefill} setReportPrefill={setReportPrefill} reports={reports} onSubmitReport={roGuard(onSubmitReport)} cbtCourses={cbtCourses} cbtLessonsMap={cbtLessonsMap} cbtProgress={cbtProgress} cbtEnrollments={cbtEnrollments} trainingReqs={trainingReqs} trainingRecs={trainingRecs} onUpdateCbtProgress={roGuard(onUpdateCbtProgress)} onUpdateCbtEnrollment={roGuard(onUpdateCbtEnrollment)} onLogTraining={roGuard(onLogTraining)} refreshCbt={refreshCbt} hazards={hazards} actions={actions} onUpdateAction={roGuard(onUpdateAction)} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} erpPlans={erpPlans} onLoadErpChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onLoadErpCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} policies={policies} onAcknowledgePolicy={roGuard(onAcknowledgePolicy)} hasFlights={!!hasFeature(org, "flight_following")} hasTraining={!!hasFeature(org, "cbt_modules")} onUpdatePreferences={onUpdateNotifPreferences} onUpdateEmail={async (newEmail) => { await updateProfileEmail(profile.id, newEmail); const p = await getProfile(); if (p) setProfile(p); }} org={org} orgProfiles={orgProfiles} records={records} onCreateAircraft={async (aircraft) => { const { data, error } = await createAircraft(profile?.org_id, aircraft); if (error) return { error }; const { data: updated } = await fetchAircraft(profile?.org_id); setFleetAircraft(updated || []); return { data }; }} /></>
@@ -4236,7 +4239,7 @@ export default function PVTAIRFrat() {
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
-        {cv === "flights" && <FlightBoard flights={flights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} initialSelectedFlight={null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} onApproveFlight={async (flightDbId, fratDbId) => {
+        {cv === "flights" && <FlightBoard flights={boardFlights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} initialSelectedFlight={null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} onApproveFlight={async (flightDbId, fratDbId) => {
           setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f));
           if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r));
           setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
