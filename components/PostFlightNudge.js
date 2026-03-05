@@ -3,7 +3,7 @@ export default function PostFlightNudge({ flight, onSubmitReport, onNothingToRep
 
   return (
     <div onClick={onDismiss} style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#161616", border: "1px solid #232323", borderRadius: 12, padding: "32px 28px", maxWidth: 420, width: "100%", textAlign: "center" }}>
+      <div data-onboarding="ff-nudge" onClick={e => e.stopPropagation()} style={{ background: "#161616", border: "1px solid #232323", borderRadius: 12, padding: "32px 28px", maxWidth: 420, width: "100%", textAlign: "center" }}>
         {/* Header */}
         <div style={{ fontSize: 28, marginBottom: 4 }}>✈️</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: "#FFFFFF", marginBottom: 4 }}>Flight Complete</div>
