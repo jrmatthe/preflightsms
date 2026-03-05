@@ -324,7 +324,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
   const [aiSearchLoading, setAiSearchLoading] = useState(false);
 
   useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
-  useEffect(() => { if (reportPrefill) setView("new"); }, [reportPrefill]);
+  useEffect(() => { if (reportPrefill && activeFlow !== "safety_report") setView("new"); }, [reportPrefill, activeFlow]);
 
   const canManage = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role);
 
