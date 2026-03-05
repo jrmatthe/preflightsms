@@ -74,17 +74,7 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     setTooltipPos({ top, left, transform: "none" });
   }, [targetRect, currentStep]);
 
-  // ── Click advance: listen for click on target element ──
-  useEffect(() => {
-    if (step.advanceOn !== "click" || !step.target) return;
-    const handler = () => {
-      // Small delay so the UI action (e.g. opening form) completes
-      setTimeout(() => onAdvance(), 100);
-    };
-    const el = document.querySelector(step.target);
-    if (el) el.addEventListener("click", handler);
-    return () => { if (el) el.removeEventListener("click", handler); };
-  }, [step.advanceOn, step.target, currentStep, onAdvance]);
+  // ── Click advance: handled via onHoleClick below ──
 
   // ── Continue button: watch for input value ──
   useEffect(() => {
@@ -149,6 +139,16 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     pointerEvents: isFinal ? "auto" : "none",
   };
 
+  // When the hole is clicked, forward click to the real target and advance if needed
+  const onHoleClick = useCallback(() => {
+    if (!step.target) return;
+    const el = document.querySelector(step.target);
+    if (el) el.click();
+    if (step.advanceOn === "click") {
+      setTimeout(() => onAdvance(), 100);
+    }
+  }, [step.target, step.advanceOn, onAdvance]);
+
   // Allow clicks to pass through to the target
   const holeStyle = targetRect ? {
     position: "fixed",
@@ -166,7 +166,7 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     <>
       {/* Backdrop with spotlight hole */}
       <div style={backdropStyle} />
-      {holeStyle && <div style={holeStyle} />}
+      {holeStyle && <div style={holeStyle} onClick={onHoleClick} />}
 
       {/* Tooltip card */}
       <div
