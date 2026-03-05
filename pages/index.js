@@ -2777,14 +2777,20 @@ export default function PVTAIRFrat() {
     setCv(flow.tab);
     if (flow.adminTab) setInitialAdminTab(flow.adminTab);
     setActiveFlow(flowId);
-    // Always restart from step 0 — steps are quick and resuming mid-flow
-    // can leave the UI in an inconsistent state (e.g. form not open)
     setActiveFlowStep(0);
     const next = {
       ...onboardingState,
       flows: { ...onboardingState.flows, [flowId]: { ...onboardingState.flows[flowId], status: "in_progress", current_step: 0 } },
     };
     await persistOnboarding(next);
+    // Fleet flow: auto-open the add aircraft form once the tab renders
+    if (flowId === "fleet") {
+      const poll = setInterval(() => {
+        const btn = document.querySelector("[data-onboarding='fleet-add-btn']");
+        if (btn) { clearInterval(poll); btn.click(); }
+      }, 100);
+      setTimeout(() => clearInterval(poll), 3000);
+    }
   }, [onboardingState, persistOnboarding]);
 
   const handleFlowStepAdvance = useCallback(async () => {
@@ -2826,7 +2832,7 @@ export default function PVTAIRFrat() {
 
   // Auto-detect: when fleet data appears while on the save step (step 3 → index 3), advance to congrats (step 4)
   useEffect(() => {
-    if (activeFlow === "fleet" && activeFlowStep === 3 && fleetAircraft.length > 0) {
+    if (activeFlow === "fleet" && activeFlowStep === 2 && fleetAircraft.length > 0) {
       handleFlowStepAdvance();
     }
   }, [fleetAircraft.length, activeFlow, activeFlowStep]);
