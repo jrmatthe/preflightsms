@@ -149,8 +149,11 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     }
   }, [step.target, step.advanceOn, onAdvance]);
 
-  // Allow clicks to pass through to the target
-  const holeStyle = targetRect ? {
+  // Only render the click-intercepting hole on "click" steps.
+  // On "continue"/"save" steps the user needs direct access to inputs,
+  // so we skip the hole and let the spotlight cutout (pointerEvents:none) pass events through.
+  const needsHole = step.advanceOn === "click";
+  const holeStyle = targetRect && needsHole ? {
     position: "fixed",
     top: targetRect.top,
     left: targetRect.left,
@@ -162,10 +165,22 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
     cursor: "pointer",
   } : null;
 
+  // Clip-path that cuts out the target rect so clicks reach real elements there
+  const blockerClipPath = targetRect
+    ? `polygon(0% 0%, 0% 100%, ${targetRect.left}px 100%, ${targetRect.left}px ${targetRect.top}px, ${targetRect.left + targetRect.width}px ${targetRect.top}px, ${targetRect.left + targetRect.width}px ${targetRect.top + targetRect.height}px, ${targetRect.left}px ${targetRect.top + targetRect.height}px, ${targetRect.left}px 100%, 100% 100%, 100% 0%)`
+    : "none";
+
   return (
     <>
+      {/* Full-screen click blocker with cutout for target area (non-click steps can interact with real inputs) */}
+      {targetRect && !needsHole && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 10001, pointerEvents: "auto", background: "transparent", clipPath: blockerClipPath }} />
+      )}
+      {/* On click steps, block everything and use the hole to forward clicks */}
+      {needsHole && <div style={{ position: "fixed", inset: 0, zIndex: 9999, pointerEvents: "auto", background: "transparent" }} />}
       {/* Backdrop with spotlight hole */}
       <div style={backdropStyle} />
+      {/* On "click" steps: hole intercepts click and forwards it + advances */}
       {holeStyle && <div style={holeStyle} onClick={onHoleClick} />}
 
       {/* Tooltip card */}
