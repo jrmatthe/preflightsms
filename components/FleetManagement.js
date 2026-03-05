@@ -88,7 +88,7 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
             </svg>
             <div style={{fontSize:14,fontWeight:600,color:WHITE,marginBottom:6}}>No aircraft registered</div>
             <div style={{fontSize:11,color:MUTED,lineHeight:1.6,maxWidth:340,margin:"0 auto",marginBottom:16}}>Add your fleet to enable FRAT submissions and flight following. Aircraft details are used across safety reports and risk assessments.</div>
-            {canManage && !atLimit && <button data-onboarding="fleet-add-btn" onClick={startAdd} style={{padding:"10px 24px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>Add Aircraft</button>}
+            {canManage && !atLimit && !editing && <button data-onboarding="fleet-add-btn" onClick={startAdd} style={{padding:"10px 24px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>Add Aircraft</button>}
           </div>:<div style={{fontSize:11,color:MUTED}}>No aircraft found</div>}</div>
           :filtered.map(a=>{
             const isSelected=selected?.id===a.id;
