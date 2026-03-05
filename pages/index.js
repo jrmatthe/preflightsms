@@ -2777,11 +2777,12 @@ export default function PVTAIRFrat() {
     setCv(flow.tab);
     if (flow.adminTab) setInitialAdminTab(flow.adminTab);
     setActiveFlow(flowId);
-    const resumeStep = onboardingState?.flows?.[flowId]?.current_step || 0;
-    setActiveFlowStep(resumeStep);
+    // Always restart from step 0 — steps are quick and resuming mid-flow
+    // can leave the UI in an inconsistent state (e.g. form not open)
+    setActiveFlowStep(0);
     const next = {
       ...onboardingState,
-      flows: { ...onboardingState.flows, [flowId]: { ...onboardingState.flows[flowId], status: "in_progress", current_step: resumeStep } },
+      flows: { ...onboardingState.flows, [flowId]: { ...onboardingState.flows[flowId], status: "in_progress", current_step: 0 } },
     };
     await persistOnboarding(next);
   }, [onboardingState, persistOnboarding]);
