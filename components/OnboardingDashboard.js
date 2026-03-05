@@ -77,7 +77,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
           </div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: WHITE, letterSpacing: "-0.02em" }}>
-              Welcome — let's set up your SMS
+              Getting Started: let's set up your SMS
             </div>
             <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
               Complete these steps to get your safety management system operational
