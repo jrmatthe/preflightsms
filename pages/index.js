@@ -2664,6 +2664,8 @@ export default function PVTAIRFrat() {
   const [onboardingState, setOnboardingState] = useState(null);
   const [activeFlow, setActiveFlow] = useState(null);
   const [activeFlowStep, setActiveFlowStep] = useState(0);
+  const activeFlowRef = useRef(null);
+  useEffect(() => { activeFlowRef.current = activeFlow; }, [activeFlow]);
   const [fratDetailId, setFratDetailId] = useState(null);
   useEffect(() => { if (_initTab && typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }, []);
   const [records, setRecords] = useState([]);
@@ -3078,7 +3080,7 @@ export default function PVTAIRFrat() {
       })));
     });
     fetchFlights(orgId).then(({ data }) => {
-      setFlights(data.map(f => ({
+      const mapped = data.map(f => ({
         id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number,
         departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt,
         etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, fuelUnit: f.fuel_unit || "lbs",
@@ -3087,7 +3089,11 @@ export default function PVTAIRFrat() {
         cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status,
         fratDbId: f.frat_id, attachments: f.attachments || [],
         parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "",
-      })));
+      }));
+      setFlights(prev => {
+        const demo = activeFlowRef.current === "flights" ? prev.find(f => f.id === "FRAT-DEMO") : null;
+        return demo ? [demo, ...mapped] : mapped;
+      });
     });
     fetchReports(orgId).then(({ data }) => setReports(data || []));
     fetchHazards(orgId).then(({ data }) => setHazards(data || []));
@@ -3137,7 +3143,7 @@ export default function PVTAIRFrat() {
     // Subscribe to real-time flight updates
     const channel = subscribeToFlights(orgId, (payload) => {
       fetchFlights(orgId).then(({ data }) => {
-        setFlights(data.map(f => ({
+        const mapped = data.map(f => ({
           id: f.frat_code, dbId: f.id, pilot: f.pilot, aircraft: f.aircraft, tailNumber: f.tail_number,
           departure: f.departure, destination: f.destination, cruiseAlt: f.cruise_alt,
           etd: f.etd, ete: f.ete, eta: f.eta, fuelLbs: f.fuel_lbs, fuelUnit: f.fuel_unit || "lbs",
@@ -3146,7 +3152,11 @@ export default function PVTAIRFrat() {
           cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status,
           fratDbId: f.frat_id, attachments: f.attachments || [],
           parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "",
-        })));
+        }));
+        setFlights(prev => {
+          const demo = activeFlowRef.current === "flights" ? prev.find(f => f.id === "FRAT-DEMO") : null;
+          return demo ? [demo, ...mapped] : mapped;
+        });
       });
     });
     // Load FRAT template
