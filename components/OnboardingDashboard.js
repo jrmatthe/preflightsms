@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { ONBOARDING_FLOWS, FLOW_ORDER } from "../lib/onboardingFlows";
 
-const DARK = "#111111", CARD = "#222222", BORDER = "#2E2E2E", LIGHT_BORDER = "#3A3A3A";
+const CARD = "#222222", BORDER = "#2E2E2E", LIGHT_BORDER = "#3A3A3A";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777";
-const GREEN = "#4ADE80", AMBER = "#F59E0B";
+const GREEN = "#4ADE80", AMBER = "#F59E0B", CYAN = "#22D3EE";
 
 export default function OnboardingDashboard({ onboardingState, onStartFlow, onDismiss }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -23,9 +23,9 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
         onClick={() => setCollapsed(false)}
         style={{
           margin: "0 0 16px",
-          padding: "10px 16px",
-          background: CARD,
-          border: `1px solid ${BORDER}`,
+          padding: "12px 18px",
+          background: "linear-gradient(135deg, rgba(34,211,238,0.06) 0%, rgba(74,222,128,0.06) 100%)",
+          border: "1px solid rgba(34,211,238,0.15)",
           borderRadius: 10,
           cursor: "pointer",
           display: "flex",
@@ -33,21 +33,23 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
           justifyContent: "space-between",
           transition: "border-color 0.15s",
         }}
-        onMouseEnter={e => e.currentTarget.style.borderColor = LIGHT_BORDER}
-        onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}
+        onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(34,211,238,0.3)"}
+        onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(34,211,238,0.15)"}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 11 12 14 22 4" />
-            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-          </svg>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(34,211,238,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
           <span style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>
-            Continue setting up — {pct}% complete
+            Continue setting up your SMS — {pct}% complete
           </span>
         </div>
-        <div style={{ width: 100, height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden" }}>
-          <div style={{ width: `${pct}%`, height: "100%", background: GREEN, borderRadius: 2, transition: "width 0.3s ease" }} />
-        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
       </div>
     );
   }
@@ -55,50 +57,66 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
   return (
     <div style={{
       margin: "0 0 20px",
-      background: CARD,
-      border: `1px solid ${BORDER}`,
+      background: "linear-gradient(135deg, rgba(34,211,238,0.04) 0%, rgba(74,222,128,0.04) 100%)",
+      border: "1px solid rgba(34,211,238,0.15)",
       borderRadius: 12,
       overflow: "hidden",
     }}>
       {/* Header */}
-      <div style={{ padding: "16px 20px 12px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: WHITE, marginBottom: 2 }}>Getting Started</div>
-          <div style={{ fontSize: 11, color: MUTED }}>
-            {completedCount} of {totalCount} complete
+      <div style={{ padding: "20px 24px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: "linear-gradient(135deg, rgba(34,211,238,0.15) 0%, rgba(74,222,128,0.15) 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: WHITE, letterSpacing: "-0.02em" }}>
+              Welcome — let's set up your SMS
+            </div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
+              Complete these steps to get your safety management system operational
+            </div>
           </div>
         </div>
         <button
           onClick={() => setCollapsed(true)}
-          style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 11, padding: "4px 8px" }}
+          style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", padding: "4px", marginTop: 2 }}
           onMouseEnter={e => e.currentTarget.style.color = OFF_WHITE}
           onMouseLeave={e => e.currentTarget.style.color = MUTED}
+          title="Minimize"
         >
-          Minimize
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
         </button>
       </div>
 
       {/* Progress bar */}
-      <div style={{ padding: "0 20px 14px" }}>
-        <div style={{ display: "flex", gap: 3 }}>
-          {FLOW_ORDER.map((id, i) => {
-            const isComplete = flows[id]?.status === "completed";
-            return (
-              <div key={id} style={{
-                flex: 1,
-                height: 4,
-                borderRadius: 2,
-                background: isComplete ? GREEN : "rgba(255,255,255,0.08)",
-                transition: "background 0.3s ease",
-              }} />
-            );
-          })}
+      <div style={{ padding: "14px 24px 6px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em" }}>Progress</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: completedCount > 0 ? GREEN : MUTED }}>{completedCount} / {totalCount}</span>
+        </div>
+        <div style={{ height: 5, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{
+            width: `${Math.max(pct, 2)}%`,
+            height: "100%",
+            background: `linear-gradient(90deg, ${CYAN}, ${GREEN})`,
+            borderRadius: 3,
+            transition: "width 0.4s ease",
+          }} />
         </div>
       </div>
 
       {/* Flow list */}
-      <div style={{ padding: "0 20px 8px" }}>
-        {FLOW_ORDER.map(id => {
+      <div style={{ padding: "10px 24px 4px" }}>
+        {FLOW_ORDER.map((id, index) => {
           const flow = ONBOARDING_FLOWS[id];
           if (!flow) return null;
           const state = flows[id] || { status: "not_started", current_step: 0 };
@@ -110,64 +128,71 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "10px 0",
-              borderTop: `1px solid ${BORDER}`,
+              padding: "14px 16px",
+              marginBottom: 6,
+              background: isComplete ? "rgba(74,222,128,0.04)" : "rgba(255,255,255,0.02)",
+              border: `1px solid ${isComplete ? "rgba(74,222,128,0.12)" : BORDER}`,
+              borderRadius: 10,
+              transition: "all 0.15s",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                {/* Status icon */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {/* Step number / status icon */}
                 {isComplete ? (
                   <div style={{
-                    width: 22, height: 22, borderRadius: "50%",
+                    width: 28, height: 28, borderRadius: 8,
                     background: "rgba(74,222,128,0.15)",
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                   }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
-                ) : isInProgress ? (
-                  <div style={{
-                    width: 22, height: 22, borderRadius: "50%",
-                    background: "rgba(245,158,11,0.15)",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: AMBER }} />
-                  </div>
                 ) : (
                   <div style={{
-                    width: 22, height: 22, borderRadius: "50%",
-                    border: `2px solid ${BORDER}`,
-                    flexShrink: 0,
-                  }} />
+                    width: 28, height: 28, borderRadius: 8,
+                    background: isInProgress ? "rgba(34,211,238,0.12)" : "rgba(255,255,255,0.05)",
+                    border: isInProgress ? "none" : `1px solid ${BORDER}`,
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    color: isInProgress ? CYAN : MUTED,
+                    fontSize: 12, fontWeight: 800,
+                  }}>
+                    {index + 1}
+                  </div>
                 )}
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: isComplete ? MUTED : WHITE }}>
-                    {flow.title}
+                  <div style={{
+                    fontSize: 13, fontWeight: 700,
+                    color: isComplete ? MUTED : WHITE,
+                    textDecoration: isComplete ? "line-through" : "none",
+                    textDecorationColor: "rgba(119,119,119,0.4)",
+                  }}>
+                    Step {index + 1}: {flow.title}
                   </div>
-                  <div style={{ fontSize: 10, color: MUTED, marginTop: 1 }}>
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2, lineHeight: 1.3 }}>
                     {flow.description}
                   </div>
                 </div>
               </div>
-              <div style={{ flexShrink: 0, marginLeft: 12 }}>
+              <div style={{ flexShrink: 0, marginLeft: 16 }}>
                 {isComplete ? (
-                  <span style={{ fontSize: 10, color: GREEN, fontWeight: 600 }}>Completed</span>
+                  <span style={{ fontSize: 10, color: GREEN, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Done</span>
                 ) : (
                   <button
                     onClick={() => onStartFlow(id)}
                     style={{
-                      padding: "6px 16px",
-                      background: isInProgress ? "transparent" : WHITE,
-                      color: isInProgress ? WHITE : "#000000",
-                      border: isInProgress ? `1px solid ${LIGHT_BORDER}` : "none",
-                      borderRadius: 6,
+                      padding: "8px 20px",
+                      background: isInProgress ? "transparent" : `linear-gradient(135deg, ${CYAN}, ${GREEN})`,
+                      color: isInProgress ? CYAN : "#000000",
+                      border: isInProgress ? `1px solid rgba(34,211,238,0.3)` : "none",
+                      borderRadius: 8,
                       fontWeight: 700,
-                      fontSize: 11,
+                      fontSize: 12,
                       cursor: "pointer",
-                      transition: "opacity 0.15s",
+                      transition: "all 0.15s",
+                      whiteSpace: "nowrap",
                     }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
-                    onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
                   >
                     {isInProgress ? "Continue" : "Start"}
                   </button>
@@ -179,7 +204,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
       </div>
 
       {/* Dismiss link */}
-      <div style={{ padding: "8px 20px 14px", textAlign: "center" }}>
+      <div style={{ padding: "6px 24px 16px", textAlign: "center" }}>
         <button
           onClick={onDismiss}
           style={{
@@ -188,8 +213,6 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
             color: MUTED,
             fontSize: 10,
             cursor: "pointer",
-            textDecoration: "underline",
-            textUnderlineOffset: 2,
           }}
           onMouseEnter={e => e.currentTarget.style.color = OFF_WHITE}
           onMouseLeave={e => e.currentTarget.style.color = MUTED}
