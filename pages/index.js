@@ -2843,10 +2843,19 @@ export default function PVTAIRFrat() {
     }
   }, [fleetAircraft.length, activeFlow, activeFlowStep]);
 
-  // Auto-detect: when a FRAT is submitted on step 13 (score panel), advance to congrats (step 14)
+  // Auto-detect: when a FRAT is submitted on step 13 (score panel), delete the onboarding FRAT and advance to congrats
   const prevRecordsLenRef = useRef(records.length);
   useEffect(() => {
     if (activeFlow === "frat" && activeFlowStep === 13 && records.length > prevRecordsLenRef.current) {
+      // Delete the onboarding FRAT + its flight so it doesn't count in real data
+      const newest = records[0];
+      if (newest?.dbId) {
+        const flight = flights.find(f => f.id === newest.id);
+        deleteFRAT(newest.dbId).catch(() => {});
+        if (flight?.dbId) deleteFlight(flight.dbId).catch(() => {});
+        setRecords(prev => prev.filter(r => r.dbId !== newest.dbId));
+        setFlights(prev => prev.filter(f => f.id !== newest.id));
+      }
       handleFlowStepAdvance();
     }
     prevRecordsLenRef.current = records.length;
