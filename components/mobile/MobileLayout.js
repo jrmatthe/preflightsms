@@ -45,7 +45,7 @@ function MobileAddAircraftPrompt({ onAdd }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: DARK, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 360 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <img src="/logo.png" alt="PreflightSMS" style={{ height: 48, width: "auto", objectFit: "contain", marginBottom: 16 }} onError={e => { e.target.style.display = "none"; }} />
+          <img src="/logo.png" alt="PreflightSMS" style={{ height: 80, width: "auto", objectFit: "contain", marginBottom: 16 }} onError={e => { e.target.style.display = "none"; }} />
           <div style={{ fontSize: 20, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Add Your First Aircraft</div>
           <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.5 }}>Register an aircraft to start submitting FRATs and tracking flights.</div>
         </div>
