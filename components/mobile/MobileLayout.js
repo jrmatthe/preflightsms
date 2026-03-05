@@ -19,7 +19,7 @@ const CYAN = "#22D3EE";
 
 const ADMIN_ROLES = ["admin", "safety_manager", "accountable_exec", "chief_pilot"];
 
-function MobileAddAircraftPrompt({ onAdd }) {
+function MobileAddAircraftPrompt({ onAdd, logoUrl }) {
   const [type, setType] = useState("");
   const [reg, setReg] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,9 +45,7 @@ function MobileAddAircraftPrompt({ onAdd }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: DARK, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 360 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16, opacity: 0.8 }}>
-            <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.3.4.7.5 1.1.3l.5-.3c.4-.2.6-.7.5-1.1z"/>
-          </svg>
+          <img src={logoUrl || "/logo.png"} alt="Logo" style={{ height: 48, width: "auto", objectFit: "contain", marginBottom: 16 }} onError={e => { e.target.style.display = "none"; }} />
           <div style={{ fontSize: 20, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Add Your First Aircraft</div>
           <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.5 }}>Register an aircraft to start submitting FRATs and tracking flights.</div>
         </div>
@@ -343,7 +341,7 @@ export default function MobileLayout({
 
       {/* First-time aircraft prompt for admin users with no fleet */}
       {fleetAircraft.length === 0 && ADMIN_ROLES.includes(profile?.role) && onCreateAircraft && (
-        <MobileAddAircraftPrompt onAdd={onCreateAircraft} />
+        <MobileAddAircraftPrompt onAdd={onCreateAircraft} logoUrl={orgData?.logo_url} />
       )}
 
       {/* Content area — scrollable, between header and tab bar */}
