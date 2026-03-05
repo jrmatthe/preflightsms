@@ -72,7 +72,7 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
                   <span style={{fontSize:10,color:AMBER,fontWeight:600}}>Aircraft limit reached — upgrade to add more</span>
                   <button disabled style={{padding:"8px 20px",background:MUTED,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"not-allowed",opacity:0.5}}>+ Add Aircraft</button>
                 </div>
-              : <button onClick={startAdd} style={{padding:"8px 20px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Add Aircraft</button>
+              : <button data-onboarding="fleet-add-btn" onClick={startAdd} style={{padding:"8px 20px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Add Aircraft</button>
           )}
         </div>
       </div>
@@ -88,7 +88,7 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
             </svg>
             <div style={{fontSize:14,fontWeight:600,color:WHITE,marginBottom:6}}>No aircraft registered</div>
             <div style={{fontSize:11,color:MUTED,lineHeight:1.6,maxWidth:340,margin:"0 auto",marginBottom:16}}>Add your fleet to enable FRAT submissions and flight following. Aircraft details are used across safety reports and risk assessments.</div>
-            {canManage && !atLimit && <button onClick={startAdd} style={{padding:"10px 24px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>Add Aircraft</button>}
+            {canManage && !atLimit && <button data-onboarding="fleet-add-btn" onClick={startAdd} style={{padding:"10px 24px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>Add Aircraft</button>}
           </div>:<div style={{fontSize:11,color:MUTED}}>No aircraft found</div>}</div>
           :filtered.map(a=>{
             const isSelected=selected?.id===a.id;
@@ -164,7 +164,7 @@ function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
     else setSuggestion(null);
   }, [form.type, existingTypes]);
 
-  const field = (l,key,type="text") => (<div style={{marginBottom:8}}>
+  const field = (l,key,type="text") => (<div data-onboarding={key === "type" ? "fleet-type-input" : key === "registration" ? "fleet-reg-input" : undefined} style={{marginBottom:8}}>
     <div style={{...lbl}}>{l}</div>
     <input type={type} value={form[key]||""} onChange={e=>{
       let v = e.target.value;
@@ -179,7 +179,7 @@ function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
     )}
   </div>);
 
-  return (<div>
+  return (<div data-onboarding="fleet-form">
     <div style={{fontSize:16,fontWeight:700,color:WHITE,marginBottom:12}}>{isNew?"Add Aircraft":"Edit Aircraft"}</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       {field("Aircraft Type *","type")}
@@ -195,7 +195,7 @@ function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
     </div>
     <div style={{fontSize:9,color:MUTED,marginBottom:12}}>Registration will auto-prepend "N" if not present</div>
     <div style={{display:"flex",gap:8,marginTop:16}}>
-      <button onClick={onSave} style={{padding:"10px 24px",background:GREEN,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>{isNew?"Add Aircraft":"Save Changes"}</button>
+      <button data-onboarding="fleet-save-btn" onClick={onSave} style={{padding:"10px 24px",background:GREEN,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>{isNew?"Add Aircraft":"Save Changes"}</button>
       <button onClick={onCancel} style={{padding:"10px 24px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:6,fontWeight:600,fontSize:12,cursor:"pointer"}}>Cancel</button>
     </div>
   </div>);

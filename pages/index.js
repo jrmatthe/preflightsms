@@ -26,8 +26,11 @@ const TeamEngagement = dynamic(() => import("../components/PilotEngagement").the
 const AsapProgram = dynamic(() => import("../components/AsapProgram"), { ssr: false });
 const InsuranceScorecard = dynamic(() => import("../components/InsuranceScorecard"), { ssr: false });
 const UpgradePrompt = dynamic(() => import("../components/UpgradePrompt"), { ssr: false });
+const OnboardingDashboard = dynamic(() => import("../components/OnboardingDashboard"), { ssr: false });
+const OnboardingFlow = dynamic(() => import("../components/OnboardingFlow"), { ssr: false });
 const MobileLayout = dynamic(() => import("../components/mobile/MobileLayout"), { ssr: false });
 import useIsMobile, { setDesktopPreference } from "../lib/useIsMobile";
+import { ONBOARDING_FLOWS, FLOW_ORDER } from "../lib/onboardingFlows";
 
 const COMPANY_NAME = "PreflightSMS";
 const ADMIN_PASSWORD = "admin2026";
@@ -2656,6 +2659,9 @@ export default function PVTAIRFrat() {
     return "dashboard";
   });
   const [initialAdminTab, setInitialAdminTab] = useState(_initTab === "subscription" ? "subscription" : null);
+  const [onboardingState, setOnboardingState] = useState(null);
+  const [activeFlow, setActiveFlow] = useState(null);
+  const [activeFlowStep, setActiveFlowStep] = useState(0);
   const [fratDetailId, setFratDetailId] = useState(null);
   useEffect(() => { if (_initTab && typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }, []);
   const [records, setRecords] = useState([]);
@@ -2735,6 +2741,100 @@ export default function PVTAIRFrat() {
     defaultViewSetRef.current = true;
     if (!isAdmin) setCv("frat");
   }, [profile]);
+  // ── Onboarding v2 ──────────────────────────────────
+  const onboardingAdminRoles = ["admin", "safety_manager", "accountable_exec", "chief_pilot"];
+  const ONBOARDING_SHIP_DATE = "2026-03-04";
+
+  useEffect(() => {
+    if (!profile || !org?.id) return;
+    if (!onboardingAdminRoles.includes(profile.role)) return;
+    // Only show for orgs created after ship date
+    const orgCreated = org.created_at || org.inserted_at;
+    if (orgCreated && orgCreated < ONBOARDING_SHIP_DATE) return;
+    const existing = org.settings?.onboarding_v2;
+    if (existing) {
+      setOnboardingState(existing);
+    } else {
+      const initial = {
+        started_at: new Date().toISOString(),
+        completed_at: null,
+        dismissed_at: null,
+        flows: Object.fromEntries(FLOW_ORDER.map(id => [id, { status: "not_started", current_step: 0 }])),
+      };
+      setOnboardingState(initial);
+      saveOnboardingStatus(org.id, { onboarding_v2: initial });
+    }
+  }, [profile, org?.id]);
+
+  const persistOnboarding = useCallback(async (next) => {
+    setOnboardingState(next);
+    if (org?.id) await saveOnboardingStatus(org.id, { onboarding_v2: next });
+  }, [org?.id]);
+
+  const handleStartFlow = useCallback(async (flowId) => {
+    const flow = ONBOARDING_FLOWS[flowId];
+    if (!flow) return;
+    setCv(flow.tab);
+    if (flow.adminTab) setInitialAdminTab(flow.adminTab);
+    setActiveFlow(flowId);
+    const resumeStep = onboardingState?.flows?.[flowId]?.current_step || 0;
+    setActiveFlowStep(resumeStep);
+    const next = {
+      ...onboardingState,
+      flows: { ...onboardingState.flows, [flowId]: { ...onboardingState.flows[flowId], status: "in_progress", current_step: resumeStep } },
+    };
+    await persistOnboarding(next);
+  }, [onboardingState, persistOnboarding]);
+
+  const handleFlowStepAdvance = useCallback(async () => {
+    if (!activeFlow || !onboardingState) return;
+    const newStep = activeFlowStep + 1;
+    setActiveFlowStep(newStep);
+    const next = {
+      ...onboardingState,
+      flows: { ...onboardingState.flows, [activeFlow]: { ...onboardingState.flows[activeFlow], current_step: newStep } },
+    };
+    await persistOnboarding(next);
+  }, [activeFlow, activeFlowStep, onboardingState, persistOnboarding]);
+
+  const handleFlowComplete = useCallback(async (flowId) => {
+    if (!onboardingState) return;
+    const next = {
+      ...onboardingState,
+      flows: { ...onboardingState.flows, [flowId]: { status: "completed", completed_at: new Date().toISOString(), current_step: ONBOARDING_FLOWS[flowId]?.steps.length || 0 } },
+    };
+    const allDone = FLOW_ORDER.every(id => (id === flowId ? true : next.flows[id]?.status === "completed"));
+    if (allDone) next.completed_at = new Date().toISOString();
+    setActiveFlow(null);
+    setActiveFlowStep(0);
+    setCv("dashboard");
+    await persistOnboarding(next);
+  }, [onboardingState, persistOnboarding]);
+
+  const handleFlowSkip = useCallback(() => {
+    setActiveFlow(null);
+    setActiveFlowStep(0);
+    setCv("dashboard");
+  }, []);
+
+  const handleDismissOnboarding = useCallback(async () => {
+    if (!onboardingState) return;
+    const next = { ...onboardingState, dismissed_at: new Date().toISOString() };
+    await persistOnboarding(next);
+  }, [onboardingState, persistOnboarding]);
+
+  // Auto-detect: when fleet data appears while on the save step (step 3 → index 3), advance to congrats (step 4)
+  useEffect(() => {
+    if (activeFlow === "fleet" && activeFlowStep === 3 && fleetAircraft.length > 0) {
+      handleFlowStepAdvance();
+    }
+  }, [fleetAircraft.length, activeFlow, activeFlowStep]);
+
+  const showOnboarding = onboardingState
+    && !onboardingState.dismissed_at
+    && onboardingAdminRoles.includes(profile?.role)
+    && !FLOW_ORDER.every(id => onboardingState.flows?.[id]?.status === "completed");
+
   const [nudgeFlight, setNudgeFlight] = useState(null);
   const [nudgeResponses, setNudgeResponses] = useState([]);
   const [foreflightConfig, setForeflightConfig] = useState(null);
@@ -4086,6 +4186,7 @@ export default function PVTAIRFrat() {
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={freeGuard(roGuard(onCreatePolicy), "policy library", () => isFree && (policies || []).length >= FREE_TIER_LIMITS.maxPolicies, `Free plan allows up to ${FREE_TIER_LIMITS.maxPolicies} policies. Upgrade to Starter for unlimited.`)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} showManuals={(hasFeature(org, "sms_manuals") || isFree) && ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role)} readOnlyManuals={isFree} templateVariables={templateVariables} signatures={smsSignatures} fleetAircraft={fleetAircraft} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onAiDraftPolicy={hasFeature(org, "safety_trend_alerts") ? async ({ policyTitle, policyCategory }) => { try { const { data, error } = await supabase.functions.invoke('ai-draft-assist', { body: { orgId: profile?.org_id, mode: "policy_draft", policyTitle, policyCategory } }); if (error) { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data?.result || null; } catch { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } } : undefined} />}
         {cv === "cbt" && <CbtModules profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
+        {cv === "dashboard" && showOnboarding && <OnboardingDashboard onboardingState={onboardingState} onStartFlow={handleStartFlow} onDismiss={handleDismissOnboarding} />}
         {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} pilotEngagement={pilotEngagement} safetyRecognitions={safetyRecognitions} orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} onAcknowledgeRecognition={async (recId) => { await acknowledgeRecognition(recId); if (session?.user?.id) fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || [])); }} complianceFrameworks={complianceFrameworks} complianceChecklistItems={complianceChecklistItems} complianceStatusData={complianceStatusData} trainingReqs={trainingReqs} trainingRecs={trainingRecs} policies={policies} iepAudits={iepAudits} auditSchedules={auditSchedulesData} mocItems={mocItems} insuranceExports={insuranceExports} onGenerateExport={roGuard(async (exportData, pdfBlob) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await createInsuranceExport(orgId, exportData); if (data && pdfBlob) { const { data: pdfUrl } = await uploadInsuranceExportPdf(orgId, data.id, pdfBlob); if (pdfUrl) { await supabase.from('insurance_exports').update({ pdf_path: pdfUrl }).eq('id', data.id); } } fetchInsuranceExports(orgId).then(({ data: d }) => setInsuranceExports(d || [])); setToast({ message: "Insurance export generated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onDeleteExport={roGuard(async (exportId) => { await deleteInsuranceExport(exportId); const orgId = profile?.org_id; if (orgId) fetchInsuranceExports(orgId).then(({ data }) => setInsuranceExports(data || [])); })} onNavigateSubscription={() => { setInitialAdminTab("subscription"); setCv("admin"); }} onNavigate={setCv} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} onViewDetail={(id) => setFratDetailId(id)} />}
         {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onUpdateEmail={async (userId, email) => { await updateProfileEmail(userId, email); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
@@ -4326,6 +4427,8 @@ export default function PVTAIRFrat() {
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
         {orgName} Safety Management System · PreflightSMS · 14 CFR Part 5 SMS · {new Date().getFullYear()}</footer>
       </div>{/* end main-content */}
+      {/* ── Onboarding Flow Overlay ──────────────────────── */}
+      {activeFlow && ONBOARDING_FLOWS[activeFlow] && <OnboardingFlow flow={ONBOARDING_FLOWS[activeFlow]} currentStep={activeFlowStep} onAdvance={handleFlowStepAdvance} onComplete={handleFlowComplete} onSkip={handleFlowSkip} />}
       {/* ── Floating Action Buttons ─────────────────────── */}
       {session && cv !== "submit" && (
         <div className="fab-container" style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column", gap: 10, zIndex: 1000 }}>
