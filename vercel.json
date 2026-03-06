@@ -15,6 +15,10 @@
     {
       "path": "/api/adsb-health",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/process-deletions",
+      "schedule": "0 6 * * *"
     }
   ]
 }

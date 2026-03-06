@@ -145,9 +145,26 @@ Deno.serve(async (req) => {
         const sub = event.data.object;
         const orgId = sub.metadata?.org_id;
         if (orgId) {
-          await supabase.from("organizations").update({
+          // Check if org has a pending deletion request
+          const { data: orgData } = await supabase
+            .from("organizations")
+            .select("deletion_reason")
+            .eq("id", orgId)
+            .maybeSingle();
+
+          const updateFields: Record<string, any> = {
             subscription_status: "canceled",
-          }).eq("id", orgId);
+          };
+
+          // If deletion was requested, start the 14-day grace period now
+          if (orgData?.deletion_reason) {
+            const scheduledDate = new Date();
+            scheduledDate.setDate(scheduledDate.getDate() + 14);
+            updateFields.scheduled_deletion_at = scheduledDate.toISOString();
+            console.log(`Org ${orgId} deletion countdown started: ${updateFields.scheduled_deletion_at}`);
+          }
+
+          await supabase.from("organizations").update(updateFields).eq("id", orgId);
           console.log(`Org ${orgId} subscription canceled`);
         }
         break;

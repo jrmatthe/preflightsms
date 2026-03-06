@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { deleteOrganization } from '../../lib/deleteOrg';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
@@ -212,45 +213,8 @@ export default async function handler(req, res) {
     const { org_id } = req.body;
     if (!org_id) return res.status(400).json({ error: 'org_id required' });
 
-    // Get all user profiles in this org so we can delete their auth accounts
-    const { data: profiles } = await sb.from('profiles').select('id').eq('org_id', org_id);
-    const userIds = (profiles || []).map(p => p.id);
-
-    // Delete org data (order matters for foreign keys)
-    await sb.from('cbt_progress').delete().eq('org_id', org_id);
-    await sb.from('cbt_enrollments').delete().eq('org_id', org_id);
-    await sb.from('cbt_lessons').delete().in('course_id',
-      (await sb.from('cbt_courses').select('id').eq('org_id', org_id)).data?.map(c => c.id) || []
-    );
-    await sb.from('cbt_courses').delete().eq('org_id', org_id);
-    await sb.from('policy_acknowledgments').delete().in('user_id', userIds);
-    await sb.from('nudge_responses').delete().eq('org_id', org_id);
-    await sb.from('overdue_notifications').delete().eq('org_id', org_id);
-    await sb.from('flights').delete().eq('org_id', org_id);
-    await sb.from('frat_submissions').delete().eq('org_id', org_id);
-    await sb.from('safety_reports').delete().eq('org_id', org_id);
-    await sb.from('hazard_register').delete().eq('org_id', org_id);
-    await sb.from('corrective_actions').delete().eq('org_id', org_id);
-    await sb.from('policy_documents').delete().eq('org_id', org_id);
-    await sb.from('training_requirements').delete().eq('org_id', org_id);
-    await sb.from('training_records').delete().eq('org_id', org_id);
-    await sb.from('notification_reads').delete().in('user_id', userIds);
-    await sb.from('notifications').delete().eq('org_id', org_id);
-    await sb.from('notification_contacts').delete().eq('org_id', org_id);
-    await sb.from('frat_templates').delete().eq('org_id', org_id);
-    await sb.from('sms_manuals').delete().eq('org_id', org_id);
-    await sb.from('invitations').delete().eq('org_id', org_id);
-    await sb.from('profiles').delete().eq('org_id', org_id);
-    await sb.from('aircraft').delete().eq('org_id', org_id);
-    await sb.from('trial_emails_sent').delete().eq('org_id', org_id);
-    await sb.from('organizations').delete().eq('id', org_id);
-
-    // Delete auth users
-    for (const uid of userIds) {
-      await sb.auth.admin.deleteUser(uid);
-    }
-
-    return res.status(200).json({ success: true, deleted_users: userIds.length });
+    const result = await deleteOrganization(sb, org_id);
+    return res.status(200).json({ success: true, deleted_users: result.deleted_users });
   }
 
   return res.status(400).json({ error: 'Unknown action' });

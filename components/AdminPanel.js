@@ -419,7 +419,7 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
   );
 }
 
-function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillingPortal, onStartFresh }) {
+function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillingPortal, onStartFresh, onRequestDeletion, onCancelDeletion }) {
   const tier = orgData?.tier || "starter";
   const tierDef = TIER_DEFS[tier] || TIER_DEFS.starter;
   const flags = orgData?.feature_flags || {};
@@ -428,6 +428,11 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
   const [billingInterval, setBillingInterval] = useState("monthly");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [deletionLoading, setDeletionLoading] = useState(false);
+  const [cancellingDeletion, setCancellingDeletion] = useState(false);
 
   const handleCheckout = async (plan) => {
     setCheckoutLoading(true);
@@ -621,6 +626,158 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
           })}
         </div>
       </div>
+
+      {/* Delete Account */}
+      {canManage && (
+        <div style={{ ...card, padding: "20px 24px", marginBottom: 16, borderLeft: `4px solid ${RED}` }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 4 }}>Delete Account</div>
+          {orgData?.scheduled_deletion_at ? (() => {
+            const delDate = new Date(orgData.scheduled_deletion_at);
+            const daysLeft = Math.max(0, Math.ceil((delDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+            return (<>
+              <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: RED, fontSize: 11, fontWeight: 600, marginBottom: 14 }}>
+                Deletion scheduled for {delDate.toLocaleDateString()} ({daysLeft} day{daysLeft !== 1 ? "s" : ""} remaining). Your organization is in read-only mode.
+              </div>
+              <button
+                onClick={async () => {
+                  setCancellingDeletion(true);
+                  try { await onCancelDeletion(); } finally { setCancellingDeletion(false); }
+                }}
+                disabled={cancellingDeletion}
+                style={{
+                  padding: "8px 20px", background: "transparent", color: CYAN,
+                  border: `1px solid ${CYAN}44`, borderRadius: 6, fontWeight: 700, fontSize: 12,
+                  cursor: cancellingDeletion ? "wait" : "pointer", opacity: cancellingDeletion ? 0.6 : 1,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = `${CYAN}11`; e.currentTarget.style.borderColor = `${CYAN}88`; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = `${CYAN}44`; }}
+              >
+                {cancellingDeletion ? "Cancelling..." : "Cancel Deletion"}
+              </button>
+            </>);
+          })() : orgData?.deletion_reason && !orgData?.scheduled_deletion_at ? (<>
+            <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 11, fontWeight: 600, marginBottom: 14 }}>
+              Your subscription is being canceled. The 14-day deletion countdown will begin when your current billing cycle ends. You have full access until then.
+            </div>
+            <button
+              onClick={async () => {
+                setCancellingDeletion(true);
+                try { await onCancelDeletion(); } finally { setCancellingDeletion(false); }
+              }}
+              disabled={cancellingDeletion}
+              style={{
+                padding: "8px 20px", background: "transparent", color: CYAN,
+                border: `1px solid ${CYAN}44`, borderRadius: 6, fontWeight: 700, fontSize: 12,
+                cursor: cancellingDeletion ? "wait" : "pointer", opacity: cancellingDeletion ? 0.6 : 1,
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = `${CYAN}11`; e.currentTarget.style.borderColor = `${CYAN}88`; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = `${CYAN}44`; }}
+            >
+              {cancellingDeletion ? "Cancelling..." : "Cancel Deletion"}
+            </button>
+          </>) : (<>
+            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 14 }}>
+              Permanently delete your organization and all associated data. {(status === "active" || status === "past_due") ? "Your subscription will be canceled and you\u2019ll keep access until your billing cycle ends. After that, a 14-day read-only grace period begins before permanent deletion." : "This action cannot be undone after the 14-day grace period."}
+            </div>
+            <button
+              onClick={() => { setShowDeleteModal(true); setDeleteReason(""); setDeleteConfirmName(""); }}
+              style={{
+                padding: "8px 20px", background: "transparent", color: RED,
+                border: `1px solid ${RED}44`, borderRadius: 6, fontWeight: 700, fontSize: 12,
+                cursor: "pointer", transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = `${RED}11`; e.currentTarget.style.borderColor = `${RED}88`; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = `${RED}44`; }}
+            >
+              Delete Account
+            </button>
+          </>)}
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => !deletionLoading && setShowDeleteModal(false)}>
+          <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 32, maxWidth: 480, width: "100%", textAlign: "center" }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={RED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: WHITE, marginBottom: 8 }}>Delete {orgData?.name || "this organization"}?</div>
+            <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 20, textAlign: "left" }}>
+              {(status === "active" || status === "past_due") ? (<>
+                Your subscription will be canceled and you&apos;ll keep <strong style={{ color: OFF_WHITE }}>full access until your billing cycle ends</strong>. After that, your organization enters read-only mode for <strong style={{ color: OFF_WHITE }}>14 days</strong>, then all data — FRATs, flights, safety reports, training, aircraft, users — will be <strong style={{ color: RED }}>permanently deleted</strong>. You can cancel anytime before deletion.
+              </>) : (<>
+                Your organization will enter <strong style={{ color: OFF_WHITE }}>read-only mode immediately</strong>. All data — FRATs, flights, safety reports, training, aircraft, users — will be <strong style={{ color: RED }}>permanently deleted after 14 days</strong>. You can cancel anytime during this period.
+              </>)}
+            </div>
+
+            <div style={{ textAlign: "left", marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: OFF_WHITE, display: "block", marginBottom: 6 }}>Reason for leaving</label>
+              <select
+                value={deleteReason}
+                onChange={e => setDeleteReason(e.target.value)}
+                style={{ ...inp, cursor: "pointer" }}
+              >
+                <option value="">Select a reason...</option>
+                <option value="Too expensive">Too expensive</option>
+                <option value="Missing features">Missing features</option>
+                <option value="Switching to another tool">Switching to another tool</option>
+                <option value="No longer needed">No longer needed</option>
+                <option value="Too complex">Too complex</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div style={{ textAlign: "left", marginBottom: 24 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: OFF_WHITE, display: "block", marginBottom: 6 }}>
+                Type <strong style={{ color: WHITE }}>{orgData?.name}</strong> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmName}
+                onChange={e => setDeleteConfirmName(e.target.value)}
+                placeholder={orgData?.name || "Organization name"}
+                style={inp}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button onClick={() => setShowDeleteModal(false)} disabled={deletionLoading}
+                style={{ padding: "10px 24px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setDeletionLoading(true);
+                  try {
+                    await onRequestDeletion(deleteReason);
+                    setShowDeleteModal(false);
+                  } catch (err) {
+                    console.error("Deletion request failed:", err);
+                  } finally {
+                    setDeletionLoading(false);
+                  }
+                }}
+                disabled={deletionLoading || !deleteReason || deleteConfirmName !== orgData?.name}
+                style={{
+                  padding: "10px 24px",
+                  background: (deletionLoading || !deleteReason || deleteConfirmName !== orgData?.name) ? "rgba(239,68,68,0.3)" : RED,
+                  color: WHITE, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13,
+                  cursor: (deletionLoading || !deleteReason || deleteConfirmName !== orgData?.name) ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}
+              >
+                {deletionLoading && <span style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: WHITE, borderRadius: "50%", animation: "spin 0.6s linear infinite", display: "inline-block" }} />}
+                {deletionLoading ? "Scheduling..." : "Schedule Deletion"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1173,7 +1330,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook, onStartFresh }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook, onStartFresh, onRequestDeletion, onCancelDeletion }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -1390,7 +1547,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
 
       {/* Subscription */}
       {activeTab === "subscription" && (<>
-        <SubscriptionTab orgData={orgData} onUpdateOrg={onUpdateOrg} canManage={canManage} onCheckout={onCheckout} onBillingPortal={onBillingPortal} onStartFresh={onStartFresh} />
+        <SubscriptionTab orgData={orgData} onUpdateOrg={onUpdateOrg} canManage={canManage} onCheckout={onCheckout} onBillingPortal={onBillingPortal} onStartFresh={onStartFresh} onRequestDeletion={onRequestDeletion} onCancelDeletion={onCancelDeletion} />
       </>)}
     </div>
   );

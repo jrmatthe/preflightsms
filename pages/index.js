@@ -2960,6 +2960,47 @@ export default function PVTAIRFrat() {
     }
   }, [profile]);
 
+  const handleRequestDeletion = useCallback(async (reason) => {
+    try {
+      const token = (await supabase.auth.getSession())?.data?.session?.access_token;
+      const res = await fetch("/api/request-deletion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orgId: profile?.org_id, reason }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Request failed");
+      // Refresh profile to pick up scheduled_deletion_at
+      const prof = await getProfile();
+      if (prof) setProfile(prof);
+      setToast({ message: "Account deletion scheduled. You have 14 days to cancel.", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
+      setTimeout(() => setToast(null), 5000);
+    } catch (err) {
+      setToast({ message: "Failed: " + err.message, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
+      setTimeout(() => setToast(null), 5000);
+    }
+  }, [profile]);
+
+  const handleCancelDeletion = useCallback(async () => {
+    try {
+      const token = (await supabase.auth.getSession())?.data?.session?.access_token;
+      const res = await fetch("/api/cancel-deletion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orgId: profile?.org_id }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Request failed");
+      const prof = await getProfile();
+      if (prof) setProfile(prof);
+      setToast({ message: "Deletion cancelled. Full access restored.", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
+      setTimeout(() => setToast(null), 5000);
+    } catch (err) {
+      setToast({ message: "Failed: " + err.message, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
+      setTimeout(() => setToast(null), 5000);
+    }
+  }, [profile]);
+
   // Auto-detect: when fleet data appears while on the save step (step 3 → index 3), advance to congrats (step 4)
   useEffect(() => {
     if (activeFlow === "fleet" && activeFlowStep === 2 && fleetAircraft.length > 0) {
@@ -4180,7 +4221,8 @@ export default function PVTAIRFrat() {
   const isTrialExpired = isTrial && !isFree && trialDaysElapsed >= 14;
   const isTrialActive = isTrial && !isTrialExpired;
 
-  const isReadOnly = !isFree && (isCanceled || isSuspended || isPastDue || isTrialExpired);
+  const isPendingDeletion = !!org?.scheduled_deletion_at;
+  const isReadOnly = !isFree && (isCanceled || isSuspended || isPastDue || isTrialExpired) || isPendingDeletion;
 
   // Fully blocked — suspended
   if (isSuspended) return (
@@ -4219,7 +4261,7 @@ export default function PVTAIRFrat() {
   const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
 
   // Read-only guard for canceled subscriptions
-  const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: isTrialExpired ? "Your trial has expired — subscribe to continue" : "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
+  const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: isPendingDeletion ? "Read-only mode — account deletion pending" : isTrialExpired ? "Your trial has expired — subscribe to continue" : "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
 
   // Free tier limit helpers
   const showUpgrade = (feature, message) => setUpgradePrompt({ feature, message });
@@ -4243,6 +4285,28 @@ export default function PVTAIRFrat() {
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} />
       <div className="main-content" style={{ marginLeft: 140 }}>
+        {/* Pending deletion banner — red when read-only countdown active */}
+        {isPendingDeletion && (() => {
+          const delDate = new Date(org.scheduled_deletion_at);
+          const daysLeft = Math.max(0, Math.ceil((delDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+          return (
+            <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ fontSize: 12, color: RED, fontWeight: 600 }}>
+                This organization is scheduled for deletion on {delDate.toLocaleDateString()} ({daysLeft} day{daysLeft !== 1 ? "s" : ""} remaining). All data will be permanently removed.
+              </span>
+              <button onClick={handleCancelDeletion} style={{ padding: "6px 14px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>Cancel Deletion</button>
+            </div>
+          );
+        })()}
+        {/* Pending cancellation banner — yellow when subscription still active, deletion requested */}
+        {!isPendingDeletion && org?.deletion_reason && (
+          <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <span style={{ fontSize: 12, color: YELLOW, fontWeight: 600 }}>
+              Account deletion requested. Your subscription is being canceled — the 14-day deletion countdown will begin when your billing cycle ends.
+            </span>
+            <button onClick={handleCancelDeletion} style={{ padding: "6px 14px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>Cancel Deletion</button>
+          </div>
+        )}
         {/* Top bar with user info */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
@@ -4600,7 +4664,7 @@ export default function PVTAIRFrat() {
             });
             return await res.json();
           } catch (e) { return { success: false, error: e.message }; }
-        }} onStartFresh={() => setShowStartFreshConfirm(true)} />}
+        }} onStartFresh={() => setShowStartFreshConfirm(true)} onRequestDeletion={handleRequestDeletion} onCancelDeletion={handleCancelDeletion} />}
       </main>
       <footer style={{ textAlign: "center", padding: "16px", color: SUBTLE, fontSize: 10, borderTop: `1px solid ${BORDER}` }}>
         {orgName} Safety Management System · PreflightSMS · 14 CFR Part 5 SMS · {new Date().getFullYear()}</footer>
