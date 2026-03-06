@@ -1455,6 +1455,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
   const [parkingSpot, setParkingSpot] = useState("");
   const [fuelRemaining, setFuelRemaining] = useState("");
   const [fuelUnit, setFuelUnit] = useState("hrs");
+  const [customFieldValues, setCustomFieldValues] = useState({});
   const [airportCoords, setAirportCoords] = useState({});
   const [now, setNow] = useState(Date.now());
 
@@ -1753,7 +1754,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                     )}
                     {f.status === "ACTIVE" && !pending && arrivedForm !== f.id && (
                       <div data-tour="tour-flights-arrived" style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                        <button data-onboarding="ff-arrived-btn" onClick={(e) => { e.stopPropagation(); setArrivedForm(f.id); setParkingSpot(""); setFuelRemaining(""); setFuelUnit("lbs"); }}
+                        <button data-onboarding="ff-arrived-btn" onClick={(e) => { e.stopPropagation(); setArrivedForm(f.id); setParkingSpot(""); setFuelRemaining(""); setFuelUnit("lbs"); setCustomFieldValues({}); }}
                           style={{ flex: 1, padding: "10px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "CANCEL"); }}
                           style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
@@ -1778,8 +1779,20 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                             </div>
                           </div>
                         </div>
+                        {(() => { const mac = fleetAircraft.find(a => a.registration === f.tailNumber); return mac?.status_field_defs?.length > 0 ? (
+                          <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                            {mac.status_field_defs.map(fd => (
+                              <div key={fd.name} style={{ flex: 1, minWidth: 120 }}>
+                                <label style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, display: "block" }}>{fd.name}</label>
+                                <input value={customFieldValues[fd.name] || ""} onChange={e => setCustomFieldValues(prev => ({ ...prev, [fd.name]: e.target.value }))}
+                                  onClick={e => e.stopPropagation()} placeholder="Optional"
+                                  style={{ ...inp, fontSize: 13, padding: "8px 10px", width: "100%" }} />
+                              </div>
+                            ))}
+                          </div>
+                        ) : null; })()}
                         <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={(e) => { e.stopPropagation(); const extra = {}; if (parkingSpot.trim()) extra.parkingSpot = parkingSpot.trim(); if (fuelRemaining.trim()) { extra.fuelRemaining = fuelRemaining.trim(); extra.fuelUnit = fuelUnit; } onUpdateFlight(f.id, "ARRIVED", extra); setArrivedForm(null); }}
+                          <button onClick={(e) => { e.stopPropagation(); const extra = {}; if (parkingSpot.trim()) extra.parkingSpot = parkingSpot.trim(); if (fuelRemaining.trim()) { extra.fuelRemaining = fuelRemaining.trim(); extra.fuelUnit = fuelUnit; } if (Object.keys(customFieldValues).some(k => customFieldValues[k]?.trim())) { extra.customFieldValues = Object.fromEntries(Object.entries(customFieldValues).filter(([,v]) => v?.trim())); } onUpdateFlight(f.id, "ARRIVED", extra); setArrivedForm(null); }}
                             style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>CONFIRM ARRIVED</button>
                           <button onClick={(e) => { e.stopPropagation(); setArrivedForm(null); }}
                             style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Back</button>

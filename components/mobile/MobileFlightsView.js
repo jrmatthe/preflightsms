@@ -96,10 +96,11 @@ function EmptyState({ onNewFrat }) {
 }
 
 // ── Arrival bottom sheet ──
-function ArrivalSheet({ flight, onConfirm, onCancel }) {
+function ArrivalSheet({ flight, onConfirm, onCancel, aircraftDefs }) {
   const [parkingSpot, setParkingSpot] = useState("");
   const [fuelRemaining, setFuelRemaining] = useState("");
   const [fuelUnit, setFuelUnit] = useState("lbs");
+  const [customFieldValues, setCustomFieldValues] = useState({});
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
@@ -145,12 +146,29 @@ function ArrivalSheet({ flight, onConfirm, onCancel }) {
           </button>
         </div>
 
+        {aircraftDefs?.length > 0 && aircraftDefs.map(fd => (
+          <div key={fd.name} style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", color: OFF_WHITE, fontSize: 14, marginBottom: 6 }}>{fd.name}</label>
+            <input
+              value={customFieldValues[fd.name] || ""}
+              onChange={e => setCustomFieldValues(prev => ({ ...prev, [fd.name]: e.target.value }))}
+              placeholder="Optional"
+              style={{ ...inputStyle }}
+            />
+          </div>
+        ))}
+
         <button
-          onClick={() => onConfirm({
-            parkingSpot: parkingSpot.trim() || undefined,
-            fuelRemaining: fuelRemaining.trim() || undefined,
-            fuelUnit,
-          })}
+          onClick={() => {
+            const result = {
+              parkingSpot: parkingSpot.trim() || undefined,
+              fuelRemaining: fuelRemaining.trim() || undefined,
+              fuelUnit,
+            };
+            const filled = Object.entries(customFieldValues).filter(([,v]) => v?.trim());
+            if (filled.length > 0) result.customFieldValues = Object.fromEntries(filled);
+            onConfirm(result);
+          }}
           style={{
             width: "100%", padding: "14px", background: CYAN, color: BLACK, border: "none",
             borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer",
@@ -456,7 +474,7 @@ function DetailRow({ label, value }) {
 // ── Main component ──
 export default function MobileFlightsView({
   flights, profile, onUpdateFlight, onNewFrat, onNavigateToReports,
-  onNudgeSubmitReport, onNudgeDismiss, nudgeFlight, loading,
+  onNudgeSubmitReport, onNudgeDismiss, nudgeFlight, loading, fleetAircraft,
 }) {
   const [filter, setFilter] = useState("my");
   const [expandedId, setExpandedId] = useState(null);
@@ -675,6 +693,7 @@ export default function MobileFlightsView({
           flight={arrivalFlight}
           onConfirm={handleArrivalConfirm}
           onCancel={() => setArrivalFlight(null)}
+          aircraftDefs={(fleetAircraft || []).find(a => a.registration === (arrivalFlight.tailNumber || arrivalFlight.aircraft))?.status_field_defs}
         />
       )}
 

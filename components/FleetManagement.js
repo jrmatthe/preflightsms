@@ -11,7 +11,7 @@ const lbl={fontSize:9,color:MUTED,textTransform:"uppercase",letterSpacing:1,marg
 
 const emptyForm = {
   type:"",registration:"",serial_number:"",year:"",max_passengers:"",
-  base_location:"",notes:"",
+  base_location:"",notes:"",status_field_defs:[],
 };
 
 export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, canManage, maxAircraft }) {
@@ -143,6 +143,17 @@ function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfi
     </div>
 
     {a.notes&&<div style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${BORDER}`,padding:"14px 16px"}}><div style={{...lbl}}>Notes</div><div style={{fontSize:12,color:OFF_WHITE,whiteSpace:"pre-wrap"}}>{a.notes}</div></div>}
+
+    {a.status_field_defs?.length>0&&(
+      <div style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${BORDER}`,padding:"14px 16px",marginTop:12}}>
+        <div style={{fontSize:10,fontWeight:600,color:OFF_WHITE,marginBottom:8}}>Custom Status Fields</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          {a.status_field_defs.map(fd=>(
+            <div key={fd.name}><div style={{...lbl}}>{fd.name}</div><div style={{fontSize:12,color:WHITE}}>{a.status_field_values?.[fd.name]||"\u2014"}</div></div>
+          ))}
+        </div>
+      </div>
+    )}
   </div>);
 }
 
@@ -192,6 +203,19 @@ function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
     <div style={{marginBottom:8,marginTop:4}}>
       <div style={{...lbl}}>Notes</div>
       <textarea value={form.notes||""} onChange={e=>setField("notes",e.target.value)} rows={3} style={{...inp,resize:"vertical"}} />
+    </div>
+    <div style={{marginBottom:8,marginTop:4}}>
+      <div style={{...lbl}}>Custom Status Fields (Optional)</div>
+      <div style={{fontSize:9,color:MUTED,marginBottom:6}}>Define up to 4 optional fields pilots can fill when marking arrived</div>
+      {(form.status_field_defs||[]).map((fd,i)=>(
+        <div key={i} style={{display:"flex",gap:6,marginBottom:4,alignItems:"center"}}>
+          <input value={fd.name} onChange={e=>{const defs=[...(form.status_field_defs||[])];defs[i]={name:e.target.value};setField("status_field_defs",defs);}} placeholder="Field name" style={{...inp,flex:1}} />
+          <button onClick={()=>{const defs=[...(form.status_field_defs||[])];defs.splice(i,1);setField("status_field_defs",defs);}} style={{padding:"6px 10px",background:"transparent",border:`1px solid ${RED}44`,borderRadius:6,color:RED,fontSize:12,cursor:"pointer",fontWeight:700}}>&times;</button>
+        </div>
+      ))}
+      {(form.status_field_defs||[]).length<4&&(
+        <button onClick={()=>setField("status_field_defs",[...(form.status_field_defs||[]),{name:""}])} style={{padding:"6px 12px",background:"transparent",border:`1px solid ${BORDER}`,borderRadius:6,color:CYAN,fontSize:11,fontWeight:600,cursor:"pointer"}}>+ Add Field</button>
+      )}
     </div>
     <div style={{fontSize:9,color:MUTED,marginBottom:12}}>Registration will auto-prepend "N" if not present</div>
     <div style={{display:"flex",gap:8,marginTop:16}}>

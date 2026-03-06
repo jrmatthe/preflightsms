@@ -60,19 +60,25 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
   const [editParking, setEditParking] = useState(aircraft.parking_spot || "");
   const [editFuel, setEditFuel] = useState(aircraft.fuel_remaining || "");
   const [editFuelUnit, setEditFuelUnit] = useState(aircraft.fuel_unit || "lbs");
+  const [editCustomFields, setEditCustomFields] = useState(aircraft.status_field_values || {});
   const [saving, setSaving] = useState(false);
 
   const hasStatus = aircraft.last_location || aircraft.parking_spot || aircraft.fuel_remaining;
+  const customDefs = aircraft.status_field_defs || [];
 
   const handleSave = async () => {
     if (!onUpdateStatus) return;
     setSaving(true);
-    await onUpdateStatus(aircraft.id, {
+    const update = {
       last_location: editLocation.trim(),
       parking_spot: editParking.trim(),
       fuel_remaining: editFuel.trim(),
       fuel_unit: editFuelUnit,
-    });
+    };
+    const filled = Object.entries(editCustomFields).filter(([,v]) => v?.trim());
+    if (filled.length > 0) update.status_field_values = Object.fromEntries(filled);
+    else if (customDefs.length > 0) update.status_field_values = {};
+    await onUpdateStatus(aircraft.id, update);
     setSaving(false);
     setEditing(false);
   };
@@ -83,6 +89,7 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
     setEditParking(aircraft.parking_spot || "");
     setEditFuel(aircraft.fuel_remaining || "");
     setEditFuelUnit(aircraft.fuel_unit || "lbs");
+    setEditCustomFields(aircraft.status_field_values || {});
     setEditing(true);
     if (!expanded) setExpanded(true);
   };
@@ -129,6 +136,12 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
                 <span style={{ fontSize: 13, color: OFF_WHITE }}>{aircraft.fuel_remaining} {(aircraft.fuel_unit || "lbs").toUpperCase()}</span>
               </div>
             )}
+            {customDefs.map(fd => { const v = aircraft.status_field_values?.[fd.name]; return v ? (
+              <div key={fd.name} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 12, color: MUTED }}>{fd.name}:</span>
+                <span style={{ fontSize: 13, color: OFF_WHITE }}>{v}</span>
+              </div>
+            ) : null; })}
             {aircraft.status_updated_at && (
               <span style={{ fontSize: 12, color: MUTED }}>{timeAgo(aircraft.status_updated_at)}</span>
             )}
@@ -191,6 +204,18 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
                   >{editFuelUnit.toUpperCase()}</button>
                 </div>
 
+                {customDefs.map(fd => (
+                  <div key={fd.name} style={{ marginBottom: 10 }}>
+                    <label style={{ display: "block", fontSize: 13, color: OFF_WHITE, marginBottom: 4 }}>{fd.name}</label>
+                    <input
+                      value={editCustomFields[fd.name] || ""}
+                      onChange={e => setEditCustomFields(prev => ({ ...prev, [fd.name]: e.target.value }))}
+                      placeholder={`e.g. ${fd.name}`}
+                      style={{ ...inputStyle }}
+                    />
+                  </div>
+                ))}
+
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     onClick={() => setEditing(false)}
@@ -232,6 +257,14 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
                     {aircraft.fuel_remaining ? `${aircraft.fuel_remaining} ${(aircraft.fuel_unit || "lbs").toUpperCase()}` : "\u2014"}
                   </div>
                 </div>
+                {customDefs.map(fd => (
+                  <div key={fd.name}>
+                    <div style={{ fontSize: 12, color: MUTED, marginBottom: 2 }}>{fd.name}</div>
+                    <div style={{ fontSize: 14, color: aircraft.status_field_values?.[fd.name] ? OFF_WHITE : MUTED, fontStyle: aircraft.status_field_values?.[fd.name] ? "normal" : "italic" }}>
+                      {aircraft.status_field_values?.[fd.name] || "\u2014"}
+                    </div>
+                  </div>
+                ))}
                 {aircraft.status_updated_at && (
                   <div>
                     <div style={{ fontSize: 12, color: MUTED, marginBottom: 2 }}>Updated</div>

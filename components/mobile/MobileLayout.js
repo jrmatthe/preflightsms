@@ -224,6 +224,7 @@ export default function MobileLayout({
             }}
             onNudgeDismiss={onNudgeDismiss}
             nudgeFlight={nudgeFlight}
+            fleetAircraft={fleetAircraft}
           />
         );
       case "newFrat":

@@ -1096,6 +1096,7 @@ function FleetStatusRow({ ac, columns, fields, onUpdateStatus }) {
   const [editParking, setEditParking] = useState(ac.parking_spot || "");
   const [editFuel, setEditFuel] = useState(ac.fuel_remaining || "");
   const [editFuelUnit, setEditFuelUnit] = useState(ac.fuel_unit || "lbs");
+  const [editCustomFields, setEditCustomFields] = useState(ac.status_field_values || {});
   const [saving, setSaving] = useState(false);
 
   const hasData = ac.last_location || ac.parking_spot || ac.fuel_remaining;
@@ -1103,12 +1104,16 @@ function FleetStatusRow({ ac, columns, fields, onUpdateStatus }) {
   const handleSave = async () => {
     if (!onUpdateStatus) return;
     setSaving(true);
-    await onUpdateStatus(ac.id, {
+    const update = {
       last_location: editLocation.trim(),
       parking_spot: editParking.trim(),
       fuel_remaining: editFuel.trim(),
       fuel_unit: editFuelUnit,
-    });
+    };
+    const filled = Object.entries(editCustomFields).filter(([,v]) => v?.trim());
+    if (filled.length > 0) update.status_field_values = Object.fromEntries(filled);
+    else if (ac.status_field_defs?.length > 0) update.status_field_values = {};
+    await onUpdateStatus(ac.id, update);
     setSaving(false);
     setEditing(false);
   };
@@ -1118,6 +1123,7 @@ function FleetStatusRow({ ac, columns, fields, onUpdateStatus }) {
     setEditParking(ac.parking_spot || "");
     setEditFuel(ac.fuel_remaining || "");
     setEditFuelUnit(ac.fuel_unit || "lbs");
+    setEditCustomFields(ac.status_field_values || {});
     setEditing(true);
   };
 
@@ -1139,6 +1145,11 @@ function FleetStatusRow({ ac, columns, fields, onUpdateStatus }) {
             <div key={c.key} style={{ padding: "4px 0", display: "flex", gap: 4 }}>
               <input value={editFuel} onChange={e => setEditFuel(e.target.value)} placeholder="Amt" inputMode="decimal" style={{ ...inlineInput, flex: 1 }} />
               <button onClick={() => setEditFuelUnit(u => u === "lbs" ? "gal" : u === "gal" ? "hrs" : "lbs")} style={{ padding: "4px 6px", borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${CYAN}12`, color: CYAN, border: `1px solid ${CYAN}30`, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{editFuelUnit}</button>
+            </div>
+          );
+          if (c.isCustom) return (
+            <div key={c.key} style={{ padding: "4px 0" }}>
+              <input value={editCustomFields[c.customName] || ""} onChange={e => setEditCustomFields(prev => ({ ...prev, [c.customName]: e.target.value }))} placeholder={c.customName} style={{ ...inlineInput }} />
             </div>
           );
           if (c.key === "updated") return (
@@ -1168,6 +1179,11 @@ function FleetStatusRow({ ac, columns, fields, onUpdateStatus }) {
             {ac.fuel_remaining ? `${ac.fuel_remaining} ${ac.fuel_unit || "lbs"}` : hasData ? "\u2014" : ""}
           </div>
         );
+        if (c.isCustom) return (
+          <div key={c.key} style={{ padding: "8px 0", color: ac.status_field_values?.[c.customName] ? OFF_WHITE : MUTED, cursor: onUpdateStatus ? "pointer" : "default" }} onClick={onUpdateStatus ? handleStartEdit : undefined} title={onUpdateStatus ? "Click to edit" : undefined}>
+            {ac.status_field_values?.[c.customName] || "\u2014"}
+          </div>
+        );
         if (c.key === "updated") return (
           <div key={c.key} style={{ padding: "8px 0", color: MUTED, display: "flex", alignItems: "center", gap: 6 }}>
             {ac.status_updated_at ? timeAgo(ac.status_updated_at) : ""}
@@ -1184,13 +1200,21 @@ function FleetStatusRow({ ac, columns, fields, onUpdateStatus }) {
 
 function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus }) {
   const fields = fleetStatusFields || { tailNumber: true, type: true, location: true, fuel: true, updated: true };
+  const customFieldNames = useMemo(() => {
+    const names = new Set();
+    (fleetAircraft || []).forEach(ac => {
+      (ac.status_field_defs || []).forEach(fd => names.add(fd.name));
+    });
+    return [...names];
+  }, [fleetAircraft]);
   const columns = [
     { key: "tailNumber", label: "Tail #" },
     { key: "type", label: "Type" },
     { key: "location", label: "Location" },
     { key: "fuel", label: "Fuel" },
+    ...customFieldNames.map(name => ({ key: `custom_${name}`, label: name, isCustom: true, customName: name })),
     { key: "updated", label: "Updated" },
-  ].filter(c => fields[c.key] !== false);
+  ].filter(c => c.isCustom || fields[c.key] !== false);
 
   // Read status from aircraft table fields directly
   const fleetStatus = useMemo(() => {
@@ -1260,6 +1284,7 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAi
                 <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
                   {fields.location !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Location </span><span style={{ color: OFF_WHITE }}>{ac.last_location}</span>{ac.parking_spot ? <span style={{ color: MUTED }}> / <span style={{ color: OFF_WHITE }}>{ac.parking_spot}</span></span> : null}</div>}
                   {fields.fuel !== false && <div><span style={{ color: MUTED, fontSize: 10 }}>Fuel </span><span style={{ color: OFF_WHITE }}>{ac.fuel_remaining ? `${ac.fuel_remaining} ${ac.fuel_unit || "lbs"}` : "\u2014"}</span></div>}
+                  {customFieldNames.map(name => { const val = ac.status_field_values?.[name]; return val ? <div key={name}><span style={{ color: MUTED, fontSize: 10 }}>{name} </span><span style={{ color: OFF_WHITE }}>{val}</span></div> : null; })}
                 </div>
               ) : (
                 <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic", marginTop: 4 }}>No recent data</div>
