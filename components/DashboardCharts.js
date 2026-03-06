@@ -258,6 +258,11 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         <div style={{ marginTop: 8, height: 6, background: NEAR_BLACK, borderRadius: 3, overflow: "hidden" }}>
           <div style={{ width: `${stats.compliance}%`, height: "100%", background: compColor, borderRadius: 3, transition: "width 0.5s" }} />
         </div>
+        {stats.compliance === 100 && onNavigate && (
+          <div style={{ marginTop: 10, fontSize: 11, color: GREEN, fontWeight: 600 }}>
+            All Part 5 requirements met — <span onClick={(e) => { e.stopPropagation(); onNavigate("audits"); }} style={{ textDecoration: "underline", cursor: "pointer" }}>generate your Declaration of Compliance</span>
+          </div>
+        )}
       </div>
 
       {/* KPI cards */}

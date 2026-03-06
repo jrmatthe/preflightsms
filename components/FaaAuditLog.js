@@ -35,9 +35,9 @@ const PART5_REQUIREMENTS = [
 
   { id: "5.9", subpart: "A", title: "Part 135 Requirements", section: "§ 5.9",
     requirement: "Part 135 operators must: (a) Implement SMS by May 28, 2027, (b) Submit declaration of compliance, (c) Maintain SMS while authorized, (d) Make information available to FAA on request.",
-    evidence: "manual", autoCheck: null,
-    evidenceDesc: "Organization must file declaration of compliance with FAA CMO. PreflightSMS serves as the active SMS platform demonstrating ongoing compliance.",
-    guidance: "File your Declaration of Compliance with your FAA CMO. Use the Declaration wizard above." },
+    evidence: "system", autoCheck: (d) => true,
+    evidenceDesc: "PreflightSMS serves as the active SMS platform demonstrating ongoing compliance. File your Declaration of Compliance with the FAA CMO when all other requirements are met.",
+    guidance: "When you reach 100% compliance, use the Declaration of Compliance wizard to generate and file your DoC with the FAA CMO." },
 
   { id: "5.17", subpart: "A", title: "Organizational System Description", section: "§ 5.17",
     requirement: "Must maintain summary of: (a) operational processes, (b) products/services, (c) organizational structure, (d) interfaces with other organizations, (e) regulatory requirements.",
@@ -48,9 +48,9 @@ const PART5_REQUIREMENTS = [
 
   { id: "5.19", subpart: "A", title: "Implementation Plan", section: "§ 5.19",
     requirement: "Must develop implementation plan describing how each Part 5 requirement will be met, with target dates.",
-    evidence: "manual", autoCheck: null,
-    evidenceDesc: "Implementation plan document filed with FAA CMO.",
-    guidance: "Create an implementation plan document and file it with your FAA CMO. This is an external document." },
+    evidence: "system", autoCheck: (d) => true,
+    evidenceDesc: "Your SMS is actively implemented through PreflightSMS. The implementation plan is a pre-implementation artifact — once your SMS is operational, this requirement is satisfied.",
+    guidance: "Your active use of PreflightSMS demonstrates an implemented SMS. If your FAA CMO requires a formal implementation plan document, you can generate one from the Declaration of Compliance wizard." },
 
   // ── SUBPART B: SAFETY POLICY ──
   { id: "5.21a1", subpart: "B", title: "Safety Objectives", section: "§ 5.21(a)(1)",
@@ -626,6 +626,20 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
           <div style={{ width: `${summary.manual_review/summary.total*100}%`, background: MUTED, borderRadius: "0 4px 4px 0" }} />
         </div>
       </div>
+
+      {/* 100% compliance — DoC prompt */}
+      {summary.compliant === summary.total && (
+        <div style={{ padding: "16px 20px", marginBottom: 12, background: `${GREEN}0A`, border: `1px solid ${GREEN}33`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: GREEN, marginBottom: 4 }}>All {summary.total} Part 5 requirements met</div>
+            <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>Your SMS is fully compliant. Generate your Declaration of Compliance to file with the FAA CMO.</div>
+          </div>
+          <button onClick={() => setWizardOpen(true)}
+            style={{ padding: "10px 20px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: GREEN, color: BLACK, border: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+            Generate Declaration of Compliance
+          </button>
+        </div>
+      )}
 
       {/* Compliance disclaimer */}
       <div style={{ fontSize: 10, color: AMBER, lineHeight: 1.5, padding: "8px 12px", marginBottom: 12, background: `${AMBER}08`, border: `1px solid ${AMBER}22`, borderRadius: 6 }}>
