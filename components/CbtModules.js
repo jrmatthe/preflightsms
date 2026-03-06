@@ -1643,7 +1643,7 @@ export default function CbtModules({
   const renderTopTabs = () => (
     <div data-tour="tour-cbt-tabs" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {tabs.map(([id, label]) => (
-        <button key={id} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); setSortBy(id === "cbt" ? "title_az" : id === "records" ? "newest" : "title_az"); setShowCount(25); }}
+        <button key={id} data-onboarding={id === "cbt" ? "cbt-courses-tab" : id === "records" ? "cbt-records-tab" : id === "requirements" ? "cbt-requirements-tab" : id === "compliance" ? "cbt-compliance-tab" : undefined} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); setSortBy(id === "cbt" ? "title_az" : id === "records" ? "newest" : "title_az"); setShowCount(25); }}
           style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,
             background: topTab === id ? WHITE : "transparent", color: topTab === id ? BLACK : MUTED,
             fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{label}</button>
@@ -1660,10 +1660,10 @@ export default function CbtModules({
             <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Training Records</div>
             <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Safety promotion and training</div>
           </div>
-          <button onClick={() => setTrainingView("new_training")} style={btnPrimary}>+ Log Training</button>
+          <button data-onboarding="cbt-log-training-btn" onClick={() => setTrainingView("new_training")} style={btnPrimary}>+ Log Training</button>
         </div>
         {renderTopTabs()}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+        <div data-onboarding="cbt-records-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
           <div style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: GREEN, fontFamily: "Georgia,serif" }}>{trainingStatus.current}</div>
             <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Current</div>
@@ -1811,7 +1811,7 @@ export default function CbtModules({
           </div>
         </div>
         {renderTopTabs()}
-        <div style={{ ...card, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+        <div data-onboarding="cbt-compliance-summary" style={{ ...card, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: compliantCount === totalUsers ? GREEN : YELLOW }}>
             {compliantCount} of {totalUsers}
           </div>
@@ -1830,7 +1830,7 @@ export default function CbtModules({
             <div style={{ fontSize: 14 }}>No training requirements or users found</div>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div data-onboarding="cbt-compliance-matrix" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr>
@@ -1877,7 +1877,7 @@ export default function CbtModules({
             <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Training Courses</div>
             <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Online training and safety promotion</div>
           </div>
-          {isAdmin && <button onClick={() => setView("new_course")} style={btnPrimary}>+ New Course</button>}
+          {isAdmin && <button data-onboarding="cbt-new-course-btn" onClick={() => setView("new_course")} style={btnPrimary}>+ New Course</button>}
         </div>
 
         {renderTopTabs()}
@@ -1895,7 +1895,7 @@ export default function CbtModules({
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 20 }} className="stat-grid">
+        <div data-onboarding="cbt-course-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 20 }} className="stat-grid">
           <div style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{totalCourses}</div>
             <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Courses</div>
@@ -1937,7 +1937,7 @@ export default function CbtModules({
               <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 20 }}>
                 5 training requirements and 5 courses with 18 lessons covering Safety Policy, Safety Risk Management, Safety Assurance, Emergency Response Planning, and Safety Promotion will be created.
               </div>
-              <button onClick={handleInitTraining} disabled={initializing}
+              <button data-onboarding="cbt-init-btn" onClick={handleInitTraining} disabled={initializing}
                 style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
                 {initializing ? "Initializing..." : "Initialize Part 5 Training Program"}
               </button>
@@ -1951,7 +1951,7 @@ export default function CbtModules({
             <div style={{ fontSize: 14 }}>{publishedCourses.length === 0 ? "No courses available yet." : "No matching courses."}</div>
             {publishedCourses.length === 0 && isAdmin && <div style={{ fontSize: 12, marginTop: 4 }}>Create one to get started.</div>}
           </div>
-        ) : (<>{filteredCourses.slice(0, showCount).map(c => {
+        ) : (<div data-onboarding="cbt-course-list">{filteredCourses.slice(0, showCount).map(c => {
           const courseLessons = c.lessons || [];
           const myEnrollment = enrollments.find(e => e.course_id === c.id && e.user_id === profile?.id);
           const myLessonsComplete = courseLessons.filter(l => progress.find(p => p.lesson_id === l.id && p.user_id === profile?.id && p.status === "completed")).length;
@@ -1999,7 +1999,7 @@ export default function CbtModules({
             Showing {showCount} of {filteredCourses.length} — Show 25 more
           </button>
         )}
-        </>)}
+        </div>)}
       </div>
     );
   }

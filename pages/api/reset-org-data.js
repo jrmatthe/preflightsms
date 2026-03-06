@@ -175,6 +175,7 @@ export default async function handler(req, res) {
         flights: { status: "not_started", current_step: 0 },
         safety_report: { status: "not_started", current_step: 0 },
         policy_manuals: { status: "not_started", current_step: 0 },
+        training: { status: "not_started", current_step: 0 },
         compliance: { status: "not_started", current_step: 0 },
       },
     };
