@@ -210,7 +210,7 @@ export default function PolicyTraining({
   const renderTopTabs = () => tabs.length > 1 ? (
     <div data-tour="tour-policy-tabs" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {tabs.map(([id, label]) => (
-        <button key={id} onClick={() => { setTopTab(id); setView("list"); setSearch(""); setFilter("active"); setSortBy("newest"); setShowCount(25); }}
+        <button key={id} data-onboarding={id === "policies" ? "policy-library-tab" : "policy-manuals-tab"} onClick={() => { setTopTab(id); setView("list"); setSearch(""); setFilter("active"); setSortBy("newest"); setShowCount(25); }}
           style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,
             background: topTab === id ? WHITE : "transparent", color: topTab === id ? BLACK : MUTED,
             fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{label}</button>
@@ -249,7 +249,7 @@ export default function PolicyTraining({
           <div style={{ fontSize: 11, color: MUTED }}>§5.21–5.25 — Safety policy and documentation</div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => setView("new_policy")} style={{ padding: "8px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Document</button>
+          <button data-onboarding="policy-add-doc" onClick={() => setView("new_policy")} style={{ padding: "8px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Document</button>
         </div>
       </div>
       {renderTopTabs()}
@@ -264,7 +264,7 @@ export default function PolicyTraining({
           <div style={{ fontSize: 22, fontWeight: 800, color: GREEN, fontFamily: "Georgia,serif" }}>{policies.filter(p => p.status === "active").length}</div>
           <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Active</div>
         </div>
-        <div style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
+        <div data-onboarding="policy-ack-stats" style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: CYAN, fontFamily: "Georgia,serif" }}>{myAcks.size}/{policies.filter(p => p.status === "active").length}</div>
           <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Acknowledged</div>
         </div>

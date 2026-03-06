@@ -1025,7 +1025,7 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
           <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 20 }}>
             7 manuals will be created: Safety Policy, Safety Accountability, Emergency Response Plan, Safety Risk Management, Safety Assurance, Safety Promotion, and Organizational System Description.
           </div>
-          <button onClick={handleInit} disabled={initializing}
+          <button data-onboarding="sms-init-btn" onClick={handleInit} disabled={initializing}
             style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
             {initializing ? "Setting up..." : "Set Up SMS Manuals"}
           </button>
@@ -1063,7 +1063,7 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
       </div>}
 
       {/* Template Variables (hidden in read-only mode) */}
-      {!readOnly && <TemplateVariablesForm variables={templateVariables} fleetAircraft={fleetAircraft} onSave={async (vars) => {
+      {!readOnly && <div data-onboarding="sms-variables"><TemplateVariablesForm variables={templateVariables} fleetAircraft={fleetAircraft} onSave={async (vars) => {
         // Merge template content into empty DB sections so variable replacement works
         const mergedManuals = smsManuals.map(m => {
           const template = SMS_MANUAL_TEMPLATES.find(t => t.manualKey === m.manual_key);
@@ -1076,7 +1076,7 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
           return { ...m, sections: mergedSections };
         });
         await onSaveVariables(vars, mergedManuals);
-      }} />}
+      }} /></div>}
 
       {/* Summary stats */}
       <div style={{ display: "grid", gridTemplateColumns: readOnly ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
@@ -1111,6 +1111,7 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
       </div>}
 
       {/* Manual cards */}
+      <div data-onboarding="sms-manual-list">
       {displayManuals.map(m => {
         const secs = m.sections || [];
         const done = secs.filter(s => s.completed).length;
@@ -1153,6 +1154,7 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
           </div>
         );
       })}
+      </div>
 
       <div style={{ marginTop: 16, padding: "12px 16px", ...card, background: NEAR_BLACK }}>
         <div style={{ fontSize: 9, color: MUTED, lineHeight: 1.6 }}>
