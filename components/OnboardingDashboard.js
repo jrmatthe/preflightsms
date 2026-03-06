@@ -22,7 +22,8 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
       <div
         onClick={() => setCollapsed(false)}
         style={{
-          margin: "0 0 16px",
+          maxWidth: 640,
+          margin: "0 auto 16px",
           padding: "12px 18px",
           background: "linear-gradient(135deg, rgba(34,211,238,0.06) 0%, rgba(74,222,128,0.06) 100%)",
           border: "1px solid rgba(34,211,238,0.15)",
@@ -56,7 +57,8 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
 
   return (
     <div style={{
-      margin: "0 0 20px",
+      maxWidth: 640,
+      margin: "0 auto 20px",
       background: "linear-gradient(135deg, rgba(34,211,238,0.04) 0%, rgba(74,222,128,0.04) 100%)",
       border: "1px solid rgba(34,211,238,0.15)",
       borderRadius: 12,
@@ -115,7 +117,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
       </div>
 
       {/* Flow list */}
-      <div style={{ padding: "10px 24px 4px" }}>
+      <div style={{ padding: "12px 24px 8px" }}>
         {FLOW_ORDER.map((id, index) => {
           const flow = ONBOARDING_FLOWS[id];
           if (!flow) return null;
@@ -128,8 +130,8 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "14px 16px",
-              marginBottom: 6,
+              padding: "11px 14px",
+              marginBottom: 5,
               background: isComplete ? "rgba(74,222,128,0.04)" : "rgba(255,255,255,0.02)",
               border: `1px solid ${isComplete ? "rgba(74,222,128,0.12)" : BORDER}`,
               borderRadius: 10,
