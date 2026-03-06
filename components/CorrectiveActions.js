@@ -229,10 +229,10 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Corrective Actions</div>
           <div style={{ fontSize: 11, color: MUTED }}>§5.73 — Track and verify corrective actions to completion</div>
         </div>
-        <button onClick={() => setView("new")} style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ New Action</button>
+        <button data-onboarding="ca-new-btn" onClick={() => setView("new")} style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ New Action</button>
       </div>
 
-      <div data-tour="tour-actions-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+      <div data-onboarding="ca-stats" data-tour="tour-actions-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
           { label: "Open", value: counts.open },
           { label: "In Progress", value: counts.in_progress },
@@ -255,7 +255,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
           <option value="priority">Priority (highest)</option>
         </select>
       </div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+      <div data-onboarding="ca-filters" style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {["all", ...STATUSES.map(s => s.id)].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${filter === f ? WHITE : BORDER}`,

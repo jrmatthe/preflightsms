@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777";
 const GREEN = "#4ADE80", CARD = "#222222", BORDER = "#2E2E2E";
 
-export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplete, onSkip }) {
+export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, onComplete, onSkip }) {
   const [targetRect, setTargetRect] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
   const [continueEnabled, setContinueEnabled] = useState(false);
@@ -208,17 +208,37 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onComplet
 
         {/* Action buttons */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <button
-            onClick={onSkip}
-            style={{
-              background: "none", border: "none", color: MUTED,
-              fontSize: 11, cursor: "pointer", padding: "4px 0",
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = OFF_WHITE}
-            onMouseLeave={e => e.currentTarget.style.color = MUTED}
-          >
-            Skip
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={onSkip}
+              style={{
+                background: "none", border: "none", color: MUTED,
+                fontSize: 11, cursor: "pointer", padding: "4px 0",
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = OFF_WHITE}
+              onMouseLeave={e => e.currentTarget.style.color = MUTED}
+            >
+              Skip
+            </button>
+            {(() => {
+              const prevStep = currentStep > 0 ? flow.steps[currentStep - 1] : null;
+              const backDisabled = currentStep === 0 || (prevStep && (prevStep.advanceOn === "click" || prevStep.advanceOn === "save"));
+              if (backDisabled) return null;
+              return (
+                <button
+                  onClick={onBack}
+                  style={{
+                    background: "none", border: `1px solid ${BORDER}`, color: OFF_WHITE,
+                    fontSize: 11, cursor: "pointer", padding: "4px 10px", borderRadius: 5, fontWeight: 600,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = OFF_WHITE; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER; }}
+                >
+                  Back
+                </button>
+              );
+            })()}
+          </div>
 
           {step.advanceOn === "click" && (
             <span style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>

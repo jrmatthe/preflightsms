@@ -84,7 +84,7 @@ function RiskMatrix({ likelihood, severity, onChange, label }) {
   );
 }
 
-function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
+function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAssess, org }) {
   const [form, setForm] = useState({
     title: fromReport ? fromReport.title : "",
     description: fromReport ? `Source report: ${fromReport.report_code}\n\n${fromReport.description}` : "",
@@ -97,6 +97,10 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
     relatedReportId: fromReport?.id || null,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
+  const [aiResidualLoading, setAiResidualLoading] = useState(false);
+  const [aiResidualResult, setAiResidualResult] = useState(null);
 
   const handleSubmit = () => {
     if (!form.title.trim() || !form.initialLikelihood || !form.initialSeverity) return;
@@ -172,11 +176,68 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
         />
       </div>
 
+      {/* AI Suggest Risk Scores */}
+      {onAiRiskAssess && hasFeature(org, "safety_trend_alerts") && (
+        <div style={{ marginBottom: 12 }}>
+          <button onClick={async () => {
+            setAiLoading(true);
+            setAiResult(null);
+            try {
+              const result = await onAiRiskAssess({ title: form.title, description: form.description, category: form.category, source: form.source });
+              if (result) {
+                setAiResult(result);
+                if (result.initial_likelihood) set("initialLikelihood", result.initial_likelihood);
+                if (result.initial_severity) {
+                  // Need to use setForm since set only updates one key at a time and we already called it
+                  setForm(f => ({ ...f, initialLikelihood: result.initial_likelihood || f.initialLikelihood, initialSeverity: result.initial_severity || f.initialSeverity }));
+                }
+              }
+            } catch { /* handled by parent */ }
+            setAiLoading(false);
+          }} disabled={aiLoading || !form.title.trim() || !form.description.trim()}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: (aiLoading || !form.title.trim() || !form.description.trim()) ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: (aiLoading || !form.title.trim() || !form.description.trim()) ? 0.4 : 1 }}>
+            <span style={{ fontSize: 14 }}>🤖</span> {aiLoading ? "Analyzing..." : "AI Suggest Risk Scores"}
+          </button>
+          {!form.title.trim() || !form.description.trim() ? (
+            <div style={{ fontSize: 9, color: MUTED, marginTop: 4 }}>Fill in title and description first</div>
+          ) : null}
+          {aiResult && (
+            <div style={{ marginTop: 8, padding: "12px 14px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: CYAN }}>🤖 AI Risk Assessment</div>
+                <button onClick={() => setAiResult(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>Dismiss</button>
+              </div>
+              {aiResult.reasoning && (
+                <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5, marginBottom: 8 }}>{aiResult.reasoning}</div>
+              )}
+              {aiResult.suggested_mitigations?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 6 }}>Suggested Mitigations (click to add)</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {aiResult.suggested_mitigations.map((m, i) => (
+                      <button key={i} onClick={() => {
+                        const current = form.mitigations.trim();
+                        const newText = current ? `${current}\n- ${m.text}` : `- ${m.text}`;
+                        set("mitigations", newText);
+                      }}
+                        title={m.rationale}
+                        style={{ padding: "5px 10px", borderRadius: 12, background: `${CYAN}15`, border: `1px solid ${CYAN}33`, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>
+                        + {m.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Mitigations */}
       <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Mitigations / Controls</label>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Mitigations / Controls (what's already been done to address this?)</label>
         <textarea value={form.mitigations} onChange={e => set("mitigations", e.target.value)}
-          placeholder="What controls are in place or planned to reduce this risk?"
+          placeholder="Describe controls or actions already in place to reduce this risk"
           rows={3} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
       </div>
 
@@ -188,6 +249,38 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
             onChange={(l, s) => { set("residualLikelihood", l); set("residualSeverity", s); }}
             label="Residual Risk (after mitigations)"
           />
+        </div>
+      )}
+
+      {/* AI Suggest Residual Risk */}
+      {onAiRiskAssess && hasFeature(org, "safety_trend_alerts") && form.mitigations.trim() && (
+        <div style={{ marginBottom: 12 }}>
+          <button onClick={async () => {
+            setAiResidualLoading(true);
+            setAiResidualResult(null);
+            try {
+              const result = await onAiRiskAssess({ title: form.title, description: form.description, category: form.category, source: form.source, mitigations: form.mitigations });
+              if (result) {
+                setAiResidualResult(result);
+                if (result.residual_likelihood && result.residual_severity) {
+                  setForm(f => ({ ...f, residualLikelihood: result.residual_likelihood, residualSeverity: result.residual_severity }));
+                }
+              }
+            } catch { /* handled by parent */ }
+            setAiResidualLoading(false);
+          }} disabled={aiResidualLoading}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiResidualLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiResidualLoading ? 0.6 : 1 }}>
+            <span style={{ fontSize: 14 }}>🤖</span> {aiResidualLoading ? "Analyzing..." : "AI Suggest Residual Risk"}
+          </button>
+          {aiResidualResult?.reasoning && (
+            <div style={{ marginTop: 8, padding: "12px 14px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: CYAN }}>🤖 Residual Risk Assessment</div>
+                <button onClick={() => setAiResidualResult(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>Dismiss</button>
+              </div>
+              <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{aiResidualResult.reasoning}</div>
+            </div>
+          )}
         </div>
       )}
 
@@ -445,7 +538,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
   );
 }
 
-export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule }) {
+export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess }) {
   const [view, setView] = useState(fromReport ? "new" : "list");
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -515,7 +608,8 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
   if (view === "new") {
     return <HazardForm existingCount={hazards.length} fromReport={fromReport}
       onSubmit={(h) => { onCreateHazard(h); setView("list"); if (onClearFromReport) onClearFromReport(); }}
-      onCancel={() => { setView("list"); if (onClearFromReport) onClearFromReport(); }} />;
+      onCancel={() => { setView("list"); if (onClearFromReport) onClearFromReport(); }}
+      onAiRiskAssess={onAiRiskAssess} org={org} />;
   }
 
   return (
@@ -525,14 +619,14 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Investigations</div>
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR §5.53 — Safety investigation and risk analysis</div>
         </div>
-        <button onClick={() => setView("new")}
+        <button data-onboarding="inv-new-btn" onClick={() => setView("new")}
           style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
           + New Investigation
         </button>
       </div>
 
       {/* Risk summary */}
-      <div data-tour="tour-hazards-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+      <div data-onboarding="inv-stats" data-tour="tour-hazards-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
           { label: "Critical", value: riskSummary.critical, dot: RED },
           { label: "High", value: riskSummary.high, dot: "#F97316" },
@@ -559,7 +653,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
           <option value="risk_low">Risk: Low → High</option>
         </select>
       </div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+      <div data-onboarding="inv-filters" style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {["all", ...HAZARD_STATUSES.map(s => s.id)].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${filter === f ? WHITE : BORDER}`,
@@ -570,6 +664,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
         ))}
       </div>
 
+      <div data-onboarding="inv-list">
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 20px", color: MUTED }}>
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ marginBottom: 16, opacity: 0.5 }}>
@@ -598,6 +693,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
           </button>
         )}
       </>)}
+      </div>
     </div>
   );
 }

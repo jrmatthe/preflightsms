@@ -188,6 +188,7 @@ function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
         <button onClick={()=>setField("type",suggestion)} style={{padding:"3px 10px",background:GREEN,color:BLACK,border:"none",borderRadius:4,fontWeight:700,fontSize:10,cursor:"pointer"}}>Accept</button>
       </div>
     )}
+    {key === "registration" && <div style={{fontSize:9,color:MUTED,marginTop:2}}>Will auto-prepend "N" if not present</div>}
   </div>);
 
   return (<div data-onboarding="fleet-form">
@@ -217,7 +218,6 @@ function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
         <button onClick={()=>setField("status_field_defs",[...(form.status_field_defs||[]),{name:""}])} style={{padding:"6px 12px",background:"transparent",border:`1px solid ${BORDER}`,borderRadius:6,color:CYAN,fontSize:11,fontWeight:600,cursor:"pointer"}}>+ Add Field</button>
       )}
     </div>
-    <div style={{fontSize:9,color:MUTED,marginBottom:12}}>Registration will auto-prepend "N" if not present</div>
     <div style={{display:"flex",gap:8,marginTop:16}}>
       <button data-onboarding="fleet-save-btn" onClick={onSave} style={{padding:"10px 24px",background:GREEN,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>{isNew?"Add Aircraft":"Save Changes"}</button>
       <button onClick={onCancel} style={{padding:"10px 24px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:6,fontWeight:600,fontSize:12,cursor:"pointer"}}>Cancel</button>
