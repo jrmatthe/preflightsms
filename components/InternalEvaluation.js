@@ -822,8 +822,8 @@ export default function InternalEvaluation({
   }
 
   // ── MAIN VIEW (Tabs) ───────────────────────────────────────
-  const tabBtn = (id, label) => (
-    <button key={id} onClick={() => setTab(id)}
+  const tabBtn = (id, label, onboardingAttr) => (
+    <button key={id} data-onboarding={onboardingAttr || undefined} onClick={() => setTab(id)}
       style={{ padding: "8px 20px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
         background: tab === id ? "rgba(255,255,255,0.1)" : "transparent",
         border: tab === id ? `1px solid rgba(255,255,255,0.2)` : "1px solid transparent",
@@ -835,7 +835,7 @@ export default function InternalEvaluation({
   return (
     <div>
       <div style={{ display: "flex", gap: 4, marginBottom: 20, flexWrap: "wrap" }}>
-        {tabBtn("part5", "Part 5 Compliance")}
+        {tabBtn("part5", "Part 5 Compliance", "compliance-part5-tab")}
         {tabBtn("audits", "Internal Audits")}
         {tabBtn("templates", "Templates")}
         {tabBtn("schedules", "Schedules")}

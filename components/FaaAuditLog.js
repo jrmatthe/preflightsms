@@ -573,7 +573,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>FAA Part 5 Audit Log<button onClick={() => setShowHelp(!showHelp)} title="What's this?" style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: MUTED, fontSize: 10, fontWeight: 700, marginLeft: 8, verticalAlign: "middle" }}>?</button></div>
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR Part 5 SMS Compliance for Part 135 Operations</div>
         </div>
-        <button onClick={() => setWizardOpen(true)}
+        <button data-onboarding="compliance-doc-btn" onClick={() => setWizardOpen(true)}
           style={{ padding: "8px 16px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", background: `${CYAN}22`, color: CYAN, border: `1px solid ${CYAN}44`, whiteSpace: "nowrap" }}>
           Declaration of Compliance
         </button>
@@ -596,7 +596,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       {wizardOpen ? null : <>
 
       {/* Summary cards */}
-      <div data-tour="tour-audit-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+      <div data-tour="tour-audit-stats" data-onboarding="compliance-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         {[
           { label: "Total Requirements", value: summary.total },
           { label: "Compliant", value: summary.compliant, dot: GREEN },
@@ -615,7 +615,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       </div>
 
       {/* Compliance bar */}
-      <div data-tour="tour-audit-progress" style={{ ...card, padding: "12px 16px", marginBottom: 16 }}>
+      <div data-tour="tour-audit-progress" data-onboarding="compliance-progress" style={{ ...card, padding: "12px 16px", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
           <span style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Part 5 Readiness</span>
           <span style={{ fontSize: 11, color: WHITE, fontWeight: 700 }}>{Math.round(summary.compliant / summary.total * 100)}%</span>
@@ -647,7 +647,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       </div>
 
       {/* SMS Manual Documentation Status */}
-      <div style={{ ...card, padding: "14px 18px", marginBottom: 16 }}>
+      <div data-onboarding="compliance-manuals" style={{ ...card, padding: "14px 18px", marginBottom: 16 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>SMS Manual Documentation Status</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
           {manualStatuses.map(ms => (
@@ -672,7 +672,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       </div>
 
       {/* Filter */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+      <div data-onboarding="compliance-filters" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
         {[["all", "All"], ["compliant", "Compliant"], ["needs_attention", "Needs Attention"], ["manual_review", "Manual Review"]].map(([id, l]) => (
           <button key={id} onClick={() => setFilterStatus(id)}
             style={{ padding: "5px 12px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", textTransform: "uppercase",
@@ -683,6 +683,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
       </div>
 
       {/* Requirements by subpart */}
+      <div data-onboarding="compliance-subparts">
       {Object.entries(subpartGroups).map(([sp, reqs]) => {
         const spReqs = reqs.filter(r => filterStatus === "all" || reqStatuses[r.id] === filterStatus);
         if (spReqs.length === 0) return null;
@@ -802,6 +803,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
           </div>
         );
       })}
+      </div>
 
       <div style={{ marginTop: 16, padding: "12px 16px", ...card, background: NEAR_BLACK }}>
         <div style={{ fontSize: 9, color: MUTED, lineHeight: 1.6 }}>
