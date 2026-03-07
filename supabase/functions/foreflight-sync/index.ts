@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     }
     const { data: configs } = await query;
 
+    console.log(`[foreflight-sync] Configs found: ${configs?.length || 0}, orgId filter: ${body.orgId || 'none'}`);
     if (!configs || configs.length === 0) {
       return new Response(
         JSON.stringify({ message: "No enabled ForeFlight configs found" }),
@@ -87,8 +88,10 @@ Deno.serve(async (req) => {
           headers: ffHeaders,
         });
 
+        console.log(`[foreflight-sync] API response status: ${res.status}`);
         if (!res.ok) {
           const errText = await res.text();
+          console.log(`[foreflight-sync] API error: ${res.status} ${errText.slice(0, 300)}`);
           await supabase
             .from("foreflight_config")
             .update({
@@ -100,8 +103,10 @@ Deno.serve(async (req) => {
         }
 
         const data = await res.json();
+        console.log(`[foreflight-sync] API response type: ${typeof data}, isArray: ${Array.isArray(data)}, keys: ${data && typeof data === 'object' ? Object.keys(data).join(', ') : 'N/A'}`);
         // Response may be an array or { flights: [...] }
         const flights = Array.isArray(data) ? data : (data.flights || data.data || []);
+        console.log(`[foreflight-sync] Flights found: ${flights.length}`);
 
         if (!Array.isArray(flights)) {
           await supabase
@@ -176,12 +181,15 @@ Deno.serve(async (req) => {
         let syncedCount = 0;
 
         for (const ff of flights) {
+         try {
           const ffId = String(ff.flightId || ff.id || "");
-          if (!ffId) continue;
+          console.log(`[foreflight-sync] Processing flight: ${ffId}, top keys: ${Object.keys(ff).join(", ")}`);
+          if (!ffId) { console.log(`[foreflight-sync] Skipping flight with no ID`); continue; }
 
           // Skip flights already linked to a FRAT
           const existingStatus = existingMap.get(ffId);
           if (existingStatus === "frat_created" || existingStatus === "completed") {
+            console.log(`[foreflight-sync] Skipping ${ffId} — status: ${existingStatus}`);
             continue;
           }
 
@@ -288,10 +296,39 @@ Deno.serve(async (req) => {
             wb_data: wbData || null,
           };
 
-          await supabase
+          const { error: upsertErr } = await supabase
             .from("foreflight_flights")
             .upsert(record, { onConflict: "org_id,foreflight_id" });
 
+          if (upsertErr) {
+            console.log(`[foreflight-sync] Upsert failed: ${upsertErr.message}, retrying with base columns only`);
+            // Retry with only the base columns (enhanced columns may not exist)
+            const baseRecord = {
+              org_id: record.org_id,
+              foreflight_id: record.foreflight_id,
+              departure_icao: record.departure_icao,
+              destination_icao: record.destination_icao,
+              tail_number: record.tail_number,
+              pilot_name: record.pilot_name,
+              pilot_email: record.pilot_email,
+              aircraft_type: record.aircraft_type,
+              etd: record.etd,
+              eta: record.eta,
+              status: record.status,
+              matched_pilot_id: record.matched_pilot_id,
+              raw_data: record.raw_data,
+              updated_at: record.updated_at,
+            };
+            const { error: retryErr } = await supabase
+              .from("foreflight_flights")
+              .upsert(baseRecord, { onConflict: "org_id,foreflight_id" });
+            if (retryErr) {
+              console.log(`[foreflight-sync] Base upsert also failed: ${retryErr.message}`);
+              continue;
+            }
+          }
+
+          console.log(`[foreflight-sync] Upserted flight ${ffId}: ${record.departure_icao} → ${record.destination_icao}, etd: ${record.etd}, status: ${record.status}`);
           syncedCount++;
 
           // Notify matched pilot if configured
@@ -309,6 +346,9 @@ Deno.serve(async (req) => {
               target_user_id: matchedPilot.id,
             });
           }
+         } catch (flightErr: any) {
+          console.log(`[foreflight-sync] Error processing flight: ${flightErr.message}`);
+         }
         }
 
         totalSynced += syncedCount;
