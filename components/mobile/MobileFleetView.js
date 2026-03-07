@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpiration, CATEGORY_LIMITS } from "../../lib/melHelpers";
 
 const BLACK = "#000000";
 const CARD = "#161616";
@@ -9,6 +10,7 @@ const MUTED = "#666666";
 const GREEN = "#4ADE80";
 const CYAN = "#22D3EE";
 const AMBER = "#F59E0B";
+const RED = "#EF4444";
 
 const cardStyle = { background: CARD, borderRadius: 12, border: `1px solid ${BORDER}` };
 const inputStyle = {
@@ -23,6 +25,11 @@ function timeAgo(ts) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function getLocalDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
 function SkeletonLoader() {
@@ -53,7 +60,7 @@ function EmptyState() {
   );
 }
 
-function AircraftCard({ aircraft, onUpdateStatus }) {
+function AircraftCard({ aircraft, onUpdateStatus, onUpdateMel }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editLocation, setEditLocation] = useState(aircraft.last_location || "");
@@ -62,9 +69,16 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
   const [editFuelUnit, setEditFuelUnit] = useState(aircraft.fuel_unit || "lbs");
   const [editCustomFields, setEditCustomFields] = useState(aircraft.status_field_values || {});
   const [saving, setSaving] = useState(false);
+  const [melFormOpen, setMelFormOpen] = useState(false);
+  const [showClosedMel, setShowClosedMel] = useState(false);
 
   const hasStatus = aircraft.last_location || aircraft.parking_spot || aircraft.fuel_remaining;
   const customDefs = aircraft.status_field_defs || [];
+  const activeMel = useMemo(() => getActiveMelItems(aircraft.mel_items), [aircraft.mel_items]);
+  const closedMel = useMemo(() => (aircraft.mel_items || []).filter(m => m.status !== "open"), [aircraft.mel_items]);
+  const hasExpiredMel = activeMel.some(m => getMelExpirationStatus(m) === "expired");
+  const hasWarningMel = activeMel.some(m => getMelExpirationStatus(m) === "warning");
+  const melBadgeColor = hasExpiredMel ? RED : hasWarningMel ? AMBER : CYAN;
 
   const handleSave = async () => {
     if (!onUpdateStatus) return;
@@ -94,10 +108,30 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
     if (!expanded) setExpanded(true);
   };
 
+  const handleAddMel = async (formData) => {
+    if (!onUpdateMel) return;
+    const items = [...(aircraft.mel_items || []), {
+      id: generateMelId(),
+      ...formData,
+      status: "open",
+      closed_date: null,
+    }];
+    await onUpdateMel(aircraft.id, items);
+    setMelFormOpen(false);
+  };
+
+  const handleCloseMel = async (item) => {
+    if (!onUpdateMel) return;
+    const items = (aircraft.mel_items || []).map(m =>
+      m.id === item.id ? { ...m, status: "closed", closed_date: getLocalDate() } : m
+    );
+    await onUpdateMel(aircraft.id, items);
+  };
+
   return (
     <div style={{ ...cardStyle, marginBottom: 10, overflow: "hidden" }}>
       <button
-        onClick={() => { if (!editing) setExpanded(!expanded); }}
+        onClick={() => { if (!editing && !melFormOpen) setExpanded(!expanded); }}
         aria-expanded={expanded}
         aria-label={`${aircraft.registration || "N/A"}, ${aircraft.type || "Unknown Type"}`}
         style={{
@@ -115,10 +149,18 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
               {aircraft.base_location ? ` \u00B7 ${aircraft.base_location}` : ""}
             </div>
           </div>
-          <div style={{
-            padding: "4px 10px", borderRadius: 8, fontSize: 14, fontWeight: 600,
-            background: `${GREEN}16`, color: GREEN, border: `1px solid ${GREEN}30`,
-          }}>Active</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {activeMel.length > 0 && (
+              <div style={{
+                padding: "4px 8px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                background: `${melBadgeColor}16`, color: melBadgeColor, border: `1px solid ${melBadgeColor}30`,
+              }}>{activeMel.length} MEL</div>
+            )}
+            <div style={{
+              padding: "4px 10px", borderRadius: 8, fontSize: 14, fontWeight: 600,
+              background: `${GREEN}16`, color: GREEN, border: `1px solid ${GREEN}30`,
+            }}>Active</div>
+          </div>
         </div>
 
         {/* Status summary row - always visible */}
@@ -151,8 +193,90 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
 
       {expanded && (
         <div style={{ padding: "0 16px 16px", borderTop: `1px solid ${BORDER}` }}>
+          {/* MEL Deferrals section */}
+          {(activeMel.length > 0 || onUpdateMel) && (
+            <div style={{ paddingTop: 14, marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>MEL Deferrals</span>
+                  {activeMel.length > 0 && (
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: `${AMBER}18`, color: AMBER }}>{activeMel.length}</span>
+                  )}
+                </div>
+                {onUpdateMel && !melFormOpen && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMelFormOpen(true); }}
+                    style={{
+                      padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                      background: `${CYAN}12`, color: CYAN, border: `1px solid ${CYAN}30`,
+                      cursor: "pointer", fontFamily: "inherit", minHeight: 44, minWidth: 44,
+                    }}
+                  >+ MEL</button>
+                )}
+              </div>
+
+              {activeMel.length === 0 && !melFormOpen && (
+                <div style={{ fontSize: 13, color: MUTED, fontStyle: "italic" }}>No active MEL deferrals</div>
+              )}
+
+              {activeMel.map(item => {
+                const expStatus = getMelExpirationStatus(item);
+                const expColor = expStatus === "expired" ? RED : expStatus === "warning" ? AMBER : GREEN;
+                return (
+                  <div key={item.id} style={{ padding: "10px 12px", marginBottom: 6, background: BLACK, borderRadius: 8, border: `1px solid ${BORDER}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: `${CYAN}18`, color: CYAN }}>Cat {item.category}</span>
+                      {item.mel_reference && <span style={{ fontSize: 12, color: OFF_WHITE, fontWeight: 600 }}>Ref {item.mel_reference}</span>}
+                      {item.expiration_date && (
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: `${expColor}18`, color: expColor }}>
+                          {expStatus === "expired" ? "EXPIRED" : expStatus === "warning" ? "EXPIRING" : `Exp ${item.expiration_date}`}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 14, color: WHITE, marginBottom: 2 }}>{item.description}</div>
+                    {item.notes && <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>{item.notes}</div>}
+                    {onUpdateMel && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleCloseMel(item); }}
+                        style={{
+                          marginTop: 6, padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                          background: `${GREEN}12`, color: GREEN, border: `1px solid ${GREEN}30`,
+                          cursor: "pointer", fontFamily: "inherit", minHeight: 44,
+                        }}
+                      >Close MEL</button>
+                    )}
+                  </div>
+                );
+              })}
+
+              {melFormOpen && (
+                <MobileMelForm onSave={handleAddMel} onCancel={() => setMelFormOpen(false)} />
+              )}
+
+              {closedMel.length > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowClosedMel(!showClosedMel); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: MUTED, fontWeight: 600, padding: "8px 0", fontFamily: "inherit", minHeight: 44 }}
+                  >
+                    {showClosedMel ? "\u25BC" : "\u25B6"} {closedMel.length} closed
+                  </button>
+                  {showClosedMel && closedMel.map(item => (
+                    <div key={item.id} style={{ padding: "8px 12px", marginBottom: 4, background: `${BLACK}88`, borderRadius: 8, border: `1px solid ${BORDER}`, opacity: 0.7 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: `${CYAN}18`, color: CYAN }}>Cat {item.category}</span>
+                        <span style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>CLOSED {item.closed_date || ""}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: MUTED }}>{item.description}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Current status section */}
-          <div style={{ paddingTop: 14, marginBottom: 14 }}>
+          <div style={{ paddingTop: activeMel.length > 0 || onUpdateMel ? 0 : 14, marginBottom: 14, borderTop: activeMel.length > 0 || onUpdateMel ? `1px solid ${BORDER}` : "none", paddingTop: 14 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>Current Status</div>
               {!editing && onUpdateStatus && (
@@ -317,7 +441,61 @@ function AircraftCard({ aircraft, onUpdateStatus }) {
   );
 }
 
-export default function MobileFleetView({ fleetAircraft, onUpdateAircraftStatus }) {
+function MobileMelForm({ onSave, onCancel }) {
+  const [description, setDescription] = useState("");
+  const [melRef, setMelRef] = useState("");
+  const [category, setCategory] = useState("C");
+  const [deferredDate, setDeferredDate] = useState(getLocalDate());
+  const [notes, setNotes] = useState("");
+
+  const expiration = calculateExpiration(category, deferredDate);
+  const canSave = description.trim().length > 0;
+
+  return (
+    <div onClick={e => e.stopPropagation()} style={{ padding: 14, background: BLACK, borderRadius: 10, border: `1px solid ${CYAN}30`, marginBottom: 8 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: WHITE, marginBottom: 10 }}>Add MEL Deferral</div>
+
+      <label style={{ display: "block", fontSize: 13, color: OFF_WHITE, marginBottom: 4 }}>Description *</label>
+      <input value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Weather radar inoperative" style={{ ...inputStyle, marginBottom: 10 }} />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+        <div>
+          <label style={{ display: "block", fontSize: 13, color: OFF_WHITE, marginBottom: 4 }}>MEL Ref</label>
+          <input value={melRef} onChange={e => setMelRef(e.target.value)} placeholder="e.g. 34-1" style={inputStyle} />
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: 13, color: OFF_WHITE, marginBottom: 4 }}>Category</label>
+          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+            {Object.keys(CATEGORY_LIMITS).map(c => <option key={c} value={c}>{c} — {CATEGORY_LIMITS[c].days ? `${CATEGORY_LIMITS[c].days}d` : "Specified"}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+        <div>
+          <label style={{ display: "block", fontSize: 13, color: OFF_WHITE, marginBottom: 4 }}>Deferred Date</label>
+          <input type="date" value={deferredDate} onChange={e => setDeferredDate(e.target.value)} style={inputStyle} />
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: 13, color: OFF_WHITE, marginBottom: 4 }}>Expires</label>
+          <div style={{ ...inputStyle, display: "flex", alignItems: "center", color: expiration ? OFF_WHITE : MUTED }}>
+            {expiration || "N/A"}
+          </div>
+        </div>
+      </div>
+
+      <label style={{ display: "block", fontSize: 13, color: OFF_WHITE, marginBottom: 4 }}>Notes</label>
+      <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional" style={{ ...inputStyle, marginBottom: 12 }} />
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={onCancel} style={{ flex: 1, padding: "12px", borderRadius: 8, fontSize: 14, fontWeight: 600, background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, cursor: "pointer", fontFamily: "inherit", minHeight: 44 }}>Cancel</button>
+        <button onClick={() => { if (canSave) onSave({ description: description.trim(), mel_reference: melRef.trim(), category, deferred_date: deferredDate, expiration_date: expiration || "", notes: notes.trim() }); }} disabled={!canSave} style={{ flex: 1, padding: "12px", borderRadius: 8, fontSize: 14, fontWeight: 600, background: canSave ? GREEN : `${GREEN}44`, color: BLACK, border: "none", cursor: canSave ? "pointer" : "not-allowed", fontFamily: "inherit", minHeight: 44 }}>Add MEL</button>
+      </div>
+    </div>
+  );
+}
+
+export default function MobileFleetView({ fleetAircraft, onUpdateAircraftStatus, onUpdateMel }) {
   if (fleetAircraft === undefined || fleetAircraft === null) return <SkeletonLoader />;
 
   const aircraft = fleetAircraft || [];
@@ -328,7 +506,7 @@ export default function MobileFleetView({ fleetAircraft, onUpdateAircraftStatus 
       <div style={{ fontSize: 14, color: MUTED, marginBottom: 12 }}>
         {aircraft.length} aircraft in fleet
       </div>
-      {aircraft.map(a => <AircraftCard key={a.id} aircraft={a} onUpdateStatus={onUpdateAircraftStatus} />)}
+      {aircraft.map(a => <AircraftCard key={a.id} aircraft={a} onUpdateStatus={onUpdateAircraftStatus} onUpdateMel={onUpdateMel} />)}
     </div>
   );
 }

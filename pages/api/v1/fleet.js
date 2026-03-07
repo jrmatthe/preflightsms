@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   const { data, error: qErr } = await supabase
     .from("aircraft")
-    .select("id, type, registration, tail_number, status, notes, created_at")
+    .select("id, type, registration, tail_number, status, notes, mel_items, created_at")
     .eq("org_id", org.id)
     .order("type", { ascending: true });
 

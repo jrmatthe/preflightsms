@@ -141,6 +141,7 @@ export default function MobileLayout({
   onUpdateEmail,
   org, orgProfiles, records,
   onCreateAircraft,
+  onUpdateMel,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -281,6 +282,7 @@ export default function MobileLayout({
             unreadCount={unreadCount}
             fleetAircraft={fleetAircraft}
             onUpdateAircraftStatus={onUpdateAircraftStatus}
+            onUpdateMel={onUpdateMel}
             erpPlans={erpPlans}
             onLoadErpChecklist={onLoadErpChecklist}
             onLoadErpCallTree={onLoadErpCallTree}

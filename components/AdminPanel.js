@@ -1321,7 +1321,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
   );
 }
 
-export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook, onStartFresh, onRequestDeletion, onCancelDeletion }) {
+export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, onUpdateAircraftMel, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook, onStartFresh, onRequestDeletion, onCancelDeletion }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -1377,7 +1377,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
       )}
 
       {activeTab === "fleet" && canManage && (
-        <FleetManagement aircraft={fleetAircraft || []} canManage={canManage} maxAircraft={maxAircraft || 5} onAdd={onAddAircraft} onUpdate={onUpdateAircraft} onDelete={onDeleteAircraft} />
+        <FleetManagement aircraft={fleetAircraft || []} canManage={canManage} maxAircraft={maxAircraft || 5} onAdd={onAddAircraft} onUpdate={onUpdateAircraft} onDelete={onDeleteAircraft} onUpdateMel={onUpdateAircraftMel} />
       )}
 
       {activeTab === "integrations" && canManage && (

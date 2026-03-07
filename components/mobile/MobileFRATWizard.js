@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { getActiveMelItems, getMelExpirationStatus } from "../../lib/melHelpers";
 
 const BLACK = "#000000";
 const DARK = "#111111";
@@ -851,6 +852,18 @@ export default function MobileFRATWizard({
       .finally(() => setWxLoading(false));
   }, [step, fi.departure, fi.destination, fi.cruiseAlt]);
 
+  // MEL auto-check: detect active MEL items on selected aircraft
+  const selectedAircraftObj = useMemo(() => {
+    if (!fi.tailNumber) return null;
+    return (fleetAircraft || []).find(a => a.registration === fi.tailNumber) || null;
+  }, [fi.tailNumber, fleetAircraft]);
+  const activeMelItems = useMemo(() => getActiveMelItems(selectedAircraftObj?.mel_items), [selectedAircraftObj]);
+  useEffect(() => {
+    if (activeMelItems.length > 0) {
+      setChecked(p => ({ ...p, ac_mel: true }));
+    }
+  }, [activeMelItems.length, fi.tailNumber]);
+
   // Validation — matches desktop required fields
   const validateStep = (stepNum) => {
     if (stepNum === 0) {
@@ -1006,8 +1019,35 @@ export default function MobileFRATWizard({
           <StepWeather wxData={wxData} wxAnalysis={wxAnalysis} wxLoading={wxLoading} wxError={wxError} />
         )}
         {step === 2 && (
-          <StepRiskAssessment categories={categories} checked={checked} setChecked={setChecked}
-            autoFlags={wxAnalysis?.flags} riskLevels={riskLevels} />
+          <>
+            {activeMelItems.length > 0 && (
+              <div style={{ margin: "0 16px 12px", padding: 12, background: "rgba(245,158,11,0.06)", border: `1px solid ${AMBER}44`, borderRadius: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                  <span style={{ fontSize: 14, color: AMBER }}>&#9888;</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: WHITE }}>Active MEL Deferrals</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: `${AMBER}18`, color: AMBER }}>{activeMelItems.length}</span>
+                </div>
+                {activeMelItems.map(item => {
+                  const expStatus = getMelExpirationStatus(item);
+                  const expColor = expStatus === "expired" ? RED : expStatus === "warning" ? AMBER : GREEN;
+                  return (
+                    <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", marginBottom: 3, background: CARD, borderRadius: 6, border: `1px solid ${BORDER}`, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: `${CYAN}18`, color: CYAN }}>Cat {item.category}</span>
+                      {item.mel_reference && <span style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Ref {item.mel_reference}</span>}
+                      <span style={{ flex: 1, fontSize: 13, color: OFF_WHITE }}>{item.description}</span>
+                      {item.expiration_date && (
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: `${expColor}18`, color: expColor }}>
+                          {expStatus === "expired" ? "EXPIRED" : expStatus === "warning" ? "EXPIRING" : `Exp ${item.expiration_date}`}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <StepRiskAssessment categories={categories} checked={checked} setChecked={setChecked}
+              autoFlags={{ ...(wxAnalysis?.flags || {}), ...(activeMelItems.length > 0 ? { ac_mel: true } : {}) }} riskLevels={riskLevels} />
+          </>
         )}
         {step === 3 && (
           <StepReview fi={fi} fuelUnit={fuelUnit} checked={checked} categories={categories}

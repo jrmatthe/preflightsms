@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpiration, getCategoryLabel, CATEGORY_LIMITS } from "../lib/melHelpers";
 
 const normalizeAircraftKey = (name) => (name || "").toLowerCase().replace(/[-\s.]/g, "");
 
@@ -14,7 +15,16 @@ const emptyForm = {
   base_location:"",notes:"",status_field_defs:[],
 };
 
-export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, canManage, maxAircraft }) {
+const emptyMelForm = {
+  description: "", mel_reference: "", category: "C", deferred_date: "", expiration_date: "", notes: "",
+};
+
+function getLocalDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, onUpdateMel, canManage, maxAircraft }) {
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -24,6 +34,14 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
 
   const limit = maxAircraft || 5;
   const atLimit = fleet.length >= limit;
+
+  // Keep selected in sync with fleet data
+  useEffect(() => {
+    if (selected) {
+      const updated = fleet.find(a => a.id === selected.id);
+      if (updated) setSelected(updated);
+    }
+  }, [fleet]);
 
   const filtered = useMemo(() => fleet.filter(a => {
     if (search) {
@@ -92,10 +110,22 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
           </div>:<div style={{fontSize:11,color:MUTED}}>No aircraft found</div>}</div>
           :filtered.map(a=>{
             const isSelected=selected?.id===a.id;
+            const activeMel = getActiveMelItems(a.mel_items);
+            const melCount = activeMel.length;
+            const hasExpired = activeMel.some(m => getMelExpirationStatus(m) === "expired");
+            const hasWarning = activeMel.some(m => getMelExpirationStatus(m) === "warning");
+            const melColor = hasExpired ? RED : hasWarning ? AMBER : CYAN;
             return (<div key={a.id} onClick={()=>selectAircraft(a)} style={{...card,padding:"12px 16px",marginBottom:6,cursor:"pointer",border:`1px solid ${isSelected?LIGHT_BORDER:BORDER}`,background:isSelected?"rgba(255,255,255,0.04)":CARD}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
-                  <div style={{fontSize:13,fontWeight:600,color:WHITE}}>{a.type}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:13,fontWeight:600,color:WHITE}}>{a.type}</span>
+                    {melCount > 0 && (
+                      <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,background:`${melColor}18`,color:melColor,border:`1px solid ${melColor}44`}}>
+                        {melCount} MEL
+                      </span>
+                    )}
+                  </div>
                   <div style={{fontSize:10,color:MUTED,marginTop:2}}>{a.registration} {a.serial_number&&`\u00B7 S/N ${a.serial_number}`}</div>
                 </div>
                 <div style={{textAlign:"right"}}>
@@ -108,7 +138,7 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
         </div>
         {(selected||editing)&&<div style={{...card,padding:"20px 24px",overflowY:"auto",maxHeight:"calc(100vh - 200px)"}}>
           {editing?<AircraftForm form={form} setField={setField} onSave={save} onCancel={()=>setEditing(false)} isNew={!selected} aircraft={fleet} />
-          :selected?<DetailView aircraft={selected} canManage={canManage} onEdit={startEdit} onDelete={handleDelete} confirmDelete={confirmDelete} setConfirmDelete={setConfirmDelete} />
+          :selected?<DetailView aircraft={selected} canManage={canManage} onEdit={startEdit} onDelete={handleDelete} confirmDelete={confirmDelete} setConfirmDelete={setConfirmDelete} onUpdateMel={onUpdateMel} />
           :null}
         </div>}
       </div>
@@ -116,7 +146,153 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, c
   );
 }
 
-function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfirmDelete}) {
+function MelBadge({ category }) {
+  const colors = { A: RED, B: AMBER, C: CYAN, D: GREEN };
+  const c = colors[category] || MUTED;
+  return <span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:3,background:`${c}18`,color:c,border:`1px solid ${c}44`}}>Cat {category}</span>;
+}
+
+function ExpirationBadge({ item }) {
+  const status = getMelExpirationStatus(item);
+  if (!item.expiration_date) return <span style={{fontSize:10,color:MUTED}}>No expiration</span>;
+  const color = status === "expired" ? RED : status === "warning" ? AMBER : GREEN;
+  const label = status === "expired" ? "EXPIRED" : status === "warning" ? "EXPIRING SOON" : `Exp ${item.expiration_date}`;
+  return <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:3,background:`${color}18`,color,border:`1px solid ${color}44`}}>{label}</span>;
+}
+
+function MelItemRow({ item, canManage, onClose, onEdit }) {
+  return (
+    <div style={{padding:"10px 12px",marginBottom:6,background:NEAR_BLACK,borderRadius:8,border:`1px solid ${BORDER}`}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+          <MelBadge category={item.category} />
+          {item.mel_reference && <span style={{fontSize:10,color:OFF_WHITE,fontWeight:600}}>Ref {item.mel_reference}</span>}
+          <ExpirationBadge item={item} />
+        </div>
+        {canManage && item.status === "open" && (
+          <div style={{display:"flex",gap:4}}>
+            <button onClick={()=>onEdit(item)} style={{padding:"3px 8px",borderRadius:4,fontSize:10,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${BORDER}`,color:CYAN}}>Edit</button>
+            <button onClick={()=>onClose(item)} style={{padding:"3px 8px",borderRadius:4,fontSize:10,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${GREEN}44`,color:GREEN}}>Close</button>
+          </div>
+        )}
+      </div>
+      <div style={{fontSize:12,color:WHITE,marginBottom:2}}>{item.description}</div>
+      {item.deferred_date && <div style={{fontSize:10,color:MUTED}}>Deferred: {item.deferred_date}</div>}
+      {item.notes && <div style={{fontSize:10,color:MUTED,marginTop:2,fontStyle:"italic"}}>{item.notes}</div>}
+    </div>
+  );
+}
+
+function MelForm({ initial, onSave, onCancel }) {
+  const [form, setForm] = useState(() => ({
+    ...emptyMelForm,
+    deferred_date: getLocalDate(),
+    ...initial,
+  }));
+
+  useEffect(() => {
+    if (!initial) {
+      const exp = calculateExpiration(form.category, form.deferred_date);
+      setForm(p => ({ ...p, expiration_date: exp || p.expiration_date }));
+    }
+  }, []);
+
+  const setMelField = (k, v) => {
+    setForm(p => {
+      const next = { ...p, [k]: v };
+      if (k === "category" || k === "deferred_date") {
+        const cat = k === "category" ? v : p.category;
+        const dt = k === "deferred_date" ? v : p.deferred_date;
+        const exp = calculateExpiration(cat, dt);
+        if (exp) next.expiration_date = exp;
+        else if (cat === "A") next.expiration_date = p.expiration_date || "";
+      }
+      return next;
+    });
+  };
+
+  const canSave = form.description.trim().length > 0;
+
+  return (
+    <div style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${CYAN}33`,padding:"14px 16px",marginTop:8}}>
+      <div style={{fontSize:12,fontWeight:700,color:WHITE,marginBottom:10}}>{initial ? "Edit MEL Item" : "Add MEL Deferral"}</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <div style={{gridColumn:"1 / -1"}}>
+          <div style={{...lbl}}>Description *</div>
+          <input value={form.description} onChange={e=>setMelField("description",e.target.value)} placeholder="e.g. Weather radar inoperative" style={inp} />
+        </div>
+        <div>
+          <div style={{...lbl}}>MEL Reference</div>
+          <input value={form.mel_reference} onChange={e=>setMelField("mel_reference",e.target.value)} placeholder="e.g. 34-1" style={inp} />
+        </div>
+        <div>
+          <div style={{...lbl}}>Category</div>
+          <select value={form.category} onChange={e=>setMelField("category",e.target.value)} style={inp}>
+            {Object.keys(CATEGORY_LIMITS).map(c => <option key={c} value={c}>{c} — {CATEGORY_LIMITS[c].days ? `${CATEGORY_LIMITS[c].days} days` : "As specified"}</option>)}
+          </select>
+        </div>
+        <div>
+          <div style={{...lbl}}>Deferred Date</div>
+          <input type="date" value={form.deferred_date} onChange={e=>setMelField("deferred_date",e.target.value)} style={inp} />
+        </div>
+        <div>
+          <div style={{...lbl}}>Expiration Date{form.category !== "A" && " (auto)"}</div>
+          <input type="date" value={form.expiration_date||""} onChange={e=>setMelField("expiration_date",e.target.value)} style={inp} readOnly={form.category !== "A"} />
+        </div>
+        <div style={{gridColumn:"1 / -1"}}>
+          <div style={{...lbl}}>Notes</div>
+          <input value={form.notes} onChange={e=>setMelField("notes",e.target.value)} placeholder="Optional notes" style={inp} />
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8,marginTop:12}}>
+        <button onClick={()=>{ if (canSave) onSave(form); }} disabled={!canSave} style={{padding:"8px 18px",background:canSave?GREEN:`${GREEN}44`,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:11,cursor:canSave?"pointer":"not-allowed"}}>{initial ? "Save Changes" : "Add MEL Item"}</button>
+        <button onClick={onCancel} style={{padding:"8px 18px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:6,fontWeight:600,fontSize:11,cursor:"pointer"}}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfirmDelete,onUpdateMel}) {
+  const [melFormOpen, setMelFormOpen] = useState(false);
+  const [editingMel, setEditingMel] = useState(null);
+  const [showClosed, setShowClosed] = useState(false);
+
+  const melItems = a.mel_items || [];
+  const activeItems = getActiveMelItems(melItems);
+  const closedItems = melItems.filter(m => m.status !== "open");
+
+  const handleSaveMel = async (formData) => {
+    if (!onUpdateMel) return;
+    const items = [...melItems];
+    if (editingMel) {
+      const idx = items.findIndex(m => m.id === editingMel.id);
+      if (idx >= 0) items[idx] = { ...items[idx], ...formData };
+    } else {
+      items.push({
+        id: generateMelId(),
+        ...formData,
+        status: "open",
+        closed_date: null,
+      });
+    }
+    await onUpdateMel(a.id, items);
+    setMelFormOpen(false);
+    setEditingMel(null);
+  };
+
+  const handleCloseMel = async (item) => {
+    if (!onUpdateMel) return;
+    const items = melItems.map(m =>
+      m.id === item.id ? { ...m, status: "closed", closed_date: getLocalDate() } : m
+    );
+    await onUpdateMel(a.id, items);
+  };
+
+  const handleEditMel = (item) => {
+    setEditingMel(item);
+    setMelFormOpen(true);
+  };
+
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
       <div>
@@ -140,6 +316,55 @@ function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfi
         <div><div style={{...lbl}}>Max Passengers</div><div style={{fontSize:12,color:WHITE}}>{a.max_passengers||"\u2014"}</div></div>
         <div><div style={{...lbl}}>Base Location</div><div style={{fontSize:12,color:WHITE}}>{a.base_location||"\u2014"}</div></div>
       </div>
+    </div>
+
+    {/* MEL Deferrals Section */}
+    <div style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${activeItems.length > 0 ? `${AMBER}44` : BORDER}`,padding:"14px 16px",marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:activeItems.length > 0 || canManage ? 8 : 0}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:10,fontWeight:600,color:OFF_WHITE}}>MEL Deferrals</span>
+          {activeItems.length > 0 && (
+            <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,background:`${AMBER}18`,color:AMBER}}>{activeItems.length} active</span>
+          )}
+        </div>
+        {canManage && !melFormOpen && (
+          <button onClick={()=>{setEditingMel(null);setMelFormOpen(true);}} style={{padding:"4px 10px",borderRadius:5,fontSize:10,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${CYAN}44`,color:CYAN}}>+ Add MEL</button>
+        )}
+      </div>
+
+      {activeItems.length === 0 && !melFormOpen && (
+        <div style={{fontSize:11,color:MUTED,fontStyle:"italic"}}>No active MEL deferrals</div>
+      )}
+
+      {activeItems.map(item => (
+        <MelItemRow key={item.id} item={item} canManage={canManage} onClose={handleCloseMel} onEdit={handleEditMel} />
+      ))}
+
+      {melFormOpen && (
+        <MelForm
+          initial={editingMel ? { description: editingMel.description, mel_reference: editingMel.mel_reference, category: editingMel.category, deferred_date: editingMel.deferred_date, expiration_date: editingMel.expiration_date, notes: editingMel.notes } : null}
+          onSave={handleSaveMel}
+          onCancel={()=>{setMelFormOpen(false);setEditingMel(null);}}
+        />
+      )}
+
+      {closedItems.length > 0 && (
+        <div style={{marginTop:8}}>
+          <button onClick={()=>setShowClosed(!showClosed)} style={{background:"none",border:"none",cursor:"pointer",fontSize:10,color:MUTED,fontWeight:600,padding:0}}>
+            {showClosed ? "\u25BC" : "\u25B6"} {closedItems.length} closed item{closedItems.length !== 1 ? "s" : ""}
+          </button>
+          {showClosed && closedItems.map(item => (
+            <div key={item.id} style={{padding:"8px 12px",marginTop:4,background:`${NEAR_BLACK}88`,borderRadius:8,border:`1px solid ${BORDER}`,opacity:0.7}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                <MelBadge category={item.category} />
+                {item.mel_reference && <span style={{fontSize:10,color:MUTED}}>Ref {item.mel_reference}</span>}
+                <span style={{fontSize:9,color:GREEN,fontWeight:600}}>CLOSED {item.closed_date || ""}</span>
+              </div>
+              <div style={{fontSize:11,color:MUTED}}>{item.description}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
 
     {a.notes&&<div style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${BORDER}`,padding:"14px 16px"}}><div style={{...lbl}}>Notes</div><div style={{fontSize:12,color:OFF_WHITE,whiteSpace:"pre-wrap"}}>{a.notes}</div></div>}
