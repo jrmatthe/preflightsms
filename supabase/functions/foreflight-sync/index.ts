@@ -188,6 +188,10 @@ Deno.serve(async (req) => {
           // Extract flight data — ForeFlight uses nested flightData object
           const fd = ff.flightData || ff;
 
+          // Log raw flight keys for debugging field name mismatches
+          console.log(`[foreflight-sync] Flight ${ffId} top-level keys:`, Object.keys(ff).join(", "));
+          if (ff.flightData) console.log(`[foreflight-sync] Flight ${ffId} flightData keys:`, Object.keys(ff.flightData).join(", "));
+
           // Try to match pilot by crew name → email → org profile
           const crewList = fd.crew || [];
           const pic = crewList.find((c: any) => c.position === "PIC" || c.role === "PIC");
@@ -243,17 +247,28 @@ Deno.serve(async (req) => {
           // Store load/weight data as wb_data (ForeFlight puts W&B info in load object)
           const wbData = loadObj.cargo !== undefined ? loadObj : pick<any>(fd, "weightAndBalance", "wb");
 
+          // Extract departure/arrival times — try many ForeFlight field name variants
+          const rawEtd = pick<string>(fd, "departureTime", "scheduledTimeOfDeparture",
+            "scheduledDepartureTime", "etd", "departureDate", "departure_time",
+            "std", "off_time_scheduled", "depTime");
+          const rawEta = pick<string>(fd, "arrivalTime", "scheduledTimeOfArrival",
+            "scheduledArrivalTime", "eta", "arrivalDate", "arrival_time",
+            "sta", "on_time_scheduled", "arrTime");
+          // Also check top-level flight object (outside flightData)
+          const etd = rawEtd || pick<string>(ff, "departureTime", "scheduledDepartureTime", "etd") || null;
+          const eta = rawEta || pick<string>(ff, "arrivalTime", "scheduledArrivalTime", "eta") || null;
+
           const record = {
             org_id: config.org_id,
             foreflight_id: ffId,
-            departure_icao: fd.departure || fd.departureIcao || fd.origin || "",
-            destination_icao: fd.destination || fd.destinationIcao || "",
-            tail_number: fd.aircraftRegistration || fd.tailNumber || "",
+            departure_icao: fd.departure || fd.departureIcao || fd.origin || pick<string>(ff, "departure", "origin") || "",
+            destination_icao: fd.destination || fd.destinationIcao || pick<string>(ff, "destination") || "",
+            tail_number: fd.aircraftRegistration || fd.tailNumber || pick<string>(ff, "aircraftRegistration", "tailNumber") || "",
             pilot_name: pilotName,
             pilot_email: pilotEmail || null,
-            aircraft_type: fd.aircraftType || fd.callsign || "",
-            etd: fd.departureTime || fd.scheduledTimeOfDeparture || fd.etd || null,
-            eta: fd.arrivalTime || fd.scheduledTimeOfArrival || fd.eta || null,
+            aircraft_type: fd.aircraftType || fd.callsign || pick<string>(ff, "aircraftType") || "",
+            etd,
+            eta,
             status: existingStatus || "pending",
             matched_pilot_id: matchedPilot?.id || null,
             raw_data: ff,
