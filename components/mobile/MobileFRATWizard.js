@@ -737,6 +737,8 @@ function DiscardConfirm({ onDiscard, onCancel }) {
 export default function MobileFRATWizard({
   profile, fleetAircraft, fratTemplate, allTemplates, riskLevels: parentRiskLevels,
   onSubmit, onCancel, onNavigateToFlights,
+  pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight,
+  pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip,
 }) {
   const [step, setStep] = useState(0);
   const [showDiscard, setShowDiscard] = useState(false);
@@ -813,6 +815,83 @@ export default function MobileFRATWizard({
     setActiveTemplateId(templateId || null);
     setChecked({});
   }, []);
+
+  // ForeFlight pre-population
+  useEffect(() => {
+    if (!selectedFfFlight) return;
+    const ff = selectedFfFlight;
+    const etdStr = ff.etd ? new Date(ff.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
+    const dateStr = ff.etd ? new Date(ff.etd).toISOString().split("T")[0] : getLocalDate();
+    let eteStr = "";
+    if (ff.ete_minutes != null) {
+      const h = Math.floor(ff.ete_minutes / 60);
+      const m = ff.ete_minutes % 60;
+      eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
+    } else if (ff.etd && ff.eta) {
+      const diffMs = new Date(ff.eta).getTime() - new Date(ff.etd).getTime();
+      if (diffMs > 0) {
+        const h = Math.floor(diffMs / 3600000);
+        const m = Math.floor((diffMs % 3600000) / 60000);
+        eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
+      }
+    }
+    let cruiseAltStr = "";
+    if (ff.cruise_alt != null) {
+      const altNum = parseInt(ff.cruise_alt);
+      cruiseAltStr = !isNaN(altNum) && altNum >= 18000 ? "FL" + Math.round(altNum / 100) : String(ff.cruise_alt);
+    }
+    let remarksStr = "";
+    if (ff.route) remarksStr += "Route: " + ff.route;
+    if (ff.dispatcher_notes) remarksStr += (remarksStr ? " | " : "") + "Dispatch: " + ff.dispatcher_notes;
+    setFi(p => ({
+      ...p,
+      departure: ff.departure_icao || p.departure,
+      destination: ff.destination_icao || p.destination,
+      tailNumber: ff.tail_number || p.tailNumber,
+      aircraft: ff.aircraft_type || p.aircraft,
+      pilot: ff.pilot_name || p.pilot,
+      date: dateStr,
+      etd: etdStr || p.etd,
+      ete: eteStr || p.ete,
+      cruiseAlt: cruiseAltStr || p.cruiseAlt,
+      fuelLbs: ff.fuel_lbs != null ? String(ff.fuel_lbs) : p.fuelLbs,
+      numPax: ff.passenger_count != null ? String(ff.passenger_count) : p.numPax,
+      numCrew: ff.crew_count != null ? String(ff.crew_count) : p.numCrew,
+      remarks: remarksStr || p.remarks,
+    }));
+    if (ff.fuel_lbs != null) setFuelUnit("lbs");
+  }, [selectedFfFlight]);
+
+  // Schedaero pre-population
+  useEffect(() => {
+    if (!selectedScTrip) return;
+    const sc = selectedScTrip;
+    const etdStr = sc.etd ? new Date(sc.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
+    const dateStr = sc.etd ? new Date(sc.etd).toISOString().split("T")[0] : getLocalDate();
+    let eteStr = "";
+    if (sc.etd && sc.eta) {
+      const diffMs = new Date(sc.eta).getTime() - new Date(sc.etd).getTime();
+      if (diffMs > 0) {
+        const h = Math.floor(diffMs / 3600000);
+        const m = Math.floor((diffMs % 3600000) / 60000);
+        eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
+      }
+    }
+    setFi(p => ({
+      ...p,
+      departure: sc.departure_icao || p.departure,
+      destination: sc.destination_icao || p.destination,
+      tailNumber: sc.tail_number || p.tailNumber,
+      aircraft: sc.aircraft_type || p.aircraft,
+      pilot: sc.pilot_name || p.pilot,
+      date: dateStr,
+      etd: etdStr || p.etd,
+      ete: eteStr || p.ete,
+      numPax: sc.passenger_count != null ? String(sc.passenger_count) : p.numPax,
+      numCrew: sc.crew_count != null ? String(sc.crew_count) : p.numCrew,
+      remarks: sc.trip_number ? `Trip: ${sc.trip_number}` : p.remarks,
+    }));
+  }, [selectedScTrip]);
 
   // Fetch weather when entering step 2
   useEffect(() => {
@@ -937,6 +1016,8 @@ export default function MobileFRATWizard({
       attachments: [],
       timestamp: new Date().toISOString(),
       approvalMode: rl.approval_mode,
+      foreflightFlightId: selectedFfFlight?.id || null,
+      schedaeroTripId: selectedScTrip?.id || null,
     };
 
     try {
@@ -1010,10 +1091,75 @@ export default function MobileFRATWizard({
       {/* Step content — extra bottom padding to clear fixed nav buttons */}
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: step === 2 ? 150 : 100 }}>
         {step === 0 && (
-          <StepFlightInfo fi={fi} setFi={setFi} fuelUnit={fuelUnit} setFuelUnit={setFuelUnit}
-            fleetAircraft={fleetAircraft} errors={errors}
-            allTemplates={allTemplates} activeTemplateId={activeTemplateId}
-            onTemplateChange={handleManualTemplateChange} onAircraftChange={handleAircraftTemplateSwitch} />
+          <>
+            {/* ForeFlight suggested flights */}
+            {pendingFfFlights && pendingFfFlights.length > 0 && !selectedFfFlight && !selectedScTrip && (
+              <div style={{ margin: "0 16px 12px", padding: 14, background: "rgba(34,211,238,0.06)", border: `1px solid ${CYAN}44`, borderRadius: 10, borderLeft: `3px solid ${CYAN}` }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>ForeFlight Dispatch Flights</div>
+                {pendingFfFlights.map(ff => (
+                  <div key={ff.id} onClick={() => onSelectFfFlight(ff)}
+                    style={{ padding: "10px 12px", background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 6, cursor: "pointer", minHeight: 44 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{ff.departure_icao} → {ff.destination_icao}</span>
+                        {ff.tail_number && <span style={{ fontSize: 11, color: MUTED }}>| {ff.tail_number}</span>}
+                      </div>
+                      <span style={{ fontSize: 10, color: MUTED }}>{ff.etd ? new Date(ff.etd).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "No ETD"}</span>
+                    </div>
+                    {(ff.passenger_count != null || ff.crew_count != null || ff.route) && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                        {ff.passenger_count != null && <span style={{ fontSize: 9, fontWeight: 700, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 6px", borderRadius: 3 }}>{ff.passenger_count} pax</span>}
+                        {ff.crew_count != null && <span style={{ fontSize: 9, fontWeight: 700, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 6px", borderRadius: 3 }}>{ff.crew_count} crew</span>}
+                        {ff.route && <span style={{ fontSize: 9, color: MUTED, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ff.route}</span>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* ForeFlight selected banner */}
+            {selectedFfFlight && (
+              <div style={{ margin: "0 16px 12px", padding: "10px 14px", borderRadius: 10, background: "rgba(34,211,238,0.08)", border: `1px solid rgba(34,211,238,0.25)`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: CYAN }}>ForeFlight</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: BLACK, background: CYAN, padding: "2px 8px", borderRadius: 3 }}>{selectedFfFlight.departure_icao} → {selectedFfFlight.destination_icao}</span>
+                  {selectedFfFlight.passenger_count != null && <span style={{ fontSize: 9, fontWeight: 700, color: CYAN, background: "rgba(34,211,238,0.12)", padding: "2px 6px", borderRadius: 3 }}>{selectedFfFlight.passenger_count} pax</span>}
+                </div>
+                <button onClick={onClearFfFlight} style={{ background: "none", border: "none", color: MUTED, fontSize: 18, cursor: "pointer", padding: "0 4px", lineHeight: 1, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u00D7"}</button>
+              </div>
+            )}
+            {/* Schedaero suggested trips */}
+            {pendingScTrips && pendingScTrips.length > 0 && !selectedScTrip && !selectedFfFlight && (
+              <div style={{ margin: "0 16px 12px", padding: 14, background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.25)", borderRadius: 10, borderLeft: "3px solid #60A5FA" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#60A5FA", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>Schedaero Trips</div>
+                {pendingScTrips.map(sc => (
+                  <div key={sc.id} onClick={() => onSelectScTrip(sc)}
+                    style={{ padding: "10px 12px", background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 6, cursor: "pointer", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{sc.departure_icao} → {sc.destination_icao}</span>
+                      {sc.tail_number && <span style={{ fontSize: 11, color: MUTED }}>| {sc.tail_number}</span>}
+                      {sc.trip_number && <span style={{ fontSize: 9, fontWeight: 700, color: "#60A5FA", background: "rgba(96,165,250,0.12)", padding: "2px 6px", borderRadius: 3 }}>{sc.trip_number}</span>}
+                    </div>
+                    <span style={{ fontSize: 10, color: MUTED }}>{sc.etd ? new Date(sc.etd).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "No ETD"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Schedaero selected banner */}
+            {selectedScTrip && (
+              <div style={{ margin: "0 16px 12px", padding: "10px 14px", borderRadius: 10, background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.25)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#60A5FA" }}>Schedaero</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: BLACK, background: "#60A5FA", padding: "2px 8px", borderRadius: 3 }}>{selectedScTrip.trip_number || `${selectedScTrip.departure_icao} → ${selectedScTrip.destination_icao}`}</span>
+                </div>
+                <button onClick={onClearScTrip} style={{ background: "none", border: "none", color: MUTED, fontSize: 18, cursor: "pointer", padding: "0 4px", lineHeight: 1, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u00D7"}</button>
+              </div>
+            )}
+            <StepFlightInfo fi={fi} setFi={setFi} fuelUnit={fuelUnit} setFuelUnit={setFuelUnit}
+              fleetAircraft={fleetAircraft} errors={errors}
+              allTemplates={allTemplates} activeTemplateId={activeTemplateId}
+              onTemplateChange={handleManualTemplateChange} onAircraftChange={handleAircraftTemplateSwitch} />
+          </>
         )}
         {step === 1 && (
           <StepWeather wxData={wxData} wxAnalysis={wxAnalysis} wxLoading={wxLoading} wxError={wxError} />

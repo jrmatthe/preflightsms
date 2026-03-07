@@ -142,6 +142,8 @@ export default function MobileLayout({
   org, orgProfiles, records,
   onCreateAircraft,
   onUpdateMel,
+  pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight,
+  pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -241,6 +243,14 @@ export default function MobileLayout({
             onSubmit={onSubmitFRAT}
             onCancel={() => setActiveTab("flights")}
             onNavigateToFlights={() => setActiveTab("flights")}
+            pendingFfFlights={pendingFfFlights}
+            selectedFfFlight={selectedFfFlight}
+            onSelectFfFlight={onSelectFfFlight}
+            onClearFfFlight={onClearFfFlight}
+            pendingScTrips={pendingScTrips}
+            selectedScTrip={selectedScTrip}
+            onSelectScTrip={onSelectScTrip}
+            onClearScTrip={onClearScTrip}
           />
         );
       case "reports":
