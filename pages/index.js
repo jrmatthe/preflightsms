@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchPilotEngagement, fetchOrgEngagement, upsertEngagementMetric, fetchSafetyRecognitions, fetchOrgRecognitions, awardRecognition, acknowledgeRecognition, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures, isFreeTier, FREE_TIER_LIMITS } from "../lib/tiers";
 import { getActiveMelItems, getMelExpirationStatus } from "../lib/melHelpers";
+import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE, haversineNm, flattenCoords, formatZulu } from "../lib/analyzeWeather";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
 import { computePart5Compliance } from "../components/FaaAuditLog";
@@ -153,43 +154,12 @@ function parseLocalTime(dateStr, timeStr, tz = "America/Los_Angeles") {
   }
 }
 
-function parseETE(ete) {
-  if (!ete) return 0;
-  const s = ete.trim();
-  if (s.includes(":") || s.includes("+")) {
-    const parts = s.split(/[:\+]/);
-    return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
-  }
-  const n = parseFloat(s);
-  if (isNaN(n)) return 0;
-  if (n < 10) return Math.round(n * 60);
-  if (n < 100) return Math.round(n);
-  return Math.floor(n / 100) * 60 + (n % 100);
-}
-
-function formatETE(raw) {
-  if (!raw) return raw;
-  const s = raw.trim();
-  if (s.includes(":")) return s;
-  const n = parseInt(s, 10);
-  if (isNaN(n)) return s;
-  if (n < 10) return `${n}:00`;
-  if (n < 60) return `0:${String(n).padStart(2, "0")}`;
-  if (n >= 100) return `${Math.floor(n / 100)}:${String(n % 100).padStart(2, "0")}`;
-  return s;
-}
-
 function calcArrivalTime(dateStr, etdStr, eteStr, tz = "America/Los_Angeles") {
   const dep = parseLocalTime(dateStr, etdStr, tz);
   if (!dep) return null;
   const mins = parseETE(eteStr);
   if (!mins) return null;
   return new Date(dep.getTime() + mins * 60000);
-}
-
-function formatZulu(d) {
-  if (!d) return "";
-  return `${String(d.getUTCHours()).padStart(2,"0")}${String(d.getUTCMinutes()).padStart(2,"0")}Z`;
 }
 
 function formatLocal(d, tz = "America/Los_Angeles") {
@@ -200,11 +170,17 @@ function formatLocal(d, tz = "America/Los_Angeles") {
 }
 
 // ── WEATHER ENGINE ──────────────────────────────────────────────
-async function fetchWeather(dep, dest, cruiseAlt) {
+async function fetchWeather(dep, dest, cruiseAlt, date, etd, ete, depTz) {
   const ids = [dep, dest].filter(Boolean).join(",");
   if (!ids) return null;
   const altFt = parseCruiseAlt(cruiseAlt);
-  const r = await fetch(`/api/weather?ids=${encodeURIComponent(ids)}&cruiseAlt=${encodeURIComponent(cruiseAlt || "")}`);
+  const params = new URLSearchParams({ ids, cruiseAlt: cruiseAlt || "" });
+  // Pass departure/arrival times for night detection
+  const depTimeZ = parseLocalTime(date, etd, depTz);
+  const arrTimeZ = calcArrivalTime(date, etd, ete, depTz);
+  if (depTimeZ) params.set("depTimeZ", depTimeZ.toISOString());
+  if (arrTimeZ) params.set("arrTimeZ", arrTimeZ.toISOString());
+  const r = await fetch(`/api/weather?${params.toString()}`);
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
     throw new Error(err.error || `HTTP ${r.status}`);
@@ -212,159 +188,6 @@ async function fetchWeather(dep, dest, cruiseAlt) {
   const data = await r.json();
   data.altFt = altFt;
   return data;
-}
-
-function parseCruiseAlt(val) {
-  if (!val) return 0;
-  const s = val.toString().trim().toUpperCase();
-  if (s.startsWith("FL")) return parseInt(s.slice(2), 10) * 100;
-  return parseInt(s, 10) || 0;
-}
-
-function getCeiling(clouds) {
-  if (!clouds || !Array.isArray(clouds)) return 99999;
-  for (const c of clouds) {
-    if ((c.cover === "BKN" || c.cover === "OVC") && c.base != null) return c.base;
-  }
-  return 99999;
-}
-
-function analyzeWeather(wx) {
-  if (!wx) return { flags: {}, reasons: {}, briefing: null, stationSummaries: [] };
-  const flags = {};
-  const reasons = {};
-  const briefItems = [];
-  const stationSummaries = [];
-  const aptCoords = [];
-
-  const depTimeZ = wx.depTimeZ; // Date object or null
-  const arrTimeZ = wx.arrTimeZ; // Date object or null
-  const ids = (wx.metars || []).map(m => m.icaoId).filter(Boolean);
-  const depId = ids[0] || null;
-  const destId = ids[1] || ids[0] || null;
-
-  // Helper: find TAF period covering a target time for a station
-  function findTafPeriod(tafs, stationId, targetTime) {
-    if (!targetTime) return null;
-    const taf = tafs.find(t => (t.icaoId || "").toUpperCase() === stationId.toUpperCase());
-    if (!taf || !taf.fcsts) return null;
-    const ts = targetTime.getTime() / 1000;
-    // Find the period that covers the target time
-    for (let i = taf.fcsts.length - 1; i >= 0; i--) {
-      const f = taf.fcsts[i];
-      const from = f.timeFrom || 0;
-      const to = f.timeTo || 0;
-      if (ts >= from && ts <= to) return { ...f, station: stationId, periodLabel: "TAF" };
-    }
-    // Fallback: return last period
-    return taf.fcsts.length > 0 ? { ...taf.fcsts[taf.fcsts.length - 1], station: stationId, periodLabel: "TAF" } : null;
-  }
-
-  // Helper: check if METAR is current for a target time (within 90 min)
-  function isMetarCurrent(metar, targetTime) {
-    if (!targetTime || !metar.obsTime) return true; // no time info = assume current
-    const obsTs = metar.obsTime * 1000;
-    const targetTs = targetTime.getTime();
-    return Math.abs(targetTs - obsTs) < 90 * 60000;
-  }
-
-  // Analyze a weather period (METAR or TAF) and flag risks
-  function analyzePeriod(station, ceiling, vis, wspd, wgst, wdir, wxStr, label) {
-    if (ceiling < 1000) { flags.wx_ceiling = true; reasons.wx_ceiling = (reasons.wx_ceiling || "") + `${station} ${label} ceiling ${ceiling}' AGL. `; }
-    if (vis < 3) { flags.wx_vis = true; reasons.wx_vis = (reasons.wx_vis || "") + `${station} ${label} vis ${vis} SM. `; }
-    if (wspd > 15 || wgst > 15) { flags.wx_xwind = true; reasons.wx_xwind = (reasons.wx_xwind || "") + `${station} ${label} wind ${wdir || "VRB"}\u00B0/${wspd}${wgst ? "G" + wgst : ""}kt. `; }
-    if (wxStr.includes("TS")) { flags.wx_ts = true; reasons.wx_ts = (reasons.wx_ts || "") + `${station} ${label} thunderstorm. `; }
-  }
-
-  // Process METARs — always show current conditions
-  for (const m of (Array.isArray(wx.metars) ? wx.metars : [])) {
-    const station = m.icaoId || "??";
-    const ceiling = getCeiling(m.clouds);
-    const vis = m.visib === "10+" ? 10 : parseFloat(m.visib) || 99;
-    const wspd = m.wspd || 0; const wgst = m.wgst || 0; const wdir = m.wdir || 0;
-    const wxStr = (m.wxString || "").toUpperCase();
-    const raw = m.rawOb || "";
-    const temp = m.temp != null ? `${Math.round(m.temp)}\u00B0C` : "";
-    const dewp = m.dewp != null ? `${Math.round(m.dewp)}\u00B0C` : "";
-    if (m.lat && m.lon) aptCoords.push({ lat: m.lat, lon: m.lon });
-    briefItems.push({ station, type: "METAR", raw });
-    const ceilStr = ceiling >= 99999 ? "CLR" : `${ceiling}'`;
-    const visStr = vis >= 10 ? "10+ SM" : `${vis} SM`;
-    const windStr = wspd === 0 ? "Calm" : `${wdir}\u00B0/${wspd}${wgst ? "G" + wgst : ""}kt`;
-    const fr = ceiling < 200 || vis < 0.5 ? "LIFR" : ceiling < 500 || vis < 1 ? "IFR" : ceiling < 1000 || vis < 3 ? "MVFR" : "VFR";
-    stationSummaries.push({ station, type: "METAR (current)", summary: `Ceil ${ceilStr} | Vis ${visStr} | Wind ${windStr}${temp ? ` | ${temp}/${dewp}` : ""}${wxStr ? ` | ${wxStr}` : ""}`, flight_rules: fr });
-
-    // Always analyze current METAR for risk flags — even if the flight is
-    // hours away, current conditions (especially gusts) are relevant.
-    analyzePeriod(station, ceiling, vis, wspd, wgst, wdir, wxStr, "METAR");
-    if (raw.includes("WS") || raw.toUpperCase().includes("WIND SHEAR")) { flags.wx_wind_shear = true; reasons.wx_wind_shear = (reasons.wx_wind_shear || "") + `${station} wind shear. `; }
-  }
-
-  // Process TAFs — find period covering ETD (departure) or ETA (destination)
-  const tafs = Array.isArray(wx.tafs) ? wx.tafs : [];
-  for (const t of tafs) {
-    const station = t.icaoId || "??";
-    briefItems.push({ station, type: "TAF", raw: t.rawTAF || "" });
-
-    const targetTime = (station === depId) ? depTimeZ : (station === destId) ? arrTimeZ : null;
-    const matched = targetTime ? findTafPeriod(tafs, station, targetTime) : null;
-    const timeLabel = targetTime ? `@ ${formatZulu(targetTime)}` : "";
-
-    if (matched) {
-      const vis = matched.visib === "6+" ? 10 : parseFloat(matched.visib) || 99;
-      const ceiling = getCeiling(matched.clouds);
-      const wxStr = (matched.wxString || "").toUpperCase();
-      const wspd = matched.wspd || 0; const wgst = matched.wgst || 0;
-      const fr = ceiling < 200 || vis < 0.5 ? "LIFR" : ceiling < 500 || vis < 1 ? "IFR" : ceiling < 1000 || vis < 3 ? "MVFR" : "VFR";
-      const ceilStr = ceiling >= 99999 ? "CLR" : `${ceiling}'`;
-      stationSummaries.push({ station, type: `TAF ${timeLabel}`, summary: `Ceil ${ceilStr} | Vis ${vis >= 10 ? "6+" : vis} SM | Wind ${matched.wdir || "VRB"}\u00B0/${wspd}${wgst ? "G" + wgst : ""}kt${wxStr ? ` | ${wxStr}` : ""}`, flight_rules: fr });
-      analyzePeriod(station, ceiling, vis, wspd, wgst, matched.wdir, wxStr, `TAF ${timeLabel}`);
-      if (matched.wshearHgt != null) { flags.wx_wind_shear = true; reasons.wx_wind_shear = (reasons.wx_wind_shear || "") + `${station} TAF wind shear ${matched.wshearHgt}ft. `; }
-    } else {
-      // No target time or no match — analyze worst period (original behavior)
-      let worstFR = "VFR"; let worstSum = "";
-      const rank = { LIFR: 4, IFR: 3, MVFR: 2, VFR: 1 };
-      for (const f of (t.fcsts || [])) {
-        const vis = f.visib === "6+" ? 10 : parseFloat(f.visib) || 99;
-        const ceiling = getCeiling(f.clouds); const wxStr = (f.wxString || "").toUpperCase();
-        const wspd = f.wspd || 0; const wgst = f.wgst || 0;
-        const fr = ceiling < 200 || vis < 0.5 ? "LIFR" : ceiling < 500 || vis < 1 ? "IFR" : ceiling < 1000 || vis < 3 ? "MVFR" : "VFR";
-        if (rank[fr] > rank[worstFR]) { worstFR = fr; worstSum = `Ceil ${ceiling >= 99999 ? "CLR" : ceiling + "'"} | Vis ${vis >= 10 ? "6+" : vis} SM | Wind ${f.wdir || "VRB"}\u00B0/${wspd}${wgst ? "G" + wgst : ""}kt${wxStr ? ` | ${wxStr}` : ""}`; }
-        analyzePeriod(station, ceiling, vis, wspd, wgst, f.wdir, wxStr, "TAF fcst");
-        if (f.wshearHgt != null && !flags.wx_wind_shear) { flags.wx_wind_shear = true; reasons.wx_wind_shear = (reasons.wx_wind_shear || "") + `${station} TAF wind shear ${f.wshearHgt}ft. `; }
-      }
-      if (worstSum) stationSummaries.push({ station, type: "TAF worst", summary: worstSum, flight_rules: worstFR });
-    }
-  }
-
-  const isNearRoute = (item) => {
-    if (aptCoords.length === 0) return true;
-    // Check direct lat/lon
-    if (item.lat && item.lon) return aptCoords.some(a => haversineNm(a.lat, a.lon, item.lat, item.lon) < 200);
-    // Check various coordinate field names used by AWC
-    const coords = item.coords || (item.geometry && item.geometry.coordinates) || item.geom?.coordinates;
-    if (coords && Array.isArray(coords)) { const flat = flattenCoords(coords); if (flat.length > 0) return flat.some(([lon, lat]) => aptCoords.some(a => haversineNm(a.lat, a.lon, lat, lon) < 200)); }
-    // If no coordinates found at all, include it (better to show extra than miss something)
-    return true;
-  };
-
-  const altFt = wx.altFt || 0;
-
-  return { flags, reasons, briefing: briefItems, stationSummaries };
-}
-
-function haversineNm(lat1, lon1, lat2, lon2) {
-  const toRad = d => d * Math.PI / 180;
-  const R = 3440.065;
-  const dLat = toRad(lat2 - lat1); const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function flattenCoords(arr) {
-  if (!Array.isArray(arr)) return [];
-  if (arr.length >= 2 && typeof arr[0] === "number") return [arr];
-  return arr.flatMap(item => flattenCoords(item));
 }
 
 // ── WEATHER BRIEFING PANEL ──────────────────────────────────────
@@ -828,7 +651,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     fetchTimer.current = setTimeout(async () => {
       setWxLoading(true); setWxError(null);
       try {
-        const data = await fetchWeather(dep, dest, fi.cruiseAlt, fi.date, fi.etd, fi.ete);
+        const data = await fetchWeather(dep, dest, fi.cruiseAlt, fi.date, fi.etd, fi.ete, depTz?.tz);
         if (!data || (data.metars.length === 0 && data.tafs.length === 0)) {
           setWxError("No data returned — verify ICAO codes");
           setWxData(null);
@@ -837,6 +660,14 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
           setWxData(data);
           data.depTimeZ = parseLocalTime(fi.date, fi.etd, depTz?.tz);
           data.arrTimeZ = calcArrivalTime(fi.date, fi.etd, fi.ete, depTz?.tz);
+          // Pass ForeFlight leg count for ops_multi_leg detection
+          if (selectedFfFlight?.raw_data) {
+            const rd = selectedFfFlight.raw_data;
+            const legs = rd.legs || rd.flightData?.legs;
+            if (Array.isArray(legs)) data.legCount = legs.length;
+            else if (rd.legCount != null) data.legCount = rd.legCount;
+            else if (rd.numberOfLegs != null) data.legCount = rd.numberOfLegs;
+          }
           const analysis = analyzeWeather(data);
           setWxAnalysis(analysis);
           // Auto-check flagged items, track which were auto-suggested

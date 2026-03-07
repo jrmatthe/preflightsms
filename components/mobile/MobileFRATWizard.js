@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { getActiveMelItems, getMelExpirationStatus } from "../../lib/melHelpers";
+import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE } from "../../lib/analyzeWeather";
 
 const BLACK = "#000000";
 const DARK = "#111111";
@@ -86,121 +87,6 @@ function getRiskLevel(score, riskLevels) {
 }
 
 function generateId() { return `FRAT-${Date.now().toString(36).toUpperCase()}`; }
-
-function getCeiling(clouds) {
-  if (!clouds || !Array.isArray(clouds)) return 99999;
-  for (const c of clouds) {
-    if ((c.cover === "BKN" || c.cover === "OVC") && c.base != null) return c.base;
-  }
-  return 99999;
-}
-
-function parseCruiseAlt(val) {
-  if (!val) return 0;
-  const s = val.toString().trim().toUpperCase();
-  if (s.startsWith("FL")) return parseInt(s.slice(2), 10) * 100;
-  return parseInt(s, 10) || 0;
-}
-
-function parseETE(ete) {
-  if (!ete) return 0;
-  const s = ete.trim();
-  if (s.includes(":") || s.includes("+")) {
-    const parts = s.split(/[:\+]/);
-    return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
-  }
-  const n = parseFloat(s);
-  if (isNaN(n)) return 0;
-  if (n < 10) return Math.round(n * 60);
-  if (n < 100) return Math.round(n);
-  return Math.floor(n / 100) * 60 + (n % 100);
-}
-
-function formatETE(raw) {
-  if (!raw) return raw;
-  const s = raw.trim();
-  if (s.includes(":")) return s;
-  const n = parseInt(s, 10);
-  if (isNaN(n)) return s;
-  if (n < 10) return `${n}:00`;
-  if (n < 60) return `0:${String(n).padStart(2, "0")}`;
-  if (n >= 100) return `${Math.floor(n / 100)}:${String(n % 100).padStart(2, "0")}`;
-  return s;
-}
-
-// ── Weather analysis ──
-function analyzeWeather(wx) {
-  if (!wx) return { flags: {}, reasons: {}, briefing: [], stationSummaries: [] };
-  const flags = {};
-  const reasons = {};
-  const briefItems = [];
-  const stationSummaries = [];
-
-  function analyzePeriod(station, ceiling, vis, wspd, wgst, wdir, wxStr, label) {
-    if (ceiling < 1000) { flags.wx_ceiling = true; reasons.wx_ceiling = (reasons.wx_ceiling || "") + `${station} ${label} ceiling ${ceiling}' AGL. `; }
-    if (vis < 3) { flags.wx_vis = true; reasons.wx_vis = (reasons.wx_vis || "") + `${station} ${label} vis ${vis} SM. `; }
-    if (wspd > 15 || wgst > 15) { flags.wx_xwind = true; reasons.wx_xwind = (reasons.wx_xwind || "") + `${station} ${label} wind ${wdir || "VRB"}°/${wspd}${wgst ? "G" + wgst : ""}kt. `; }
-    if (wxStr.includes("TS")) { flags.wx_ts = true; reasons.wx_ts = (reasons.wx_ts || "") + `${station} ${label} thunderstorm. `; }
-  }
-
-  for (const m of (Array.isArray(wx.metars) ? wx.metars : [])) {
-    const station = m.icaoId || "??";
-    const ceiling = getCeiling(m.clouds);
-    const vis = m.visib === "10+" ? 10 : parseFloat(m.visib) || 99;
-    const wspd = m.wspd || 0;
-    const wgst = m.wgst || 0;
-    const wdir = m.wdir || 0;
-    const wxStr = (m.wxString || "").toUpperCase();
-    const raw = m.rawOb || "";
-    const temp = m.temp != null ? `${Math.round(m.temp)}°C` : "";
-    const dewp = m.dewp != null ? `${Math.round(m.dewp)}°C` : "";
-    const altim = m.altim != null ? `${(m.altim * 0.02953).toFixed(2)}"` : "";
-    briefItems.push({ station, type: "METAR", raw });
-    const ceilStr = ceiling >= 99999 ? "CLR" : `${ceiling}'`;
-    const visStr = vis >= 10 ? "10+ SM" : `${vis} SM`;
-    const windStr = wspd === 0 ? "Calm" : `${wdir}°/${wspd}${wgst ? "G" + wgst : ""}kt`;
-    const fr = ceiling < 200 || vis < 0.5 ? "LIFR" : ceiling < 500 || vis < 1 ? "IFR" : ceiling < 1000 || vis < 3 ? "MVFR" : "VFR";
-    stationSummaries.push({
-      station, type: "METAR (current)",
-      ceiling: ceilStr, visibility: visStr, wind: windStr, temp, dewp, altimeter: altim,
-      wxString: wxStr, flight_rules: fr, raw,
-      hazards: [],
-    });
-    analyzePeriod(station, ceiling, vis, wspd, wgst, wdir, wxStr, "METAR");
-    if (raw.includes("WS") || raw.toUpperCase().includes("WIND SHEAR")) {
-      flags.wx_wind_shear = true;
-      reasons.wx_wind_shear = (reasons.wx_wind_shear || "") + `${station} wind shear. `;
-    }
-  }
-
-  for (const t of (Array.isArray(wx.tafs) ? wx.tafs : [])) {
-    const station = t.icaoId || "??";
-    briefItems.push({ station, type: "TAF", raw: t.rawTAF || "" });
-    if (t.fcsts && t.fcsts.length > 0) {
-      const f = t.fcsts[0];
-      const vis = f.visib === "6+" ? 10 : parseFloat(f.visib) || 99;
-      const ceiling = getCeiling(f.clouds);
-      const wxStr = (f.wxString || "").toUpperCase();
-      const wspd = f.wspd || 0;
-      const wgst = f.wgst || 0;
-      analyzePeriod(station, ceiling, vis, wspd, wgst, f.wdir, wxStr, "TAF");
-    }
-  }
-
-  // Build hazards list for each station summary
-  stationSummaries.forEach(s => {
-    const hazards = [];
-    if (flags.wx_ts) hazards.push({ label: "Thunderstorms", color: RED });
-    if (flags.wx_ice) hazards.push({ label: "Icing", color: AMBER });
-    if (flags.wx_turb) hazards.push({ label: "Turbulence", color: AMBER });
-    if (flags.wx_ceiling && s.ceiling !== "CLR") hazards.push({ label: "Low Ceiling", color: YELLOW });
-    if (flags.wx_vis && !s.visibility.includes("10+")) hazards.push({ label: "Low Visibility", color: YELLOW });
-    if (flags.wx_xwind) hazards.push({ label: "Crosswind", color: YELLOW });
-    s.hazards = hazards;
-  });
-
-  return { flags, reasons, briefing: briefItems, stationSummaries };
-}
 
 // ── Progress dots ──
 function StepIndicator({ current, total }) {
@@ -463,7 +349,7 @@ function WxRow({ label, value }) {
 }
 
 // ── Step 3: Risk Assessment ──
-function StepRiskAssessment({ categories, checked, setChecked, autoFlags, riskLevels }) {
+function StepRiskAssessment({ categories, checked, setChecked, autoFlags, onClearAutoFlag, riskLevels }) {
   const [expanded, setExpanded] = useState({});
 
   // Auto-expand weather if it has auto-flagged items
@@ -543,7 +429,10 @@ function StepRiskAssessment({ categories, checked, setChecked, autoFlags, riskLe
                       <input
                         type="checkbox"
                         checked={!!checked[f.id]}
-                        onChange={() => setChecked(p => ({ ...p, [f.id]: !p[f.id] }))}
+                        onChange={() => {
+                          setChecked(p => ({ ...p, [f.id]: !p[f.id] }));
+                          if (autoFlags && autoFlags[f.id] && onClearAutoFlag) onClearAutoFlag(f.id);
+                        }}
                         style={{ width: 20, height: 20, marginTop: 2, accentColor: CYAN, flexShrink: 0 }}
                       />
                       <div style={{ flex: 1 }}>
@@ -769,7 +658,8 @@ export default function MobileFRATWizard({
   const [wxAnalysis, setWxAnalysis] = useState({ flags: {}, reasons: {}, briefing: [], stationSummaries: [] });
   const [wxLoading, setWxLoading] = useState(false);
   const [wxError, setWxError] = useState(null);
-  const wxFetched = useRef(false);
+  const [autoSuggested, setAutoSuggested] = useState({});
+  const wxFetchTimer = useRef(null);
 
   // Template resolution
   const resolveTemplate = useCallback((aircraft) => {
@@ -893,43 +783,73 @@ export default function MobileFRATWizard({
     }));
   }, [selectedScTrip]);
 
-  // Fetch weather when entering step 2
+  // Auto-fetch weather when airports change (debounced, same as desktop)
   useEffect(() => {
-    if (step !== 1 || wxFetched.current) return;
-    const dep = fi.departure.trim();
-    const dest = fi.destination.trim();
-    if (!dep && !dest) return;
-
-    wxFetched.current = true;
-    setWxLoading(true);
-    setWxError(null);
-
-    const ids = [dep, dest].filter(Boolean).join(",");
-    fetch(`/api/weather?ids=${encodeURIComponent(ids)}&cruiseAlt=${encodeURIComponent(fi.cruiseAlt || "")}`)
-      .then(r => {
+    if (wxFetchTimer.current) clearTimeout(wxFetchTimer.current);
+    const dep = fi.departure.trim().toUpperCase();
+    const dest = fi.destination.trim().toUpperCase();
+    if (dep.length < 3 && dest.length < 3) {
+      setWxData(null);
+      setWxAnalysis({ flags: {}, reasons: {}, briefing: [], stationSummaries: [] });
+      setWxError(null);
+      setChecked(p => { const n = { ...p }; Object.keys(autoSuggested).forEach(k => { delete n[k]; }); return n; });
+      setAutoSuggested({});
+      return;
+    }
+    wxFetchTimer.current = setTimeout(async () => {
+      setWxLoading(true); setWxError(null);
+      try {
+        const ids = [dep, dest].filter(Boolean).join(",");
+        const params = new URLSearchParams({ ids, cruiseAlt: fi.cruiseAlt || "" });
+        // Pass ETD/ETA for night detection (approximate using date + local time)
+        if (fi.date && fi.etd) {
+          const t = fi.etd.replace(/[^0-9]/g, "").padStart(4, "0");
+          const hh = parseInt(t.slice(0, 2), 10);
+          const mm = parseInt(t.slice(2, 4), 10);
+          if (!isNaN(hh) && hh <= 23 && !isNaN(mm) && mm <= 59) {
+            const depDate = new Date(`${fi.date}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00`);
+            if (!isNaN(depDate.getTime())) {
+              params.set("depTimeZ", depDate.toISOString());
+              const eteMins = parseETE(fi.ete);
+              if (eteMins > 0) params.set("arrTimeZ", new Date(depDate.getTime() + eteMins * 60000).toISOString());
+            }
+          }
+        }
+        const r = await fetch(`/api/weather?${params.toString()}`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(data => {
-        setWxData(data);
-        const analysis = analyzeWeather(data);
-        setWxAnalysis(analysis);
-        // Auto-check flagged weather factors
-        if (analysis.flags) {
+        const data = await r.json();
+        if (!data || ((data.metars || []).length === 0 && (data.tafs || []).length === 0)) {
+          setWxError("No data returned — verify ICAO codes");
+          setWxData(null);
+          setWxAnalysis({ flags: {}, reasons: {}, briefing: [], stationSummaries: [] });
+        } else {
+          setWxData(data);
+          // Pass ForeFlight leg count for ops_multi_leg detection
+          if (selectedFfFlight?.raw_data) {
+            const rd = selectedFfFlight.raw_data;
+            const legs = rd.legs || rd.flightData?.legs;
+            if (Array.isArray(legs)) data.legCount = legs.length;
+            else if (rd.legCount != null) data.legCount = rd.legCount;
+            else if (rd.numberOfLegs != null) data.legCount = rd.numberOfLegs;
+          }
+          const analysis = analyzeWeather(data);
+          setWxAnalysis(analysis);
+          // Auto-check flagged items, track which were auto-suggested
           setChecked(prev => {
             const next = { ...prev };
-            Object.keys(analysis.flags).forEach(fid => {
-              if (analysis.flags[fid]) next[fid] = true;
-            });
+            Object.keys(autoSuggested).forEach(k => { if (!analysis.flags[k]) delete next[k]; });
+            Object.keys(analysis.flags).forEach(k => { next[k] = true; });
             return next;
           });
+          setAutoSuggested(analysis.flags);
         }
-      })
-      .catch(err => {
-        setWxError(err.message);
-      })
-      .finally(() => setWxLoading(false));
-  }, [step, fi.departure, fi.destination, fi.cruiseAlt]);
+      } catch (e) {
+        setWxError(e.message || "Network error");
+      }
+      setWxLoading(false);
+    }, 1200);
+    return () => { if (wxFetchTimer.current) clearTimeout(wxFetchTimer.current); };
+  }, [fi.departure, fi.destination, fi.cruiseAlt]);
 
   // MEL auto-check: detect active MEL items on selected aircraft
   const selectedAircraftObj = useMemo(() => {
@@ -940,8 +860,14 @@ export default function MobileFRATWizard({
   useEffect(() => {
     if (activeMelItems.length > 0) {
       setChecked(p => p.ac_mel ? p : ({ ...p, ac_mel: true }));
+      setAutoSuggested(p => p.ac_mel ? p : ({ ...p, ac_mel: true }));
+    } else {
+      if (autoSuggested.ac_mel) {
+        setChecked(p => { const n = { ...p }; delete n.ac_mel; return n; });
+        setAutoSuggested(p => { const n = { ...p }; delete n.ac_mel; return n; });
+      }
     }
-  }, [activeMelItems]);
+  }, [activeMelItems, fi.tailNumber]);
 
   // Validation — matches desktop required fields
   const validateStep = (stepNum) => {
@@ -1196,7 +1122,7 @@ export default function MobileFRATWizard({
               </div>
             )}
             <StepRiskAssessment categories={categories} checked={checked} setChecked={setChecked}
-              autoFlags={{ ...(wxAnalysis?.flags || {}), ...(activeMelItems.length > 0 ? { ac_mel: true } : {}) }} riskLevels={riskLevels} />
+              autoFlags={autoSuggested} onClearAutoFlag={id => setAutoSuggested(p => { const n = { ...p }; delete n[id]; return n; })} riskLevels={riskLevels} />
           </>
         )}
         {step === 3 && (
