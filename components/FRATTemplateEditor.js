@@ -115,19 +115,19 @@ function TemplateEditor({ template, onSave, saving, fleetAircraftTypes }) {
         <div style={{ color: MUTED, fontSize: 11 }}>{categories.length} categories · {totalFactors} factors · Max score: {maxScore}</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {dirty && <span style={{ fontSize: 10, color: YELLOW, fontWeight: 600 }}>Unsaved changes</span>}
-          <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.5 : 1 }}>{saving ? "Saving..." : "Save Template"}</button>
+          <button data-onboarding="frat-save-btn" onClick={handleSave} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.5 : 1 }}>{saving ? "Saving..." : "Save Template"}</button>
         </div>
       </div>
 
       {/* Name */}
       <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Template Name</label>
-        <input value={name} onChange={e => { setName(e.target.value); markDirty(); }} style={{ ...inp, maxWidth: 300 }} />
+        <input data-onboarding="frat-template-name" value={name} onChange={e => { setName(e.target.value); markDirty(); }} style={{ ...inp, maxWidth: 300 }} />
       </div>
 
       {/* Aircraft Assignment */}
       {fleetAircraftTypes.length > 0 && (
-        <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
+        <div data-onboarding="frat-aircraft-assign" style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
           <div style={sectionLabel}>Assign to Aircraft</div>
           <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>When a pilot selects one of these aircraft, this template loads automatically.</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -154,7 +154,7 @@ function TemplateEditor({ template, onSave, saving, fleetAircraftTypes }) {
       </div>
 
       {/* Risk Thresholds */}
-      <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
+      <div data-onboarding="frat-thresholds" style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
         <div style={sectionLabel}>Risk Thresholds</div>
         {thresholds.map((t, i) => (
           <div key={i} style={{ display: "grid", gridTemplateColumns: "12px 120px 60px 60px 1fr 150px", gap: 10, alignItems: "center", marginBottom: 10 }} className="frat-threshold-grid">
@@ -182,7 +182,7 @@ function TemplateEditor({ template, onSave, saving, fleetAircraftTypes }) {
       </div>
 
       {/* Risk Categories & Factors */}
-      <div style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
+      <div data-onboarding="frat-categories" style={{ ...card, padding: "18px 22px", marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={sectionLabel}>Risk Categories &amp; Factors</div>
           <button onClick={addCategory} style={btnSecondary}>+ Add Category</button>
@@ -262,13 +262,13 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
   if (!templates) return <TemplateEditor template={template} onSave={onSave} saving={saving} fleetAircraftTypes={fleetAircraftTypes} />;
 
   return (
-    <div>
+    <div data-onboarding="frat-template-list">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
           <div style={sectionLabel}>FRAT Templates</div>
           <div style={{ color: MUTED, fontSize: 11 }}>{allTemplates.length} template{allTemplates.length !== 1 ? "s" : ""} · Default: {activeTemplate?.name || "None"}</div>
         </div>
-        <button onClick={handleCreate} style={btnPrimary}>+ New Template</button>
+        <button data-onboarding="frat-create-btn" onClick={handleCreate} style={btnPrimary}>+ New Template</button>
       </div>
 
       {allTemplates.length === 0 ? (

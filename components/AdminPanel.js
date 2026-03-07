@@ -426,6 +426,13 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
   const [cancellingDeletion, setCancellingDeletion] = useState(false);
 
   const handleCheckout = async (plan) => {
+    // Existing subscribers: route to billing portal for plan changes (handles proration)
+    if (hasStripe && onBillingPortal) {
+      setPortalLoading(true);
+      try { await onBillingPortal(); } catch (e) { console.error(e); alert("Could not open billing portal: " + (e.message || "Please try again.")); }
+      setPortalLoading(false);
+      return;
+    }
     setCheckoutLoading(true);
     try {
       await onCheckout(plan, billingInterval);
@@ -558,12 +565,12 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
                       {isCurrent ? "\u2713 Current Plan" : "Contact Sales"}
                     </a>
                   ) : (
-                    <button onClick={() => handleCheckout(p.id)} disabled={checkoutLoading || isCurrent}
-                      style={{ width: "100%", marginTop: 10, padding: "9px 0", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: isCurrent ? "default" : checkoutLoading ? "wait" : "pointer",
+                    <button onClick={() => handleCheckout(p.id)} disabled={checkoutLoading || portalLoading || isCurrent}
+                      style={{ width: "100%", marginTop: 10, padding: "9px 0", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: isCurrent ? "default" : (checkoutLoading || portalLoading) ? "wait" : "pointer",
                         background: isCurrent ? `${GREEN}22` : WHITE, color: isCurrent ? GREEN : BLACK,
                         border: isCurrent ? `1px solid ${GREEN}44` : "none",
-                        opacity: checkoutLoading ? 0.6 : 1 }}>
-                      {isCurrent ? "\u2713 Current Plan" : checkoutLoading ? "Redirecting..." : "Subscribe"}
+                        opacity: (checkoutLoading || portalLoading) ? 0.6 : 1 }}>
+                      {isCurrent ? "\u2713 Current Plan" : (checkoutLoading || portalLoading) ? "Redirecting..." : hasStripe ? "Change Plan" : "Subscribe"}
                     </button>
                   )}
                 </div>
@@ -1363,7 +1370,7 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
           if (Array.isArray(t.feat)) return t.feat.some(f => flags[f] !== false);
           return flags[t.feat] !== false; // Show if true or undefined
         }).map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+          <button key={t.id} onClick={() => setActiveTab(t.id)} {...(t.id === "frat" ? {"data-onboarding": "admin-frat-tab"} : {})} style={{
             padding: "6px 16px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: 0.3,
             background: activeTab === t.id ? WHITE : "transparent", color: activeTab === t.id ? BLACK : MUTED,
             border: `1px solid ${activeTab === t.id ? WHITE : BORDER}`,

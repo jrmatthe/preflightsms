@@ -2833,6 +2833,7 @@ export default function PVTAIRFrat() {
       policy_manuals: smsManuals.length > 0,
       training: cbtCourses.length > 0 || trainingReqs.length > 0,
       investigations: hazards.length > 0,
+      custom_frat: fratTemplates?.length > 1,
     };
 
     const toComplete = Object.entries(conditions).filter(
@@ -2851,7 +2852,7 @@ export default function PVTAIRFrat() {
     if (allDone) next.completed_at = new Date().toISOString();
 
     persistOnboarding(next);
-  }, [onboardingState, fleetAircraft, records, reports, smsManuals, cbtCourses, trainingReqs, hazards, org?.id, persistOnboarding]);
+  }, [onboardingState, fleetAircraft, records, reports, smsManuals, cbtCourses, trainingReqs, hazards, fratTemplates, org?.id, persistOnboarding]);
 
   const handleStartFlow = useCallback(async (flowId) => {
     const flow = ONBOARDING_FLOWS[flowId];
