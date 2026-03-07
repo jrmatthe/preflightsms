@@ -743,12 +743,22 @@ export default function MobileFRATWizard({
     let remarksStr = "";
     if (ff.route) remarksStr += "Route: " + ff.route;
     if (ff.dispatcher_notes) remarksStr += (remarksStr ? " | " : "") + "Dispatch: " + ff.dispatcher_notes;
+    // Fuzzy-match ForeFlight aircraft type to fleet types
+    let resolvedAircraft = ff.aircraft_type || "";
+    if (resolvedAircraft && aircraftTypes.length > 0) {
+      const norm = resolvedAircraft.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const match = aircraftTypes.find(t => {
+        const tn = t.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        return tn && (norm.includes(tn) || tn.includes(norm));
+      });
+      if (match) resolvedAircraft = match;
+    }
     setFi(p => ({
       ...p,
       departure: ff.departure_icao || p.departure,
       destination: ff.destination_icao || p.destination,
       tailNumber: ff.tail_number || p.tailNumber,
-      aircraft: ff.aircraft_type || p.aircraft,
+      aircraft: resolvedAircraft || p.aircraft,
       pilot: ff.pilot_name || p.pilot,
       date: dateStr,
       etd: etdStr || p.etd,
@@ -760,6 +770,10 @@ export default function MobileFRATWizard({
       remarks: remarksStr || p.remarks,
     }));
     if (ff.fuel_lbs != null) setFuelUnit("lbs");
+    if (resolvedAircraft && allTemplates && allTemplates.length > 1) {
+      const matched = resolveTemplate(resolvedAircraft);
+      if (matched) { setActiveTemplateId(matched.id); setChecked({}); setAutoSuggested({}); }
+    }
   }, [selectedFfFlight]);
 
   // Schedaero pre-population
@@ -777,12 +791,22 @@ export default function MobileFRATWizard({
         eteStr = String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
       }
     }
+    // Fuzzy-match Schedaero aircraft type to fleet types
+    let resolvedAircraft = sc.aircraft_type || "";
+    if (resolvedAircraft && aircraftTypes.length > 0) {
+      const norm = resolvedAircraft.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const match = aircraftTypes.find(t => {
+        const tn = t.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        return tn && (norm.includes(tn) || tn.includes(norm));
+      });
+      if (match) resolvedAircraft = match;
+    }
     setFi(p => ({
       ...p,
       departure: sc.departure_icao || p.departure,
       destination: sc.destination_icao || p.destination,
       tailNumber: sc.tail_number || p.tailNumber,
-      aircraft: sc.aircraft_type || p.aircraft,
+      aircraft: resolvedAircraft || p.aircraft,
       pilot: sc.pilot_name || p.pilot,
       date: dateStr,
       etd: etdStr || p.etd,
@@ -791,6 +815,10 @@ export default function MobileFRATWizard({
       numCrew: sc.crew_count != null ? String(sc.crew_count) : p.numCrew,
       remarks: sc.trip_number ? `Trip: ${sc.trip_number}` : p.remarks,
     }));
+    if (resolvedAircraft && allTemplates && allTemplates.length > 1) {
+      const matched = resolveTemplate(resolvedAircraft);
+      if (matched) { setActiveTemplateId(matched.id); setChecked({}); setAutoSuggested({}); }
+    }
   }, [selectedScTrip]);
 
   // Auto-fetch weather when airports change (debounced, same as desktop)

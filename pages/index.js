@@ -537,12 +537,22 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     let remarksStr = "";
     if (ff.route) remarksStr += "Route: " + ff.route;
     if (ff.dispatcher_notes) remarksStr += (remarksStr ? " | " : "") + "Dispatch: " + ff.dispatcher_notes;
+    // Fuzzy-match ForeFlight aircraft type to fleet types (e.g. "PC-12/47E" → "PC-12")
+    let resolvedAircraft = ff.aircraft_type || "";
+    if (resolvedAircraft && AIRCRAFT_TYPES.length > 0) {
+      const norm = resolvedAircraft.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const match = AIRCRAFT_TYPES.find(t => {
+        const tn = t.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        return tn && (norm.includes(tn) || tn.includes(norm));
+      });
+      if (match) resolvedAircraft = match;
+    }
     setFi(p => ({
       ...p,
       departure: ff.departure_icao || p.departure,
       destination: ff.destination_icao || p.destination,
       tailNumber: ff.tail_number || p.tailNumber,
-      aircraft: ff.aircraft_type || p.aircraft,
+      aircraft: resolvedAircraft || p.aircraft,
       pilot: ff.pilot_name || p.pilot,
       date: dateStr,
       etd: etdStr || p.etd,
@@ -555,6 +565,11 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     }));
     // Set fuel unit to lbs when ForeFlight provides fuel data
     if (ff.fuel_lbs != null) setFratFuelUnit("lbs");
+    // Resolve FRAT template based on aircraft type
+    if (resolvedAircraft && allTemplates && allTemplates.length > 1) {
+      const matched = resolveTemplate(resolvedAircraft);
+      if (matched) { setActiveTemplateId(matched.id); setChecked({}); setAutoSuggested({}); }
+    }
   }, [selectedFfFlight]);
   // Schedaero pre-population
   useEffect(() => {
@@ -571,12 +586,22 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
         eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
       }
     }
+    // Fuzzy-match Schedaero aircraft type to fleet types
+    let resolvedAircraft = sc.aircraft_type || "";
+    if (resolvedAircraft && AIRCRAFT_TYPES.length > 0) {
+      const norm = resolvedAircraft.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const match = AIRCRAFT_TYPES.find(t => {
+        const tn = t.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        return tn && (norm.includes(tn) || tn.includes(norm));
+      });
+      if (match) resolvedAircraft = match;
+    }
     setFi(p => ({
       ...p,
       departure: sc.departure_icao || p.departure,
       destination: sc.destination_icao || p.destination,
       tailNumber: sc.tail_number || p.tailNumber,
-      aircraft: sc.aircraft_type || p.aircraft,
+      aircraft: resolvedAircraft || p.aircraft,
       pilot: sc.pilot_name || p.pilot,
       date: dateStr,
       etd: etdStr || p.etd,
@@ -584,6 +609,11 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       numPax: sc.passenger_count != null ? String(sc.passenger_count) : p.numPax,
       numCrew: p.numCrew || "1",
     }));
+    // Resolve FRAT template based on aircraft type
+    if (resolvedAircraft && allTemplates && allTemplates.length > 1) {
+      const matched = resolveTemplate(resolvedAircraft);
+      if (matched) { setActiveTemplateId(matched.id); setChecked({}); setAutoSuggested({}); }
+    }
   }, [selectedScTrip]);
   const [attachments, setAttachments] = useState([]); // { file, preview, uploading, url }
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
