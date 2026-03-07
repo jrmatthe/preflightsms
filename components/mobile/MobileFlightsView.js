@@ -221,29 +221,46 @@ function CancelSheet({ flight, onConfirm, onDismiss }) {
 }
 
 // ── Post-flight nudge toast ──
-function PostFlightNudge({ onFileReport, onDismiss }) {
+function PostFlightNudge({ flight, onFileReport, onNothingToReport, onRemindLater, onDismiss }) {
+  const route = flight ? [flight.departure, flight.destination].filter(Boolean).join(" → ") : "";
   return (
     <div style={{
       position: "fixed", bottom: "calc(68px + max(env(safe-area-inset-bottom, 0px), 20px))", left: 16, right: 16, zIndex: 1500,
       background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
-      padding: 16, display: "flex", alignItems: "center", gap: 12,
+      padding: 16,
       boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
       animation: "nudgeSlideIn 0.3s ease-out",
     }}>
       <style>{`@keyframes nudgeSlideIn { from { transform: translateY(30px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
-      <div style={{ flex: 1 }}>
-        <div style={{ color: WHITE, fontSize: 14, fontWeight: 600, marginBottom: 2 }}>Notice anything worth reporting?</div>
-        <div style={{ color: MUTED, fontSize: 14 }}>Help keep your operation safe</div>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+        <div>
+          <div style={{ color: WHITE, fontSize: 15, fontWeight: 700, marginBottom: 2 }}>Flight Complete</div>
+          {route && <div style={{ color: MUTED, fontSize: 13 }}>{route}</div>}
+          <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>Anything worth noting for safety?</div>
+        </div>
+        <button onClick={onDismiss} aria-label="Dismiss" style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", padding: 4, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", marginTop: -4, marginRight: -4 }}>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-      <button onClick={onFileReport} aria-label="File a safety report" style={{
-        padding: "10px 14px", background: WHITE, color: BLACK, border: "none",
-        borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
-        minHeight: 44,
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <button onClick={onFileReport} style={{
+          flex: 1, padding: "11px 0", background: WHITE, color: BLACK, border: "none",
+          borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 44,
+        }}>
+          File Report
+        </button>
+        <button onClick={onNothingToReport} style={{
+          flex: 1, padding: "11px 0", background: "transparent", color: "#4ADE80", border: "1px solid rgba(74,222,128,0.27)",
+          borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 44,
+        }}>
+          All Good
+        </button>
+      </div>
+      <button onClick={onRemindLater} style={{
+        width: "100%", padding: "8px 0", background: "transparent", color: MUTED, border: "none",
+        fontSize: 12, cursor: "pointer", minHeight: 40,
       }}>
-        File Report
-      </button>
-      <button onClick={onDismiss} aria-label="Dismiss" style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", padding: 8, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Remind Me Later
       </button>
     </div>
   );
@@ -474,7 +491,7 @@ function DetailRow({ label, value }) {
 // ── Main component ──
 export default function MobileFlightsView({
   flights, profile, onUpdateFlight, onNewFrat, onNavigateToReports,
-  onNudgeSubmitReport, onNudgeDismiss, nudgeFlight, loading, fleetAircraft,
+  onNudgeSubmitReport, onNudgeNothingToReport, onNudgeRemindLater, onNudgeDismiss, nudgeFlight, loading, fleetAircraft,
 }) {
   const [filter, setFilter] = useState("my");
   const [expandedId, setExpandedId] = useState(null);
@@ -709,7 +726,10 @@ export default function MobileFlightsView({
       {/* Post-flight nudge */}
       {showNudge && nudgeFlight && (
         <PostFlightNudge
+          flight={nudgeFlight}
           onFileReport={handleNudgeReport}
+          onNothingToReport={() => { setShowNudge(false); if (onNudgeNothingToReport) onNudgeNothingToReport(); }}
+          onRemindLater={() => { setShowNudge(false); if (onNudgeRemindLater) onNudgeRemindLater(); }}
           onDismiss={() => { setShowNudge(false); if (onNudgeDismiss) onNudgeDismiss(); }}
         />
       )}
