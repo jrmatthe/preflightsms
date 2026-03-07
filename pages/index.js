@@ -884,18 +884,26 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     return fleetList.find(a => a.registration === fi.tailNumber) || null;
   }, [fi.tailNumber, fleetList]);
   const activeMelItems = useMemo(() => getActiveMelItems(selectedAircraftObj?.mel_items), [selectedAircraftObj]);
+  const prevMelTailRef = useRef(null);
   useEffect(() => {
-    if (activeMelItems.length > 0) {
+    const hasMel = activeMelItems.length > 0;
+    const tailChanged = fi.tailNumber !== prevMelTailRef.current;
+    prevMelTailRef.current = fi.tailNumber;
+    if (hasMel) {
       setChecked(p => ({ ...p, ac_mel: true }));
       setAutoSuggested(p => ({ ...p, ac_mel: true }));
-    } else {
+    } else if (tailChanged) {
       // Clear auto-suggested MEL check when switching to aircraft without MEL items
-      if (autoSuggested.ac_mel) {
-        setChecked(p => { const n = { ...p }; delete n.ac_mel; return n; });
-        setAutoSuggested(p => { const n = { ...p }; delete n.ac_mel; return n; });
-      }
+      setAutoSuggested(p => {
+        if (!p.ac_mel) return p;
+        const n = { ...p }; delete n.ac_mel; return n;
+      });
+      setChecked(p => {
+        if (!p.ac_mel) return p;
+        const n = { ...p }; delete n.ac_mel; return n;
+      });
     }
-  }, [activeMelItems.length, fi.tailNumber]);
+  }, [activeMelItems, fi.tailNumber]);
 
   // Photo attachment handlers
   const handleAddPhoto = (e) => {

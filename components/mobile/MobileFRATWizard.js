@@ -860,9 +860,9 @@ export default function MobileFRATWizard({
   const activeMelItems = useMemo(() => getActiveMelItems(selectedAircraftObj?.mel_items), [selectedAircraftObj]);
   useEffect(() => {
     if (activeMelItems.length > 0) {
-      setChecked(p => ({ ...p, ac_mel: true }));
+      setChecked(p => p.ac_mel ? p : ({ ...p, ac_mel: true }));
     }
-  }, [activeMelItems.length, fi.tailNumber]);
+  }, [activeMelItems]);
 
   // Validation — matches desktop required fields
   const validateStep = (stepNum) => {
