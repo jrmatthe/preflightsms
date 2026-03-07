@@ -144,6 +144,7 @@ export default function MobileLayout({
   onUpdateMel,
   pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight,
   pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip,
+  onRefreshDispatchFlights,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -172,6 +173,13 @@ export default function MobileLayout({
     const id = setInterval(check, 5000);
     return () => clearInterval(id);
   }, []);
+
+  // Refresh pending dispatch flights when switching to New FRAT tab
+  useEffect(() => {
+    if (activeTab === "newFrat" && onRefreshDispatchFlights) {
+      onRefreshDispatchFlights();
+    }
+  }, [activeTab]);
 
   const unreadCount = useMemo(() => {
     if (!notifications) return 0;
