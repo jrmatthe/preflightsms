@@ -251,7 +251,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
   const handleCreate = async () => { if (onCreateTemplate) await onCreateTemplate({ name: "New Template", categories: DEFAULT_CATEGORIES.map(c => ({ ...c, factors: c.factors.map(f => ({ ...f })) })), risk_thresholds: [...DEFAULT_THRESHOLDS], assigned_aircraft: [] }); };
   const handleDuplicate = async (t) => { if (onCreateTemplate) await onCreateTemplate({ name: `${t.name} (Copy)`, categories: t.categories || [], risk_thresholds: t.risk_thresholds || [...DEFAULT_THRESHOLDS], assigned_aircraft: [] }); };
   const handleDelete = async (t) => {
-    if (t.is_active) { alert("Cannot delete the active template. Set another as active first."); return; }
+    if (t.is_active) { alert("Cannot delete the default template. Set another as default first."); return; }
     if (!confirm(`Delete "${t.name}"?`)) return;
     if (onDeleteTemplate) await onDeleteTemplate(t.id);
     if (selectedId === t.id) { setSelectedId(null); setShowEditor(false); }
@@ -266,7 +266,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
           <div style={sectionLabel}>FRAT Templates</div>
-          <div style={{ color: MUTED, fontSize: 11 }}>{allTemplates.length} template{allTemplates.length !== 1 ? "s" : ""} · Active: {activeTemplate?.name || "None"}</div>
+          <div style={{ color: MUTED, fontSize: 11 }}>{allTemplates.length} template{allTemplates.length !== 1 ? "s" : ""} · Default: {activeTemplate?.name || "None"}</div>
         </div>
         <button onClick={handleCreate} style={btnPrimary}>+ New Template</button>
       </div>
@@ -287,7 +287,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{t.name}</span>
-                  {t.is_active && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: `${GREEN}22`, color: GREEN, textTransform: "uppercase" }}>Active</span>}
+                  {t.is_active && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: `${GREEN}22`, color: GREEN, textTransform: "uppercase" }}>Default</span>}
                 </div>
                 <div style={{ fontSize: 10, color: MUTED }}>
                   {(t.categories || []).length} categories · {factorCount} factors
@@ -295,7 +295,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
                 </div>
               </div>
               <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
-                {!t.is_active && <button onClick={() => handleSetActive(t)} style={{ ...btnSecondary, padding: "4px 10px", fontSize: 10, color: GREEN, borderColor: `${GREEN}44` }}>Set Active</button>}
+                {!t.is_active && <button onClick={() => handleSetActive(t)} style={{ ...btnSecondary, padding: "4px 10px", fontSize: 10, color: GREEN, borderColor: `${GREEN}44` }}>Set Default</button>}
                 <button onClick={() => handleDuplicate(t)} style={{ ...btnSecondary, padding: "4px 10px", fontSize: 10 }}>Duplicate</button>
                 {!t.is_active && <button onClick={() => handleDelete(t)} style={{ ...btnSecondary, padding: "4px 10px", fontSize: 10, color: RED, borderColor: `${RED}44` }}>Delete</button>}
               </div>
