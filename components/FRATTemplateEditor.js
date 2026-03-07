@@ -310,7 +310,7 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
             <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Editing: {selectedTemplate.name}</div>
             <button onClick={() => setShowEditor(false)} style={btnSecondary}>Close Editor</button>
           </div>
-          <TemplateEditor template={selectedTemplate} onSave={(data) => onSave({ ...data, id: selectedTemplate.id })} saving={saving} fleetAircraftTypes={fleetAircraftTypes} />
+          <TemplateEditor key={selectedTemplate.id} template={selectedTemplate} onSave={(data) => onSave({ ...data, id: selectedTemplate.id })} saving={saving} fleetAircraftTypes={fleetAircraftTypes} />
         </div>
       )}
     </div>
