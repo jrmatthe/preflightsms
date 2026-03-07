@@ -3901,6 +3901,35 @@ export default function PVTAIRFrat() {
     return () => clearInterval(interval);
   }, [nudgeResponses, flights, nudgeFlight, session, profile]);
 
+  // ── Push notification click → re-trigger nudge ──
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handler = (event) => {
+      if (event.data?.type === 'NUDGE_REMINDER') {
+        const url = event.data.url || '';
+        const match = url.match(/[?&]nudge=([^&]+)/);
+        if (match) {
+          const flightId = match[1];
+          const flight = flights.find(f => f.dbId === flightId);
+          if (flight) setNudgeFlight(flight);
+        }
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
+  }, [flights]);
+
+  // ── Handle ?nudge= URL param (cold open from notification) ──
+  useEffect(() => {
+    if (typeof window === 'undefined' || !flights.length) return;
+    const params = new URLSearchParams(window.location.search);
+    const nudgeId = params.get('nudge');
+    if (!nudgeId) return;
+    const flight = flights.find(f => f.dbId === nudgeId);
+    if (flight) setNudgeFlight(flight);
+    window.history.replaceState(null, '', window.location.pathname);
+  }, [flights]);
+
   // ── Nudge handlers ──
   const onNudgeSubmitReport = useCallback(async () => {
     if (!nudgeFlight || !profile || !session) return;
@@ -3931,6 +3960,14 @@ export default function PVTAIRFrat() {
     fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
     setNudgeFlight(null);
     setToast({ message: "We'll check back in 2 hours", level: { bg: "rgba(34,211,238,0.15)", border: "rgba(34,211,238,0.4)", color: "#22D3EE" } }); setTimeout(() => setToast(null), 4000);
+    // Subscribe to push notifications so reminder works even if app is closed
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(async (reg) => {
+        const { subscribeToPush } = await import('../lib/pushSubscription');
+        const token = session.access_token || (await supabase.auth.getSession())?.data?.session?.access_token;
+        if (token) subscribeToPush(reg, token);
+      }).catch(() => {});
+    }
   }, [nudgeFlight, profile, session]);
 
   const onNudgeDismiss = useCallback(async () => {

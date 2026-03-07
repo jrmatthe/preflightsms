@@ -1,7 +1,7 @@
 // PreflightSMS Service Worker
 // Network-first for pages, cache-first for static assets, network-only for API routes
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `preflightsms-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
@@ -190,6 +190,43 @@ async function trimCache(cache) {
     }
   }
 }
+
+// ── Push notifications ──────────────────────────────────────
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  try {
+    const payload = event.data.json();
+    event.waitUntil(
+      self.registration.showNotification(payload.title || 'PreflightSMS', {
+        body: payload.body || '',
+        icon: '/icon-192.png',
+        tag: payload.tag || 'preflightsms',
+        data: { url: payload.url || '/' },
+      })
+    );
+  } catch (err) {
+    console.warn('[SW] Push parse error:', err);
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // If app is already open, focus it and send a message
+      for (const client of windowClients) {
+        if (new URL(client.url).origin === self.location.origin) {
+          client.postMessage({ type: 'NUDGE_REMINDER', url: targetUrl });
+          return client.focus();
+        }
+      }
+      // Otherwise open a new window
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});
 
 // Listen for messages from the app
 self.addEventListener('message', (event) => {
