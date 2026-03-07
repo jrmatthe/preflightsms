@@ -679,6 +679,30 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     const ff = selectedFfFlight;
     const etdStr = ff.etd ? new Date(ff.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
     const dateStr = ff.etd ? new Date(ff.etd).toISOString().split("T")[0] : getLocalDate();
+    // ETE: prefer ete_minutes from sync, fallback to ETD→ETA diff
+    let eteStr = "";
+    if (ff.ete_minutes != null) {
+      const h = Math.floor(ff.ete_minutes / 60);
+      const m = ff.ete_minutes % 60;
+      eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
+    } else if (ff.etd && ff.eta) {
+      const diffMs = new Date(ff.eta).getTime() - new Date(ff.etd).getTime();
+      if (diffMs > 0) {
+        const h = Math.floor(diffMs / 3600000);
+        const m = Math.floor((diffMs % 3600000) / 60000);
+        eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
+      }
+    }
+    // Cruise altitude: if numeric ≥18000, format as FL
+    let cruiseAltStr = "";
+    if (ff.cruise_alt != null) {
+      const altNum = parseInt(ff.cruise_alt);
+      cruiseAltStr = !isNaN(altNum) && altNum >= 18000 ? "FL" + Math.round(altNum / 100) : String(ff.cruise_alt);
+    }
+    // Remarks: route + dispatcher notes
+    let remarksStr = "";
+    if (ff.route) remarksStr += "Route: " + ff.route;
+    if (ff.dispatcher_notes) remarksStr += (remarksStr ? " | " : "") + "Dispatch: " + ff.dispatcher_notes;
     setFi(p => ({
       ...p,
       departure: ff.departure_icao || p.departure,
@@ -688,7 +712,15 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       pilot: ff.pilot_name || p.pilot,
       date: dateStr,
       etd: etdStr || p.etd,
+      ete: eteStr || p.ete,
+      cruiseAlt: cruiseAltStr || p.cruiseAlt,
+      fuelLbs: ff.fuel_lbs != null ? String(ff.fuel_lbs) : p.fuelLbs,
+      numPax: ff.passenger_count != null ? String(ff.passenger_count) : p.numPax,
+      numCrew: ff.crew_count != null ? String(ff.crew_count) : p.numCrew,
+      remarks: remarksStr || p.remarks,
     }));
+    // Set fuel unit to lbs when ForeFlight provides fuel data
+    if (ff.fuel_lbs != null) setFratFuelUnit("lbs");
   }, [selectedFfFlight]);
   // Schedaero pre-population
   useEffect(() => {
@@ -922,13 +954,23 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
           <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>ForeFlight Dispatch Flights</div>
           {pendingFfFlights.map(ff => (
             <div key={ff.id} onClick={() => onSelectFfFlight(ff)}
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 6, cursor: "pointer" }}
+              style={{ padding: "10px 14px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 6, cursor: "pointer" }}
               onMouseEnter={e => e.currentTarget.style.borderColor = CYAN + "66"} onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>{ff.departure_icao} → {ff.destination_icao}</span>
-                {ff.tail_number && <span style={{ fontSize: 11, color: MUTED }}>| {ff.tail_number}</span>}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>{ff.departure_icao} → {ff.destination_icao}</span>
+                  {ff.tail_number && <span style={{ fontSize: 11, color: MUTED }}>| {ff.tail_number}</span>}
+                </div>
+                <span style={{ fontSize: 10, color: MUTED }}>{ff.etd ? new Date(ff.etd).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "No ETD"}</span>
               </div>
-              <span style={{ fontSize: 10, color: MUTED }}>{ff.etd ? new Date(ff.etd).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "No ETD"}</span>
+              {(ff.passenger_count != null || ff.crew_count != null || ff.route || ff.dispatcher_notes) && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                  {ff.passenger_count != null && <span style={{ fontSize: 9, fontWeight: 700, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 6px", borderRadius: 3 }}>{ff.passenger_count} pax</span>}
+                  {ff.crew_count != null && <span style={{ fontSize: 9, fontWeight: 700, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 6px", borderRadius: 3 }}>{ff.crew_count} crew</span>}
+                  {ff.route && <span style={{ fontSize: 9, color: MUTED, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ff.route}</span>}
+                  {ff.dispatcher_notes && <span style={{ fontSize: 9, color: "#F59E0B", fontStyle: "italic", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ff.dispatcher_notes.slice(0, 60)}</span>}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -936,9 +978,12 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       {/* ForeFlight pre-populated banner */}
       {selectedFfFlight && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", marginBottom: 14, borderRadius: 8, background: "rgba(34,211,238,0.08)", border: `1px solid rgba(34,211,238,0.25)` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: CYAN }}>Pre-populated from ForeFlight Dispatch</span>
             <span style={{ fontSize: 9, fontWeight: 700, color: BLACK, background: CYAN, padding: "2px 8px", borderRadius: 3 }}>{selectedFfFlight.departure_icao} → {selectedFfFlight.destination_icao}</span>
+            {selectedFfFlight.passenger_count != null && <span style={{ fontSize: 9, fontWeight: 700, color: CYAN, background: "rgba(34,211,238,0.12)", padding: "2px 6px", borderRadius: 3 }}>{selectedFfFlight.passenger_count} pax</span>}
+            {selectedFfFlight.fuel_lbs != null && <span style={{ fontSize: 9, fontWeight: 700, color: CYAN, background: "rgba(34,211,238,0.12)", padding: "2px 6px", borderRadius: 3 }}>{selectedFfFlight.fuel_lbs} lbs</span>}
+            {selectedFfFlight.route && <span style={{ fontSize: 9, color: CYAN, opacity: 0.7, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedFfFlight.route}</span>}
           </div>
           <button onClick={onClearFfFlight} style={{ background: "none", border: "none", color: MUTED, fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>{"\u00D7"}</button>
         </div>

@@ -39,16 +39,25 @@ Deno.serve(async (req) => {
       },
     });
 
+    const responseText = await res.text();
+
     if (res.ok) {
-      const data = await res.json();
-      const count = Array.isArray(data) ? data.length : 0;
+      let count = 0;
+      try { const data = JSON.parse(responseText); count = Array.isArray(data) ? data.length : 0; } catch {}
       return new Response(
         JSON.stringify({ success: true, aircraftCount: count }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const errorText = await res.text();
+    // 404 with "No dispatch enabled aircrafts" means auth works but no aircraft set up
+    if (res.status === 404 && responseText.includes("No dispatch")) {
+      return new Response(
+        JSON.stringify({ success: true, aircraftCount: 0, note: "Connected — no aircraft configured in ForeFlight yet" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const statusMsg =
       res.status === 401
         ? "Invalid API key"
@@ -57,7 +66,7 @@ Deno.serve(async (req) => {
         : `ForeFlight API error (${res.status})`;
 
     return new Response(
-      JSON.stringify({ success: false, error: statusMsg, detail: errorText }),
+      JSON.stringify({ success: false, error: statusMsg, detail: responseText }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {

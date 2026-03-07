@@ -16,6 +16,15 @@ const corsHeaders = {
 const FF_BASE = "https://public-api.foreflight.com";
 const FF_VENDOR_ID = "1b600c49-584c-4f60-b40c-10aa8bd34ecd";
 
+/** Try multiple field name variants, return first non-empty value */
+function pick<T>(obj: any, ...keys: string[]): T | null {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (v !== null && v !== undefined && v !== "") return v as T;
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -121,7 +130,8 @@ Deno.serve(async (req) => {
           .eq("org_id", config.org_id);
 
         // Fetch crew from ForeFlight for email matching
-        let crewMap = new Map<string, string>();
+        let crewMap = new Map<string, string>(); // name → email
+        let crewEmailSet = new Set<string>(); // direct email index
         try {
           const crewRes = await fetch(`${FF_BASE}/public/api/crew`, {
             method: "GET",
@@ -131,10 +141,37 @@ Deno.serve(async (req) => {
             const crewData = await crewRes.json();
             const crewList = Array.isArray(crewData) ? crewData : (crewData.crew || []);
             for (const c of crewList) {
-              if (c.username) crewMap.set(c.fullname || c.crewCode || "", c.username);
+              if (c.username) {
+                crewMap.set(c.fullname || c.crewCode || "", c.username);
+                crewEmailSet.add(c.username.toLowerCase());
+              }
             }
           }
         } catch { /* crew fetch optional */ }
+
+        // Sync aircraft from ForeFlight
+        try {
+          const acRes = await fetch(`${FF_BASE}/public/api/aircraft`, {
+            method: "GET",
+            headers: ffHeaders,
+          });
+          if (acRes.ok) {
+            const acData = await acRes.json();
+            const acList = Array.isArray(acData) ? acData : (acData.aircraft || []);
+            for (const ac of acList) {
+              const reg = ac.registration || ac.tailNumber || "";
+              if (!reg) continue;
+              await supabase
+                .from("aircraft")
+                .upsert({
+                  org_id: config.org_id,
+                  registration: reg,
+                  type: ac.type || ac.aircraftType || "",
+                  updated_at: now.toISOString(),
+                }, { onConflict: "org_id,registration" });
+            }
+          }
+        } catch { /* aircraft sync optional */ }
 
         let syncedCount = 0;
 
@@ -155,7 +192,10 @@ Deno.serve(async (req) => {
           const crewList = fd.crew || [];
           const pic = crewList.find((c: any) => c.position === "PIC" || c.role === "PIC");
           const pilotName = pic?.name || pic?.fullname || fd.pilot || "";
-          const pilotEmail = (pic?.email || crewMap.get(pilotName) || "").toLowerCase();
+          let pilotEmail = (pic?.email || crewMap.get(pilotName) || "").toLowerCase();
+
+          // Also try direct email match from crew set if PIC has an email field
+          if (!pilotEmail && pic?.username) pilotEmail = pic.username.toLowerCase();
 
           const matchedPilot = pilotEmail
             ? (profiles || []).find(
@@ -166,6 +206,38 @@ Deno.serve(async (req) => {
                 (p: any) => (p.full_name || "").toLowerCase() === pilotName.toLowerCase()
               )
             : null;
+
+          // If no match yet, try matching any crew email against org profiles
+          if (!matchedPilot && crewEmailSet.size > 0) {
+            const emailMatch = (profiles || []).find(
+              (p: any) => crewEmailSet.has((p.email || "").toLowerCase())
+            );
+            // Only use if no other pilot was identified
+            if (emailMatch && !pilotName) {
+              pilotEmail = (emailMatch as any).email || "";
+            }
+          }
+
+          // Extract enhanced fields using pick() for field name variants
+          const passengerCount = pick<number>(fd, "passengers", "passengerCount", "numPassengers", "paxCount");
+          const crewCount = Array.isArray(fd.crew) ? fd.crew.length : pick<number>(fd, "crewCount", "numberOfCrew");
+          const fuelLbs = pick<number>(fd, "fuelLoad", "fuelLbs", "plannedFuel", "fuel");
+          const cruiseAltRaw = pick<string | number>(fd, "cruisingAltitude", "cruiseAltitude", "altitude");
+          const routeRaw = pick<string | string[]>(fd, "route", "routeOfFlight", "plannedRoute");
+          const route = Array.isArray(routeRaw) ? routeRaw.join(" ") : routeRaw;
+          let eteRaw = pick<number>(fd, "estimatedTimeEnroute", "ete", "flightTime");
+          // Convert seconds to minutes if value is suspiciously large (>600 = likely seconds)
+          const eteMinutes = eteRaw != null ? (eteRaw > 600 ? Math.round(eteRaw / 60) : eteRaw) : null;
+
+          // OOOI times
+          const outTime = pick<string>(fd, "outTime", "departureActual", "gateOut");
+          const offTime = pick<string>(fd, "offTime", "takeoffTime", "wheelsOff");
+          const onTime = pick<string>(fd, "onTime", "landingTime", "wheelsOn");
+          const inTime = pick<string>(fd, "inTime", "arrivalActual", "gateIn");
+
+          // Dispatcher/operational metadata
+          const dispatcherNotes = pick<string>(fd, "dispatcherNotes", "notes", "comments");
+          const wbData = pick<any>(fd, "weightAndBalance", "wb");
 
           const record = {
             org_id: config.org_id,
@@ -182,6 +254,19 @@ Deno.serve(async (req) => {
             matched_pilot_id: matchedPilot?.id || null,
             raw_data: ff,
             updated_at: now.toISOString(),
+            // Enhanced fields
+            passenger_count: passengerCount,
+            crew_count: crewCount != null ? crewCount : null,
+            fuel_lbs: fuelLbs,
+            cruise_alt: cruiseAltRaw != null ? String(cruiseAltRaw) : null,
+            route: route || null,
+            ete_minutes: eteMinutes,
+            out_time: outTime || null,
+            off_time: offTime || null,
+            on_time: onTime || null,
+            in_time: inTime || null,
+            dispatcher_notes: dispatcherNotes || null,
+            wb_data: wbData || null,
           };
 
           await supabase
