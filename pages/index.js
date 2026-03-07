@@ -465,7 +465,17 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
   const [activeTemplateId, setActiveTemplateId] = useState(null);
   const resolveTemplate = useCallback((aircraft) => {
     if (!allTemplates || allTemplates.length <= 1) return null;
-    return allTemplates.find(t => (t.assigned_aircraft || []).includes(aircraft)) || allTemplates.find(t => t.is_active) || null;
+    const ac = (aircraft || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!ac) return allTemplates.find(t => t.is_active) || null;
+    // Exact match first
+    const exact = allTemplates.find(t => (t.assigned_aircraft || []).includes(aircraft));
+    if (exact) return exact;
+    // Fuzzy: normalize both sides, match if one contains the other
+    const fuzzy = allTemplates.find(t => (t.assigned_aircraft || []).some(a => {
+      const norm = a.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      return norm && (ac.includes(norm) || norm.includes(ac));
+    }));
+    return fuzzy || allTemplates.find(t => t.is_active) || null;
   }, [allTemplates]);
 
   const currentTemplate = activeTemplateId ? allTemplates?.find(t => t.id === activeTemplateId) : null;
