@@ -743,15 +743,22 @@ export default function MobileFRATWizard({
     let remarksStr = "";
     if (ff.route) remarksStr += "Route: " + ff.route;
     if (ff.dispatcher_notes) remarksStr += (remarksStr ? " | " : "") + "Dispatch: " + ff.dispatcher_notes;
-    // Fuzzy-match ForeFlight aircraft type to fleet types
-    let resolvedAircraft = ff.aircraft_type || "";
-    if (resolvedAircraft && aircraftTypes.length > 0) {
-      const norm = resolvedAircraft.toUpperCase().replace(/[^A-Z0-9]/g, "");
-      const match = aircraftTypes.find(t => {
+    // Resolve aircraft type: try tail number lookup first, then fuzzy-match aircraft_type
+    const fleet = fleetAircraft || [];
+    const fleetTypes = [...new Set(fleet.map(a => a.type))];
+    let resolvedAircraft = "";
+    const tailNum = ff.tail_number || "";
+    if (tailNum && fleet.length > 0) {
+      const fleetMatch = fleet.find(a => a.registration === tailNum);
+      if (fleetMatch) resolvedAircraft = fleetMatch.type;
+    }
+    if (!resolvedAircraft && ff.aircraft_type && fleetTypes.length > 0) {
+      const norm = ff.aircraft_type.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const match = fleetTypes.find(t => {
         const tn = t.toUpperCase().replace(/[^A-Z0-9]/g, "");
         return tn && (norm.includes(tn) || tn.includes(norm));
       });
-      if (match) resolvedAircraft = match;
+      resolvedAircraft = match || ff.aircraft_type;
     }
     setFi(p => ({
       ...p,
@@ -791,15 +798,22 @@ export default function MobileFRATWizard({
         eteStr = String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
       }
     }
-    // Fuzzy-match Schedaero aircraft type to fleet types
-    let resolvedAircraft = sc.aircraft_type || "";
-    if (resolvedAircraft && aircraftTypes.length > 0) {
-      const norm = resolvedAircraft.toUpperCase().replace(/[^A-Z0-9]/g, "");
-      const match = aircraftTypes.find(t => {
+    // Resolve aircraft type: try tail number lookup first, then fuzzy-match aircraft_type
+    const fleet = fleetAircraft || [];
+    const fleetTypes = [...new Set(fleet.map(a => a.type))];
+    let resolvedAircraft = "";
+    const tailNum = sc.tail_number || "";
+    if (tailNum && fleet.length > 0) {
+      const fleetMatch = fleet.find(a => a.registration === tailNum);
+      if (fleetMatch) resolvedAircraft = fleetMatch.type;
+    }
+    if (!resolvedAircraft && sc.aircraft_type && fleetTypes.length > 0) {
+      const norm = sc.aircraft_type.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const match = fleetTypes.find(t => {
         const tn = t.toUpperCase().replace(/[^A-Z0-9]/g, "");
         return tn && (norm.includes(tn) || tn.includes(norm));
       });
-      if (match) resolvedAircraft = match;
+      resolvedAircraft = match || sc.aircraft_type;
     }
     setFi(p => ({
       ...p,
