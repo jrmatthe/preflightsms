@@ -108,14 +108,14 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, o
             <div style={{fontSize:11,color:MUTED,lineHeight:1.6,maxWidth:340,margin:"0 auto",marginBottom:16}}>Add your fleet to enable FRAT submissions and flight following. Aircraft details are used across safety reports and risk assessments.</div>
             {canManage && !atLimit && !editing && <button data-onboarding="fleet-add-btn" onClick={startAdd} style={{padding:"10px 24px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>Add Aircraft</button>}
           </div>:<div style={{fontSize:11,color:MUTED}}>No aircraft found</div>}</div>
-          :filtered.map(a=>{
+          :filtered.map((a,ai)=>{
             const isSelected=selected?.id===a.id;
             const activeMel = getActiveMelItems(a.mel_items);
             const melCount = activeMel.length;
             const hasExpired = activeMel.some(m => getMelExpirationStatus(m) === "expired");
             const hasWarning = activeMel.some(m => getMelExpirationStatus(m) === "warning");
             const melColor = hasExpired ? RED : hasWarning ? AMBER : CYAN;
-            return (<div key={a.id} onClick={()=>selectAircraft(a)} style={{...card,padding:"12px 16px",marginBottom:6,cursor:"pointer",border:`1px solid ${isSelected?LIGHT_BORDER:BORDER}`,background:isSelected?"rgba(255,255,255,0.04)":CARD}}>
+            return (<div key={a.id} data-onboarding={ai===0?"fleet-aircraft-card":undefined} onClick={()=>selectAircraft(a)} style={{...card,padding:"12px 16px",marginBottom:6,cursor:"pointer",border:`1px solid ${isSelected?LIGHT_BORDER:BORDER}`,background:isSelected?"rgba(255,255,255,0.04)":CARD}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
