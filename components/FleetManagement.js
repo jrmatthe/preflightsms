@@ -319,7 +319,7 @@ function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfi
     </div>
 
     {/* MEL Deferrals Section */}
-    <div style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${activeItems.length > 0 ? `${AMBER}44` : BORDER}`,padding:"14px 16px",marginBottom:12}}>
+    <div data-onboarding="fleet-mel-section" style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${activeItems.length > 0 ? `${AMBER}44` : BORDER}`,padding:"14px 16px",marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:activeItems.length > 0 || canManage ? 8 : 0}}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <span style={{fontSize:10,fontWeight:600,color:OFF_WHITE}}>MEL Deferrals</span>
