@@ -571,7 +571,7 @@ function StepRiskAssessment({ categories, checked, setChecked, autoFlags, riskLe
 
       {/* Sticky score footer */}
       <div style={{
-        position: "fixed", bottom: "calc(48px + max(env(safe-area-inset-bottom, 0px), 20px))", left: 0, right: 0, zIndex: 900,
+        position: "fixed", bottom: "calc(60px + max(env(safe-area-inset-bottom, 0px), 20px))", left: 0, right: 0, zIndex: 900,
         background: rl.bg, borderTop: `1px solid ${rl.border}`,
         padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
@@ -1008,7 +1008,7 @@ export default function MobileFRATWizard({
       <StepIndicator current={step} total={4} />
 
       {/* Step content — extra bottom padding to clear fixed nav buttons */}
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: step === 2 ? 120 : 80 }}>
+      <div style={{ flex: 1, overflowY: "auto", paddingBottom: step === 2 ? 150 : 100 }}>
         {step === 0 && (
           <StepFlightInfo fi={fi} setFi={setFi} fuelUnit={fuelUnit} setFuelUnit={setFuelUnit}
             fleetAircraft={fleetAircraft} errors={errors}
@@ -1058,7 +1058,7 @@ export default function MobileFRATWizard({
       {/* Bottom nav buttons */}
       {step !== 2 && ( /* Step 2 has its own sticky footer */
         <div style={{
-          position: "fixed", bottom: "calc(48px + max(env(safe-area-inset-bottom, 0px), 20px))", left: 0, right: 0, zIndex: 900,
+          position: "fixed", bottom: "calc(60px + max(env(safe-area-inset-bottom, 0px), 20px))", left: 0, right: 0, zIndex: 900,
           background: DARK, borderTop: `1px solid ${BORDER}`,
           padding: "10px 16px", display: "flex", alignItems: "center", gap: 12,
         }}>
@@ -1083,7 +1083,7 @@ export default function MobileFRATWizard({
       {/* Step 2 bottom nav (beside the score footer) */}
       {step === 2 && (
         <div style={{
-          position: "fixed", bottom: "calc(84px + max(env(safe-area-inset-bottom, 0px), 20px))", left: 0, right: 0, zIndex: 901,
+          position: "fixed", bottom: "calc(100px + max(env(safe-area-inset-bottom, 0px), 20px))", left: 0, right: 0, zIndex: 901,
           background: DARK, borderTop: `1px solid ${BORDER}`,
           padding: "10px 16px", display: "flex", alignItems: "center", gap: 12,
         }}>
