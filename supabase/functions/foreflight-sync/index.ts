@@ -192,10 +192,8 @@ Deno.serve(async (req) => {
           const crewList = fd.crew || [];
           const pic = crewList.find((c: any) => c.position === "PIC" || c.role === "PIC");
           const pilotName = pic?.name || pic?.fullname || fd.pilot || "";
-          let pilotEmail = (pic?.email || crewMap.get(pilotName) || "").toLowerCase();
-
-          // Also try direct email match from crew set if PIC has an email field
-          if (!pilotEmail && pic?.username) pilotEmail = pic.username.toLowerCase();
+          // ForeFlight uses crewId for email (e.g. "jrmatthe+dispatch@gmail.com")
+          let pilotEmail = (pic?.email || pic?.crewId || pic?.username || crewMap.get(pilotName) || "").toLowerCase();
 
           const matchedPilot = pilotEmail
             ? (profiles || []).find(
@@ -218,14 +216,19 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Extract enhanced fields using pick() for field name variants
-          const passengerCount = pick<number>(fd, "passengers", "passengerCount", "numPassengers", "paxCount");
+          // Extract enhanced fields using actual ForeFlight field names
+          // Passengers: fd.load.passengers is an array, fd.load.people is total headcount
+          const loadObj = fd.load || {};
+          const paxArray = Array.isArray(loadObj.passengers) ? loadObj.passengers : [];
+          const passengerCount = paxArray.length > 0 ? paxArray.length
+            : (loadObj.people != null && Array.isArray(fd.crew) ? loadObj.people - fd.crew.length : null);
           const crewCount = Array.isArray(fd.crew) ? fd.crew.length : pick<number>(fd, "crewCount", "numberOfCrew");
           const fuelLbs = pick<number>(fd, "fuelLoad", "fuelLbs", "plannedFuel", "fuel");
           const cruiseAltRaw = pick<string | number>(fd, "cruisingAltitude", "cruiseAltitude", "altitude");
           const routeRaw = pick<string | string[]>(fd, "route", "routeOfFlight", "plannedRoute");
           const route = Array.isArray(routeRaw) ? routeRaw.join(" ") : routeRaw;
-          let eteRaw = pick<number>(fd, "estimatedTimeEnroute", "ete", "flightTime");
+          // ForeFlight uses tripTime (seconds)
+          let eteRaw = pick<number>(fd, "tripTime", "estimatedTimeEnroute", "ete", "flightTime");
           // Convert seconds to minutes if value is suspiciously large (>600 = likely seconds)
           const eteMinutes = eteRaw != null ? (eteRaw > 600 ? Math.round(eteRaw / 60) : eteRaw) : null;
 
@@ -237,7 +240,8 @@ Deno.serve(async (req) => {
 
           // Dispatcher/operational metadata
           const dispatcherNotes = pick<string>(fd, "dispatcherNotes", "notes", "comments");
-          const wbData = pick<any>(fd, "weightAndBalance", "wb");
+          // Store load/weight data as wb_data (ForeFlight puts W&B info in load object)
+          const wbData = loadObj.cargo !== undefined ? loadObj : pick<any>(fd, "weightAndBalance", "wb");
 
           const record = {
             org_id: config.org_id,
@@ -248,8 +252,8 @@ Deno.serve(async (req) => {
             pilot_name: pilotName,
             pilot_email: pilotEmail || null,
             aircraft_type: fd.aircraftType || fd.callsign || "",
-            etd: fd.scheduledTimeOfDeparture || fd.etd || null,
-            eta: fd.scheduledTimeOfArrival || fd.eta || null,
+            etd: fd.departureTime || fd.scheduledTimeOfDeparture || fd.etd || null,
+            eta: fd.arrivalTime || fd.scheduledTimeOfArrival || fd.eta || null,
             status: existingStatus || "pending",
             matched_pilot_id: matchedPilot?.id || null,
             raw_data: ff,
