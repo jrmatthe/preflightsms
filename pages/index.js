@@ -1082,6 +1082,46 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
         </div>
       </div>
 
+      {/* ForeFlight Weight & Balance data (auto-shows when available) */}
+      {selectedFfFlight?.wb_data && (() => {
+        const wb = selectedFfFlight.wb_data;
+        const paxList = Array.isArray(wb.passengers) ? wb.passengers : [];
+        const totalPaxWeight = paxList.reduce((s, p) => s + (p.weight || 0), 0);
+        const cargoLbs = wb.cargo || 0;
+        const totalPeople = wb.people || 0;
+        const avgWeight = wb.averagePeopleWeight || 0;
+        return (
+          <div style={{ ...card, padding: "16px 20px", marginBottom: 18, borderLeft: `3px solid ${CYAN}` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 1 }}>Weight & Balance — ForeFlight</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <div style={{ padding: "8px 12px", background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${BORDER}` }}>
+                <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", marginBottom: 2 }}>Passengers</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{paxList.length}</div>
+                {totalPaxWeight > 0 && <div style={{ fontSize: 10, color: SUBTLE }}>{totalPaxWeight} lbs total</div>}
+              </div>
+              <div style={{ padding: "8px 12px", background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${BORDER}` }}>
+                <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", marginBottom: 2 }}>Cargo</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{cargoLbs} lbs</div>
+              </div>
+              <div style={{ padding: "8px 12px", background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${BORDER}` }}>
+                <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", marginBottom: 2 }}>Avg Weight/Person</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{Math.round(avgWeight)} lbs</div>
+                <div style={{ fontSize: 10, color: SUBTLE }}>{totalPeople} people total</div>
+              </div>
+            </div>
+            {paxList.length > 0 && (
+              <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {paxList.map((p, i) => (
+                  <span key={i} style={{ fontSize: 9, color: SUBTLE, background: NEAR_BLACK, border: `1px solid ${BORDER}`, padding: "2px 8px", borderRadius: 4 }}>{p.type || "Pax"}: {p.weight} lbs</span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Template indicator (multi-template mode) */}
       {allTemplates && allTemplates.length > 1 && (
         <div style={{ ...card, padding: "12px 18px", marginBottom: 18, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
