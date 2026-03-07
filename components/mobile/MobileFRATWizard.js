@@ -572,7 +572,7 @@ function StepRiskAssessment({ categories, checked, setChecked, autoFlags, riskLe
       {/* Sticky score footer */}
       <div style={{
         position: "fixed", bottom: "calc(60px + max(env(safe-area-inset-bottom, 0px), 20px))", left: 0, right: 0, zIndex: 900,
-        background: rl.bg, borderTop: `1px solid ${rl.border}`,
+        background: DARK, borderTop: `1px solid ${rl.border}`,
         padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div>
