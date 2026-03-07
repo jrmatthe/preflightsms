@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const BLACK = "#000000", NEAR_BLACK = "#0A0A0A", CARD = "#161616", BORDER = "#232323", LIGHT_BORDER = "#2E2E2E";
 const WHITE = "#FFFFFF", OFF_WHITE = "#D4D4D4", MUTED = "#666666", SUBTLE = "#444444";
@@ -244,6 +244,14 @@ export default function FRATTemplateEditor({ template, templates, onSave, onCrea
   const allTemplates = templates || (template ? [template] : []);
   const [selectedId, setSelectedId] = useState(template?.id || allTemplates[0]?.id || null);
   const [showEditor, setShowEditor] = useState(!!template);
+
+  const prevIdsRef = useRef(new Set(allTemplates.map(t => t.id)));
+  useEffect(() => {
+    const prevIds = prevIdsRef.current;
+    const newTemplate = allTemplates.find(t => !prevIds.has(t.id));
+    prevIdsRef.current = new Set(allTemplates.map(t => t.id));
+    if (newTemplate) { setSelectedId(newTemplate.id); setShowEditor(true); }
+  }, [allTemplates]);
 
   const selectedTemplate = allTemplates.find(t => t.id === selectedId);
   const activeTemplate = allTemplates.find(t => t.is_active);
