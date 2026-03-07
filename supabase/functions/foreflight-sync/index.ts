@@ -49,7 +49,6 @@ Deno.serve(async (req) => {
     }
     const { data: configs } = await query;
 
-    console.log(`[foreflight-sync] Configs found: ${configs?.length || 0}, orgId filter: ${body.orgId || 'none'}`);
     if (!configs || configs.length === 0) {
       return new Response(
         JSON.stringify({ message: "No enabled ForeFlight configs found" }),
@@ -88,10 +87,8 @@ Deno.serve(async (req) => {
           headers: ffHeaders,
         });
 
-        console.log(`[foreflight-sync] API response status: ${res.status}`);
         if (!res.ok) {
           const errText = await res.text();
-          console.log(`[foreflight-sync] API error: ${res.status} ${errText.slice(0, 300)}`);
           await supabase
             .from("foreflight_config")
             .update({
@@ -103,10 +100,8 @@ Deno.serve(async (req) => {
         }
 
         const data = await res.json();
-        console.log(`[foreflight-sync] API response type: ${typeof data}, isArray: ${Array.isArray(data)}, keys: ${data && typeof data === 'object' ? Object.keys(data).join(', ') : 'N/A'}`);
         // Response may be an array or { flights: [...] }
         const flights = Array.isArray(data) ? data : (data.flights || data.data || []);
-        console.log(`[foreflight-sync] Flights found: ${flights.length}`);
 
         if (!Array.isArray(flights)) {
           await supabase
@@ -183,22 +178,16 @@ Deno.serve(async (req) => {
         for (const ff of flights) {
          try {
           const ffId = String(ff.flightId || ff.id || "");
-          console.log(`[foreflight-sync] Processing flight: ${ffId}, top keys: ${Object.keys(ff).join(", ")}`);
-          if (!ffId) { console.log(`[foreflight-sync] Skipping flight with no ID`); continue; }
+          if (!ffId) continue;
 
           // Skip flights already linked to a FRAT
           const existingStatus = existingMap.get(ffId);
           if (existingStatus === "frat_created" || existingStatus === "completed") {
-            console.log(`[foreflight-sync] Skipping ${ffId} — status: ${existingStatus}`);
             continue;
           }
 
           // Extract flight data — ForeFlight uses nested flightData object
           const fd = ff.flightData || ff;
-
-          // Log raw flight keys for debugging field name mismatches
-          console.log(`[foreflight-sync] Flight ${ffId} top-level keys:`, Object.keys(ff).join(", "));
-          if (ff.flightData) console.log(`[foreflight-sync] Flight ${ffId} flightData keys:`, Object.keys(ff.flightData).join(", "));
 
           // Try to match pilot by crew name → email → org profile
           const crewList = fd.crew || [];
@@ -328,7 +317,6 @@ Deno.serve(async (req) => {
             }
           }
 
-          console.log(`[foreflight-sync] Upserted flight ${ffId}: ${record.departure_icao} → ${record.destination_icao}, etd: ${record.etd}, status: ${record.status}`);
           syncedCount++;
 
           // Notify matched pilot if configured
