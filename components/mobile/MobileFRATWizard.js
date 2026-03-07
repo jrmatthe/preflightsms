@@ -820,19 +820,19 @@ export default function MobileFRATWizard({
   useEffect(() => {
     if (!selectedFfFlight) return;
     const ff = selectedFfFlight;
-    const etdStr = ff.etd ? new Date(ff.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
+    const etdStr = ff.etd ? new Date(ff.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }) : "";
     const dateStr = ff.etd ? new Date(ff.etd).toISOString().split("T")[0] : getLocalDate();
     let eteStr = "";
     if (ff.ete_minutes != null) {
       const h = Math.floor(ff.ete_minutes / 60);
       const m = ff.ete_minutes % 60;
-      eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
+      eteStr = String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
     } else if (ff.etd && ff.eta) {
       const diffMs = new Date(ff.eta).getTime() - new Date(ff.etd).getTime();
       if (diffMs > 0) {
         const h = Math.floor(diffMs / 3600000);
         const m = Math.floor((diffMs % 3600000) / 60000);
-        eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
+        eteStr = String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
       }
     }
     let cruiseAltStr = "";
@@ -866,7 +866,7 @@ export default function MobileFRATWizard({
   useEffect(() => {
     if (!selectedScTrip) return;
     const sc = selectedScTrip;
-    const etdStr = sc.etd ? new Date(sc.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
+    const etdStr = sc.etd ? new Date(sc.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }) : "";
     const dateStr = sc.etd ? new Date(sc.etd).toISOString().split("T")[0] : getLocalDate();
     let eteStr = "";
     if (sc.etd && sc.eta) {
@@ -874,7 +874,7 @@ export default function MobileFRATWizard({
       if (diffMs > 0) {
         const h = Math.floor(diffMs / 3600000);
         const m = Math.floor((diffMs % 3600000) / 60000);
-        eteStr = String(h).padStart(2, "0") + String(m).padStart(2, "0");
+        eteStr = String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
       }
     }
     setFi(p => ({
@@ -986,9 +986,13 @@ export default function MobileFRATWizard({
     let eta = null;
     if (fi.date && fi.etd && eteMins > 0) {
       try {
-        const [hh, mm] = fi.etd.split(":").map(Number);
-        const dep = new Date(`${fi.date}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00`);
-        eta = new Date(dep.getTime() + eteMins * 60000).toISOString();
+        const t = fi.etd.replace(/[^0-9]/g, "").padStart(4, "0");
+        const hh = parseInt(t.slice(0, 2), 10);
+        const mm = parseInt(t.slice(2, 4), 10);
+        if (!isNaN(hh) && !isNaN(mm) && hh <= 23 && mm <= 59) {
+          const dep = new Date(`${fi.date}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00`);
+          eta = new Date(dep.getTime() + eteMins * 60000).toISOString();
+        }
       } catch {}
     }
 
