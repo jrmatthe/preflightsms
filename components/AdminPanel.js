@@ -68,7 +68,6 @@ const FEATURE_LABELS_MAP = {
 
 function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) {
   const [apiKey, setApiKey] = useState(config?.api_key || "");
-  const [apiSecret, setApiSecret] = useState(config?.api_secret || "");
   const [enabled, setEnabled] = useState(config?.enabled || false);
   const [syncInterval, setSyncInterval] = useState(config?.sync_interval_minutes || 5);
   const [autoCreateFrats, setAutoCreateFrats] = useState(config?.auto_create_frats || false);
@@ -82,7 +81,6 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
   useEffect(() => {
     if (config) {
       setApiKey(config.api_key || "");
-      setApiSecret(config.api_secret || "");
       setEnabled(config.enabled || false);
       setSyncInterval(config.sync_interval_minutes || 5);
       setAutoCreateFrats(config.auto_create_frats || false);
@@ -95,7 +93,6 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
     setSaving(true);
     await onSave({
       api_key: apiKey,
-      api_secret: apiSecret,
       enabled,
       sync_interval_minutes: syncInterval,
       auto_create_frats: autoCreateFrats,
@@ -108,7 +105,7 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
   const handleTest = async () => {
     setTesting(true);
     setTestResult(null);
-    const result = await onTestConnection(apiKey, apiSecret);
+    const result = await onTestConnection(apiKey);
     setTestResult(result);
     setTesting(false);
   };
@@ -121,7 +118,7 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
 
   const lastSynced = config?.last_synced_at;
   const syncError = config?.last_sync_error;
-  const hasCredentials = apiKey && apiSecret;
+  const hasCredentials = !!apiKey;
 
   const getRelativeTime = (dateStr) => {
     if (!dateStr) return "Never";
@@ -143,17 +140,11 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
           <span style={{ fontSize: 8, fontWeight: 700, color: BLACK, background: CYAN, padding: "2px 8px", borderRadius: 3 }}>BETA</span>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-          <div>
-            <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>API Key</label>
-            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="ForeFlight API key"
-              style={{ ...inp }} />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>API Secret</label>
-            <input type="password" value={apiSecret} onChange={e => setApiSecret(e.target.value)} placeholder="ForeFlight API secret"
-              style={{ ...inp }} />
-          </div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>API Key</label>
+          <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="ForeFlight API key (from Tools → API Console)"
+            style={{ ...inp }} />
+          <div style={{ fontSize: 9, color: MUTED, marginTop: 4 }}>Generate at plan.foreflight.com → Tools → API Console</div>
         </div>
 
         {/* Toggles */}

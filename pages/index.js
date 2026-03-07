@@ -4647,10 +4647,10 @@ export default function PVTAIRFrat() {
             setToast({ message: "Failed to save: " + (error?.message || "Unknown error"), level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } });
             setTimeout(() => setToast(null), 5000);
           }
-        })} onTestForeflightConnection={async (apiKey, apiSecret) => {
+        })} onTestForeflightConnection={async (apiKey) => {
           try {
             const { data, error } = await supabase.functions.invoke('foreflight-test-connection', {
-              body: { apiKey, apiSecret },
+              body: { apiKey },
             });
             if (error) return { success: false, error: error.message };
             return data;

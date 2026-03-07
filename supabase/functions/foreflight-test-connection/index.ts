@@ -11,37 +11,39 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const FF_BASE = "https://public-api.foreflight.com";
+const FF_VENDOR_ID = "1b600c49-584c-4f60-b40c-10aa8bd34ecd";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { apiKey, apiSecret } = await req.json();
+    const { apiKey } = await req.json();
 
-    if (!apiKey || !apiSecret) {
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ success: false, error: "API key and secret are required" }),
+        JSON.stringify({ success: false, error: "API key is required" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const credentials = btoa(`${apiKey}:${apiSecret}`);
-
-    const res = await fetch(
-      "https://dispatch.foreflight.com/api/v1/flights?status=scheduled&limit=1",
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Basic ${credentials}`,
-          Accept: "application/json",
-        },
-      }
-    );
+    // Test by listing aircraft — lightweight read-only call
+    const res = await fetch(`${FF_BASE}/public/api/aircraft`, {
+      method: "GET",
+      headers: {
+        "x-api-key": apiKey,
+        "x-vendorId": FF_VENDOR_ID,
+        Accept: "application/json",
+      },
+    });
 
     if (res.ok) {
+      const data = await res.json();
+      const count = Array.isArray(data) ? data.length : 0;
       return new Response(
-        JSON.stringify({ success: true }),
+        JSON.stringify({ success: true, aircraftCount: count }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -49,7 +51,7 @@ Deno.serve(async (req) => {
     const errorText = await res.text();
     const statusMsg =
       res.status === 401
-        ? "Invalid API credentials"
+        ? "Invalid API key"
         : res.status === 403
         ? "API access forbidden — check your ForeFlight plan"
         : `ForeFlight API error (${res.status})`;

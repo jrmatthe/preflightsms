@@ -80,8 +80,8 @@ function SkeletonCard() {
 function EmptyState({ onNewFrat }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", textAlign: "center" }}>
-      <svg width={56} height={56} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16, opacity: 0.5 }}>
-        <path d="M17.8 19.2L16 11l3.5-3.5C20.3 6.7 21 5.1 21 4.5c0-1-.5-1.5-1.5-1.5-.6 0-2.2.7-3 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.3 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/>
+      <svg width={56} height={56} viewBox="0 0 24 24" fill="none" style={{ marginBottom: 16, opacity: 0.4 }}>
+        <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill={MUTED}/>
       </svg>
       <div style={{ color: WHITE, fontSize: 18, fontWeight: 600, marginBottom: 6 }}>No active flights</div>
       <div style={{ color: MUTED, fontSize: 14, marginBottom: 24 }}>Start a FRAT to create one</div>

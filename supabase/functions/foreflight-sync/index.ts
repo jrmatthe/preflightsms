@@ -1,18 +1,10 @@
 // supabase/functions/foreflight-sync/index.ts
 //
-// Syncs scheduled flights from ForeFlight Dispatch into foreflight_flights
+// Syncs flights from ForeFlight Dispatch into foreflight_flights
 // Runs on pg_cron every 5 minutes, or manually triggered from Admin UI
 //
 // SETUP:
 // 1. Deploy: supabase functions deploy foreflight-sync --no-verify-jwt
-// 2. pg_cron (run in Supabase SQL editor):
-//    SELECT cron.schedule('foreflight-sync', '*/5 * * * *', $$
-//      SELECT net.http_post(
-//        url:='https://YOUR_PROJECT.supabase.co/functions/v1/foreflight-sync',
-//        headers:=jsonb_build_object('Authorization','Bearer YOUR_SERVICE_ROLE_KEY','Content-Type','application/json'),
-//        body:='{}'::jsonb
-//      );
-//    $$);
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -20,6 +12,9 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const FF_BASE = "https://public-api.foreflight.com";
+const FF_VENDOR_ID = "1b600c49-584c-4f60-b40c-10aa8bd34ecd";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -63,27 +58,25 @@ Deno.serve(async (req) => {
           }
         }
 
-        if (!config.api_key || !config.api_secret) {
+        if (!config.api_key) {
           await supabase
             .from("foreflight_config")
-            .update({ last_sync_error: "Missing API credentials" })
+            .update({ last_sync_error: "Missing API key" })
             .eq("id", config.id);
           continue;
         }
 
-        const credentials = btoa(`${config.api_key}:${config.api_secret}`);
+        const ffHeaders = {
+          "x-api-key": config.api_key,
+          "x-vendorId": FF_VENDOR_ID,
+          Accept: "application/json",
+        };
 
-        // Fetch scheduled flights from ForeFlight
-        const res = await fetch(
-          "https://dispatch.foreflight.com/api/v1/flights?status=scheduled",
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Basic ${credentials}`,
-              Accept: "application/json",
-            },
-          }
-        );
+        // Fetch flights from ForeFlight
+        const res = await fetch(`${FF_BASE}/public/api/Flights/flights`, {
+          method: "GET",
+          headers: ffHeaders,
+        });
 
         if (!res.ok) {
           const errText = await res.text();
@@ -98,7 +91,8 @@ Deno.serve(async (req) => {
         }
 
         const data = await res.json();
-        const flights = data.flights || data.data || data || [];
+        // Response may be an array or { flights: [...] }
+        const flights = Array.isArray(data) ? data : (data.flights || data.data || []);
 
         if (!Array.isArray(flights)) {
           await supabase
@@ -117,7 +111,7 @@ Deno.serve(async (req) => {
           .select("foreflight_id, status")
           .eq("org_id", config.org_id);
         const existingMap = new Map(
-          (existing || []).map((e) => [e.foreflight_id, e.status])
+          (existing || []).map((e: any) => [e.foreflight_id, e.status])
         );
 
         // Get org profiles for pilot matching
@@ -126,10 +120,26 @@ Deno.serve(async (req) => {
           .select("id, email, full_name")
           .eq("org_id", config.org_id);
 
+        // Fetch crew from ForeFlight for email matching
+        let crewMap = new Map<string, string>();
+        try {
+          const crewRes = await fetch(`${FF_BASE}/public/api/crew`, {
+            method: "GET",
+            headers: ffHeaders,
+          });
+          if (crewRes.ok) {
+            const crewData = await crewRes.json();
+            const crewList = Array.isArray(crewData) ? crewData : (crewData.crew || []);
+            for (const c of crewList) {
+              if (c.username) crewMap.set(c.fullname || c.crewCode || "", c.username);
+            }
+          }
+        } catch { /* crew fetch optional */ }
+
         let syncedCount = 0;
 
         for (const ff of flights) {
-          const ffId = String(ff.id || ff.flightId || ff.flight_id);
+          const ffId = String(ff.flightId || ff.id || "");
           if (!ffId) continue;
 
           // Skip flights already linked to a FRAT
@@ -138,25 +148,36 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Match pilot by email (case-insensitive)
-          const pilotEmail = (ff.pilot_email || ff.pilotEmail || "").toLowerCase();
+          // Extract flight data — ForeFlight uses nested flightData object
+          const fd = ff.flightData || ff;
+
+          // Try to match pilot by crew name → email → org profile
+          const crewList = fd.crew || [];
+          const pic = crewList.find((c: any) => c.position === "PIC" || c.role === "PIC");
+          const pilotName = pic?.name || pic?.fullname || fd.pilot || "";
+          const pilotEmail = (pic?.email || crewMap.get(pilotName) || "").toLowerCase();
+
           const matchedPilot = pilotEmail
             ? (profiles || []).find(
-                (p) => (p.email || "").toLowerCase() === pilotEmail
+                (p: any) => (p.email || "").toLowerCase() === pilotEmail
+              )
+            : pilotName
+            ? (profiles || []).find(
+                (p: any) => (p.full_name || "").toLowerCase() === pilotName.toLowerCase()
               )
             : null;
 
           const record = {
             org_id: config.org_id,
             foreflight_id: ffId,
-            departure_icao: ff.departure_icao || ff.departureIcao || ff.origin || "",
-            destination_icao: ff.destination_icao || ff.destinationIcao || ff.destination || "",
-            tail_number: ff.tail_number || ff.tailNumber || ff.aircraft_registration || "",
-            pilot_name: ff.pilot_name || ff.pilotName || ff.pilot || "",
+            departure_icao: fd.departure || fd.departureIcao || fd.origin || "",
+            destination_icao: fd.destination || fd.destinationIcao || "",
+            tail_number: fd.aircraftRegistration || fd.tailNumber || "",
+            pilot_name: pilotName,
             pilot_email: pilotEmail || null,
-            aircraft_type: ff.aircraft_type || ff.aircraftType || "",
-            etd: ff.etd || ff.departure_time || ff.departureTime || null,
-            eta: ff.eta || ff.arrival_time || ff.arrivalTime || null,
+            aircraft_type: fd.aircraftType || fd.callsign || "",
+            etd: fd.scheduledTimeOfDeparture || fd.etd || null,
+            eta: fd.scheduledTimeOfArrival || fd.eta || null,
             status: existingStatus || "pending",
             matched_pilot_id: matchedPilot?.id || null,
             raw_data: ff,
@@ -197,7 +218,7 @@ Deno.serve(async (req) => {
             last_sync_error: null,
           })
           .eq("id", config.id);
-      } catch (orgErr) {
+      } catch (orgErr: any) {
         console.error(`Sync error for org ${config.org_id}:`, orgErr);
         await supabase
           .from("foreflight_config")
@@ -216,7 +237,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("ForeFlight sync error:", e);
     return new Response(
-      JSON.stringify({ error: e.message }),
+      JSON.stringify({ error: (e as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
