@@ -135,14 +135,19 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
     <div>
       {/* Configuration Card */}
       <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>ForeFlight Dispatch Configuration</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <img src="/foreflight-logo.png" alt="ForeFlight" style={{ height: 22, filter: "invert(1)" }} />
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Dispatch Configuration</div>
+        </div>
 
         <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 16 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Setup Instructions</div>
           <ol style={{ margin: 0, paddingLeft: 18, fontSize: 11, color: OFF_WHITE, lineHeight: 1.8 }}>
             <li>Open the <a href="https://dispatch.foreflight.com/tools/console/keys" target="_blank" rel="noopener noreferrer" style={{ color: CYAN, textDecoration: "none", fontWeight: 600 }}>ForeFlight API Console</a> and generate a new API token</li>
             <li>Copy the token and paste it into the API Key field below</li>
-            <li>Click Save to store your credentials</li>
+            <li>Turn on <strong style={{ color: WHITE }}>Enable Integration</strong> and <strong style={{ color: WHITE }}>Auto-create FRATs</strong></li>
+            <li>Click <strong style={{ color: WHITE }}>Test Connection</strong> to verify your token is working</li>
+            <li>Once the test passes, click <strong style={{ color: WHITE }}>Save</strong> to store your configuration</li>
           </ol>
         </div>
 
@@ -299,7 +304,10 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
     <div>
       {/* Configuration Card */}
       <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>Schedaero Configuration</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <img src="/schedaero-logo.svg" alt="Schedaero" style={{ height: 18 }} />
+          <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Configuration</div>
+        </div>
 
         <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 16 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Setup Instructions</div>
@@ -308,7 +316,10 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
             <li>Once granted, go to your Company API page in Schedaero</li>
             <li>Click <strong style={{ color: WHITE }}>View</strong> in the connections list, then <strong style={{ color: WHITE }}>View Credentials</strong> in the Authentication Tokens section</li>
             <li>In the popup, copy the <strong style={{ color: WHITE }}>Authentication Token</strong> (not the API Token)</li>
-            <li>Paste it into the API Key field below and click Save</li>
+            <li>Paste it into the Authentication Token field below</li>
+            <li>Turn on <strong style={{ color: WHITE }}>Enable Integration</strong> and <strong style={{ color: WHITE }}>Auto-create FRATs</strong></li>
+            <li>Click <strong style={{ color: WHITE }}>Test Connection</strong> to verify your token is working</li>
+            <li>Once the test passes, click <strong style={{ color: WHITE }}>Save</strong> to store your configuration</li>
           </ol>
         </div>
 
