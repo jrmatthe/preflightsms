@@ -2387,19 +2387,42 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
     },
   });
 
-  const cardWrapperStyle = (id) => ({
-    opacity: dragId === id ? 0.4 : 1,
-    transform: dragId === id ? "scale(0.96)" : "scale(1)",
-    borderRadius: 10,
-    transition: "transform 0.25s ease, opacity 0.2s ease",
-    minHeight: 0,
-  });
+  const cardWrapperStyle = (id) => {
+    const isDragging = !!dragId;
+    const isMe = dragId === id;
+    return {
+      borderRadius: 10,
+      transition: "transform 0.25s ease, opacity 0.2s ease, outline-color 0.2s ease",
+      minHeight: 0,
+      position: "relative",
+      // While dragging: the held card fades out, all others get dashed drop-zone outlines
+      opacity: isMe ? 0 : 1,
+      outline: isDragging && !isMe ? `2px dashed rgba(255,255,255,0.15)` : "2px dashed transparent",
+      outlineOffset: -2,
+    };
+  };
 
-  const cardInnerStyle = { display: "flex", flexDirection: "column", height: "100%" };
+  // The placeholder shown where the dragged card currently sits in the order
+  const DropPlaceholder = () => (
+    <div style={{
+      borderRadius: 10,
+      border: `2px dashed ${CYAN}`,
+      background: "rgba(34,211,238,0.04)",
+      minHeight: 120,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      transition: "all 0.25s ease",
+    }}>
+      <div style={{ fontSize: 11, color: CYAN, opacity: 0.6, fontWeight: 600 }}>Drop here</div>
+    </div>
+  );
 
   const renderCard = (id) => {
     const dp = mkDragProps(id);
     const handleProps = {};
+    // If this slot is the dragged card, show placeholder instead
+    if (dragId === id) {
+      return <div key={id} style={cardWrapperStyle(id)} {...dp}><DropPlaceholder /></div>;
+    }
     switch (id) {
       case "overview":
         return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Overview" tabs={[
@@ -2541,6 +2564,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
       {analyticsOn && (<>
         {showCompliance && (() => {
           const dp = mkDragProps("compliance");
+          if (dragId === "compliance") return <div key="compliance" style={{ ...cardWrapperStyle("compliance"), marginBottom: 16 }} {...dp}><DropPlaceholder /></div>;
           return <div style={{ ...cardWrapperStyle("compliance"), marginBottom: 16 }} {...dp}><ComplianceBar compStats={compStats} compColor={compColor} part5Compliance={part5Compliance} onClick={() => onNavigate("audits")} dragHandleProps={{}} /></div>;
         })()}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
