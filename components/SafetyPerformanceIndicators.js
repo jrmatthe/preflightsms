@@ -131,6 +131,15 @@ export default function SafetyPerformanceIndicators({
 
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
 
+  // Auto-populate default indicators if none exist
+  const didAutoInit = useState(false);
+  useEffect(() => {
+    if (isAdmin && (spis || []).length === 0 && onInitDefaults && !didAutoInit[0]) {
+      didAutoInit[1](true);
+      onInitDefaults();
+    }
+  }, [isAdmin, spis, onInitDefaults]);
+
   // Get latest measurement for each SPI
   const spiWithLatest = useMemo(() => {
     const measurements = spiMeasurements || [];
@@ -185,14 +194,9 @@ export default function SafetyPerformanceIndicators({
         </div>
         {showHelp && <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.6, padding: "10px 14px", marginBottom: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, borderRadius: 6 }}>Safety Performance Indicators track measurable safety metrics over time. Set targets, record measurements, and monitor trends to ensure your safety program is continuously improving.</div>}
 
-        {/* Init defaults card */}
-        {(spis || []).length === 0 && isAdmin && (
-          <div style={{ ...card, padding: 24, marginBottom: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: WHITE, marginBottom: 4 }}>No Performance Indicators Configured</div>
-            <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Load 8 industry-standard indicators with default targets aligned to Part 5 requirements.</div>
-            <Btn primary onClick={onInitDefaults}>Load Default Indicators</Btn>
-          </div>
+        {/* Empty state while defaults are loading */}
+        {(spis || []).length === 0 && (
+          <div style={{ padding: 24, textAlign: "center", color: MUTED, fontSize: 12 }}>Loading default indicators...</div>
         )}
 
         {/* Health summary bar */}
