@@ -1966,16 +1966,18 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     </div>
   );
 
+  if (!profile) return null;
+
   // ── My Recent FRATs ──
-  const myFrats = (frats || []).filter(f => f.userId === userId).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+  const myFrats = (frats || []).filter(Boolean).filter(f => f.userId === userId).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
 
   // ── My Reports ──
-  const myReports = (reports || []).filter(r => r.reporter_id === userId).sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp)).slice(0, 5);
+  const myReports = (reports || []).filter(Boolean).filter(r => r.reporter_id === userId).sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp)).slice(0, 5);
 
   // ── My Training ──
   const userRole = profile?.role || "pilot";
-  const myReqs = (trainingRequirements || []).filter(r => !r.required_for || r.required_for.length === 0 || r.required_for.includes(userRole));
-  const myRecs = (trainingRecords || []).filter(r => r.user_id === userId);
+  const myReqs = (trainingRequirements || []).filter(Boolean).filter(r => !r.required_for || r.required_for.length === 0 || r.required_for.includes(userRole));
+  const myRecs = (trainingRecords || []).filter(Boolean).filter(r => r.user_id === userId);
   const soon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   const reqStatus = myReqs.map(req => {
     const rec = myRecs.filter(r => r.requirement_id === req.id).sort((a, b) => new Date(b.completed_date) - new Date(a.completed_date))[0];
@@ -1989,19 +1991,19 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   const expiringTraining = reqStatus.filter(r => r.status === "expiring");
 
   // ── My Policies needing acknowledgment ──
-  const unackedPolicies = (policies || []).filter(p => {
+  const unackedPolicies = (policies || []).filter(Boolean).filter(p => {
     const acks = p.acknowledged_by || [];
     return !acks.includes(userId);
   });
 
   // ── Admin sections data ──
-  const pendingApprovals = (frats || []).filter(f => f.approvalStatus === "pending" || f.approvalStatus === "review");
-  const reportsNeedingReview = (reports || []).filter(r => r.status === "open" || r.status === "under_review");
-  const openInvestigations = (hazards || []).filter(h => h.status === "active" || h.status === "identified" || h.status === "open");
-  const myActions = (actions || []).filter(a => a.assigned_to === userId && a.status !== "completed" && a.status !== "closed");
-  const allOverdueActions = (actions || []).filter(a => a.status !== "completed" && a.status !== "closed" && a.due_date && new Date(a.due_date) < now);
-  const upcomingAudits = (auditSchedules || []).filter(a => a.next_due_date).sort((a, b) => new Date(a.next_due_date) - new Date(b.next_due_date)).slice(0, 5);
-  const openMocItems = (mocItems || []).filter(m => m.status !== "completed" && m.status !== "cancelled");
+  const pendingApprovals = (frats || []).filter(Boolean).filter(f => f.approvalStatus === "pending" || f.approvalStatus === "review");
+  const reportsNeedingReview = (reports || []).filter(Boolean).filter(r => r.status === "open" || r.status === "under_review");
+  const openInvestigations = (hazards || []).filter(Boolean).filter(h => h.status === "active" || h.status === "identified" || h.status === "open");
+  const myActions = (actions || []).filter(Boolean).filter(a => a.assigned_to === userId && a.status !== "completed" && a.status !== "closed");
+  const allOverdueActions = (actions || []).filter(Boolean).filter(a => a.status !== "completed" && a.status !== "closed" && a.due_date && new Date(a.due_date) < now);
+  const upcomingAudits = (auditSchedules || []).filter(Boolean).filter(a => a.next_due_date).sort((a, b) => new Date(a.next_due_date) - new Date(b.next_due_date)).slice(0, 5);
+  const openMocItems = (mocItems || []).filter(Boolean).filter(m => m.status !== "completed" && m.status !== "cancelled");
 
   const riskColor = (score) => score >= 46 ? RED : score >= 31 ? AMBER : score >= 16 ? YELLOW : GREEN;
   const approvalLabel = (s) => s === "approved" ? "Approved" : s === "rejected" ? "Rejected" : s === "auto_approved" ? "Auto" : "Pending";
