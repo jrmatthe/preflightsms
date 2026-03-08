@@ -1967,30 +1967,29 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick, dragHan
       onClick={onClick}
       style={{
         background: CARD, borderRadius: 10, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${compColor}`,
-        padding: "10px 14px", cursor: "pointer", transition: "all 0.15s", marginBottom: 0,
-        display: "flex", alignItems: "center", gap: 14,
+        padding: "12px 14px", cursor: "pointer", transition: "all 0.15s", marginBottom: 0,
       }}
       onMouseEnter={e => { e.currentTarget.style.background = "#1E1E1E"; }}
       onMouseLeave={e => { e.currentTarget.style.background = CARD; }}
     >
-      {dragHandleProps && (
-        <div {...dragHandleProps} style={{ cursor: "grab", opacity: 0.3, transition: "opacity 0.15s", display: "flex", alignItems: "center", flexShrink: 0 }} onMouseEnter={e => { e.stopPropagation(); e.currentTarget.style.opacity = "1"; }} onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; }}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill={MUTED}><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
+        {dragHandleProps && (
+          <div {...dragHandleProps} style={{ cursor: "grab", opacity: 0.3, transition: "opacity 0.15s", display: "flex", alignItems: "center", flexShrink: 0 }} onMouseEnter={e => { e.stopPropagation(); e.currentTarget.style.opacity = "1"; }} onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; }}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill={MUTED}><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>
+          </div>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, marginBottom: 2 }}>Compliance Health</div>
+          <div style={{ fontSize: 9, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {part5Compliance && part5Compliance.total > 0
+              ? `${part5Compliance.compliant}/${part5Compliance.total} Part 5 met`
+              : compStats.overdueActions > 0 ? `${compStats.overdueActions} overdue` : "No overdue actions"}
+          </div>
         </div>
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, marginBottom: 2 }}>Compliance Health</div>
-        <div style={{ fontSize: 9, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {part5Compliance && part5Compliance.total > 0
-            ? `${part5Compliance.compliant}/${part5Compliance.total} Part 5 met`
-            : compStats.overdueActions > 0 ? `${compStats.overdueActions} overdue` : "No overdue actions"}
-        </div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: compColor, fontFamily: "Georgia,serif", flexShrink: 0 }}>{compStats.compliance}%</div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-        <div style={{ width: 200, height: 6, background: "#0A0A0A", borderRadius: 3, overflow: "hidden" }}>
-          <div style={{ width: `${compStats.compliance}%`, height: "100%", background: compColor, borderRadius: 3, transition: "width 0.5s" }} />
-        </div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: compColor, fontFamily: "Georgia,serif", minWidth: 36, textAlign: "right" }}>{compStats.compliance}%</div>
+      <div style={{ width: "100%", height: 6, background: "#0A0A0A", borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ width: `${compStats.compliance}%`, height: "100%", background: compColor, borderRadius: 3, transition: "width 0.5s" }} />
       </div>
     </div>
   );
@@ -2308,12 +2307,6 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
     "safety_culture", "frat_history", "insurance", "export",
   ];
 
-  const CARD_GRID = {
-    compliance: { gridColumn: "1 / -1" },
-    overview: { gridColumn: "span 2" },
-    performance: { gridRow: "span 2" },
-  };
-
   const CARD_GATES = {
     performance: hasSpi,
     frat_analytics: hasAnalytics,
@@ -2336,69 +2329,78 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
     return DEFAULT_CARD_ORDER;
   });
   const [dragId, setDragId] = useState(null);
+  const dragIdRef = useRef(null);
   const preDragOrder = useRef(null);
   const lastOverId = useRef(null);
+  const didDrop = useRef(false);
 
   const visibleCards = cardOrder.filter(id => CARD_GATES[id] !== false);
 
+  // Separate compliance (always full-width top) from the grid cards
+  const gridCards = visibleCards.filter(id => id !== "compliance");
+  const showCompliance = visibleCards.includes("compliance");
+
   // Live reorder: move cards in state as cursor moves over them
   const liveReorder = useCallback((overId) => {
-    if (!dragId || overId === dragId || overId === lastOverId.current) return;
+    const currentDrag = dragIdRef.current;
+    if (!currentDrag || overId === currentDrag || overId === lastOverId.current) return;
     lastOverId.current = overId;
     setCardOrder(prev => {
       const next = [...prev];
-      const fromIdx = next.indexOf(dragId);
+      const fromIdx = next.indexOf(currentDrag);
       const toIdx = next.indexOf(overId);
       if (fromIdx === -1 || toIdx === -1) return prev;
       next.splice(fromIdx, 1);
-      next.splice(toIdx, 0, dragId);
+      next.splice(toIdx, 0, currentDrag);
       return next;
     });
-  }, [dragId]);
+  }, []);
 
   const mkDragProps = (id) => ({
     draggable: true,
     onDragStart: (e) => {
+      dragIdRef.current = id;
+      didDrop.current = false;
       setDragId(id);
       preDragOrder.current = [...cardOrder];
       lastOverId.current = null;
       e.dataTransfer.effectAllowed = "move";
-      // Use a transparent 1x1 image as drag ghost so the browser doesn't show a big card clone
-      const ghost = document.createElement("canvas");
-      ghost.width = 1; ghost.height = 1;
-      e.dataTransfer.setDragImage(ghost, 0, 0);
     },
     onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; liveReorder(id); },
     onDrop: (e) => {
       e.preventDefault();
+      didDrop.current = true;
       // Commit — persist current order
-      try { localStorage.setItem(storageKey, JSON.stringify(cardOrder)); } catch {}
+      setCardOrder(cur => { try { localStorage.setItem(storageKey, JSON.stringify(cur)); } catch {} return cur; });
       preDragOrder.current = null;
+      dragIdRef.current = null;
       setDragId(null);
       lastOverId.current = null;
     },
     onDragEnd: () => {
-      // If dropped outside a valid target, revert to pre-drag order
-      if (preDragOrder.current) { setCardOrder(preDragOrder.current); preDragOrder.current = null; }
+      // If dropped outside a valid target, revert
+      if (!didDrop.current && preDragOrder.current) { setCardOrder(preDragOrder.current); }
+      preDragOrder.current = null;
+      dragIdRef.current = null;
       setDragId(null);
       lastOverId.current = null;
     },
   });
 
   const cardWrapperStyle = (id) => ({
-    ...(CARD_GRID[id] || {}),
-    opacity: dragId === id ? 0.45 : 1,
-    transform: dragId === id ? "scale(0.97)" : "scale(1)",
+    opacity: dragId === id ? 0.4 : 1,
+    transform: dragId === id ? "scale(0.96)" : "scale(1)",
     borderRadius: 10,
-    transition: "transform 0.2s ease, opacity 0.2s ease",
+    transition: "transform 0.25s ease, opacity 0.2s ease",
+    minHeight: 0,
   });
+
+  const cardInnerStyle = { display: "flex", flexDirection: "column", height: "100%" };
 
   const renderCard = (id) => {
     const dp = mkDragProps(id);
-    const handleProps = { onMouseDown: (e) => { /* allow drag from grip */ } };
+    const handleProps = {};
     switch (id) {
-      case "compliance":
-        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ComplianceBar compStats={compStats} compColor={compColor} part5Compliance={part5Compliance} onClick={() => onNavigate("audits")} dragHandleProps={handleProps} /></div>;
       case "overview":
         return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Overview" tabs={[
           { id: "summary", label: "Summary" }, { id: "trends", label: "Trends" },
@@ -2536,11 +2538,15 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
       })()}
 
       {/* ── Dynamic Card Grid (admin view only) ── */}
-      {analyticsOn && (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
-        {visibleCards.map(id => renderCard(id))}
-      </div>
-      )}
+      {analyticsOn && (<>
+        {showCompliance && (() => {
+          const dp = mkDragProps("compliance");
+          return <div style={{ ...cardWrapperStyle("compliance"), marginBottom: 16 }} {...dp}><ComplianceBar compStats={compStats} compColor={compColor} part5Compliance={part5Compliance} onClick={() => onNavigate("audits")} dragHandleProps={{}} /></div>;
+        })()}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
+          {gridCards.map(id => renderCard(id))}
+        </div>
+      </>)}
     </div>
   );
 }
