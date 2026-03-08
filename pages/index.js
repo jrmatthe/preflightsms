@@ -295,6 +295,7 @@ function getSection(cv) {
 
 function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding, onboardingState, onStartFlow, isTrial, onStartFresh }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [onboardingClosing, setOnboardingClosing] = useState(false);
   const didAutoOpen = useRef(false);
   useEffect(() => {
     if (showOnboarding && !didAutoOpen.current) {
@@ -376,7 +377,14 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
         const pct = Math.round((doneSteps / totalSteps) * 100);
         return (
           <div style={{ position: "relative" }}>
-            <button onClick={() => setMenuOpen(prev => prev === "onboarding" ? false : "onboarding")}
+            <button onClick={() => {
+                if (menuOpen === "onboarding" || onboardingClosing) {
+                  setOnboardingClosing(true);
+                } else {
+                  setOnboardingClosing(false);
+                  setMenuOpen("onboarding");
+                }
+              }}
               style={{
                 width: "100%", display: "flex", flexDirection: "column", gap: 6, padding: "10px 14px",
                 background: "rgba(34,211,238,0.06)",
@@ -386,7 +394,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
               }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.3 }}>Account Setup</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: menuOpen === "onboarding" ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}><path d="M18 15l-6-6-6 6"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: menuOpen === "onboarding" && !onboardingClosing ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}><path d="M18 15l-6-6-6 6"/></svg>
               </div>
               <div style={{ display: "flex", gap: 3, width: "100%" }}>
                 {Array.from({ length: totalSteps }).map((_, i) => (
@@ -394,14 +402,17 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
                 ))}
               </div>
             </button>
-            {menuOpen === "onboarding" && (<>
-              <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 199 }} />
-              <div style={{
-                position: "absolute", bottom: "100%", left: 0, width: 420, maxHeight: "70vh", overflowY: "auto",
-                background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
-                boxShadow: "0 -8px 40px rgba(0,0,0,0.6)", marginBottom: 4, zIndex: 200,
-                animation: "slideUpIn 0.2s ease-out", transformOrigin: "bottom left",
-              }}>
+            {(menuOpen === "onboarding" || onboardingClosing) && (<>
+              <div onClick={() => setOnboardingClosing(true)} style={{ position: "fixed", inset: 0, zIndex: 199 }} />
+              <div
+                onAnimationEnd={() => { if (onboardingClosing) { setMenuOpen(false); setOnboardingClosing(false); } }}
+                style={{
+                  position: "absolute", bottom: "100%", left: 0, width: 420, maxHeight: "70vh", overflowY: "auto",
+                  background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
+                  boxShadow: "0 -8px 40px rgba(0,0,0,0.6)", marginBottom: 4, zIndex: 200,
+                  animation: onboardingClosing ? "genieClose 0.25s ease-in forwards" : "genieOpen 0.25s ease-out",
+                  transformOrigin: "bottom left",
+                }}>
                 <div style={{ padding: "4px 0" }}>
                   <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} isTrial={isTrial} onStartFresh={onStartFresh} />
                 </div>
@@ -5357,7 +5368,8 @@ export default function PVTAIRFrat() {
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes checkDraw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
-@keyframes slideUpIn{from{opacity:0;transform:translateY(12px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes genieOpen{from{opacity:0;transform:scaleY(0.1) scaleX(0.3)}to{opacity:1;transform:scaleY(1) scaleX(1)}}
+@keyframes genieClose{from{opacity:1;transform:scaleY(1) scaleX(1)}to{opacity:0;transform:scaleY(0.1) scaleX(0.3)}}
 .fade-in{animation:fadeIn 0.2s ease-out}
 button:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
