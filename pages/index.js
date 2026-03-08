@@ -1477,6 +1477,10 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
   const [filter, setFilter] = useState("ACTIVE");
   const [search, setSearch] = useState("");
   const [selectedFlight, setSelectedFlight] = useState(initialSelectedFlight || null);
+  // Sync initialSelectedFlight prop changes (e.g. onboarding auto-expanding demo flight)
+  useEffect(() => {
+    if (initialSelectedFlight) setSelectedFlight(initialSelectedFlight);
+  }, [initialSelectedFlight]);
   const [arrivedForm, setArrivedForm] = useState(null); // flight id being marked arrived
   const [parkingSpot, setParkingSpot] = useState("");
   const [fuelRemaining, setFuelRemaining] = useState("");
