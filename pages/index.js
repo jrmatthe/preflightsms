@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchPilotEngagement, fetchOrgEngagement, upsertEngagementMetric, fetchSafetyRecognitions, fetchOrgRecognitions, awardRecognition, acknowledgeRecognition, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures, isFreeTier, FREE_TIER_LIMITS } from "../lib/tiers";
 import { getActiveMelItems, getMelExpirationStatus } from "../lib/melHelpers";
 import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE, haversineNm, flattenCoords, formatZulu } from "../lib/analyzeWeather";
@@ -23,8 +23,6 @@ const SafetyPerformanceIndicators = dynamic(() => import("../components/SafetyPe
 const InternalEvaluation = dynamic(() => import("../components/InternalEvaluation"), { ssr: false });
 const ManagementOfChange = dynamic(() => import("../components/ManagementOfChange"), { ssr: false });
 const SafetyCultureSurvey = dynamic(() => import("../components/SafetyCultureSurvey"), { ssr: false });
-const PilotEngagement = dynamic(() => import("../components/PilotEngagement").then(m => ({ default: m.PilotEngagementCard })), { ssr: false });
-const TeamEngagement = dynamic(() => import("../components/PilotEngagement").then(m => ({ default: m.TeamEngagementWidget })), { ssr: false });
 const AsapProgram = dynamic(() => import("../components/AsapProgram"), { ssr: false });
 const InsuranceScorecard = dynamic(() => import("../components/InsuranceScorecard"), { ssr: false });
 const UpgradePrompt = dynamic(() => import("../components/UpgradePrompt"), { ssr: false });
@@ -274,13 +272,14 @@ function AdminGate({ children, isAuthed, onAuth }) {
 }
 
 const NAV_SECTIONS = [
-  { id: "dashboard", label: "Dashboard", icon: "dashboard", cvs: ["dashboard"] },
+  { id: "home", label: "Home", icon: "home", cvs: ["home"] },
   { id: "operations", label: "Operations", icon: "fleet", cvs: ["submit", "flights", "fleet"] },
   { id: "safety", label: "Safety", icon: "reports", cvs: ["reports", "asap", "erp"] },
   { id: "investigations", label: "Investigations", icon: "hazards", cvs: ["hazards", "actions", "moc"] },
   { id: "compliance", label: "Compliance", icon: "audits", cvs: ["audits"] },
   { id: "training", label: "Training", icon: "cbt", cvs: ["cbt"] },
   { id: "documents", label: "Documents", icon: "manuals", cvs: ["policy"] },
+  { id: "analytics", label: "Safety Analytics", icon: "dashboard", cvs: ["dashboard"] },
   { id: "admin", label: "Admin", icon: "admin", cvs: ["admin"] },
 ];
 
@@ -299,6 +298,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   // SVG icons — monochrome, inherit color from parent
   const I = (d, s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
   const icons = {
+    home: I(<><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>),
     submit: I(<><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></>),
     flights: I(<><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="none"/><path d="M2 18h4l2-2 3 4 3-6 2 4h4" strokeDasharray="2 2" opacity="0.5"/></>),
     reports: I(<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>),
@@ -318,7 +318,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   };
   const isAdminRole = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(userRole);
   const cvPassesGate = (cv) => { const feat = NAV_FEATURE_MAP[cv]; return !feat || hasFeature(org, feat); };
-  const sectionFullyGated = (sec) => sec.id !== "admin" && sec.id !== "dashboard" && !sec.cvs.some(cv => cvPassesGate(cv));
+  const sectionFullyGated = (sec) => sec.id !== "admin" && sec.id !== "home" && sec.id !== "analytics" && !sec.cvs.some(cv => cvPassesGate(cv));
   const visibleSections = NAV_SECTIONS.filter(sec => {
     if (sec.id === "admin") return isAdminRole;
     if (sec.id === "compliance") return isAdminRole;
@@ -1940,14 +1940,387 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick }) {
   );
 }
 
-function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills, profile, session, spis, spiMeasurements, onCreateSpi, onUpdateSpi, onDeleteSpi, onLoadTargets, onCreateTarget, onUpdateTarget, onDeleteTarget, onLoadMeasurements, onCreateMeasurement, onInitSpiDefaults, cultureSurveys, orgProfiles, onCreateSurvey, onUpdateSurvey, onDeleteSurvey, onFetchSurveyResponses, onSubmitSurveyResponse, onCheckUserSurveyResponse, onFetchSurveyResults, onUpsertSurveyResults, trendAlerts, onAcknowledgeTrendAlert, pilotEngagement, safetyRecognitions, orgEngagement, orgRecognitions, onAcknowledgeRecognition, complianceFrameworks, complianceChecklistItems, complianceStatusData, trainingReqs, trainingRecs, policies, iepAudits, auditSchedules, mocItems, insuranceExports, onGenerateExport, onDeleteExport, onNavigateSubscription, onNavigate, fleetAircraft, part5Compliance, onViewDetail, showOnboarding, onboardingState, onStartFlow, onDismissOnboarding, isTrial, onStartFresh }) {
+function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, trainingRequirements, trainingRecords, policies, mocItems, erpDrills, onNavigate, org, onboardingState, onStartFlow, onDismissOnboarding, isTrial, onStartFresh, showOnboarding, session }) {
+  const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 20px" };
+  const sectionTitle = { fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 };
+  const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
+  const userId = session?.user?.id || profile?.id;
+  const firstName = (profile?.full_name || "").split(" ")[0] || "there";
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const isFree = isFreeTier(org);
+
+  const statusBadge = (label, color) => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, color, background: `${color}15`, padding: "2px 8px", borderRadius: 10 }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />{label}
+    </span>
+  );
+
+  const lockOverlay = (label) => (
+    <div style={{ ...card, marginBottom: 16, position: "relative", overflow: "hidden", minHeight: 80 }}>
+      <div style={sectionTitle}>{label}</div>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 6, borderRadius: 10 }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span style={{ fontSize: 11, color: MUTED, fontWeight: 600 }}>Upgrade to access</span>
+      </div>
+    </div>
+  );
+
+  // ── My Recent FRATs ──
+  const myFrats = (frats || []).filter(f => f.userId === userId).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+
+  // ── My Reports ──
+  const myReports = (reports || []).filter(r => r.reporter_id === userId).sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp)).slice(0, 5);
+
+  // ── My Training ──
+  const userRole = profile?.role || "pilot";
+  const myReqs = (trainingRequirements || []).filter(r => !r.required_for || r.required_for.length === 0 || r.required_for.includes(userRole));
+  const myRecs = (trainingRecords || []).filter(r => r.user_id === userId);
+  const soon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const reqStatus = myReqs.map(req => {
+    const rec = myRecs.filter(r => r.requirement_id === req.id).sort((a, b) => new Date(b.completed_date) - new Date(a.completed_date))[0];
+    if (!rec) return { req, status: "not_started" };
+    const exp = rec.expiry_date ? new Date(rec.expiry_date) : null;
+    if (exp && exp < now) return { req, status: "overdue", expiry: exp };
+    if (exp && exp < soon) return { req, status: "expiring", expiry: exp };
+    return { req, status: "current", expiry: exp };
+  });
+  const overdueTraining = reqStatus.filter(r => r.status === "overdue");
+  const expiringTraining = reqStatus.filter(r => r.status === "expiring");
+
+  // ── My Policies needing acknowledgment ──
+  const unackedPolicies = (policies || []).filter(p => {
+    const acks = p.acknowledged_by || [];
+    return !acks.includes(userId);
+  });
+
+  // ── Admin sections data ──
+  const pendingApprovals = (frats || []).filter(f => f.approvalStatus === "pending" || f.approvalStatus === "review");
+  const reportsNeedingReview = (reports || []).filter(r => r.status === "open" || r.status === "under_review");
+  const openInvestigations = (hazards || []).filter(h => h.status === "active" || h.status === "identified" || h.status === "open");
+  const myActions = (actions || []).filter(a => a.assigned_to === userId && a.status !== "completed" && a.status !== "closed");
+  const allOverdueActions = (actions || []).filter(a => a.status !== "completed" && a.status !== "closed" && a.due_date && new Date(a.due_date) < now);
+  const upcomingAudits = (auditSchedules || []).filter(a => a.next_due_date).sort((a, b) => new Date(a.next_due_date) - new Date(b.next_due_date)).slice(0, 5);
+  const openMocItems = (mocItems || []).filter(m => m.status !== "completed" && m.status !== "cancelled");
+
+  const riskColor = (score) => score >= 46 ? RED : score >= 31 ? AMBER : score >= 16 ? YELLOW : GREEN;
+  const approvalLabel = (s) => s === "approved" ? "Approved" : s === "rejected" ? "Rejected" : s === "auto_approved" ? "Auto" : "Pending";
+  const approvalColor = (s) => s === "approved" || s === "auto_approved" ? GREEN : s === "rejected" ? RED : AMBER;
+  const reportStatusColor = (s) => s === "closed" ? GREEN : s === "under_review" || s === "investigation" ? AMBER : CYAN;
+
+  const pilotName = (uid) => {
+    const p = (profiles || []).find(x => x.id === uid);
+    return p?.full_name || "Unknown";
+  };
+
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      {/* Welcome Header */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: WHITE }}>Welcome back, {firstName}</div>
+        <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{dateStr}</div>
+      </div>
+
+      {/* Quick Actions */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+        <button onClick={() => onNavigate("submit")} style={{ ...card, padding: "16px 14px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(34,211,238,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+          </div>
+          <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>Submit FRAT</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>New risk assessment</div></div>
+        </button>
+        <button onClick={() => onNavigate("reports")} style={{ ...card, padding: "16px 14px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          </div>
+          <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>File Report</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Hazard or incident</div></div>
+        </button>
+        <button onClick={() => onNavigate("cbt")} style={{ ...card, padding: "16px 14px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(74,222,128,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg>
+          </div>
+          <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>View Training</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Courses & requirements</div></div>
+        </button>
+      </div>
+
+      {/* My Recent FRATs */}
+      <div style={{ ...card, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={sectionTitle}>My Recent FRATs</div>
+          {myFrats.length > 0 && <button onClick={() => onNavigate("flights")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>}
+        </div>
+        {myFrats.length === 0 ? (
+          <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No FRATs submitted yet</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {myFrats.map(f => (
+              <div key={f.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(f.timestamp).toLocaleDateString()}</span>
+                  <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{f.id}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: riskColor(f.score) }}>{f.score}</span>
+                  {statusBadge(approvalLabel(f.approvalStatus), approvalColor(f.approvalStatus))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* My Reports */}
+      <div style={{ ...card, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={sectionTitle}>My Reports</div>
+          {myReports.length > 0 && <button onClick={() => onNavigate("reports")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>}
+        </div>
+        {myReports.length === 0 ? (
+          <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No reports filed yet</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {myReports.map(r => (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(r.created_at || r.timestamp).toLocaleDateString()}</span>
+                  <span style={{ fontSize: 12, color: WHITE }}>{r.title || r.report_code || "Untitled"}</span>
+                </div>
+                {statusBadge(r.status || "open", reportStatusColor(r.status))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* My Training */}
+      <div style={{ ...card, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={sectionTitle}>My Training</div>
+          <button onClick={() => onNavigate("cbt")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>
+        </div>
+        {myReqs.length === 0 ? (
+          <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No training requirements configured</div>
+        ) : (<>
+          {overdueTraining.length > 0 && (
+            <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: RED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Overdue</div>
+              {overdueTraining.map(({ req, expiry }) => (
+                <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
+                  <span>{req.title}</span>
+                  {expiry && <span style={{ color: RED, fontSize: 10 }}>Expired {expiry.toLocaleDateString()}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {expiringTraining.length > 0 && (
+            <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: AMBER, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Expiring Soon</div>
+              {expiringTraining.map(({ req, expiry }) => (
+                <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
+                  <span>{req.title}</span>
+                  {expiry && <span style={{ color: AMBER, fontSize: 10 }}>Expires {expiry.toLocaleDateString()}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {overdueTraining.length === 0 && expiringTraining.length === 0 && (
+            <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.2)" }}>
+              <div style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>All {reqStatus.filter(r => r.status === "current").length} training requirement{reqStatus.filter(r => r.status === "current").length !== 1 ? "s" : ""} current</div>
+            </div>
+          )}
+        </>)}
+      </div>
+
+      {/* My Policies */}
+      <div style={{ ...card, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={sectionTitle}>My Policies</div>
+          <button onClick={() => onNavigate("policy")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>
+        </div>
+        {unackedPolicies.length === 0 ? (
+          <div style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>All policies acknowledged</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {unackedPolicies.slice(0, 5).map(p => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
+                <span style={{ fontSize: 12, color: WHITE }}>{p.title || "Untitled Policy"}</span>
+                {statusBadge("Needs Acknowledgment", AMBER)}
+              </div>
+            ))}
+            {unackedPolicies.length > 5 && <div style={{ fontSize: 10, color: MUTED, padding: "4px 0" }}>+{unackedPolicies.length - 5} more</div>}
+          </div>
+        )}
+      </div>
+
+      {/* ── Admin Sections ── */}
+      {isAdmin && (<>
+        {/* Onboarding */}
+        {showOnboarding && (
+          <div style={{ marginBottom: 16 }}>
+            <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} onDismiss={onDismissOnboarding} isTrial={isTrial} onStartFresh={onStartFresh} />
+          </div>
+        )}
+
+        {/* Pending FRAT Approvals */}
+        {isFree && !hasFeature(org, "frat_approval") ? lockOverlay("Pending FRAT Approvals") : (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={sectionTitle}>Pending FRAT Approvals</div>
+            {pendingApprovals.length === 0 ? (
+              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No pending approvals</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {pendingApprovals.slice(0, 10).map(f => (
+                  <div key={f.id} onClick={() => onNavigate("flights")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(f.timestamp).toLocaleDateString()}</span>
+                      <span style={{ fontSize: 12, color: WHITE }}>{pilotName(f.userId)}</span>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: riskColor(f.score) }}>{f.score}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Reports Needing Review */}
+        {isFree && !hasFeature(org, "safety_reporting") ? lockOverlay("Reports Needing Review") : (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={sectionTitle}>Reports Needing Review</div>
+            {reportsNeedingReview.length === 0 ? (
+              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No reports need review</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {reportsNeedingReview.slice(0, 10).map(r => (
+                  <div key={r.id} onClick={() => onNavigate("reports")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(r.created_at).toLocaleDateString()}</span>
+                      <span style={{ fontSize: 12, color: WHITE }}>{r.title || r.report_code}</span>
+                    </div>
+                    {statusBadge(r.status || "open", reportStatusColor(r.status))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Open Investigations */}
+        {isFree && !hasFeature(org, "hazard_register") ? lockOverlay("Open Investigations") : (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={sectionTitle}>Open Investigations</div>
+            {openInvestigations.length === 0 ? (
+              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No open investigations</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {openInvestigations.slice(0, 10).map(h => (
+                  <div key={h.id} onClick={() => onNavigate("hazards")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(h.created_at).toLocaleDateString()}</span>
+                      <span style={{ fontSize: 12, color: WHITE }}>{h.title || h.hazard_code}</span>
+                    </div>
+                    {statusBadge(h.risk_level || h.status, h.risk_level === "critical" || h.risk_level === "high" ? RED : h.risk_level === "medium" ? AMBER : GREEN)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* My Corrective Actions */}
+        {isFree && !hasFeature(org, "corrective_actions") ? lockOverlay("My Corrective Actions") : (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={sectionTitle}>My Corrective Actions</div>
+            {myActions.length === 0 ? (
+              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No open actions assigned to you</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {myActions.map(a => {
+                  const overdue = a.due_date && new Date(a.due_date) < now;
+                  return (
+                    <div key={a.id} onClick={() => onNavigate("actions")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
+                      <span style={{ fontSize: 12, color: WHITE }}>{a.title || "Untitled"}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {a.due_date && <span style={{ fontSize: 10, color: overdue ? RED : MUTED }}>{overdue ? "Overdue" : new Date(a.due_date).toLocaleDateString()}</span>}
+                        {statusBadge(a.priority || "medium", a.priority === "critical" ? RED : a.priority === "high" ? AMBER : GREEN)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Overdue Actions (Org-wide) */}
+        {isFree && !hasFeature(org, "corrective_actions") ? lockOverlay("Overdue Actions (Org-wide)") : (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={sectionTitle}>Overdue Actions (Org-wide) {allOverdueActions.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: RED, marginLeft: 6 }}>{allOverdueActions.length}</span>}</div>
+            {allOverdueActions.length === 0 ? (
+              <div style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>No overdue actions</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {allOverdueActions.slice(0, 10).map(a => (
+                  <div key={a.id} onClick={() => onNavigate("actions")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
+                    <span style={{ fontSize: 12, color: WHITE }}>{a.title || "Untitled"}</span>
+                    <span style={{ fontSize: 10, color: RED }}>Due {new Date(a.due_date).toLocaleDateString()}</span>
+                  </div>
+                ))}
+                {allOverdueActions.length > 10 && <div style={{ fontSize: 10, color: MUTED }}>+{allOverdueActions.length - 10} more</div>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Upcoming Audits */}
+        {isFree && !hasFeature(org, "internal_evaluation") ? lockOverlay("Upcoming Audits") : (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={sectionTitle}>Upcoming Audits</div>
+            {upcomingAudits.length === 0 ? (
+              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No scheduled audits</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {upcomingAudits.map(a => (
+                  <div key={a.id} onClick={() => onNavigate("audits")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
+                    <span style={{ fontSize: 12, color: WHITE }}>{a.name || a.template_name || "Audit"}</span>
+                    <span style={{ fontSize: 10, color: MUTED }}>{new Date(a.next_due_date).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MOC Items */}
+        {isFree && !hasFeature(org, "management_of_change") ? lockOverlay("Management of Change") : (
+          <div style={{ ...card, marginBottom: 16 }}>
+            <div style={sectionTitle}>Open Change Requests</div>
+            {openMocItems.length === 0 ? (
+              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No open change requests</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {openMocItems.slice(0, 10).map(m => (
+                  <div key={m.id} onClick={() => onNavigate("moc")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
+                    <span style={{ fontSize: 12, color: WHITE }}>{m.title || "Untitled"}</span>
+                    {statusBadge(m.status || "draft", m.status === "approved" ? GREEN : m.status === "rejected" ? RED : AMBER)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </>)}
+    </div>
+  );
+}
+
+function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills, profile, session, spis, spiMeasurements, onCreateSpi, onUpdateSpi, onDeleteSpi, onLoadTargets, onCreateTarget, onUpdateTarget, onDeleteTarget, onLoadMeasurements, onCreateMeasurement, onInitSpiDefaults, cultureSurveys, orgProfiles, onCreateSurvey, onUpdateSurvey, onDeleteSurvey, onFetchSurveyResponses, onSubmitSurveyResponse, onCheckUserSurveyResponse, onFetchSurveyResults, onUpsertSurveyResults, trendAlerts, onAcknowledgeTrendAlert, complianceFrameworks, complianceChecklistItems, complianceStatusData, trainingReqs, trainingRecs, policies, iepAudits, auditSchedules, mocItems, insuranceExports, onGenerateExport, onDeleteExport, onNavigateSubscription, onNavigate, fleetAircraft, part5Compliance, onViewDetail, showOnboarding, onboardingState, onStartFlow, onDismissOnboarding, isTrial, onStartFresh }) {
   const analyticsOn = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const hasAnalytics = hasFeature(org, "dashboard_analytics");
   const hasSpi = hasFeature(org, "dashboard_analytics"); // SPIs require Professional+ (same gate as analytics)
   const hasCulture = hasFeature(org, "safety_culture_survey");
   const hasInsurance = hasFeature(org, "insurance_export");
   const isDashboardFree = isFreeTier(org);
-  const gamificationOn = org?.gamification_enabled === true;
   const fleetStatusOn = org?.fleet_status_enabled !== false;
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
 
@@ -1979,22 +2352,10 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
     <div style={{ maxWidth: analyticsOn ? 1400 : 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Dashboard</div>
-          <div style={{ fontSize: 11, color: MUTED }}>Safety analytics, trends, and compliance status</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Safety Analytics</div>
+          <div style={{ fontSize: 11, color: MUTED }}>Organization-wide analytics, trends, and compliance status</div>
         </div>
       </div>
-
-      {/* Gamification — full width above grid */}
-      {gamificationOn && (
-        <div style={{ marginBottom: 20 }}>
-          <PilotEngagement engagement={pilotEngagement} recognitions={safetyRecognitions} onAcknowledge={onAcknowledgeRecognition} />
-        </div>
-      )}
-      {gamificationOn && (
-        <div style={{ marginBottom: 20 }}>
-          <TeamEngagement orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} orgProfiles={orgProfiles} records={records} reports={reports} />
-        </div>
-      )}
 
       {/* Quick Actions & Training Summary — non-admin roles */}
       {!analyticsOn && (() => {
@@ -2811,7 +3172,7 @@ export default function PVTAIRFrat() {
   const [cv, setCv] = useState(() => {
     if (_initTab === "subscription") return "admin";
     if (_initTab) return _initTab;
-    return "dashboard";
+    return "home";
   });
   const [initialAdminTab, setInitialAdminTab] = useState(_initTab === "subscription" ? "subscription" : null);
   const [onboardingState, setOnboardingState] = useState(null);
@@ -3142,8 +3503,7 @@ export default function PVTAIRFrat() {
       setSpis([]); setSpiMeasurements([]);
       setAuditTemplatesData([]); setIepAudits([]); setAuditSchedulesData([]);
       setTrendAlerts([]); setDeclarations([]); setMocItems([]);
-      setCultureSurveys([]); setPilotEngagement([]); setOrgEngagement([]);
-      setSafetyRecognitions([]); setOrgRecognitions([]);
+      setCultureSurveys([]);
       setApiKeys([]); setWebhooksData([]);
       setAsapConfig(null); setAsapReports([]); setAsapCorrActions([]); setAsapMeetings([]);
       setComplianceFrameworks([]); setComplianceStatusData([]);
@@ -3268,10 +3628,6 @@ export default function PVTAIRFrat() {
   const [declarations, setDeclarations] = useState([]);
   const [mocItems, setMocItems] = useState([]);
   const [cultureSurveys, setCultureSurveys] = useState([]);
-  const [pilotEngagement, setPilotEngagement] = useState([]);
-  const [orgEngagement, setOrgEngagement] = useState([]);
-  const [safetyRecognitions, setSafetyRecognitions] = useState([]);
-  const [orgRecognitions, setOrgRecognitions] = useState([]);
   const [apiKeys, setApiKeys] = useState([]);
   const [webhooksData, setWebhooksData] = useState([]);
   const [asapConfig, setAsapConfig] = useState(null);
@@ -3468,13 +3824,6 @@ export default function PVTAIRFrat() {
     fetchDeclarations(orgId).then(({ data }) => setDeclarations(data || []));
     fetchMocItems(orgId).then(({ data }) => setMocItems(data || []));
     fetchCultureSurveys(orgId).then(({ data }) => setCultureSurveys(data || []));
-    // Engagement data
-    if (session?.user?.id) {
-      fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
-      fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || []));
-    }
-    fetchOrgEngagement(orgId).then(({ data }) => setOrgEngagement(data || []));
-    fetchOrgRecognitions(orgId).then(({ data }) => setOrgRecognitions(data || []));
     // API keys & webhooks
     fetchApiKeys(orgId).then(({ data }) => setApiKeys(data || []));
     fetchWebhooks(orgId).then(({ data }) => setWebhooksData(data || []));
@@ -3594,117 +3943,6 @@ export default function PVTAIRFrat() {
   // ── localStorage helpers (offline mode only) ──
   const saveLocal = useCallback(nr => { setRecords(nr); try { localStorage.setItem("pvtair_frat_records", JSON.stringify(nr)); } catch (e) {} }, []);
   const saveFlightsLocal = useCallback(nf => { setFlights(nf); try { localStorage.setItem("pvtair_flights", JSON.stringify(nf)); } catch (e) {} }, []);
-
-  // ── Engagement helpers ──
-  const gamificationOn = org?.gamification_enabled === true; // default true
-  const updateEngagement = useCallback(async (metricType, newValue, bestValue) => {
-    if (!profile || !session?.user?.id || !gamificationOn) return;
-    await upsertEngagementMetric(session.user.id, profile.org_id, metricType, newValue, bestValue);
-    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
-    fetchOrgEngagement(profile.org_id).then(({ data }) => setOrgEngagement(data || []));
-  }, [profile, session, gamificationOn]);
-
-  const checkAndAwardRecognition = useCallback(async (recognitionType, title, description) => {
-    if (!profile || !session?.user?.id || !gamificationOn) return;
-    // Check if already awarded (except training_100pct which can re-award quarterly)
-    const existing = safetyRecognitions.find(r => r.recognition_type === recognitionType);
-    if (existing && recognitionType !== "training_100pct") return;
-    if (recognitionType === "training_100pct" && existing) {
-      const lastAwarded = new Date(existing.awarded_at);
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      if (lastAwarded > threeMonthsAgo) return;
-    }
-    const { data: rec } = await awardRecognition(profile.org_id, session.user.id, recognitionType, title, description);
-    if (rec) {
-      createNotification(profile.org_id, {
-        type: "engagement_milestone",
-        title: `Recognition Earned: ${title}`,
-        body: `You earned "${title}"! Keep it up.`,
-        link_tab: "dashboard",
-        target_user_id: session.user.id,
-      });
-      fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || []));
-      fetchOrgRecognitions(profile.org_id).then(({ data }) => setOrgRecognitions(data || []));
-    }
-  }, [profile, session, safetyRecognitions, gamificationOn]);
-
-  const updateFratEngagement = useCallback(async () => {
-    if (!profile || !session?.user?.id || !gamificationOn) return;
-    // Get current engagement
-    const { data: metrics } = await fetchPilotEngagement(session.user.id);
-    const streakMetric = (metrics || []).find(m => m.metric_type === "frat_streak");
-    const totalMetric = (metrics || []).find(m => m.metric_type === "total_frats");
-
-    // Total FRATs
-    const newTotal = (totalMetric?.current_value || 0) + 1;
-    await upsertEngagementMetric(session.user.id, profile.org_id, "total_frats", newTotal, Math.max(newTotal, totalMetric?.best_value || 0));
-
-    // Streak: check if last FRAT was yesterday or today
-    const lastActivity = streakMetric?.last_activity_at ? new Date(streakMetric.last_activity_at) : null;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
-    let newStreak = 1;
-    if (lastActivity) {
-      const lastDay = new Date(lastActivity); lastDay.setHours(0, 0, 0, 0);
-      if (lastDay.getTime() === today.getTime()) {
-        newStreak = streakMetric.current_value; // same day, keep streak
-      } else if (lastDay.getTime() === yesterday.getTime()) {
-        newStreak = (streakMetric.current_value || 0) + 1; // consecutive day
-      }
-      // else streak broken, reset to 1
-    }
-    const bestStreak = Math.max(newStreak, streakMetric?.best_value || 0);
-    await upsertEngagementMetric(session.user.id, profile.org_id, "frat_streak", newStreak, bestStreak);
-
-    // Refresh engagement state
-    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
-    fetchOrgEngagement(profile.org_id).then(({ data }) => setOrgEngagement(data || []));
-
-    // Check streak recognitions
-    if (newStreak >= 7) checkAndAwardRecognition("frat_streak_7", "7-Day FRAT Streak", "Submitted a FRAT every day for 7 consecutive days");
-    if (newStreak >= 30) checkAndAwardRecognition("frat_streak_30", "30-Day FRAT Streak", "Submitted a FRAT every day for 30 consecutive days");
-    if (newStreak >= 90) checkAndAwardRecognition("frat_streak_90", "90-Day FRAT Streak", "Submitted a FRAT every day for 90 consecutive days");
-  }, [profile, session, gamificationOn, checkAndAwardRecognition]);
-
-  const updateReportEngagement = useCallback(async () => {
-    if (!profile || !session?.user?.id || !gamificationOn) return;
-    const { data: metrics } = await fetchPilotEngagement(session.user.id);
-    const reportMetric = (metrics || []).find(m => m.metric_type === "reports_submitted");
-    const newCount = (reportMetric?.current_value || 0) + 1;
-    await upsertEngagementMetric(session.user.id, profile.org_id, "reports_submitted", newCount, Math.max(newCount, reportMetric?.best_value || 0));
-    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
-    fetchOrgEngagement(profile.org_id).then(({ data }) => setOrgEngagement(data || []));
-    // Check recognitions
-    if (newCount === 1) checkAndAwardRecognition("first_report", "First Safety Report", "Submitted your first safety report");
-    if (newCount >= 5) checkAndAwardRecognition("report_milestone_5", "5 Safety Reports", "Submitted 5 safety reports");
-    if (newCount >= 10) checkAndAwardRecognition("report_milestone_10", "10 Safety Reports", "Submitted 10 safety reports");
-  }, [profile, session, gamificationOn, checkAndAwardRecognition]);
-
-  const updateTrainingEngagement = useCallback(async () => {
-    if (!profile || !session?.user?.id || !gamificationOn) return;
-    // Check if all required training is current
-    const userEnrollments = (cbtEnrollments || []).filter(e => e.user_id === session.user.id);
-    const userProgress = (cbtProgress || []).filter(p => p.user_id === session.user.id);
-    const requiredCourses = (cbtCourses || []).filter(c => c.is_required);
-    const allComplete = requiredCourses.length > 0 && requiredCourses.every(c => {
-      const prog = userProgress.find(p => p.course_id === c.id);
-      return prog && prog.completed_at;
-    });
-    const trainingVal = allComplete ? 1 : 0;
-    await upsertEngagementMetric(session.user.id, profile.org_id, "training_current", trainingVal, trainingVal);
-    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
-    if (allComplete) checkAndAwardRecognition("training_100pct", "Training 100% Current", "All required training courses completed");
-  }, [profile, session, gamificationOn, cbtCourses, cbtProgress, cbtEnrollments, checkAndAwardRecognition]);
-
-  const updatePolicyEngagement = useCallback(async () => {
-    if (!profile || !session?.user?.id || !gamificationOn) return;
-    const { data: metrics } = await fetchPilotEngagement(session.user.id);
-    const policyMetric = (metrics || []).find(m => m.metric_type === "policy_ack");
-    const newCount = (policyMetric?.current_value || 0) + 1;
-    await upsertEngagementMetric(session.user.id, profile.org_id, "policy_ack", newCount, Math.max(newCount, policyMetric?.best_value || 0));
-    fetchPilotEngagement(session.user.id).then(({ data }) => setPilotEngagement(data || []));
-  }, [profile, session, gamificationOn]);
 
   // ── Helper: map DB flights to local state, preserving approved statuses from local state ──
   // Approval is one-way; stale read replicas may return "pending" for recently-approved flights.
@@ -3876,10 +4114,8 @@ export default function PVTAIRFrat() {
       const flight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsBlock ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null };
       const nf = [flight, ...flights]; saveFlightsLocal(nf);
     }
-    // Update engagement metrics
-    updateFratEngagement().catch(e => console.error("Engagement update error:", e));
     setToast({ message: toastMsg, level: getRiskLevel(entry.score, riskLevels) }); setTimeout(() => setToast(null), 4000);
-  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, foreflightConfig, updateFratEngagement]);
+  }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, foreflightConfig]);
 
   // ── Update flight status ──
   const onUpdateFlight = useCallback(async (id, action, extra = {}) => {
@@ -4076,10 +4312,9 @@ export default function PVTAIRFrat() {
         demoReportRef.current = data[0].id;
       }
       createNotification(profile.org_id, { type: "report_submitted", title: "New Safety Report", body: `${profile.full_name} submitted a safety report`, link_tab: "reports", target_roles: ["admin", "safety_manager"] });
-      updateReportEngagement().catch(e => console.error("Engagement update error:", e));
       setToast({ message: `${report.reportCode} submitted`, level: { bg: "rgba(34,211,238,0.15)", border: "rgba(34,211,238,0.4)", color: "#22D3EE" } }); setTimeout(() => setToast(null), 4000);
     }
-  }, [profile, session, isOnline, updateReportEngagement]);
+  }, [profile, session, isOnline]);
 
   // ── Update Report Status ──
   const STATUS_LABELS = { open: "Open", under_review: "Under Review", investigation: "Investigation", corrective_action: "Corrective Action", closed: "Closed" };
@@ -4262,9 +4497,8 @@ export default function PVTAIRFrat() {
       await acknowledgePolicy(profile.org_id, policyId, session.user.id);
       const { data } = await fetchPolicies(profile.org_id);
       setPolicies(data || []);
-      updatePolicyEngagement().catch(e => console.error("Engagement update error:", e));
     }
-  }, [profile, session, isOnline, updatePolicyEngagement]);
+  }, [profile, session, isOnline]);
 
   // ── Training ──
   const onCreateRequirement = useCallback(async (req) => {
@@ -4282,10 +4516,9 @@ export default function PVTAIRFrat() {
       if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
       const { data } = await fetchTrainingRecords(profile.org_id);
       setTrainingRecs(data || []);
-      updateTrainingEngagement().catch(e => console.error("Engagement update error:", e));
       setToast({ message: "Training logged", level: { bg: "rgba(74,222,128,0.15)", border: "rgba(74,222,128,0.4)", color: "#4ADE80" } }); setTimeout(() => setToast(null), 3000);
     }
-  }, [profile, session, isOnline, updateTrainingEngagement]);
+  }, [profile, session, isOnline]);
 
   const onDeleteTrainingRecord = useCallback(async (id) => {
     if (isOnline && profile) {
@@ -4525,7 +4758,7 @@ export default function PVTAIRFrat() {
   const orgName = profile?.organizations?.name || COMPANY_NAME;
   const orgLogo = profile?.organizations?.logo_url || LOGO_URL;
   const userName = profile?.full_name || "";
-  const needsAuth = !isOnline && ["history", "dashboard", "export"].includes(cv) && !isAuthed;
+  const needsAuth = !isOnline && ["history", "export"].includes(cv) && !isAuthed;
 
   // Read-only guard for canceled subscriptions
   const roGuard = (fn) => isReadOnly ? (...args) => { setToast({ message: isPendingDeletion ? "Read-only mode — account deletion pending" : isTrialExpired ? "Your trial has expired — subscribe to continue" : "Read-only mode — subscription " + subStatus, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); } : fn;
@@ -4584,7 +4817,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {(() => { const sec = getSection(cv); if (sec.cvs.length > 1) return sec.label.toUpperCase(); return cv === "dashboard" ? "SAFETY DASHBOARD" : cv === "audits" ? "AUDITS & COMPLIANCE" : cv === "cbt" ? "TRAINING" : cv === "policy" ? "DOCUMENTS" : cv === "admin" ? "ADMIN" : ""; })()}
+              {(() => { const sec = getSection(cv); if (sec.cvs.length > 1) return sec.label.toUpperCase(); return cv === "home" ? "HOME" : cv === "dashboard" ? "SAFETY ANALYTICS" : cv === "audits" ? "AUDITS & COMPLIANCE" : cv === "cbt" ? "TRAINING" : cv === "policy" ? "DOCUMENTS" : cv === "admin" ? "ADMIN" : ""; })()}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -4654,6 +4887,7 @@ export default function PVTAIRFrat() {
         {isTrialActive && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: trialDaysRemaining <= 3 ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)", border: `1px solid ${trialDaysRemaining <= 3 ? "rgba(245,158,11,0.25)" : "rgba(34,211,238,0.25)"}`, color: trialDaysRemaining <= 3 ? AMBER : CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{trialDaysRemaining <= 3 ? "\u26A0" : "\u2139\uFE0F"} Free trial — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining</span><button onClick={() => { setInitialAdminTab("subscription"); setCv("admin"); }} style={{ background: "none", border: `1px solid currentColor`, borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Subscribe</button></div>}
         {isFree && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(34,211,238,0.06)", border: "1px solid rgba(34,211,238,0.2)", color: CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>Free Plan — 1 aircraft, basic SMS features</span><button onClick={() => { setInitialAdminTab("subscription"); setCv("admin"); }} style={{ background: "none", border: "1px solid currentColor", borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Upgrade</button></div>}
         <main style={{ padding: "20px 32px 50px" }}>
+        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpDrills={erpDrills} onNavigate={setCv} org={org} onboardingState={onboardingState} onStartFlow={handleStartFlow} onDismissOnboarding={handleDismissOnboarding} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} showOnboarding={showOnboarding} session={session} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
@@ -4701,7 +4935,7 @@ export default function PVTAIRFrat() {
         {cv === "policy" && <PolicyTraining profile={profile} session={session} policies={policies} onCreatePolicy={freeGuard(roGuard(onCreatePolicy), "policy library", () => isFree && (policies || []).length >= FREE_TIER_LIMITS.maxPolicies, `Free plan allows up to ${FREE_TIER_LIMITS.maxPolicies} policies. Upgrade to Starter for unlimited.`)} onAcknowledgePolicy={onAcknowledgePolicy} orgProfiles={orgProfiles} smsManuals={smsManuals} showManuals={(hasFeature(org, "sms_manuals") || isFree) && ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role)} readOnlyManuals={isFree} templateVariables={templateVariables} signatures={smsSignatures} fleetAircraft={fleetAircraft} onSaveManual={roGuard(async (manual) => { const orgId = profile?.org_id; if (!orgId) return; const { error } = await upsertSmsManual(orgId, { ...manual, lastEditedBy: session?.user?.id }); if (!error) { const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); const { data: policyData, error: policyError, wasUpdate } = await publishManualToPolicy(orgId, session.user.id, manual); if (!policyError && policyData && wasUpdate) { await clearPolicyAcknowledgments(policyData.id); } const { data: refreshedPolicies } = await fetchPolicies(orgId); setPolicies(refreshedPolicies || []); setToast({ message: wasUpdate ? "Manual saved & policy updated — acknowledgments reset" : "Manual saved & published to Policy Library", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); } })} onInitManuals={roGuard(async (templates) => { const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of templates) { await upsertSmsManual(orgId, { ...tmpl, lastEditedBy: session?.user?.id }); } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "SMS manuals initialized", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveVariables={roGuard(async (vars, mergedManuals) => { const orgId = profile?.org_id; if (!orgId) return; const oldVars = templateVariables || {}; await saveSmsTemplateVariables(orgId, vars); setTemplateVariables(vars); const acft = vars._aircraft || []; const fleetLines = acft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const oldAcft = oldVars._aircraft || []; const oldFleetLines = oldAcft.filter(a => a.type?.trim()).map(a => `- ${a.type || "TBD"} - ${a.reg || "N/A"} - ${a.pax || "N/A"} pax - ${a.range || "N/A"}`).join("\n"); const manualsToProcess = mergedManuals || smsManuals; for (const manual of manualsToProcess) { const updatedSections = manual.sections.map(sec => { let c = sec.content || ""; for (const [key, value] of Object.entries(vars)) { if (key === "_aircraft" || !value) continue; const oldVal = oldVars[key]; if (oldVal && oldVal !== value && oldVal.length >= 2) c = c.replaceAll(oldVal, value); c = c.replaceAll(`[${key}]`, value); } if (fleetLines) { if (oldFleetLines && oldFleetLines !== fleetLines) c = c.replaceAll(oldFleetLines, fleetLines); c = c.replaceAll("[Aircraft Fleet List]", fleetLines); } return c !== sec.content ? { ...sec, content: c } : sec; }); const hasChanges = manual.sections.some((s, i) => s.content !== updatedSections[i].content); if (hasChanges) { await upsertSmsManual(orgId, { ...manual, sections: updatedSections, lastEditedBy: session?.user?.id }); } } const { data: all } = await fetchSmsManuals(orgId); setSmsManuals(all || []); setToast({ message: "Variables saved and applied to all manuals", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onSaveSignature={roGuard(async (sectionId, sigData) => { const orgId = profile?.org_id; if (!orgId) return; const updated = { ...smsSignatures, [sectionId]: sigData }; await saveSmsSignatures(orgId, updated); setSmsSignatures(updated); setToast({ message: "Signature saved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onAiDraftPolicy={hasFeature(org, "safety_trend_alerts") ? async ({ policyTitle, policyCategory }) => { try { const { data, error } = await supabase.functions.invoke('ai-draft-assist', { body: { orgId: profile?.org_id, mode: "policy_draft", policyTitle, policyCategory } }); if (error) { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data?.result || null; } catch { setToast({ message: "AI draft unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } } : undefined} />}
         {cv === "cbt" && <CbtModules profile={profile} session={session} orgProfiles={orgProfiles} courses={cbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} onCreateRequirement={roGuard(onCreateRequirement)} onLogTraining={roGuard(onLogTraining)} onDeleteTrainingRecord={roGuard(onDeleteTrainingRecord)} onDeleteRequirement={roGuard(onDeleteRequirement)} onInitTraining={roGuard(onInitTraining)} />}
         {needsAuth && <AdminGate isAuthed={isAuthed} onAuth={setIsAuthed}>{null}</AdminGate>}
-        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} pilotEngagement={pilotEngagement} safetyRecognitions={safetyRecognitions} orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} onAcknowledgeRecognition={async (recId) => { await acknowledgeRecognition(recId); if (session?.user?.id) fetchSafetyRecognitions(session.user.id).then(({ data }) => setSafetyRecognitions(data || [])); }} complianceFrameworks={complianceFrameworks} complianceChecklistItems={complianceChecklistItems} complianceStatusData={complianceStatusData} trainingReqs={trainingReqs} trainingRecs={trainingRecs} policies={policies} iepAudits={iepAudits} auditSchedules={auditSchedulesData} mocItems={mocItems} insuranceExports={insuranceExports} onGenerateExport={roGuard(async (exportData, pdfBlob) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await createInsuranceExport(orgId, exportData); if (data && pdfBlob) { const { data: pdfUrl } = await uploadInsuranceExportPdf(orgId, data.id, pdfBlob); if (pdfUrl) { await supabase.from('insurance_exports').update({ pdf_path: pdfUrl }).eq('id', data.id); } } fetchInsuranceExports(orgId).then(({ data: d }) => setInsuranceExports(d || [])); setToast({ message: "Insurance export generated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onDeleteExport={roGuard(async (exportId) => { await deleteInsuranceExport(exportId); const orgId = profile?.org_id; if (orgId) fetchInsuranceExports(orgId).then(({ data }) => setInsuranceExports(data || [])); })} onNavigateSubscription={() => { setInitialAdminTab("subscription"); setCv("admin"); }} onNavigate={setCv} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} onViewDetail={(id) => setFratDetailId(id)} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} onDismissOnboarding={handleDismissOnboarding} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} />}
+        {cv === "dashboard" && (isAuthed || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} complianceFrameworks={complianceFrameworks} complianceChecklistItems={complianceChecklistItems} complianceStatusData={complianceStatusData} trainingReqs={trainingReqs} trainingRecs={trainingRecs} policies={policies} iepAudits={iepAudits} auditSchedules={auditSchedulesData} mocItems={mocItems} insuranceExports={insuranceExports} onGenerateExport={roGuard(async (exportData, pdfBlob) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await createInsuranceExport(orgId, exportData); if (data && pdfBlob) { const { data: pdfUrl } = await uploadInsuranceExportPdf(orgId, data.id, pdfBlob); if (pdfUrl) { await supabase.from('insurance_exports').update({ pdf_path: pdfUrl }).eq('id', data.id); } } fetchInsuranceExports(orgId).then(({ data: d }) => setInsuranceExports(d || [])); setToast({ message: "Insurance export generated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onDeleteExport={roGuard(async (exportId) => { await deleteInsuranceExport(exportId); const orgId = profile?.org_id; if (orgId) fetchInsuranceExports(orgId).then(({ data }) => setInsuranceExports(data || [])); })} onNavigateSubscription={() => { setInitialAdminTab("subscription"); setCv("admin"); }} onNavigate={setCv} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} onViewDetail={(id) => setFratDetailId(id)} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} onDismissOnboarding={handleDismissOnboarding} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} />}
         {cv === "admin" && (isAuthed || isOnline) && <AdminPanel profile={profile} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onUpdateEmail={async (userId, email) => { await updateProfileEmail(userId, email); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
