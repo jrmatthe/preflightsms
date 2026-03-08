@@ -26,7 +26,7 @@
     },
     {
       "path": "/api/trial-emails",
-      "schedule": "0 14 * * *"
+      "schedule": "0 13 * * *"
     }
   ]
 }
