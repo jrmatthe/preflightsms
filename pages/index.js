@@ -2160,7 +2160,15 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
             ))}
           </div>
         )}
-        {overdueTraining.length === 0 && expiringTraining.length === 0 && (
+        {reqStatus.filter(r => r.status === "not_started").length > 0 && (
+          <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, marginBottom: overdueTraining.length > 0 || expiringTraining.length > 0 ? 0 : 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Not Completed</div>
+            {reqStatus.filter(r => r.status === "not_started").map(({ req }) => (
+              <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0" }}>{req.title}</div>
+            ))}
+          </div>
+        )}
+        {overdueTraining.length === 0 && expiringTraining.length === 0 && reqStatus.filter(r => r.status === "not_started").length === 0 && (
           <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.2)" }}>
             <div style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>All {reqStatus.filter(r => r.status === "current").length} training requirement{reqStatus.filter(r => r.status === "current").length !== 1 ? "s" : ""} current</div>
           </div>
