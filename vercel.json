@@ -23,6 +23,10 @@
     {
       "path": "/api/send-nudge-push",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/trial-emails",
+      "schedule": "0 14 * * *"
     }
   ]
 }
