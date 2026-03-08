@@ -94,7 +94,8 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
 
   // ── Continue button: watch for input value ──
   useEffect(() => {
-    if (step.advanceOn !== "continue" || !step.target) { setContinueEnabled(false); return; }
+    if (step.advanceOn !== "continue") { setContinueEnabled(false); return; }
+    if (!step.target) { setContinueEnabled(true); return; }
     const check = () => {
       const el = document.querySelector(step.target);
       if (!el) { setContinueEnabled(false); return; }
