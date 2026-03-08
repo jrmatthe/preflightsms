@@ -409,11 +409,11 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
     <nav className="mobile-bottom-nav" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200, background: BLACK, borderTop: `1px solid ${BORDER}` }}>
       <div style={{ display: "flex", justifyContent: "space-evenly", alignItems: "center", width: "100%" }}>
         {[
-          NAV_SECTIONS.find(s => s.id === "dashboard"),
+          NAV_SECTIONS.find(s => s.id === "home"),
           NAV_SECTIONS.find(s => s.id === "operations"),
           NAV_SECTIONS.find(s => s.id === "safety"),
           NAV_SECTIONS.find(s => s.id === "investigations"),
-        ].map(sec => {
+        ].filter(Boolean).map(sec => {
           const isActive = activeSection.id === sec.id;
           const isGated = sectionFullyGated(sec);
           return (
