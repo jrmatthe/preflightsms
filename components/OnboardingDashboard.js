@@ -22,8 +22,6 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
       <div
         onClick={() => setCollapsed(false)}
         style={{
-          maxWidth: 640,
-          margin: "0 auto 16px",
           padding: "12px 18px",
           background: "linear-gradient(135deg, rgba(34,211,238,0.06) 0%, rgba(74,222,128,0.06) 100%)",
           border: "1px solid rgba(34,211,238,0.15)",
@@ -57,8 +55,6 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
 
   return (
     <div style={{
-      maxWidth: 640,
-      margin: "0 auto 20px",
       background: "linear-gradient(135deg, rgba(34,211,238,0.04) 0%, rgba(74,222,128,0.04) 100%)",
       border: "1px solid rgba(34,211,238,0.15)",
       borderRadius: 12,
@@ -215,7 +211,6 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
           borderRadius: 10,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: 14 }}>{"\uD83E\uDDEA"}</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: AMBER }}>Sandbox Mode</span>
           </div>
           <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.5, marginBottom: 12 }}>

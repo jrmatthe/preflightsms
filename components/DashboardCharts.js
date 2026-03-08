@@ -212,65 +212,17 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
     return { avgScore, highCritical30, activeFlights, f30, openReports, r30Reports, openHazards, criticalHazards, openActions, overdueActions, weeklyData, compliance, totalFrats: records.length, totalReports: reports.length, r7Count: r7.length, activePlans, erpNeedsReview, lastDrill, nextDrill, spiHealth, spiCount: spiList.filter(s => s.is_active).length };
   }, [records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements]);
 
-  const compColor = stats.compliance >= 80 ? GREEN : stats.compliance >= 60 ? YELLOW : RED;
-  const [complianceHovered, setComplianceHovered] = useState(false);
   const [erpHovered, setErpHovered] = useState(false);
   const [spiHovered, setSpiHovered] = useState(false);
 
   return (
     <div>
-      {/* Compliance banner */}
-      <div
-        data-tour="tour-dashboard-health"
-        style={{
-          ...card,
-          padding: "18px 22px",
-          marginBottom: 16,
-          borderLeft: `4px solid ${compColor}`,
-          ...(onNavigate ? {
-            cursor: "pointer",
-            transition: "all 0.15s",
-            ...(complianceHovered ? { borderTopColor: "#444444", borderRightColor: "#444444", borderBottomColor: "#444444", background: "#282828" } : {}),
-          } : {}),
-        }}
-        onClick={onNavigate ? () => onNavigate("audits") : undefined}
-        onMouseEnter={onNavigate ? () => setComplianceHovered(true) : undefined}
-        onMouseLeave={onNavigate ? () => setComplianceHovered(false) : undefined}
-        role={onNavigate ? "button" : undefined}
-        tabIndex={onNavigate ? 0 : undefined}
-        onKeyDown={onNavigate ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("audits"); } } : undefined}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: WHITE, marginBottom: 4 }}>SMS Compliance Health{onNavigate && <span style={{ fontSize: 11, color: complianceHovered ? OFF_WHITE : MUTED, marginLeft: 6, transition: "color 0.15s" }}> →</span>}</div>
-            <div style={{ fontSize: 10, color: MUTED }}>
-              {part5Compliance && part5Compliance.total > 0
-                ? `${part5Compliance.compliant}/${part5Compliance.total} Part 5 requirements met`
-                : stats.overdueActions > 0 ? `${stats.overdueActions} overdue action${stats.overdueActions > 1 ? "s" : ""}` : "No overdue actions"}
-              {stats.openHazards > 0 ? ` · ${stats.openHazards} open hazard${stats.openHazards > 1 ? "s" : ""}` : ""}
-              {stats.openReports > 0 ? ` · ${stats.openReports} open report${stats.openReports > 1 ? "s" : ""}` : ""}
-            </div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 32, fontWeight: 800, color: compColor, fontFamily: "Georgia,serif" }}>{stats.compliance}%</div>
-          </div>
-        </div>
-        <div style={{ marginTop: 8, height: 6, background: NEAR_BLACK, borderRadius: 3, overflow: "hidden" }}>
-          <div style={{ width: `${stats.compliance}%`, height: "100%", background: compColor, borderRadius: 3, transition: "width 0.5s" }} />
-        </div>
-        {stats.compliance === 100 && onNavigate && (
-          <div style={{ marginTop: 10, fontSize: 11, color: GREEN, fontWeight: 600 }}>
-            All Part 5 requirements met — <span onClick={(e) => { e.stopPropagation(); onNavigate("audits"); }} style={{ textDecoration: "underline", cursor: "pointer" }}>generate your Declaration of Compliance</span>
-          </div>
-        )}
-      </div>
-
       {/* KPI cards */}
       <div className="stat-grid" data-tour="tour-dashboard-kpi" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
-        <StatCard label="FRATs (30d)" value={stats.r7Count} sub={`${stats.totalFrats} total`} icon="📋" onClick={onNavigate ? () => onNavigate("history") : undefined} />
-        <StatCard label="Avg Risk Score" value={stats.avgScore.toFixed(1)} color={getRiskColor(Math.round(stats.avgScore))} sub="30-day average" icon="📊" />
-        <StatCard label="Active Flights" value={stats.activeFlights} sub={`${stats.f30} in last 30d`} icon="✈️" onClick={onNavigate ? () => onNavigate("flights") : undefined} />
-        <StatCard label="Open Items" value={stats.openReports + stats.openHazards + stats.openActions} color={stats.overdueActions > 0 ? RED : WHITE} sub={stats.overdueActions > 0 ? `${stats.overdueActions} overdue` : "On track"} icon="⚠️" onClick={onNavigate ? () => onNavigate("actions") : undefined} />
+        <StatCard label="FRATs (30d)" value={stats.r7Count} sub={`${stats.totalFrats} total`} onClick={onNavigate ? () => onNavigate("history") : undefined} />
+        <StatCard label="Avg Risk Score" value={stats.avgScore.toFixed(1)} color={getRiskColor(Math.round(stats.avgScore))} sub="30-day average" />
+        <StatCard label="Active Flights" value={stats.activeFlights} sub={`${stats.f30} in last 30d`} onClick={onNavigate ? () => onNavigate("flights") : undefined} />
+        <StatCard label="Open Items" value={stats.openReports + stats.openHazards + stats.openActions} color={stats.overdueActions > 0 ? RED : WHITE} sub={stats.overdueActions > 0 ? `${stats.overdueActions} overdue` : "On track"} onClick={onNavigate ? () => onNavigate("actions") : undefined} />
       </div>
 
       {/* Weekly trend */}
@@ -438,7 +390,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
       {!isDashboardFree && trendAlerts && trendAlerts.filter(a => !a.acknowledged_by).length > 0 && (
         <div style={{ ...card, padding: "18px 22px", marginTop: 14, borderRadius: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: CYAN }}>⚡</span> Trend Alerts
+            Trend Alerts
             <span style={{ fontSize: 10, color: MUTED, fontWeight: 400 }}>Anomalies detected in safety metrics</span>
           </div>
           {trendAlerts
@@ -734,7 +686,7 @@ function FRATAnalytics({ records }) {
     return { avg, max: Math.max(...scores), total: filtered.length, lc, topFactors, catBreakdown, trendData, aircraftData, pilotData, pieData, dowData, fatigueDist, fatigueTrend, fatigueCorrelation, fatigueCount: fatigueRecords.length };
   }, [records, timeRange]);
 
-  if (!stats) return <div style={{ textAlign: "center", padding: 80, color: MUTED }}><div style={{ fontSize: 48, marginBottom: 16 }}>📊</div><div style={{ fontSize: 16, fontWeight: 600 }}>No data for selected period</div></div>;
+  if (!stats) return <div style={{ textAlign: "center", padding: 80, color: MUTED }}><div style={{ fontSize: 16, fontWeight: 600 }}>No data for selected period</div></div>;
 
   return (
     <div>
@@ -752,10 +704,10 @@ function FRATAnalytics({ records }) {
 
       {/* KPI row */}
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
-        <StatCard label="Assessments" value={stats.total} icon="📋" />
-        <StatCard label="Avg Score" value={stats.avg.toFixed(1)} color={getRiskColor(Math.round(stats.avg))} icon="📊" />
-        <StatCard label="Max Score" value={stats.max} color={getRiskColor(stats.max)} icon="🔺" />
-        <StatCard label="High/Critical" value={stats.lc.HIGH + stats.lc.CRITICAL} color={stats.lc.HIGH + stats.lc.CRITICAL > 0 ? RED : GREEN} sub={`${Math.round(((stats.lc.HIGH + stats.lc.CRITICAL) / stats.total) * 100)}% of total`} icon="⚠️" />
+        <StatCard label="Assessments" value={stats.total} />
+        <StatCard label="Avg Score" value={stats.avg.toFixed(1)} color={getRiskColor(Math.round(stats.avg))} />
+        <StatCard label="Max Score" value={stats.max} color={getRiskColor(stats.max)} />
+        <StatCard label="High/Critical" value={stats.lc.HIGH + stats.lc.CRITICAL} color={stats.lc.HIGH + stats.lc.CRITICAL > 0 ? RED : GREEN} sub={`${Math.round(((stats.lc.HIGH + stats.lc.CRITICAL) / stats.total) * 100)}% of total`} />
       </div>
 
       {/* Score trend + distribution */}
@@ -882,9 +834,9 @@ function FRATAnalytics({ records }) {
         <>
           <SectionTitle>Fatigue Risk Analytics</SectionTitle>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16 }} className="stat-grid">
-            <StatCard label="Fatigue Assessments" value={stats.fatigueCount} icon="😴" />
-            <StatCard label="Avg Fatigue Score" value={Math.round(stats.fatigueCorrelation.reduce((a, d) => a + d.fatigueScore, 0) / stats.fatigueCount)} color={(() => { const avg = stats.fatigueCorrelation.reduce((a, d) => a + d.fatigueScore, 0) / stats.fatigueCount; return avg <= 20 ? GREEN : avg <= 40 ? YELLOW : avg <= 60 ? AMBER : RED; })()} icon="📊" />
-            <StatCard label="High/Critical" value={stats.fatigueDist.filter(d => d.name === "High" || d.name === "Critical").reduce((a, d) => a + d.value, 0)} color={(stats.fatigueDist.filter(d => d.name === "High" || d.name === "Critical").reduce((a, d) => a + d.value, 0)) > 0 ? RED : GREEN} sub={`${Math.round(stats.fatigueDist.filter(d => d.name === "High" || d.name === "Critical").reduce((a, d) => a + d.value, 0) / stats.fatigueCount * 100)}% of assessments`} icon="⚠️" />
+            <StatCard label="Fatigue Assessments" value={stats.fatigueCount} />
+            <StatCard label="Avg Fatigue Score" value={Math.round(stats.fatigueCorrelation.reduce((a, d) => a + d.fatigueScore, 0) / stats.fatigueCount)} color={(() => { const avg = stats.fatigueCorrelation.reduce((a, d) => a + d.fatigueScore, 0) / stats.fatigueCount; return avg <= 20 ? GREEN : avg <= 40 ? YELLOW : avg <= 60 ? AMBER : RED; })()} />
+            <StatCard label="High/Critical" value={stats.fatigueDist.filter(d => d.name === "High" || d.name === "Critical").reduce((a, d) => a + d.value, 0)} color={(stats.fatigueDist.filter(d => d.name === "High" || d.name === "Critical").reduce((a, d) => a + d.value, 0)) > 0 ? RED : GREEN} sub={`${Math.round(stats.fatigueDist.filter(d => d.name === "High" || d.name === "Critical").reduce((a, d) => a + d.value, 0) / stats.fatigueCount * 100)}% of assessments`} />
           </div>
 
           <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
@@ -1003,10 +955,10 @@ function SafetyMetrics({ reports, hazards, actions }) {
   return (
     <div>
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
-        <StatCard label="Safety Reports" value={stats.totalReports} icon="📝" />
-        <StatCard label="Open Investigations" value={stats.hazardRiskData.reduce((a, d) => a + d.value, 0)} color={AMBER} icon="⚡" />
-        <StatCard label="Corrective Actions" value={stats.totalActions} sub={stats.overdueActions.length > 0 ? `${stats.overdueActions.length} overdue` : "None overdue"} color={stats.overdueActions.length > 0 ? RED : WHITE} icon="✓" />
-        <StatCard label="Avg Closure Time" value={stats.avgClosureTime ? `${stats.avgClosureTime}d` : "—"} sub="For completed actions" icon="⏱" />
+        <StatCard label="Safety Reports" value={stats.totalReports} />
+        <StatCard label="Open Investigations" value={stats.hazardRiskData.reduce((a, d) => a + d.value, 0)} color={AMBER} />
+        <StatCard label="Corrective Actions" value={stats.totalActions} sub={stats.overdueActions.length > 0 ? `${stats.overdueActions.length} overdue` : "None overdue"} color={stats.overdueActions.length > 0 ? RED : WHITE} />
+        <StatCard label="Avg Closure Time" value={stats.avgClosureTime ? `${stats.avgClosureTime}d` : "—"} sub="For completed actions" />
       </div>
 
       <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
