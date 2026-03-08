@@ -295,8 +295,8 @@ function getSection(cv) {
 
 function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding, onboardingState, onStartFlow, onDismissOnboarding, isTrial, onStartFresh }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const didAutoOpen = React.useRef(false);
-  React.useEffect(() => {
+  const didAutoOpen = useRef(false);
+  useEffect(() => {
     if (showOnboarding && !didAutoOpen.current) {
       didAutoOpen.current = true;
       setMenuOpen("onboarding");
