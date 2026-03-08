@@ -293,7 +293,7 @@ function getSection(cv) {
   return NAV_SECTIONS.find(s => s.cvs.includes(cv)) || NAV_SECTIONS[0];
 }
 
-function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences }) {
+function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding }) {
   const [menuOpen, setMenuOpen] = useState(false);
   // SVG icons — monochrome, inherit color from parent
   const I = (d, s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
@@ -362,6 +362,22 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
       <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
         {visibleSections.map(sec => sideTab(sec))}
       </div>
+      {showOnboarding && (
+        <button onClick={() => { setCurrentView("getting-started"); setMenuOpen(false); }}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 8, paddingLeft: 14, height: 44,
+            background: currentView === "getting-started" ? "rgba(34,211,238,0.12)" : "rgba(34,211,238,0.05)",
+            color: "#22D3EE",
+            border: "none", borderTop: `1px solid ${BORDER}`,
+            borderLeft: currentView === "getting-started" ? "2px solid #22D3EE" : "2px solid transparent",
+            cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+          }}>
+          <span style={{ width: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.3 }}>Get Started</span>
+        </button>
+      )}
     </aside>
     {/* Mobile top bar */}
     <header className="nav-mobile-header" style={{ display: "none", background: BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, zIndex: 100, padding: "0 16px", alignItems: "center", justifyContent: "space-between" }}>
@@ -1940,7 +1956,7 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick }) {
   );
 }
 
-function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, trainingRequirements, trainingRecords, policies, mocItems, erpDrills, onNavigate, org, onboardingState, onStartFlow, onDismissOnboarding, isTrial, onStartFresh, showOnboarding, session }) {
+function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, trainingRequirements, trainingRecords, policies, mocItems, erpDrills, onNavigate, org, session }) {
   const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 20px" };
   const sectionTitle = { fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 };
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
@@ -2165,13 +2181,6 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
         <div style={{ fontSize: 20, fontWeight: 700, color: WHITE }}>Welcome back, {firstName}</div>
         <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{dateStr}</div>
       </div>
-
-      {/* Onboarding — full width, top of page, impossible to miss */}
-      {isAdmin && showOnboarding && (
-        <div style={{ marginBottom: gap }}>
-          <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} onDismiss={onDismissOnboarding} isTrial={isTrial} onStartFresh={onStartFresh} />
-        </div>
-      )}
 
       {/* Quick Actions — full width */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: gap }}>
@@ -4694,7 +4703,7 @@ export default function PVTAIRFrat() {
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} showOnboarding={showOnboarding} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Pending deletion banner — red when read-only countdown active */}
         {isPendingDeletion && (() => {
@@ -4722,7 +4731,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {(() => { const sec = getSection(cv); if (sec.cvs.length > 1) return sec.label.toUpperCase(); return cv === "home" ? "HOME" : cv === "dashboard" ? "SAFETY ANALYTICS" : cv === "audits" ? "AUDITS & COMPLIANCE" : cv === "cbt" ? "TRAINING" : cv === "policy" ? "DOCUMENTS" : cv === "admin" ? "ADMIN" : ""; })()}
+              {(() => { const sec = getSection(cv); if (sec.cvs.length > 1) return sec.label.toUpperCase(); return cv === "home" ? "HOME" : cv === "getting-started" ? "GETTING STARTED" : cv === "dashboard" ? "SAFETY ANALYTICS" : cv === "audits" ? "AUDITS & COMPLIANCE" : cv === "cbt" ? "TRAINING" : cv === "policy" ? "DOCUMENTS" : cv === "admin" ? "ADMIN" : ""; })()}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -4792,7 +4801,9 @@ export default function PVTAIRFrat() {
         {isTrialActive && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: trialDaysRemaining <= 3 ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)", border: `1px solid ${trialDaysRemaining <= 3 ? "rgba(245,158,11,0.25)" : "rgba(34,211,238,0.25)"}`, color: trialDaysRemaining <= 3 ? AMBER : CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{trialDaysRemaining <= 3 ? "\u26A0" : "\u2139\uFE0F"} Free trial — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining</span><button onClick={() => { setInitialAdminTab("subscription"); setCv("admin"); }} style={{ background: "none", border: `1px solid currentColor`, borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Subscribe</button></div>}
         {isFree && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(34,211,238,0.06)", border: "1px solid rgba(34,211,238,0.2)", color: CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>Free Plan — 1 aircraft, basic SMS features</span><button onClick={() => { setInitialAdminTab("subscription"); setCv("admin"); }} style={{ background: "none", border: "1px solid currentColor", borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Upgrade</button></div>}
         <main style={{ padding: "20px 32px 50px" }}>
-        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpDrills={erpDrills} onNavigate={setCv} org={org} onboardingState={onboardingState} onStartFlow={handleStartFlow} onDismissOnboarding={handleDismissOnboarding} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} showOnboarding={showOnboarding} session={session} />}
+        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} />}
+        {cv === "getting-started" && showOnboarding && <OnboardingDashboard onboardingState={onboardingState} onStartFlow={handleStartFlow} onDismiss={handleDismissOnboarding} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} />}
+        {cv === "getting-started" && !showOnboarding && (() => { setCv("home"); return null; })()}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
