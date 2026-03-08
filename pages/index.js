@@ -394,17 +394,19 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
                 ))}
               </div>
             </button>
-            {menuOpen === "onboarding" && (
+            {menuOpen === "onboarding" && (<>
+              <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 199 }} />
               <div style={{
                 position: "absolute", bottom: "100%", left: 0, width: 420, maxHeight: "70vh", overflowY: "auto",
                 background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
                 boxShadow: "0 -8px 40px rgba(0,0,0,0.6)", marginBottom: 4, zIndex: 200,
+                animation: "slideUpIn 0.2s ease-out", transformOrigin: "bottom left",
               }}>
                 <div style={{ padding: "4px 0" }}>
                   <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} isTrial={isTrial} onStartFresh={onStartFresh} />
                 </div>
               </div>
-            )}
+            </>)}
           </div>
         );
       })()}
@@ -5355,6 +5357,7 @@ export default function PVTAIRFrat() {
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes checkDraw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+@keyframes slideUpIn{from{opacity:0;transform:translateY(12px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 .fade-in{animation:fadeIn 0.2s ease-out}
 button:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
