@@ -135,7 +135,7 @@ const ttStyle = { borderRadius: 6, border: `1px solid ${BORDER}`, background: CA
 // ════════════════════════════════════════════════════════════════
 // OVERVIEW TAB — high-level SMS health across all modules
 // ════════════════════════════════════════════════════════════════
-function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, part5Compliance }) {
+function OverviewDashboard({ records, flights, reports, hazards, actions, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, part5Compliance, section }) {
   const stats = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 86400000;
@@ -215,17 +215,21 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
   const [erpHovered, setErpHovered] = useState(false);
   const [spiHovered, setSpiHovered] = useState(false);
 
+  const s = section;
   return (
     <div>
       {/* KPI cards */}
-      <div className="stat-grid" data-tour="tour-dashboard-kpi" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
+      {(!s || s === "summary") && (
+      <div className="stat-grid" data-tour="tour-dashboard-kpi" style={{ display: "grid", gridTemplateColumns: s ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
         <StatCard label="FRATs (30d)" value={stats.r7Count} sub={`${stats.totalFrats} total`} onClick={onNavigate ? () => onNavigate("history") : undefined} />
         <StatCard label="Avg Risk Score" value={stats.avgScore.toFixed(1)} color={getRiskColor(Math.round(stats.avgScore))} sub="30-day average" />
         <StatCard label="Active Flights" value={stats.activeFlights} sub={`${stats.f30} in last 30d`} onClick={onNavigate ? () => onNavigate("flights") : undefined} />
         <StatCard label="Open Items" value={stats.openReports + stats.openHazards + stats.openActions} color={stats.overdueActions > 0 ? RED : WHITE} sub={stats.overdueActions > 0 ? `${stats.overdueActions} overdue` : "On track"} onClick={onNavigate ? () => onNavigate("actions") : undefined} />
       </div>
+      )}
 
       {/* Weekly trend */}
+      {(!s || s === "trends") && (
       <ChartCard title="12-Week Activity Trend">
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={stats.weeklyData}>
@@ -238,9 +242,11 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
           </AreaChart>
         </ResponsiveContainer>
       </ChartCard>
+      )}
 
       {/* Bottom grid */}
-      <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+      {(!s || s === "open_items") && (
+      <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: s ? 0 : 16 }}>
         <ChartCard title="Weekly Average Risk Score">
           <ResponsiveContainer width="100%" height={160}>
             <LineChart data={stats.weeklyData}>
@@ -272,9 +278,10 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
           ))}
         </div>
       </div>
+      )}
 
       {/* ERP Status */}
-      {(erpPlans || []).length > 0 ? (
+      {(!s || s === "erp") && ((erpPlans || []).length > 0 ? (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
           <h3
             style={{
@@ -321,10 +328,10 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
           >ERP Status{onNavigate && <span style={{ fontSize: 11, color: MUTED, marginLeft: 6 }}> →</span>}</h3>
           <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No emergency response plans created yet</div>
         </div>
-      )}
+      ))}
 
-      {/* SPI Health */}
-      {!isDashboardFree && stats.spiCount === 0 && (
+      {/* SPI Health + Trend Alerts + MOC + SMS Maturity */}
+      {(!s || s === "health") && !isDashboardFree && stats.spiCount === 0 && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
           <h3
             style={{
@@ -339,7 +346,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
           <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No safety performance indicators configured</div>
         </div>
       )}
-      {!isDashboardFree && stats.spiCount > 0 && (
+      {(!s || s === "health") && !isDashboardFree && stats.spiCount > 0 && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
           <h3
             style={{
@@ -380,14 +387,13 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         </div>
       )}
 
-      {/* ── Trend Alerts (AI Intelligence) ── */}
-      {!isDashboardFree && (!trendAlerts || trendAlerts.filter(a => !a.acknowledged_by).length === 0) && (
+      {(!s || s === "health") && !isDashboardFree && (!trendAlerts || trendAlerts.filter(a => !a.acknowledged_by).length === 0) && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: CYAN }}>&#9889;</span> Trend Alerts</div>
           <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No trend alerts — all clear</div>
         </div>
       )}
-      {!isDashboardFree && trendAlerts && trendAlerts.filter(a => !a.acknowledged_by).length > 0 && (
+      {(!s || s === "health") && !isDashboardFree && trendAlerts && trendAlerts.filter(a => !a.acknowledged_by).length > 0 && (
         <div style={{ ...card, padding: "18px 22px", marginTop: 14, borderRadius: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
             Trend Alerts
@@ -444,14 +450,13 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         </div>
       )}
 
-      {/* Management of Change (MOC) */}
-      {!isDashboardFree && (!mocItems || mocItems.length === 0 || mocItems.filter(m => m.status !== "closed").length === 0) && (
+      {(!s || s === "health") && !isDashboardFree && (!mocItems || mocItems.length === 0 || mocItems.filter(m => m.status !== "closed").length === 0) && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
           <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Management of Change</h3>
           <div style={{ textAlign: "center", padding: "12px 0", color: MUTED, fontSize: 11 }}>No active change management items</div>
         </div>
       )}
-      {!isDashboardFree && mocItems && mocItems.length > 0 && (() => {
+      {(!s || s === "health") && !isDashboardFree && mocItems && mocItems.length > 0 && (() => {
         const open = mocItems.filter(m => m.status !== "closed");
         const byPriority = { critical: 0, high: 0, medium: 0, low: 0 };
         open.forEach(m => { if (byPriority.hasOwnProperty(m.priority)) byPriority[m.priority]++; });
@@ -476,8 +481,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         ) : null;
       })()}
 
-      {/* SMS Maturity Score (from Insurance Scorecard) */}
-      {!isDashboardFree && typeof insuranceScore === "number" && (
+      {(!s || s === "health") && !isDashboardFree && typeof insuranceScore === "number" && (
         <div style={{ ...card, padding: 18, marginTop: 16 }}>
           <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>SMS Maturity Score</h3>
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -494,8 +498,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
         </div>
       )}
 
-      {/* Free tier blurred preview overlays */}
-      {isDashboardFree && (
+      {(!s || s === "health") && isDashboardFree && (
         <div style={{ position: "relative", marginTop: 16 }}>
           <div style={{ filter: "blur(3px)", pointerEvents: "none", opacity: 0.5 }}>
             <div style={{ ...card, padding: 18, marginBottom: 12 }}>
@@ -551,7 +554,7 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
 // ════════════════════════════════════════════════════════════════
 // FRAT ANALYTICS TAB — deep dive into FRAT data
 // ════════════════════════════════════════════════════════════════
-function FRATAnalytics({ records }) {
+function FRATAnalytics({ records, section }) {
   const [timeRange, setTimeRange] = useState(30);
 
   const stats = useMemo(() => {
@@ -686,11 +689,13 @@ function FRATAnalytics({ records }) {
     return { avg, max: Math.max(...scores), total: filtered.length, lc, topFactors, catBreakdown, trendData, aircraftData, pilotData, pieData, dowData, fatigueDist, fatigueTrend, fatigueCorrelation, fatigueCount: fatigueRecords.length };
   }, [records, timeRange]);
 
+  const sec = section;
   if (!stats) return <div style={{ textAlign: "center", padding: 80, color: MUTED }}><div style={{ fontSize: 16, fontWeight: 600 }}>No data for selected period</div></div>;
 
   return (
     <div>
-      {/* Time range selector */}
+      {/* Time range selector + KPIs + risk score trend */}
+      {(!sec || sec === "overview") && (<>
       <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
         {[7, 30, 90, 365].map(d => (
           <button key={d} onClick={() => setTimeRange(d)}
@@ -701,29 +706,29 @@ function FRATAnalytics({ records }) {
           </button>
         ))}
       </div>
-
-      {/* KPI row */}
-      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: sec ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
         <StatCard label="Assessments" value={stats.total} />
         <StatCard label="Avg Score" value={stats.avg.toFixed(1)} color={getRiskColor(Math.round(stats.avg))} />
         <StatCard label="Max Score" value={stats.max} color={getRiskColor(stats.max)} />
         <StatCard label="High/Critical" value={stats.lc.HIGH + stats.lc.CRITICAL} color={stats.lc.HIGH + stats.lc.CRITICAL > 0 ? RED : GREEN} sub={`${Math.round(((stats.lc.HIGH + stats.lc.CRITICAL) / stats.total) * 100)}% of total`} />
       </div>
+      <ChartCard title="Risk Score Trend">
+        <ResponsiveContainer width="100%" height={190}>
+          <AreaChart data={stats.trendData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
+            <XAxis dataKey="date" tick={{ fontSize: 9, fill: MUTED }} />
+            <YAxis tick={{ fontSize: 9, fill: MUTED }} />
+            <Tooltip contentStyle={ttStyle} />
+            <Area type="monotone" dataKey="avg" stroke={WHITE} fill={WHITE} fillOpacity={0.08} strokeWidth={2} name="Avg" />
+            <Area type="monotone" dataKey="max" stroke={RED} fill={RED} fillOpacity={0.06} strokeWidth={1} strokeDasharray="4 4" name="Max" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartCard>
+      </>)}
 
-      {/* Score trend + distribution */}
-      <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 16 }}>
-        <ChartCard title="Risk Score Trend">
-          <ResponsiveContainer width="100%" height={190}>
-            <AreaChart data={stats.trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-              <XAxis dataKey="date" tick={{ fontSize: 9, fill: MUTED }} />
-              <YAxis tick={{ fontSize: 9, fill: MUTED }} />
-              <Tooltip contentStyle={ttStyle} />
-              <Area type="monotone" dataKey="avg" stroke={WHITE} fill={WHITE} fillOpacity={0.08} strokeWidth={2} name="Avg" />
-              <Area type="monotone" dataKey="max" stroke={RED} fill={RED} fillOpacity={0.06} strokeWidth={1} strokeDasharray="4 4" name="Max" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
+      {/* Distribution: risk distribution pie + top factors */}
+      {(!sec || sec === "distribution") && (<>
+      <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <ChartCard title="Risk Distribution">
           <ResponsiveContainer width="100%" height={140}>
             <PieChart><Pie data={stats.pieData} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
@@ -740,10 +745,6 @@ function FRATAnalytics({ records }) {
             ))}
           </div>
         </ChartCard>
-      </div>
-
-      {/* Top risk factors + category breakdown */}
-      <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <ChartCard title="Top Risk Factors">
           {stats.topFactors.map((f, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
@@ -757,6 +758,12 @@ function FRATAnalytics({ records }) {
             </div>
           ))}
         </ChartCard>
+      </div>
+      </>)}
+
+      {/* Breakdown: category bars + aircraft bars + day-of-week */}
+      {(!sec || sec === "breakdown") && (<>
+      <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <ChartCard title="Risk by Category">
           <ResponsiveContainer width="100%" height={stats.catBreakdown.length * 32 + 10}>
             <BarChart data={stats.catBreakdown} layout="vertical">
@@ -768,10 +775,6 @@ function FRATAnalytics({ records }) {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-      </div>
-
-      {/* By aircraft + by day of week */}
-      <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <ChartCard title="By Aircraft">
           <ResponsiveContainer width="100%" height={170}>
             <BarChart data={stats.aircraftData}>
@@ -784,20 +787,22 @@ function FRATAnalytics({ records }) {
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="By Day of Week">
-          <ResponsiveContainer width="100%" height={170}>
-            <BarChart data={stats.dowData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-              <XAxis dataKey="day" tick={{ fontSize: 10, fill: MUTED }} />
-              <YAxis tick={{ fontSize: 9, fill: MUTED }} />
-              <Tooltip contentStyle={ttStyle} />
-              <Bar dataKey="count" fill={CYAN} radius={[3, 3, 0, 0]} name="Flights" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
       </div>
+      <ChartCard title="By Day of Week">
+        <ResponsiveContainer width="100%" height={170}>
+          <BarChart data={stats.dowData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
+            <XAxis dataKey="day" tick={{ fontSize: 10, fill: MUTED }} />
+            <YAxis tick={{ fontSize: 9, fill: MUTED }} />
+            <Tooltip contentStyle={ttStyle} />
+            <Bar dataKey="count" fill={CYAN} radius={[3, 3, 0, 0]} name="Flights" />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
+      </>)}
 
-      {/* By pilot */}
+      {/* Pilots: pilot table + fatigue analytics */}
+      {(!sec || sec === "pilots") && (<>
       {stats.pilotData.length > 1 && (
         <ChartCard title="By Pilot">
           <div style={{ overflowX: "auto" }}>
@@ -828,8 +833,6 @@ function FRATAnalytics({ records }) {
           </div>
         </ChartCard>
       )}
-
-      {/* Fatigue Risk Analytics */}
       {stats.fatigueCount > 0 && (
         <>
           <SectionTitle>Fatigue Risk Analytics</SectionTitle>
@@ -888,6 +891,7 @@ function FRATAnalytics({ records }) {
           </ChartCard>
         </>
       )}
+      </>)}
     </div>
   );
 }
@@ -895,7 +899,7 @@ function FRATAnalytics({ records }) {
 // ════════════════════════════════════════════════════════════════
 // SAFETY METRICS TAB — reports, hazards, actions tracking
 // ════════════════════════════════════════════════════════════════
-function SafetyMetrics({ reports, hazards, actions }) {
+function SafetyMetrics({ reports, hazards, actions, section }) {
   const stats = useMemo(() => {
     const now = Date.now();
 
@@ -952,89 +956,99 @@ function SafetyMetrics({ reports, hazards, actions }) {
     return { reportStatusData, reportCatData, monthlyReportData, hazardRiskData, actionStatus, overdueActions, avgClosureTime, totalReports: reports.length, totalHazards: hazards.length, totalActions: actions.length };
   }, [reports, hazards, actions]);
 
+  const sec = section;
   return (
     <div>
-      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
+      {/* Reports: KPIs + reports by status pie */}
+      {(!sec || sec === "reports") && (<>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: sec ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
         <StatCard label="Safety Reports" value={stats.totalReports} />
         <StatCard label="Open Investigations" value={stats.hazardRiskData.reduce((a, d) => a + d.value, 0)} color={AMBER} />
         <StatCard label="Corrective Actions" value={stats.totalActions} sub={stats.overdueActions.length > 0 ? `${stats.overdueActions.length} overdue` : "None overdue"} color={stats.overdueActions.length > 0 ? RED : WHITE} />
         <StatCard label="Avg Closure Time" value={stats.avgClosureTime ? `${stats.avgClosureTime}d` : "—"} sub="For completed actions" />
       </div>
+      <ChartCard title="Reports by Status">
+        {stats.reportStatusData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={150}>
+            <PieChart><Pie data={stats.reportStatusData} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
+              {stats.reportStatusData.map((d, i) => <Cell key={i} fill={d.color} />)}</Pie>
+              <Tooltip contentStyle={ttStyle} />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No reports yet</div>}
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+          {stats.reportStatusData.map(d => (
+            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: d.color }} />
+              <span style={{ color: MUTED }}>{d.name}: {d.value}</span>
+            </div>
+          ))}
+        </div>
+      </ChartCard>
+      </>)}
 
-      <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <ChartCard title="Reports by Status">
-          {stats.reportStatusData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={150}>
-              <PieChart><Pie data={stats.reportStatusData} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
-                {stats.reportStatusData.map((d, i) => <Cell key={i} fill={d.color} />)}</Pie>
-                <Tooltip contentStyle={ttStyle} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No reports yet</div>}
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-            {stats.reportStatusData.map(d => (
-              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: d.color }} />
-                <span style={{ color: MUTED }}>{d.name}: {d.value}</span>
-              </div>
-            ))}
-          </div>
-        </ChartCard>
-        <ChartCard title="Investigations by Risk Level">
-          {stats.hazardRiskData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={150}>
-              <PieChart><Pie data={stats.hazardRiskData} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
-                {stats.hazardRiskData.map((d, i) => <Cell key={i} fill={d.color} />)}</Pie>
-                <Tooltip contentStyle={ttStyle} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No hazards yet</div>}
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-            {stats.hazardRiskData.map(d => (
-              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: d.color }} />
-                <span style={{ color: MUTED }}>{d.name}: {d.value}</span>
-              </div>
-            ))}
-          </div>
-        </ChartCard>
-      </div>
+      {/* Investigations: investigations by risk pie */}
+      {(!sec || sec === "investigations") && (
+      <ChartCard title="Investigations by Risk Level">
+        {stats.hazardRiskData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={150}>
+            <PieChart><Pie data={stats.hazardRiskData} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
+              {stats.hazardRiskData.map((d, i) => <Cell key={i} fill={d.color} />)}</Pie>
+              <Tooltip contentStyle={ttStyle} />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No hazards yet</div>}
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+          {stats.hazardRiskData.map(d => (
+            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: d.color }} />
+              <span style={{ color: MUTED }}>{d.name}: {d.value}</span>
+            </div>
+          ))}
+        </div>
+      </ChartCard>
+      )}
 
-      <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <ChartCard title="Report Categories">
-          {stats.reportCatData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={stats.reportCatData.length * 32 + 10}>
-              <BarChart data={stats.reportCatData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke={BORDER} horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 9, fill: MUTED }} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: OFF_WHITE }} width={100} />
-                <Tooltip contentStyle={ttStyle} />
-                <Bar dataKey="count" fill={CYAN} radius={[0, 3, 3, 0]} name="Reports" />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No reports yet</div>}
+      {/* Categories: report categories bar chart */}
+      {(!sec || sec === "categories") && (
+      <ChartCard title="Report Categories">
+        {stats.reportCatData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={stats.reportCatData.length * 32 + 10}>
+            <BarChart data={stats.reportCatData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke={BORDER} horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 9, fill: MUTED }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: OFF_WHITE }} width={100} />
+              <Tooltip contentStyle={ttStyle} />
+              <Bar dataKey="count" fill={CYAN} radius={[0, 3, 3, 0]} name="Reports" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No reports yet</div>}
+      </ChartCard>
+      )}
+
+      {/* Actions: overdue actions list */}
+      {(!sec || sec === "actions") && (<>
+      {stats.overdueActions.length > 0 ? (
+        <ChartCard title={`Overdue Actions (${stats.overdueActions.length})`}>
+          {stats.overdueActions.map((a, i) => (
+            <div key={i} style={{ padding: "8px 0", borderBottom: i < stats.overdueActions.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: WHITE, marginBottom: 2 }}>{a.title || "Untitled action"}</div>
+              <div style={{ fontSize: 10, color: RED }}>Due {formatDate(a.due_date)} · {Math.abs(daysAgo(a.due_date))} days overdue</div>
+              {a.assigned_to && <div style={{ fontSize: 9, color: MUTED }}>Assigned to: {a.assigned_to}</div>}
+            </div>
+          ))}
         </ChartCard>
-        {stats.overdueActions.length > 0 ? (
-          <ChartCard title={`Overdue Actions (${stats.overdueActions.length})`}>
-            {stats.overdueActions.map((a, i) => (
-              <div key={i} style={{ padding: "8px 0", borderBottom: i < stats.overdueActions.length - 1 ? `1px solid ${BORDER}` : "none" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: WHITE, marginBottom: 2 }}>{a.title || "Untitled action"}</div>
-                <div style={{ fontSize: 10, color: RED }}>Due {formatDate(a.due_date)} · {Math.abs(daysAgo(a.due_date))} days overdue</div>
-                {a.assigned_to && <div style={{ fontSize: 9, color: MUTED }}>Assigned to: {a.assigned_to}</div>}
-              </div>
-            ))}
-          </ChartCard>
-        ) : (
-          <ChartCard title="Action Status">
-            {Object.entries(stats.actionStatus).length > 0 ? Object.entries(stats.actionStatus).map(([status, count]) => (
-              <div key={status} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${BORDER}` }}>
-                <span style={{ fontSize: 11, color: OFF_WHITE, textTransform: "capitalize" }}>{status.replace(/_/g, " ")}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: status === "completed" || status === "closed" ? GREEN : WHITE }}>{count}</span>
-              </div>
-            )) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No actions yet</div>}
-          </ChartCard>
-        )}
-      </div>
+      ) : (
+        <ChartCard title="Action Status">
+          {Object.entries(stats.actionStatus).length > 0 ? Object.entries(stats.actionStatus).map(([status, count]) => (
+            <div key={status} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${BORDER}` }}>
+              <span style={{ fontSize: 11, color: OFF_WHITE, textTransform: "capitalize" }}>{status.replace(/_/g, " ")}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: status === "completed" || status === "closed" ? GREEN : WHITE }}>{count}</span>
+            </div>
+          )) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No actions yet</div>}
+        </ChartCard>
+      )}
+      </>)}
     </div>
   );
 }
@@ -1252,17 +1266,17 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAi
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus, part5Compliance }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, section, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus, part5Compliance }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
   const h = hazards || [];
   const a = actions || [];
 
-  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} part5Compliance={part5Compliance} />;
+  if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} part5Compliance={part5Compliance} section={section} />;
   if (view === "fleet") return <FleetStatusView flights={f} fleetAircraft={fleetAircraft} fleetStatusFields={fleetStatusFields} onUpdateAircraftStatus={onUpdateAircraftStatus} />;
-  if (view === "frat") return <FRATAnalytics records={r} />;
-  if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} />;
+  if (view === "frat") return <FRATAnalytics records={r} section={section} />;
+  if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} section={section} />;
 
   // Fallback — original behavior
   return <FRATAnalytics records={r} />;

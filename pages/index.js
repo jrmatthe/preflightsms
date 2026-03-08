@@ -1871,11 +1871,11 @@ function ExportView({ records, orgName }) {
       <div style={{ ...card, padding: 26 }}>
         <h2 style={{ margin: "0 0 6px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 18 }}>Export Reports</h2>
         <p style={{ color: MUTED, fontSize: 12, margin: "0 0 22px" }}>Generate reports for SMS recordkeeping per §5.97.</p>
-        {[{ title: "Summary Report", desc: "Overview with risk distribution and top hazard factors.", action: genSummary, btn: "Download .txt", icon: "📄" },
-          { title: "Standard Export", desc: "All FRAT records with scores and metadata for Excel.", action: genCSV, btn: "Download CSV", icon: "📊" },
-          { title: "Detailed Factor Export", desc: "Every record with individual risk factor columns.", action: genDetailed, btn: "Download CSV", icon: "🔬" }].map((r, i) => (
+        {[{ title: "Summary Report", desc: "Overview with risk distribution and top hazard factors.", action: genSummary, btn: "Download .txt", iconSvg: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
+          { title: "Standard Export", desc: "All FRAT records with scores and metadata for Excel.", action: genCSV, btn: "Download CSV", iconSvg: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> },
+          { title: "Detailed Factor Export", desc: "Every record with individual risk factor columns.", action: genDetailed, btn: "Download CSV", iconSvg: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={AMBER} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg> }].map((r, i) => (
           <div key={i} style={{ padding: 16, border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 10, display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ fontSize: 28, flexShrink: 0 }}>{r.icon}</div>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{r.iconSvg}</div>
             <div style={{ flex: 1 }}><div style={{ fontWeight: 700, color: WHITE, fontSize: 13, marginBottom: 2 }}>{r.title}</div>
               <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.3 }}>{r.desc}</div></div>
             <button onClick={r.action} disabled={!records.length} style={{ padding: "8px 14px", background: !records.length ? BORDER : WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: !records.length ? "not-allowed" : "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>{r.btn}</button></div>))}
@@ -1883,9 +1883,65 @@ function ExportView({ records, orgName }) {
           <div style={{ fontSize: 11, color: MUTED }}><strong style={{ color: OFF_WHITE }}>§5.97 Recordkeeping:</strong> SRM records must be retained as long as controls remain relevant. Current records: <strong style={{ color: WHITE }}>{records.length}</strong></div></div></div></div>);
 }
 
+function ModuleCard({ title, tabs, defaultTab, renderContent, featureGate }) {
+  const [activeTab, setActiveTab] = useState(defaultTab || (tabs?.[0]?.id));
+  if (featureGate === false) return null;
+  return (
+    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
+      <div style={{ padding: "10px 14px", borderBottom: `1px solid ${BORDER}` }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: WHITE }}>{title}</div>
+      </div>
+      {tabs && tabs.length > 1 && (
+        <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${BORDER}`, padding: "0 14px", overflowX: "auto" }}>
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+              padding: "7px 10px", fontSize: 10, fontWeight: 600, cursor: "pointer",
+              color: activeTab === tab.id ? WHITE : MUTED,
+              borderBottom: activeTab === tab.id ? `2px solid ${CYAN}` : "2px solid transparent",
+              background: "none", border: "none", whiteSpace: "nowrap", fontFamily: "inherit",
+            }}>{tab.label}</button>
+          ))}
+        </div>
+      )}
+      <div style={{ padding: 14 }}>
+        {renderContent(activeTab)}
+      </div>
+    </div>
+  );
+}
+
+function ComplianceBar({ compStats, compColor, part5Compliance, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: CARD, borderRadius: 10, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${compColor}`,
+        padding: "10px 14px", cursor: "pointer", transition: "all 0.15s", marginBottom: 16,
+        display: "flex", alignItems: "center", gap: 14,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = "#1E1E1E"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = CARD; }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, marginBottom: 2 }}>Compliance Health</div>
+        <div style={{ fontSize: 9, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {part5Compliance && part5Compliance.total > 0
+            ? `${part5Compliance.compliant}/${part5Compliance.total} Part 5 met`
+            : compStats.overdueActions > 0 ? `${compStats.overdueActions} overdue` : "No overdue actions"}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <div style={{ width: 60, height: 5, background: "#0A0A0A", borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ width: `${compStats.compliance}%`, height: "100%", background: compColor, borderRadius: 3, transition: "width 0.5s" }} />
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: compColor, fontFamily: "Georgia,serif", minWidth: 36, textAlign: "right" }}>{compStats.compliance}%</div>
+      </div>
+    </div>
+  );
+}
+
 function DashboardWrapper({ records, flights, reports, hazards, actions, onDelete, riskLevels, org, erpPlans, erpDrills, profile, session, spis, spiMeasurements, onCreateSpi, onUpdateSpi, onDeleteSpi, onLoadTargets, onCreateTarget, onUpdateTarget, onDeleteTarget, onLoadMeasurements, onCreateMeasurement, onInitSpiDefaults, cultureSurveys, orgProfiles, onCreateSurvey, onUpdateSurvey, onDeleteSurvey, onFetchSurveyResponses, onSubmitSurveyResponse, onCheckUserSurveyResponse, onFetchSurveyResults, onUpsertSurveyResults, trendAlerts, onAcknowledgeTrendAlert, pilotEngagement, safetyRecognitions, orgEngagement, orgRecognitions, onAcknowledgeRecognition, complianceFrameworks, complianceChecklistItems, complianceStatusData, trainingReqs, trainingRecs, policies, iepAudits, auditSchedules, mocItems, insuranceExports, onGenerateExport, onDeleteExport, onNavigateSubscription, onNavigate, fleetAircraft, part5Compliance, onViewDetail, showOnboarding, onboardingState, onStartFlow, onDismissOnboarding, isTrial, onStartFresh }) {
   const analyticsOn = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
-  const [sub, setSub] = useState("analytics");
   const hasAnalytics = hasFeature(org, "dashboard_analytics");
   const hasSpi = hasFeature(org, "dashboard_analytics"); // SPIs require Professional+ (same gate as analytics)
   const hasCulture = hasFeature(org, "safety_culture_survey");
@@ -1915,8 +1971,12 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
   }, [actions, hazards, reports, part5Compliance]);
   const compColor = compStats.compliance >= 80 ? GREEN : compStats.compliance >= 60 ? AMBER : RED;
 
+  // Dashboard charts shared props
+  const chartProps = { records, flights, reports, hazards, actions, riskLevels, erpPlans, erpDrills };
+  const overviewNav = (target) => target === "spiDashboard" ? null : onNavigate(target);
+
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+    <div style={{ maxWidth: analyticsOn ? 1400 : 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Dashboard</div>
@@ -1924,97 +1984,18 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         </div>
       </div>
 
-      {/* Top row: Onboarding (left) + Compliance Health (right) */}
-      {showOnboarding ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
-          <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} onDismiss={onDismissOnboarding} isTrial={isTrial} onStartFresh={onStartFresh} />
-          <div
-            style={{
-              background: CARD, borderRadius: 12, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${compColor}`,
-              padding: "24px 24px", cursor: "pointer", transition: "all 0.15s", display: "flex", flexDirection: "column",
-            }}
-            onClick={() => onNavigate("audits")}
-            onMouseEnter={e => { e.currentTarget.style.borderTopColor = "#444"; e.currentTarget.style.borderRightColor = "#444"; e.currentTarget.style.borderBottomColor = "#444"; e.currentTarget.style.background = "#282828"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderTopColor = BORDER; e.currentTarget.style.borderRightColor = BORDER; e.currentTarget.style.borderBottomColor = BORDER; e.currentTarget.style.background = CARD; }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: WHITE, marginBottom: 4 }}>SMS Compliance Health</div>
-            <div style={{ fontSize: 10, color: MUTED, marginBottom: 16 }}>
-              {part5Compliance && part5Compliance.total > 0
-                ? `${part5Compliance.compliant}/${part5Compliance.total} Part 5 requirements met`
-                : compStats.overdueActions > 0 ? `${compStats.overdueActions} overdue action${compStats.overdueActions > 1 ? "s" : ""}` : "No overdue actions"}
-            </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
-              <div style={{ fontSize: 48, fontWeight: 800, color: compColor, fontFamily: "Georgia,serif", lineHeight: 1 }}>{compStats.compliance}%</div>
-            </div>
-            <div style={{ height: 6, background: "#0A0A0A", borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
-              <div style={{ width: `${compStats.compliance}%`, height: "100%", background: compColor, borderRadius: 3, transition: "width 0.5s" }} />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: "auto" }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: compStats.overdueActions > 0 ? RED : WHITE }}>{compStats.overdueActions}</div>
-                <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>Overdue</div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: compStats.openHazards > 0 ? AMBER : WHITE }}>{compStats.openHazards}</div>
-                <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>Open Hazards</div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: WHITE }}>{compStats.openReports}</div>
-                <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5 }}>Open Reports</div>
-              </div>
-            </div>
-            {compStats.compliance === 100 && (
-              <div style={{ marginTop: 12, fontSize: 11, color: GREEN, fontWeight: 600 }}>
-                All Part 5 requirements met
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div style={{ marginBottom: 24 }}>
-          <div
-            style={{
-              background: CARD, borderRadius: 12, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${compColor}`,
-              padding: "18px 22px", cursor: "pointer", transition: "all 0.15s",
-            }}
-            onClick={() => onNavigate("audits")}
-            onMouseEnter={e => { e.currentTarget.style.borderTopColor = "#444"; e.currentTarget.style.borderRightColor = "#444"; e.currentTarget.style.borderBottomColor = "#444"; e.currentTarget.style.background = "#282828"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderTopColor = BORDER; e.currentTarget.style.borderRightColor = BORDER; e.currentTarget.style.borderBottomColor = BORDER; e.currentTarget.style.background = CARD; }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: WHITE, marginBottom: 4 }}>SMS Compliance Health</div>
-                <div style={{ fontSize: 10, color: MUTED }}>
-                  {part5Compliance && part5Compliance.total > 0
-                    ? `${part5Compliance.compliant}/${part5Compliance.total} Part 5 requirements met`
-                    : compStats.overdueActions > 0 ? `${compStats.overdueActions} overdue action${compStats.overdueActions > 1 ? "s" : ""}` : "No overdue actions"}
-                  {compStats.openHazards > 0 ? ` · ${compStats.openHazards} open hazard${compStats.openHazards > 1 ? "s" : ""}` : ""}
-                  {compStats.openReports > 0 ? ` · ${compStats.openReports} open report${compStats.openReports > 1 ? "s" : ""}` : ""}
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 32, fontWeight: 800, color: compColor, fontFamily: "Georgia,serif" }}>{compStats.compliance}%</div>
-              </div>
-            </div>
-            <div style={{ marginTop: 8, height: 6, background: "#0A0A0A", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ width: `${compStats.compliance}%`, height: "100%", background: compColor, borderRadius: 3, transition: "width 0.5s" }} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pilot Engagement Card */}
+      {/* Gamification — full width above grid */}
       {gamificationOn && (
         <div style={{ marginBottom: 20 }}>
           <PilotEngagement engagement={pilotEngagement} recognitions={safetyRecognitions} onAcknowledge={onAcknowledgeRecognition} />
         </div>
       )}
-      {/* Team Engagement Widget */}
       {gamificationOn && (
         <div style={{ marginBottom: 20 }}>
           <TeamEngagement orgEngagement={orgEngagement} orgRecognitions={orgRecognitions} orgProfiles={orgProfiles} records={records} reports={reports} />
         </div>
       )}
+
       {/* Quick Actions & Training Summary — non-admin roles */}
       {!analyticsOn && (() => {
         const userId = session?.user?.id;
@@ -2036,7 +2017,6 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         const current = reqStatus.filter(r => r.status === "current");
         const notStarted = reqStatus.filter(r => r.status === "not_started");
         return (<>
-          {/* Quick Actions */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
             <button onClick={() => onNavigate("submit")} style={{ ...card, padding: "16px 14px", border: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(34,211,238,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -2051,7 +2031,6 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
               <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>File Safety Report</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Report a hazard, incident, or near-miss</div></div>
             </button>
           </div>
-          {/* Training Summary */}
           {myReqs.length > 0 && (
             <div style={{ ...card, padding: "18px 20px", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -2100,27 +2079,54 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
           )}
         </>);
       })()}
-      <div style={{ display: "flex", gap: 4, marginBottom: 20, flexWrap: "wrap" }}>
-        {[...(analyticsOn ? [["analytics", "Overview"]] : []), ...(analyticsOn && hasAnalytics ? [["frat", "FRAT Analytics"], ["safety", "Safety Metrics"]] : []), ...(analyticsOn && hasSpi ? [["performance", "Performance"]] : []), ...(hasCulture ? [["culture", "Safety Culture"]] : []), ...(analyticsOn && hasInsurance ? [["insurance", "Insurance & Export"]] : []), ...(analyticsOn ? [["history", "FRAT History"]] : []), ...(analyticsOn && !isDashboardFree ? [["export", "Export"]] : [])].map(([id, label]) => (
-          <button key={id} onClick={() => setSub(id)}
-            style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${sub === id ? WHITE : BORDER}`,
-              background: sub === id ? WHITE : "transparent", color: sub === id ? BLACK : MUTED,
-              fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{label}</button>
-        ))}
-        {!hasAnalytics && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
-            <span style={{ fontSize: 10, color: "#F59E0B", padding: "4px 10px", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 4 }}>Upgrade to Professional for full analytics</span>
-          </div>
-        )}
+
+      {/* ── 3-Column Modular Grid (admin view only) ── */}
+      {analyticsOn && (
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
+        {/* Column 1 */}
+        <div>
+          {showOnboarding && <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} onDismiss={onDismissOnboarding} isTrial={isTrial} onStartFresh={onStartFresh} />}
+          <ModuleCard title="Overview" tabs={[
+            { id: "summary", label: "Summary" }, { id: "trends", label: "Trends" },
+            { id: "open_items", label: "Open Items" }, { id: "erp", label: "ERP" },
+            { id: "health", label: "SMS Health" },
+          ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="overview" section={tab} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={overviewNav} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} />} />
+          <ModuleCard title="FRAT Analytics" featureGate={hasAnalytics} tabs={[
+            { id: "overview", label: "Overview" }, { id: "distribution", label: "Distribution" },
+            { id: "breakdown", label: "Breakdown" }, { id: "pilots", label: "Pilots" },
+          ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="frat" section={tab} />} />
+          {!hasAnalytics && (
+            <div style={{ padding: "12px 14px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 10, marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: AMBER }}>Upgrade to Professional for full analytics</div>
+              {onNavigateSubscription && <button onClick={onNavigateSubscription} style={{ marginTop: 6, padding: "6px 14px", background: AMBER, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 10, cursor: "pointer" }}>View Plans</button>}
+            </div>
+          )}
+        </div>
+
+        {/* Column 2 */}
+        <div>
+          <ModuleCard title="Performance" featureGate={hasSpi}
+            renderContent={() => <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />} />
+          <ModuleCard title="Safety Metrics" featureGate={hasAnalytics} tabs={[
+            { id: "reports", label: "Reports" }, { id: "investigations", label: "Investigations" },
+            { id: "categories", label: "Categories" }, { id: "actions", label: "Actions" },
+          ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="safety" section={tab} />} />
+          <ModuleCard title="Safety Culture" featureGate={hasCulture}
+            renderContent={() => <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />} />
+        </div>
+
+        {/* Column 3 */}
+        <div>
+          <ComplianceBar compStats={compStats} compColor={compColor} part5Compliance={part5Compliance} onClick={() => onNavigate("audits")} />
+          <ModuleCard title="FRAT History"
+            renderContent={() => <HistoryView records={records} onDelete={onDelete} onViewDetail={onViewDetail} />} />
+          <ModuleCard title="Insurance & Export" featureGate={hasInsurance}
+            renderContent={() => <InsuranceScorecard profile={profile} session={session} org={org} orgProfiles={orgProfiles} records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} trainingReqs={trainingReqs} trainingRecs={trainingRecs} erpPlans={erpPlans} erpDrills={erpDrills} iepAudits={iepAudits} auditSchedules={auditSchedules} insuranceExports={insuranceExports} onGenerateExport={onGenerateExport} onDeleteExport={onDeleteExport} />} />
+          <ModuleCard title="Export" featureGate={!isDashboardFree}
+            renderContent={() => <ExportView records={records} orgName={org?.name} />} />
+        </div>
       </div>
-      {sub === "analytics" && analyticsOn && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="overview" erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={(target) => target === "spiDashboard" ? setSub("performance") : onNavigate(target)} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} />}
-      {sub === "frat" && analyticsOn && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="frat" erpPlans={erpPlans} erpDrills={erpDrills} />}
-      {sub === "safety" && analyticsOn && hasAnalytics && <DashboardCharts records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} riskLevels={riskLevels} view="safety" erpPlans={erpPlans} erpDrills={erpDrills} />}
-      {sub === "culture" && hasCulture && <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />}
-      {sub === "performance" && analyticsOn && hasSpi && <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />}
-      {sub === "insurance" && analyticsOn && hasInsurance && <InsuranceScorecard profile={profile} session={session} org={org} orgProfiles={orgProfiles} records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} trainingReqs={trainingReqs} trainingRecs={trainingRecs} erpPlans={erpPlans} erpDrills={erpDrills} iepAudits={iepAudits} auditSchedules={auditSchedules} insuranceExports={insuranceExports} onGenerateExport={onGenerateExport} onDeleteExport={onDeleteExport} />}
-      {sub === "history" && analyticsOn && <HistoryView records={records} onDelete={onDelete} onViewDetail={onViewDetail} />}
-      {sub === "export" && analyticsOn && <ExportView records={records} orgName={org?.name} />}
+      )}
     </div>
   );
 }

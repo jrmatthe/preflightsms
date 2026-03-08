@@ -61,7 +61,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
       overflow: "hidden",
     }}>
       {/* Header */}
-      <div style={{ padding: "20px 24px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div style={{ padding: "14px 18px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10,
@@ -74,11 +74,8 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: WHITE, letterSpacing: "-0.02em" }}>
-              Getting Started: let's set up your SMS
-            </div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>
-              Complete these steps to get your safety management system operational
+            <div style={{ fontSize: 14, fontWeight: 800, color: WHITE, letterSpacing: "-0.02em" }}>
+              Getting Started: set up your SMS
             </div>
           </div>
         </div>
@@ -96,7 +93,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
       </div>
 
       {/* Progress bar */}
-      <div style={{ padding: "14px 24px 6px" }}>
+      <div style={{ padding: "10px 18px 4px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: "0.05em" }}>Progress</span>
           <span style={{ fontSize: 10, fontWeight: 700, color: completedCount > 0 ? GREEN : MUTED }}>{completedCount} / {totalCount}</span>
@@ -113,7 +110,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
       </div>
 
       {/* Flow list */}
-      <div style={{ padding: "12px 24px 8px" }}>
+      <div style={{ padding: "8px 18px 6px" }}>
         {FLOW_ORDER.map((id, index) => {
           const flow = ONBOARDING_FLOWS[id];
           if (!flow) return null;
@@ -126,7 +123,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "11px 14px",
+              padding: "8px 12px",
               marginBottom: 5,
               background: isComplete ? "rgba(74,222,128,0.04)" : "rgba(255,255,255,0.02)",
               border: `1px solid ${isComplete ? "rgba(74,222,128,0.12)" : BORDER}`,
@@ -166,9 +163,6 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
                   }}>
                     Step {index + 1}: {flow.title}
                   </div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2, lineHeight: 1.3 }}>
-                    {flow.description}
-                  </div>
                 </div>
               </div>
               <div style={{ flexShrink: 0, marginLeft: 16 }}>
@@ -204,7 +198,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
       {/* Sandbox callout */}
       {isTrial && (
         <div style={{
-          margin: "4px 24px 12px",
+          margin: "4px 18px 10px",
           padding: "16px 20px",
           background: "rgba(245,158,11,0.04)",
           border: "1px solid rgba(245,158,11,0.15)",
@@ -239,7 +233,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
       )}
 
       {/* Dismiss link */}
-      <div style={{ padding: "6px 24px 16px", textAlign: "center" }}>
+      <div style={{ padding: "4px 18px 12px", textAlign: "center" }}>
         <button
           onClick={onDismiss}
           style={{
