@@ -1933,8 +1933,8 @@ function ModuleCard({ title, tabs, defaultTab, renderContent, featureGate, dragH
   const [activeTab, setActiveTab] = useState(defaultTab || (tabs?.[0]?.id));
   if (featureGate === false) return null;
   return (
-    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 0, overflow: "hidden" }}>
-      <div style={{ padding: "10px 14px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 0, overflow: "hidden", height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "10px 14px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         {dragHandleProps && (
           <div {...dragHandleProps} style={{ cursor: "grab", opacity: 0.3, transition: "opacity 0.15s", display: "flex", alignItems: "center", flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.opacity = "1"} onMouseLeave={e => e.currentTarget.style.opacity = "0.3"}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill={MUTED}><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>
@@ -1943,7 +1943,7 @@ function ModuleCard({ title, tabs, defaultTab, renderContent, featureGate, dragH
         <div style={{ fontSize: 12, fontWeight: 700, color: WHITE }}>{title}</div>
       </div>
       {tabs && tabs.length > 1 && (
-        <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${BORDER}`, padding: "0 14px", overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${BORDER}`, padding: "0 14px", overflowX: "auto", flexShrink: 0 }}>
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               padding: "7px 10px", fontSize: 10, fontWeight: 600, cursor: "pointer",
@@ -1954,7 +1954,7 @@ function ModuleCard({ title, tabs, defaultTab, renderContent, featureGate, dragH
           ))}
         </div>
       )}
-      <div style={{ padding: 14 }}>
+      <div style={{ padding: 14, flex: 1, overflow: "auto", minHeight: 0 }}>
         {renderContent(activeTab)}
       </div>
     </div>
@@ -1968,6 +1968,7 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick, dragHan
       style={{
         background: CARD, borderRadius: 10, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${compColor}`,
         padding: "12px 14px", cursor: "pointer", transition: "all 0.15s", marginBottom: 0,
+        height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", boxSizing: "border-box",
       }}
       onMouseEnter={e => { e.currentTarget.style.background = "#1E1E1E"; }}
       onMouseLeave={e => { e.currentTarget.style.background = CARD; }}
@@ -2301,11 +2302,28 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
   const chartProps = { records, flights, reports, hazards, actions, riskLevels, erpPlans, erpDrills };
   const overviewNav = (target) => target === "spiDashboard" ? null : onNavigate(target);
 
-  // ── Card registry & drag-to-reorder ──
+  // ── Fixed box layout & drag-to-reorder ──
   const DEFAULT_CARD_ORDER = [
     "compliance", "overview", "performance", "safety_metrics", "frat_analytics",
     "safety_culture", "frat_history", "insurance", "export",
   ];
+
+  // Fixed box grid positions (wireframe structure — these never change)
+  const getBoxStyle = (idx) => {
+    switch (idx) {
+      case 0: return { gridColumn: "1 / -1", gridRow: "1 / 2" };       // full width
+      case 1: return { gridColumn: "1 / 3", gridRow: "2 / 3" };       // 2-col left
+      case 2: return { gridColumn: "3 / 4", gridRow: "2 / 4" };       // right, spans 2 rows
+      case 3: return { gridColumn: "1 / 2", gridRow: "3 / 4" };       // 1-col left
+      case 4: return { gridColumn: "2 / 3", gridRow: "3 / 4" };       // 1-col middle
+      default: {
+        const r = idx - 5;
+        const row = 4 + Math.floor(r / 3);
+        const col = (r % 3) + 1;
+        return { gridColumn: `${col} / ${col + 1}`, gridRow: `${row} / ${row + 1}` };
+      }
+    }
+  };
 
   const CARD_GATES = {
     performance: hasSpi,
@@ -2331,138 +2349,69 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
   const [dragId, setDragId] = useState(null);
   const dragIdRef = useRef(null);
   const preDragOrder = useRef(null);
-  const lastOverId = useRef(null);
+  const lastOverBox = useRef(null);
   const didDrop = useRef(false);
 
   const visibleCards = cardOrder.filter(id => CARD_GATES[id] !== false);
+  const numVisible = visibleCards.length;
 
-  // Separate compliance (always full-width top) from the grid cards
-  const gridCards = visibleCards.filter(id => id !== "compliance");
-  const showCompliance = visibleCards.includes("compliance");
+  // Grid rows: fixed heights per wireframe
+  const rowCount = numVisible <= 0 ? 0 : numVisible === 1 ? 1 : numVisible === 2 ? 2 : numVisible <= 5 ? 3 : 3 + Math.ceil((numVisible - 5) / 3);
+  const gridTemplateRows = Array.from({ length: rowCount }, (_, i) => i === 0 ? "100px" : i === 1 ? "320px" : i === 2 ? "380px" : "360px").join(" ");
 
-  // Live reorder: move cards in state as cursor moves over them
-  const liveReorder = useCallback((overId) => {
+  // Live reorder: move dragged card to target box position
+  const liveReorderToBox = (targetBoxIdx) => {
     const currentDrag = dragIdRef.current;
-    if (!currentDrag || overId === currentDrag || overId === lastOverId.current) return;
-    lastOverId.current = overId;
+    if (!currentDrag || targetBoxIdx === lastOverBox.current) return;
+    lastOverBox.current = targetBoxIdx;
     setCardOrder(prev => {
-      const next = [...prev];
-      const fromIdx = next.indexOf(currentDrag);
-      const toIdx = next.indexOf(overId);
-      if (fromIdx === -1 || toIdx === -1) return prev;
-      next.splice(fromIdx, 1);
-      next.splice(toIdx, 0, currentDrag);
-      return next;
+      const visible = prev.filter(id => CARD_GATES[id] !== false);
+      const fromIdx = visible.indexOf(currentDrag);
+      if (fromIdx === -1 || fromIdx === targetBoxIdx) return prev;
+      visible.splice(fromIdx, 1);
+      visible.splice(targetBoxIdx, 0, currentDrag);
+      const hidden = prev.filter(id => CARD_GATES[id] === false);
+      return [...visible, ...hidden];
     });
-  }, []);
-
-  const mkDragProps = (id) => ({
-    draggable: true,
-    onDragStart: (e) => {
-      dragIdRef.current = id;
-      didDrop.current = false;
-      setDragId(id);
-      preDragOrder.current = [...cardOrder];
-      lastOverId.current = null;
-      e.dataTransfer.effectAllowed = "move";
-    },
-    onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; liveReorder(id); },
-    onDrop: (e) => {
-      e.preventDefault();
-      didDrop.current = true;
-      // Commit — persist current order
-      setCardOrder(cur => { try { localStorage.setItem(storageKey, JSON.stringify(cur)); } catch {} return cur; });
-      preDragOrder.current = null;
-      dragIdRef.current = null;
-      setDragId(null);
-      lastOverId.current = null;
-    },
-    onDragEnd: () => {
-      // If dropped outside a valid target, revert
-      if (!didDrop.current && preDragOrder.current) { setCardOrder(preDragOrder.current); }
-      preDragOrder.current = null;
-      dragIdRef.current = null;
-      setDragId(null);
-      lastOverId.current = null;
-    },
-  });
-
-  const cardWrapperStyle = (id) => {
-    const isDragging = !!dragId;
-    const isMe = dragId === id;
-    return {
-      borderRadius: 10,
-      transition: "transform 0.25s ease, opacity 0.2s ease, outline-color 0.2s ease",
-      minHeight: 0,
-      position: "relative",
-      // While dragging: the held card fades out, all others get dashed drop-zone outlines
-      opacity: isMe ? 0 : 1,
-      outline: isDragging && !isMe ? `2px dashed rgba(255,255,255,0.15)` : "2px dashed transparent",
-      outlineOffset: -2,
-    };
   };
 
-  // The placeholder shown where the dragged card currently sits in the order
-  const DropPlaceholder = () => (
-    <div style={{
-      borderRadius: 10,
-      border: `2px dashed ${CYAN}`,
-      background: "rgba(34,211,238,0.04)",
-      minHeight: 120,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      transition: "all 0.25s ease",
-    }}>
-      <div style={{ fontSize: 11, color: CYAN, opacity: 0.6, fontWeight: 600 }}>Drop here</div>
-    </div>
-  );
-
-  const renderCard = (id) => {
-    const dp = mkDragProps(id);
+  // Render card content only (no wrapper div)
+  const renderCardContent = (id) => {
     const handleProps = {};
-    // If this slot is the dragged card, show placeholder instead
-    if (dragId === id) {
-      return <div key={id} style={cardWrapperStyle(id)} {...dp}><DropPlaceholder /></div>;
-    }
     switch (id) {
+      case "compliance":
+        return <ComplianceBar compStats={compStats} compColor={compColor} part5Compliance={part5Compliance} onClick={() => onNavigate("audits")} dragHandleProps={handleProps} />;
       case "overview":
-        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Overview" tabs={[
+        return <ModuleCard dragHandleProps={handleProps} title="Overview" tabs={[
           { id: "summary", label: "Summary" }, { id: "trends", label: "Trends" },
           { id: "open_items", label: "Open Items" }, { id: "erp", label: "ERP" },
           { id: "health", label: "SMS Health" },
-        ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="overview" section={tab} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={overviewNav} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} />} /></div>;
+        ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="overview" section={tab} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={overviewNav} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} />} />;
       case "performance":
-        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Performance"
-          renderContent={() => <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />} /></div>;
+        return <ModuleCard dragHandleProps={handleProps} title="Performance"
+          renderContent={() => <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />} />;
       case "safety_metrics":
-        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Safety Metrics" tabs={[
+        return <ModuleCard dragHandleProps={handleProps} title="Safety Metrics" tabs={[
           { id: "reports", label: "Reports" }, { id: "investigations", label: "Investigations" },
           { id: "categories", label: "Categories" }, { id: "actions", label: "Actions" },
-        ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="safety" section={tab} />} /></div>;
+        ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="safety" section={tab} />} />;
       case "frat_analytics":
-        return (<div key={id} style={cardWrapperStyle(id)} {...dp}>
-          <ModuleCard dragHandleProps={handleProps} title="FRAT Analytics" tabs={[
-            { id: "overview", label: "Overview" }, { id: "distribution", label: "Distribution" },
-            { id: "breakdown", label: "Breakdown" }, { id: "pilots", label: "Pilots" },
-          ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="frat" section={tab} />} />
-          {!hasAnalytics && (
-            <div style={{ padding: "12px 14px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 10, marginTop: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: AMBER }}>Upgrade to Professional for full analytics</div>
-              {onNavigateSubscription && <button onClick={onNavigateSubscription} style={{ marginTop: 6, padding: "6px 14px", background: AMBER, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 10, cursor: "pointer" }}>View Plans</button>}
-            </div>
-          )}
-        </div>);
+        return <ModuleCard dragHandleProps={handleProps} title="FRAT Analytics" tabs={[
+          { id: "overview", label: "Overview" }, { id: "distribution", label: "Distribution" },
+          { id: "breakdown", label: "Breakdown" }, { id: "pilots", label: "Pilots" },
+        ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="frat" section={tab} />} />;
       case "safety_culture":
-        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Safety Culture"
-          renderContent={() => <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />} /></div>;
+        return <ModuleCard dragHandleProps={handleProps} title="Safety Culture"
+          renderContent={() => <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />} />;
       case "frat_history":
-        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="FRAT History"
-          renderContent={() => <HistoryView records={records} onDelete={onDelete} onViewDetail={onViewDetail} />} /></div>;
+        return <ModuleCard dragHandleProps={handleProps} title="FRAT History"
+          renderContent={() => <HistoryView records={records} onDelete={onDelete} onViewDetail={onViewDetail} />} />;
       case "insurance":
-        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Insurance & Export"
-          renderContent={() => <InsuranceScorecard profile={profile} session={session} org={org} orgProfiles={orgProfiles} records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} trainingReqs={trainingReqs} trainingRecs={trainingRecs} erpPlans={erpPlans} erpDrills={erpDrills} iepAudits={iepAudits} auditSchedules={auditSchedules} insuranceExports={insuranceExports} onGenerateExport={onGenerateExport} onDeleteExport={onDeleteExport} />} /></div>;
+        return <ModuleCard dragHandleProps={handleProps} title="Insurance & Export"
+          renderContent={() => <InsuranceScorecard profile={profile} session={session} org={org} orgProfiles={orgProfiles} records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} trainingReqs={trainingReqs} trainingRecs={trainingRecs} erpPlans={erpPlans} erpDrills={erpDrills} iepAudits={iepAudits} auditSchedules={auditSchedules} insuranceExports={insuranceExports} onGenerateExport={onGenerateExport} onDeleteExport={onDeleteExport} />} />;
       case "export":
-        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Export"
-          renderContent={() => <ExportView records={records} orgName={org?.name} />} /></div>;
+        return <ModuleCard dragHandleProps={handleProps} title="Export"
+          renderContent={() => <ExportView records={records} orgName={org?.name} />} />;
       default: return null;
     }
   };
@@ -2560,17 +2509,63 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         </>);
       })()}
 
-      {/* ── Dynamic Card Grid (admin view only) ── */}
-      {analyticsOn && (<>
-        {showCompliance && (() => {
-          const dp = mkDragProps("compliance");
-          if (dragId === "compliance") return <div key="compliance" style={{ ...cardWrapperStyle("compliance"), marginBottom: 16 }} {...dp}><DropPlaceholder /></div>;
-          return <div style={{ ...cardWrapperStyle("compliance"), marginBottom: 16 }} {...dp}><ComplianceBar compStats={compStats} compColor={compColor} part5Compliance={part5Compliance} onClick={() => onNavigate("audits")} dragHandleProps={{}} /></div>;
-        })()}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
-          {gridCards.map(id => renderCard(id))}
+      {/* ── Fixed-Box Card Grid (admin view only) ── */}
+      {analyticsOn && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gridTemplateRows, gap: 16 }}>
+          {visibleCards.map((cardId, boxIdx) => {
+            const isBeingDragged = cardId === dragId;
+            const isDragging = !!dragId;
+            return (
+              <div
+                key={`box-${boxIdx}`}
+                draggable
+                onDragStart={(e) => {
+                  dragIdRef.current = cardId;
+                  didDrop.current = false;
+                  setDragId(cardId);
+                  preDragOrder.current = [...cardOrder];
+                  lastOverBox.current = null;
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; liveReorderToBox(boxIdx); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  didDrop.current = true;
+                  setCardOrder(cur => { try { localStorage.setItem(storageKey, JSON.stringify(cur)); } catch {} return cur; });
+                  preDragOrder.current = null;
+                  dragIdRef.current = null;
+                  setDragId(null);
+                  lastOverBox.current = null;
+                }}
+                onDragEnd={() => {
+                  if (!didDrop.current && preDragOrder.current) setCardOrder(preDragOrder.current);
+                  preDragOrder.current = null;
+                  dragIdRef.current = null;
+                  setDragId(null);
+                  lastOverBox.current = null;
+                }}
+                style={{
+                  ...getBoxStyle(boxIdx),
+                  borderRadius: 10,
+                  overflow: "hidden",
+                  outline: isDragging
+                    ? (isBeingDragged ? `2px dashed ${CYAN}` : `2px dashed rgba(255,255,255,0.12)`)
+                    : "2px dashed transparent",
+                  outlineOffset: -2,
+                  background: isBeingDragged ? "rgba(34,211,238,0.03)" : "transparent",
+                  transition: "outline-color 0.2s ease",
+                }}
+              >
+                {isBeingDragged ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", borderRadius: 10, border: `2px dashed ${CYAN}`, background: "rgba(34,211,238,0.04)" }}>
+                    <div style={{ fontSize: 11, color: CYAN, opacity: 0.5, fontWeight: 600 }}>Drop here</div>
+                  </div>
+                ) : renderCardContent(cardId)}
+              </div>
+            );
+          })}
         </div>
-      </>)}
+      )}
     </div>
   );
 }
