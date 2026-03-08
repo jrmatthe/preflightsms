@@ -400,20 +400,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
                 background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
                 boxShadow: "0 -8px 40px rgba(0,0,0,0.6)", marginBottom: 4, zIndex: 200,
               }}>
-                <div style={{ padding: "16px 20px 12px", borderBottom: `1px solid ${BORDER}` }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>Account Setup</span>
-                    <button onClick={() => setMenuOpen(false)} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 16, padding: 0 }}>&times;</button>
-                  </div>
-                  <div style={{ fontSize: 11, color: MUTED, marginBottom: 10 }}>Complete these steps to set up your SMS.</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ flex: 1, height: 4, borderRadius: 2, background: BORDER, overflow: "hidden" }}>
-                      <div style={{ width: `${pct}%`, height: "100%", background: "#22D3EE", borderRadius: 2, transition: "width 0.3s" }} />
-                    </div>
-                    <span style={{ fontSize: 10, color: MUTED, fontWeight: 600, minWidth: 30 }}>{doneSteps}/{totalSteps}</span>
-                  </div>
-                </div>
-                <div style={{ padding: "8px 0" }}>
+                <div style={{ padding: "4px 0" }}>
                   <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} onDismiss={onDismissOnboarding} isTrial={isTrial} onStartFresh={onStartFresh} />
                 </div>
               </div>
