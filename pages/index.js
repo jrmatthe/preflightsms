@@ -2061,8 +2061,8 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
 
   // ── My Policies needing acknowledgment ──
   const unackedPolicies = (policies || []).filter(Boolean).filter(p => {
-    const acks = p.acknowledged_by || [];
-    return !acks.includes(userId);
+    const acks = p.acknowledgments || [];
+    return !acks.some(a => a.user_id === userId);
   });
 
   // ── Admin sections data ──
