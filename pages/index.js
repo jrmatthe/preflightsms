@@ -2096,7 +2096,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   };
 
   // ── Left column cards ──
-  const fratCard = listCard("My Recent FRATs", myFrats, "No FRATs submitted yet", myFrats.length > 0 ? "flights" : null, f => (<>
+  const fratCard = listCard("My Recent FRATs", myFrats, "No FRATs submitted yet", "flights", f => (<>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(f.timestamp).toLocaleDateString()}</span>
       <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{f.id}</span>
@@ -2107,7 +2107,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     </div>
   </>));
 
-  const reportCard = listCard("My Reports", myReports, "No reports filed yet", myReports.length > 0 ? "reports" : null, r => (<>
+  const reportCard = listCard("My Reports", myReports, "No reports filed yet", "reports", r => (<>
     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
       <span style={{ fontSize: 11, color: MUTED, minWidth: 70, flexShrink: 0 }}>{new Date(r.created_at || r.timestamp).toLocaleDateString()}</span>
       <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title || r.report_code || "Untitled"}</span>
@@ -2162,31 +2162,31 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   </>), { emptyColor: GREEN });
 
   // ── Admin cards ──
-  const approvalCard = listCard("Pending FRAT Approvals", pendingApprovals.slice(0, 8), "No pending approvals", null, f => (<>
+  const approvalCard = listCard("Pending FRAT Approvals", pendingApprovals.slice(0, 8), "No pending approvals", "flights", f => (<>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(f.timestamp).toLocaleDateString()}</span>
       <span style={{ fontSize: 12, color: WHITE }}>{pilotName(f.userId)}</span>
     </div>
     <span style={{ fontSize: 12, fontWeight: 700, color: riskColor(f.score) }}>{f.score}</span>
-  </>), { lockCheck: "frat_approval", clickNav: "flights" });
+  </>), { lockCheck: "frat_approval", clickNav: "flights", emptyColor: GREEN });
 
-  const reviewCard = listCard("Reports Needing Review", reportsNeedingReview.slice(0, 8), "No reports need review", null, r => (<>
+  const reviewCard = listCard("Reports Needing Review", reportsNeedingReview.slice(0, 8), "No reports need review", "reports", r => (<>
     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
       <span style={{ fontSize: 11, color: MUTED, minWidth: 70, flexShrink: 0 }}>{new Date(r.created_at).toLocaleDateString()}</span>
       <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title || r.report_code}</span>
     </div>
     {statusBadge(r.status || "open", reportStatusColor(r.status))}
-  </>), { lockCheck: "safety_reporting", clickNav: "reports" });
+  </>), { lockCheck: "safety_reporting", clickNav: "reports", emptyColor: GREEN });
 
-  const investigationCard = listCard("Open Investigations", openInvestigations.slice(0, 8), "No open investigations", null, h => (<>
+  const investigationCard = listCard("Open Investigations", openInvestigations.slice(0, 8), "No open investigations", "hazards", h => (<>
     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
       <span style={{ fontSize: 11, color: MUTED, minWidth: 70, flexShrink: 0 }}>{new Date(h.created_at).toLocaleDateString()}</span>
       <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title || h.hazard_code}</span>
     </div>
     {statusBadge(h.risk_level || h.status, h.risk_level === "critical" || h.risk_level === "high" ? RED : h.risk_level === "medium" ? AMBER : GREEN)}
-  </>), { lockCheck: "hazard_register", clickNav: "hazards" });
+  </>), { lockCheck: "hazard_register", clickNav: "hazards", emptyColor: GREEN });
 
-  const myActionsCard = listCard("My Corrective Actions", myActions, "No open actions assigned to you", null, a => {
+  const myActionsCard = listCard("My Corrective Actions", myActions, "No open actions assigned to you", "actions", a => {
     const overdue = a.due_date && new Date(a.due_date) < now;
     return (<>
       <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title || "Untitled"}</span>
@@ -2195,22 +2195,22 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
         {statusBadge(a.priority || "medium", a.priority === "critical" ? RED : a.priority === "high" ? AMBER : GREEN)}
       </div>
     </>);
-  }, { lockCheck: "corrective_actions", clickNav: "actions" });
+  }, { lockCheck: "corrective_actions", clickNav: "actions", emptyColor: GREEN });
 
-  const overdueCard = listCard("Overdue Actions (Org)", allOverdueActions.slice(0, 8), "No overdue actions", null, a => (<>
+  const overdueCard = listCard("Overdue Actions (Org)", allOverdueActions.slice(0, 8), "No overdue actions", "actions", a => (<>
     <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title || "Untitled"}</span>
     <span style={{ fontSize: 10, color: RED, flexShrink: 0 }}>Due {new Date(a.due_date).toLocaleDateString()}</span>
   </>), { lockCheck: "corrective_actions", clickNav: "actions", count: allOverdueActions.length, emptyColor: GREEN });
 
-  const auditCard = listCard("Upcoming Audits", upcomingAudits, "No scheduled audits", null, a => (<>
+  const auditCard = listCard("Upcoming Audits", upcomingAudits, "No scheduled audits", "audits", a => (<>
     <span style={{ fontSize: 12, color: WHITE }}>{a.name || a.template_name || "Audit"}</span>
     <span style={{ fontSize: 10, color: MUTED }}>{new Date(a.next_due_date).toLocaleDateString()}</span>
-  </>), { lockCheck: "internal_evaluation", clickNav: "audits" });
+  </>), { lockCheck: "internal_evaluation", clickNav: "audits", emptyColor: GREEN });
 
-  const mocCard = listCard("Open Change Requests", openMocItems.slice(0, 8), "No open change requests", null, m => (<>
+  const mocCard = listCard("Open Change Requests", openMocItems.slice(0, 8), "No open change requests", "moc", m => (<>
     <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title || "Untitled"}</span>
     {statusBadge(m.status || "draft", m.status === "approved" ? GREEN : m.status === "rejected" ? RED : AMBER)}
-  </>), { lockCheck: "management_of_change", clickNav: "moc" });
+  </>), { lockCheck: "management_of_change", clickNav: "moc", emptyColor: GREEN });
 
   const gap = 28;
 
