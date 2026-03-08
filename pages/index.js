@@ -3083,11 +3083,31 @@ export default function PVTAIRFrat() {
     return () => window.removeEventListener("resize", check);
   }, []);
   const _initTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
-  const [cv, setCv] = useState(() => {
+  const _initHash = typeof window !== "undefined" && window.location.hash ? window.location.hash.slice(1) : null;
+  const [cv, _setCv] = useState(() => {
     if (_initTab === "subscription") return "admin";
     if (_initTab) return _initTab;
+    if (_initHash) return _initHash;
     return "home";
   });
+  const cvRef = useRef(cv);
+  const setCv = useCallback((newCv) => {
+    if (newCv === cvRef.current) return;
+    cvRef.current = newCv;
+    _setCv(newCv);
+    try { window.history.pushState({ cv: newCv }, "", `#${newCv}`); } catch (e) {}
+  }, []);
+  useEffect(() => {
+    // Set initial hash without creating a history entry
+    if (!window.location.hash) try { window.history.replaceState({ cv }, "", `#${cv}`); } catch (e) {}
+    const onPop = (e) => {
+      const target = e.state?.cv || (window.location.hash ? window.location.hash.slice(1) : "home");
+      cvRef.current = target;
+      _setCv(target);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const [initialAdminTab, setInitialAdminTab] = useState(_initTab === "subscription" ? "subscription" : null);
   const [onboardingState, setOnboardingState] = useState(null);
   const [showStartFreshConfirm, setShowStartFreshConfirm] = useState(false);
