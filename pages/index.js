@@ -2156,18 +2156,25 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     {statusBadge(m.status || "draft", m.status === "approved" ? GREEN : m.status === "rejected" ? RED : AMBER)}
   </>), { lockCheck: "management_of_change", clickNav: "moc" });
 
-  const gap = 20;
+  const gap = 28;
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+    <div>
       {/* Welcome Header */}
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: WHITE }}>Welcome back, {firstName}</div>
         <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{dateStr}</div>
       </div>
 
+      {/* Onboarding — full width, top of page, impossible to miss */}
+      {isAdmin && showOnboarding && (
+        <div style={{ marginBottom: gap }}>
+          <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} onDismiss={onDismissOnboarding} isTrial={isTrial} onStartFresh={onStartFresh} />
+        </div>
+      )}
+
       {/* Quick Actions — full width */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: gap }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: gap }}>
         <button onClick={() => onNavigate("submit")} style={{ ...card, padding: "16px 14px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(34,211,238,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
@@ -2203,9 +2210,6 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
         {/* Right column */}
         <div style={{ display: "flex", flexDirection: "column", gap }}>
           {policyCard}
-          {isAdmin && showOnboarding && (
-            <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} onDismiss={onDismissOnboarding} isTrial={isTrial} onStartFresh={onStartFresh} />
-          )}
           {isAdmin && reviewCard}
           {isAdmin && overdueCard}
           {isAdmin && mocCard}
