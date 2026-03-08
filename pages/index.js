@@ -2015,16 +2015,159 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     return p?.full_name || "Unknown";
   };
 
+  // ── Reusable card renderers ──
+  const listCard = (title, items, emptyText, navTarget, renderRow, opts = {}) => {
+    if (opts.lockCheck && isFree && !hasFeature(org, opts.lockCheck)) return lockOverlay(title);
+    return (
+      <div style={{ ...card, marginBottom: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: items.length > 0 ? 10 : 0 }}>
+          <div style={sectionTitle}>{title}{opts.count != null && opts.count > 0 ? <span style={{ fontSize: 11, fontWeight: 700, color: RED, marginLeft: 6 }}>{opts.count}</span> : null}</div>
+          {navTarget && <button onClick={() => onNavigate(navTarget)} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>}
+        </div>
+        {items.length === 0 ? (
+          <div style={{ fontSize: 12, color: opts.emptyColor || MUTED, fontStyle: opts.emptyColor ? "normal" : "italic", fontWeight: opts.emptyColor ? 600 : 400 }}>{emptyText}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {items.map((item, i) => (
+              <div key={item.id || i} onClick={opts.clickNav ? () => onNavigate(opts.clickNav) : undefined} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none", cursor: opts.clickNav ? "pointer" : "default" }}>
+                {renderRow(item)}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ── Left column cards ──
+  const fratCard = listCard("My Recent FRATs", myFrats, "No FRATs submitted yet", myFrats.length > 0 ? "flights" : null, f => (<>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(f.timestamp).toLocaleDateString()}</span>
+      <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{f.id}</span>
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: riskColor(f.score) }}>{f.score}</span>
+      {statusBadge(approvalLabel(f.approvalStatus), approvalColor(f.approvalStatus))}
+    </div>
+  </>));
+
+  const reportCard = listCard("My Reports", myReports, "No reports filed yet", myReports.length > 0 ? "reports" : null, r => (<>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+      <span style={{ fontSize: 11, color: MUTED, minWidth: 70, flexShrink: 0 }}>{new Date(r.created_at || r.timestamp).toLocaleDateString()}</span>
+      <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title || r.report_code || "Untitled"}</span>
+    </div>
+    {statusBadge(r.status || "open", reportStatusColor(r.status))}
+  </>));
+
+  // ── Training card (special layout) ──
+  const trainingCard = (
+    <div style={{ ...card, marginBottom: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={sectionTitle}>My Training</div>
+        <button onClick={() => onNavigate("cbt")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>
+      </div>
+      {myReqs.length === 0 ? (
+        <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No training requirements configured</div>
+      ) : (<>
+        {overdueTraining.length > 0 && (
+          <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: RED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Overdue</div>
+            {overdueTraining.map(({ req, expiry }) => (
+              <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
+                <span>{req.title}</span>
+                {expiry && <span style={{ color: RED, fontSize: 10 }}>Expired {expiry.toLocaleDateString()}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+        {expiringTraining.length > 0 && (
+          <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: AMBER, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Expiring Soon</div>
+            {expiringTraining.map(({ req, expiry }) => (
+              <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
+                <span>{req.title}</span>
+                {expiry && <span style={{ color: AMBER, fontSize: 10 }}>Expires {expiry.toLocaleDateString()}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+        {overdueTraining.length === 0 && expiringTraining.length === 0 && (
+          <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.2)" }}>
+            <div style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>All {reqStatus.filter(r => r.status === "current").length} training requirement{reqStatus.filter(r => r.status === "current").length !== 1 ? "s" : ""} current</div>
+          </div>
+        )}
+      </>)}
+    </div>
+  );
+
+  const policyCard = listCard("My Policies", unackedPolicies.slice(0, 5), "All policies acknowledged", "policy", p => (<>
+    <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title || "Untitled Policy"}</span>
+    {statusBadge("Needs Ack", AMBER)}
+  </>), { emptyColor: GREEN });
+
+  // ── Admin cards ──
+  const approvalCard = listCard("Pending FRAT Approvals", pendingApprovals.slice(0, 8), "No pending approvals", null, f => (<>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(f.timestamp).toLocaleDateString()}</span>
+      <span style={{ fontSize: 12, color: WHITE }}>{pilotName(f.userId)}</span>
+    </div>
+    <span style={{ fontSize: 12, fontWeight: 700, color: riskColor(f.score) }}>{f.score}</span>
+  </>), { lockCheck: "frat_approval", clickNav: "flights" });
+
+  const reviewCard = listCard("Reports Needing Review", reportsNeedingReview.slice(0, 8), "No reports need review", null, r => (<>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+      <span style={{ fontSize: 11, color: MUTED, minWidth: 70, flexShrink: 0 }}>{new Date(r.created_at).toLocaleDateString()}</span>
+      <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title || r.report_code}</span>
+    </div>
+    {statusBadge(r.status || "open", reportStatusColor(r.status))}
+  </>), { lockCheck: "safety_reporting", clickNav: "reports" });
+
+  const investigationCard = listCard("Open Investigations", openInvestigations.slice(0, 8), "No open investigations", null, h => (<>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+      <span style={{ fontSize: 11, color: MUTED, minWidth: 70, flexShrink: 0 }}>{new Date(h.created_at).toLocaleDateString()}</span>
+      <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title || h.hazard_code}</span>
+    </div>
+    {statusBadge(h.risk_level || h.status, h.risk_level === "critical" || h.risk_level === "high" ? RED : h.risk_level === "medium" ? AMBER : GREEN)}
+  </>), { lockCheck: "hazard_register", clickNav: "hazards" });
+
+  const myActionsCard = listCard("My Corrective Actions", myActions, "No open actions assigned to you", null, a => {
+    const overdue = a.due_date && new Date(a.due_date) < now;
+    return (<>
+      <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title || "Untitled"}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        {a.due_date && <span style={{ fontSize: 10, color: overdue ? RED : MUTED }}>{overdue ? "Overdue" : new Date(a.due_date).toLocaleDateString()}</span>}
+        {statusBadge(a.priority || "medium", a.priority === "critical" ? RED : a.priority === "high" ? AMBER : GREEN)}
+      </div>
+    </>);
+  }, { lockCheck: "corrective_actions", clickNav: "actions" });
+
+  const overdueCard = listCard("Overdue Actions (Org)", allOverdueActions.slice(0, 8), "No overdue actions", null, a => (<>
+    <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title || "Untitled"}</span>
+    <span style={{ fontSize: 10, color: RED, flexShrink: 0 }}>Due {new Date(a.due_date).toLocaleDateString()}</span>
+  </>), { lockCheck: "corrective_actions", clickNav: "actions", count: allOverdueActions.length, emptyColor: GREEN });
+
+  const auditCard = listCard("Upcoming Audits", upcomingAudits, "No scheduled audits", null, a => (<>
+    <span style={{ fontSize: 12, color: WHITE }}>{a.name || a.template_name || "Audit"}</span>
+    <span style={{ fontSize: 10, color: MUTED }}>{new Date(a.next_due_date).toLocaleDateString()}</span>
+  </>), { lockCheck: "internal_evaluation", clickNav: "audits" });
+
+  const mocCard = listCard("Open Change Requests", openMocItems.slice(0, 8), "No open change requests", null, m => (<>
+    <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title || "Untitled"}</span>
+    {statusBadge(m.status || "draft", m.status === "approved" ? GREEN : m.status === "rejected" ? RED : AMBER)}
+  </>), { lockCheck: "management_of_change", clickNav: "moc" });
+
+  const gap = 20;
+
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
       {/* Welcome Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: WHITE }}>Welcome back, {firstName}</div>
         <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{dateStr}</div>
       </div>
 
-      {/* Quick Actions */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+      {/* Quick Actions — full width */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: gap }}>
         <button onClick={() => onNavigate("submit")} style={{ ...card, padding: "16px 14px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(34,211,238,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
@@ -2045,273 +2188,29 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
         </button>
       </div>
 
-      {/* My Recent FRATs */}
-      <div style={{ ...card, marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={sectionTitle}>My Recent FRATs</div>
-          {myFrats.length > 0 && <button onClick={() => onNavigate("flights")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>}
+      {/* ── Two-column grid ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap, alignItems: "start" }}>
+        {/* Left column */}
+        <div style={{ display: "flex", flexDirection: "column", gap }}>
+          {fratCard}
+          {reportCard}
+          {trainingCard}
+          {isAdmin && approvalCard}
+          {isAdmin && investigationCard}
+          {isAdmin && myActionsCard}
+          {isAdmin && auditCard}
         </div>
-        {myFrats.length === 0 ? (
-          <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No FRATs submitted yet</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {myFrats.map(f => (
-              <div key={f.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(f.timestamp).toLocaleDateString()}</span>
-                  <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{f.id}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: riskColor(f.score) }}>{f.score}</span>
-                  {statusBadge(approvalLabel(f.approvalStatus), approvalColor(f.approvalStatus))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* My Reports */}
-      <div style={{ ...card, marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={sectionTitle}>My Reports</div>
-          {myReports.length > 0 && <button onClick={() => onNavigate("reports")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>}
-        </div>
-        {myReports.length === 0 ? (
-          <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No reports filed yet</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {myReports.map(r => (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(r.created_at || r.timestamp).toLocaleDateString()}</span>
-                  <span style={{ fontSize: 12, color: WHITE }}>{r.title || r.report_code || "Untitled"}</span>
-                </div>
-                {statusBadge(r.status || "open", reportStatusColor(r.status))}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* My Training */}
-      <div style={{ ...card, marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={sectionTitle}>My Training</div>
-          <button onClick={() => onNavigate("cbt")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>
-        </div>
-        {myReqs.length === 0 ? (
-          <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No training requirements configured</div>
-        ) : (<>
-          {overdueTraining.length > 0 && (
-            <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", marginBottom: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: RED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Overdue</div>
-              {overdueTraining.map(({ req, expiry }) => (
-                <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
-                  <span>{req.title}</span>
-                  {expiry && <span style={{ color: RED, fontSize: 10 }}>Expired {expiry.toLocaleDateString()}</span>}
-                </div>
-              ))}
-            </div>
-          )}
-          {expiringTraining.length > 0 && (
-            <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", marginBottom: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: AMBER, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Expiring Soon</div>
-              {expiringTraining.map(({ req, expiry }) => (
-                <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
-                  <span>{req.title}</span>
-                  {expiry && <span style={{ color: AMBER, fontSize: 10 }}>Expires {expiry.toLocaleDateString()}</span>}
-                </div>
-              ))}
-            </div>
-          )}
-          {overdueTraining.length === 0 && expiringTraining.length === 0 && (
-            <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.2)" }}>
-              <div style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>All {reqStatus.filter(r => r.status === "current").length} training requirement{reqStatus.filter(r => r.status === "current").length !== 1 ? "s" : ""} current</div>
-            </div>
-          )}
-        </>)}
-      </div>
-
-      {/* My Policies */}
-      <div style={{ ...card, marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={sectionTitle}>My Policies</div>
-          <button onClick={() => onNavigate("policy")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>
-        </div>
-        {unackedPolicies.length === 0 ? (
-          <div style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>All policies acknowledged</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {unackedPolicies.slice(0, 5).map(p => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
-                <span style={{ fontSize: 12, color: WHITE }}>{p.title || "Untitled Policy"}</span>
-                {statusBadge("Needs Acknowledgment", AMBER)}
-              </div>
-            ))}
-            {unackedPolicies.length > 5 && <div style={{ fontSize: 10, color: MUTED, padding: "4px 0" }}>+{unackedPolicies.length - 5} more</div>}
-          </div>
-        )}
-      </div>
-
-      {/* ── Admin Sections ── */}
-      {isAdmin && (<>
-        {/* Onboarding */}
-        {showOnboarding && (
-          <div style={{ marginBottom: 16 }}>
+        {/* Right column */}
+        <div style={{ display: "flex", flexDirection: "column", gap }}>
+          {policyCard}
+          {isAdmin && showOnboarding && (
             <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} onDismiss={onDismissOnboarding} isTrial={isTrial} onStartFresh={onStartFresh} />
-          </div>
-        )}
-
-        {/* Pending FRAT Approvals */}
-        {isFree && !hasFeature(org, "frat_approval") ? lockOverlay("Pending FRAT Approvals") : (
-          <div style={{ ...card, marginBottom: 16 }}>
-            <div style={sectionTitle}>Pending FRAT Approvals</div>
-            {pendingApprovals.length === 0 ? (
-              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No pending approvals</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {pendingApprovals.slice(0, 10).map(f => (
-                  <div key={f.id} onClick={() => onNavigate("flights")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(f.timestamp).toLocaleDateString()}</span>
-                      <span style={{ fontSize: 12, color: WHITE }}>{pilotName(f.userId)}</span>
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: riskColor(f.score) }}>{f.score}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Reports Needing Review */}
-        {isFree && !hasFeature(org, "safety_reporting") ? lockOverlay("Reports Needing Review") : (
-          <div style={{ ...card, marginBottom: 16 }}>
-            <div style={sectionTitle}>Reports Needing Review</div>
-            {reportsNeedingReview.length === 0 ? (
-              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No reports need review</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {reportsNeedingReview.slice(0, 10).map(r => (
-                  <div key={r.id} onClick={() => onNavigate("reports")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(r.created_at).toLocaleDateString()}</span>
-                      <span style={{ fontSize: 12, color: WHITE }}>{r.title || r.report_code}</span>
-                    </div>
-                    {statusBadge(r.status || "open", reportStatusColor(r.status))}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Open Investigations */}
-        {isFree && !hasFeature(org, "hazard_register") ? lockOverlay("Open Investigations") : (
-          <div style={{ ...card, marginBottom: 16 }}>
-            <div style={sectionTitle}>Open Investigations</div>
-            {openInvestigations.length === 0 ? (
-              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No open investigations</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {openInvestigations.slice(0, 10).map(h => (
-                  <div key={h.id} onClick={() => onNavigate("hazards")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(h.created_at).toLocaleDateString()}</span>
-                      <span style={{ fontSize: 12, color: WHITE }}>{h.title || h.hazard_code}</span>
-                    </div>
-                    {statusBadge(h.risk_level || h.status, h.risk_level === "critical" || h.risk_level === "high" ? RED : h.risk_level === "medium" ? AMBER : GREEN)}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* My Corrective Actions */}
-        {isFree && !hasFeature(org, "corrective_actions") ? lockOverlay("My Corrective Actions") : (
-          <div style={{ ...card, marginBottom: 16 }}>
-            <div style={sectionTitle}>My Corrective Actions</div>
-            {myActions.length === 0 ? (
-              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No open actions assigned to you</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {myActions.map(a => {
-                  const overdue = a.due_date && new Date(a.due_date) < now;
-                  return (
-                    <div key={a.id} onClick={() => onNavigate("actions")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
-                      <span style={{ fontSize: 12, color: WHITE }}>{a.title || "Untitled"}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        {a.due_date && <span style={{ fontSize: 10, color: overdue ? RED : MUTED }}>{overdue ? "Overdue" : new Date(a.due_date).toLocaleDateString()}</span>}
-                        {statusBadge(a.priority || "medium", a.priority === "critical" ? RED : a.priority === "high" ? AMBER : GREEN)}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Overdue Actions (Org-wide) */}
-        {isFree && !hasFeature(org, "corrective_actions") ? lockOverlay("Overdue Actions (Org-wide)") : (
-          <div style={{ ...card, marginBottom: 16 }}>
-            <div style={sectionTitle}>Overdue Actions (Org-wide) {allOverdueActions.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: RED, marginLeft: 6 }}>{allOverdueActions.length}</span>}</div>
-            {allOverdueActions.length === 0 ? (
-              <div style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>No overdue actions</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {allOverdueActions.slice(0, 10).map(a => (
-                  <div key={a.id} onClick={() => onNavigate("actions")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
-                    <span style={{ fontSize: 12, color: WHITE }}>{a.title || "Untitled"}</span>
-                    <span style={{ fontSize: 10, color: RED }}>Due {new Date(a.due_date).toLocaleDateString()}</span>
-                  </div>
-                ))}
-                {allOverdueActions.length > 10 && <div style={{ fontSize: 10, color: MUTED }}>+{allOverdueActions.length - 10} more</div>}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Upcoming Audits */}
-        {isFree && !hasFeature(org, "internal_evaluation") ? lockOverlay("Upcoming Audits") : (
-          <div style={{ ...card, marginBottom: 16 }}>
-            <div style={sectionTitle}>Upcoming Audits</div>
-            {upcomingAudits.length === 0 ? (
-              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No scheduled audits</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {upcomingAudits.map(a => (
-                  <div key={a.id} onClick={() => onNavigate("audits")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
-                    <span style={{ fontSize: 12, color: WHITE }}>{a.name || a.template_name || "Audit"}</span>
-                    <span style={{ fontSize: 10, color: MUTED }}>{new Date(a.next_due_date).toLocaleDateString()}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* MOC Items */}
-        {isFree && !hasFeature(org, "management_of_change") ? lockOverlay("Management of Change") : (
-          <div style={{ ...card, marginBottom: 16 }}>
-            <div style={sectionTitle}>Open Change Requests</div>
-            {openMocItems.length === 0 ? (
-              <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No open change requests</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {openMocItems.slice(0, 10).map(m => (
-                  <div key={m.id} onClick={() => onNavigate("moc")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}>
-                    <span style={{ fontSize: 12, color: WHITE }}>{m.title || "Untitled"}</span>
-                    {statusBadge(m.status || "draft", m.status === "approved" ? GREEN : m.status === "rejected" ? RED : AMBER)}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </>)}
+          )}
+          {isAdmin && reviewCard}
+          {isAdmin && overdueCard}
+          {isAdmin && mocCard}
+        </div>
+      </div>
     </div>
   );
 }
