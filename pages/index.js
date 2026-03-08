@@ -293,7 +293,7 @@ function getSection(cv) {
   return NAV_SECTIONS.find(s => s.cvs.includes(cv)) || NAV_SECTIONS[0];
 }
 
-function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding, onboardingState, onStartFlow, onDismissOnboarding, isTrial, onStartFresh }) {
+function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding, onboardingState, onStartFlow, isTrial, onStartFresh }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const didAutoOpen = useRef(false);
   useEffect(() => {
@@ -401,7 +401,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
                 boxShadow: "0 -8px 40px rgba(0,0,0,0.6)", marginBottom: 4, zIndex: 200,
               }}>
                 <div style={{ padding: "4px 0" }}>
-                  <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} onDismiss={onDismissOnboarding} isTrial={isTrial} onStartFresh={onStartFresh} />
+                  <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} isTrial={isTrial} onStartFresh={onStartFresh} />
                 </div>
               </div>
             )}
@@ -3241,7 +3241,13 @@ export default function PVTAIRFrat() {
     if (orgCreated && orgCreated < ONBOARDING_SHIP_DATE) return;
     const existing = org.settings?.onboarding_v2;
     if (existing) {
-      setOnboardingState(existing);
+      if (existing.dismissed_at) {
+        const fixed = { ...existing, dismissed_at: null };
+        setOnboardingState(fixed);
+        saveOnboardingStatus(org.id, { onboarding_v2: fixed });
+      } else {
+        setOnboardingState(existing);
+      }
     } else {
       const initial = {
         started_at: new Date().toISOString(),
@@ -3261,7 +3267,7 @@ export default function PVTAIRFrat() {
 
   // Auto-complete onboarding flows whose goals are already met
   useEffect(() => {
-    if (!onboardingState || onboardingState.dismissed_at || onboardingState.completed_at) return;
+    if (!onboardingState || onboardingState.completed_at) return;
     if (!org?.id) return;
 
     const conditions = {
@@ -3436,12 +3442,6 @@ export default function PVTAIRFrat() {
     setCv("dashboard");
   }, [activeFlow]);
 
-  const handleDismissOnboarding = useCallback(async () => {
-    if (!onboardingState) return;
-    const next = { ...onboardingState, dismissed_at: new Date().toISOString() };
-    await persistOnboarding(next);
-  }, [onboardingState, persistOnboarding]);
-
   const handleStartFresh = useCallback(async () => {
     setStartFreshLoading(true);
     try {
@@ -3568,7 +3568,6 @@ export default function PVTAIRFrat() {
 
 
   const showOnboarding = onboardingState
-    && !onboardingState.dismissed_at
     && onboardingAdminRoles.includes(profile?.role)
     && !FLOW_ORDER.every(id => onboardingState.flows?.[id]?.status === "completed");
 
@@ -4752,7 +4751,7 @@ export default function PVTAIRFrat() {
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} onDismissOnboarding={handleDismissOnboarding} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Pending deletion banner — red when read-only countdown active */}
         {isPendingDeletion && (() => {

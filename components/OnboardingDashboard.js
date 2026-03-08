@@ -5,7 +5,7 @@ const BORDER = "#2E2E2E";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777";
 const GREEN = "#4ADE80", AMBER = "#F59E0B", CYAN = "#22D3EE";
 
-export default function OnboardingDashboard({ onboardingState, onStartFlow, onDismiss, isTrial, onStartFresh }) {
+export default function OnboardingDashboard({ onboardingState, onStartFlow, isTrial, onStartFresh }) {
   const [collapsed, setCollapsed] = useState(false);
 
   if (!onboardingState) return null;
@@ -180,15 +180,6 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, onDi
         </div>
       )}
 
-      {/* Dismiss */}
-      <div style={{ padding: "2px 16px 8px", textAlign: "center" }}>
-        <button
-          onClick={onDismiss}
-          style={{ background: "none", border: "none", color: MUTED, fontSize: 9, cursor: "pointer" }}
-        >
-          Dismiss guide
-        </button>
-      </div>
     </div>
   );
 }
