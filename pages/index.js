@@ -3366,17 +3366,9 @@ export default function PVTAIRFrat() {
     if (requiredFeature && !hasFeature(org, requiredFeature)) {
       const label = FEATURE_LABELS[requiredFeature] || requiredFeature;
       setUpgradePrompt({ feature: label, message: `${label} is not available on your current plan. Upgrade to access this feature.` });
-      setCv("dashboard");
+      setCv("home");
     }
   }, [cv, org]);
-  // Pilots default to FRAT view for quick pre-flight access
-  const defaultViewSetRef = useRef(false);
-  useEffect(() => {
-    if (!profile || defaultViewSetRef.current) return;
-    if (_initTab) return; // user navigated to a specific tab
-    defaultViewSetRef.current = true;
-    if (!isAdmin) setCv("frat");
-  }, [profile]);
   // ── Onboarding v2 ──────────────────────────────────
   const onboardingAdminRoles = ["admin", "safety_manager", "accountable_exec", "chief_pilot"];
   const ONBOARDING_SHIP_DATE = "2026-03-04";
@@ -3574,7 +3566,7 @@ export default function PVTAIRFrat() {
     if (flowId === "investigations") { demoHazardsRef.current = null; demoActionsRef.current = null; }
     setActiveFlow(null);
     setActiveFlowStep(0);
-    setCv("dashboard");
+    setCv("home");
     await persistOnboarding(next);
   }, [onboardingState, persistOnboarding]);
 
@@ -3588,7 +3580,7 @@ export default function PVTAIRFrat() {
     if (activeFlow === "investigations") { demoHazardsRef.current = null; demoActionsRef.current = null; }
     setActiveFlow(null);
     setActiveFlowStep(0);
-    setCv("dashboard");
+    setCv("home");
   }, [activeFlow]);
 
   const handleStartFresh = useCallback(async () => {
@@ -3632,9 +3624,9 @@ export default function PVTAIRFrat() {
       };
       setOnboardingState(initial);
 
-      // Refresh profile, navigate to dashboard
+      // Refresh profile, navigate to home
       getProfile().then(p => { if (p) setProfile(p); });
-      setCv("dashboard");
+      setCv("home");
       setShowStartFreshConfirm(false);
       setShowPostPaymentModal(false);
       setToast({ message: "All data deleted. You're starting fresh!", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } });
