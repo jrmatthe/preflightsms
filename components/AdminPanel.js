@@ -134,13 +134,13 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
   return (
     <div>
       {/* Configuration Card */}
-      <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+      <div data-onboarding="int-ff-card" style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <img src="/foreflight-logo.png" alt="ForeFlight" style={{ height: 22, filter: "invert(1)" }} />
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Dispatch Configuration</div>
         </div>
 
-        <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 16 }}>
+        <div data-onboarding="int-ff-instructions" style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 16 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Setup Instructions</div>
           <ol style={{ margin: 0, paddingLeft: 18, fontSize: 11, color: OFF_WHITE, lineHeight: 1.8 }}>
             <li>Open the <a href="https://dispatch.foreflight.com/tools/console/keys" target="_blank" rel="noopener noreferrer" style={{ color: CYAN, textDecoration: "none", fontWeight: 600 }}>ForeFlight API Console</a> and generate a new API token</li>
@@ -151,14 +151,14 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
           </ol>
         </div>
 
-        <div style={{ marginBottom: 14 }}>
+        <div data-onboarding="int-ff-apikey" style={{ marginBottom: 14 }}>
           <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>API Key</label>
           <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your ForeFlight API token"
             style={{ ...inp }} />
         </div>
 
         {/* Toggles */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <div data-onboarding="int-ff-toggles" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
           {[
             { label: "Enable Integration", val: enabled, set: setEnabled },
             { label: "Notify Pilots on Sync", val: notifyPilots, set: setNotifyPilots },
@@ -178,7 +178,7 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
         </div>
 
         {/* Sync Interval */}
-        <div style={{ marginBottom: 16 }}>
+        <div data-onboarding="int-ff-interval" style={{ marginBottom: 16 }}>
           <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Sync Interval</label>
           <select value={syncInterval} onChange={e => setSyncInterval(Number(e.target.value))}
             style={{ ...inp, width: 200 }}>
@@ -189,7 +189,7 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
         </div>
 
         {/* Buttons */}
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div data-onboarding="int-ff-buttons" style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={handleTest} disabled={testing || !hasCredentials}
             style={{ padding: "8px 16px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: testing || !hasCredentials ? "default" : "pointer", opacity: testing || !hasCredentials ? 0.5 : 1 }}>
             {testing ? "Testing..." : "Test Connection"}
@@ -207,7 +207,7 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
       </div>
 
       {/* Sync Status Card */}
-      <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+      <div data-onboarding="int-ff-sync" style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 14 }}>Sync Status</div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
@@ -303,13 +303,13 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
   return (
     <div>
       {/* Configuration Card */}
-      <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+      <div data-onboarding="int-sc-card" style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <img src="/schedaero-logo.svg" alt="Schedaero" style={{ height: 18 }} />
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Configuration</div>
         </div>
 
-        <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 16 }}>
+        <div data-onboarding="int-sc-instructions" style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 16 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Setup Instructions</div>
           <ol style={{ margin: 0, paddingLeft: 18, fontSize: 11, color: OFF_WHITE, lineHeight: 1.8 }}>
             <li>Contact the Schedaero support team to request an Authentication Token for your account</li>
@@ -323,14 +323,14 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
           </ol>
         </div>
 
-        <div style={{ marginBottom: 14 }}>
+        <div data-onboarding="int-sc-apikey" style={{ marginBottom: 14 }}>
           <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Authentication Token</label>
           <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your Schedaero authentication token"
             style={{ ...inp, maxWidth: 400 }} />
         </div>
 
         {/* Toggles */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <div data-onboarding="int-sc-toggles" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
           {[
             { label: "Enable Integration", val: enabled, set: setEnabled },
             { label: "Notify Pilots on Sync", val: notifyPilots, set: setNotifyPilots },
@@ -349,7 +349,7 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
         </div>
 
         {/* Sync Interval + Sync Window */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+        <div data-onboarding="int-sc-interval" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
           <div>
             <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Sync Interval</label>
             <select value={syncInterval} onChange={e => setSyncInterval(Number(e.target.value))}
@@ -371,7 +371,7 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
         </div>
 
         {/* Buttons */}
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div data-onboarding="int-sc-buttons" style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={handleTest} disabled={testing || !hasCredentials}
             style={{ padding: "8px 16px", background: "transparent", color: BLUE, border: `1px solid ${BLUE}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: testing || !hasCredentials ? "default" : "pointer", opacity: testing || !hasCredentials ? 0.5 : 1 }}>
             {testing ? "Testing..." : "Test Connection"}
@@ -389,7 +389,7 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
       </div>
 
       {/* Sync Status Card */}
-      <div style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
+      <div data-onboarding="int-sc-sync" style={{ ...card, padding: "20px 24px", marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 14 }}>Sync Status</div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
@@ -1412,8 +1412,8 @@ export default function AdminPanel({ profile, orgProfiles, onUpdateRole, onUpdat
       )}
 
       {activeTab === "integrations" && canManage && (
-        <div>
-          <div style={{ ...card, padding: "14px 20px", marginBottom: 20, borderLeft: `3px solid ${AMBER}`, background: "rgba(245,158,11,0.04)" }}>
+        <div data-onboarding="int-section">
+          <div data-onboarding="int-warning" style={{ ...card, padding: "14px 20px", marginBottom: 20, borderLeft: `3px solid ${AMBER}`, background: "rgba(245,158,11,0.04)" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: AMBER, marginBottom: 4 }}>Use One Integration Only</div>
             <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>Configure either ForeFlight or Schedaero — not both. Running two dispatch integrations simultaneously will cause duplicate flights and data mismatches.</div>
           </div>

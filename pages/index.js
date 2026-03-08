@@ -3425,6 +3425,7 @@ export default function PVTAIRFrat() {
       policy_manuals: smsManuals.length > 0,
       training: cbtCourses.length > 0 || trainingReqs.length > 0,
       investigations: hazards.length > 0,
+      integrations: foreflightConfig?.enabled || schedaeroConfig?.enabled,
       custom_frat: fratTemplates?.length > 1,
     };
 
