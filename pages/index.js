@@ -1986,8 +1986,8 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick, dragHan
             : compStats.overdueActions > 0 ? `${compStats.overdueActions} overdue` : "No overdue actions"}
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-        <div style={{ width: 60, height: 5, background: "#0A0A0A", borderRadius: 3, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        <div style={{ width: 200, height: 6, background: "#0A0A0A", borderRadius: 3, overflow: "hidden" }}>
           <div style={{ width: `${compStats.compliance}%`, height: "100%", background: compColor, borderRadius: 3, transition: "width 0.5s" }} />
         </div>
         <div style={{ fontSize: 18, fontWeight: 800, color: compColor, fontFamily: "Georgia,serif", minWidth: 36, textAlign: "right" }}>{compStats.compliance}%</div>
@@ -2329,7 +2329,6 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
       const saved = typeof window !== "undefined" && localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Merge any new cards not in saved order
         const missing = DEFAULT_CARD_ORDER.filter(id => !parsed.includes(id));
         return [...parsed.filter(id => DEFAULT_CARD_ORDER.includes(id)), ...missing];
       }
@@ -2337,38 +2336,61 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
     return DEFAULT_CARD_ORDER;
   });
   const [dragId, setDragId] = useState(null);
-  const [dragOverId, setDragOverId] = useState(null);
+  const preDragOrder = useRef(null);
+  const lastOverId = useRef(null);
 
   const visibleCards = cardOrder.filter(id => CARD_GATES[id] !== false);
 
-  const handleReorder = (fromId, toId) => {
-    if (fromId === toId) return;
-    const next = [...cardOrder];
-    const fromIdx = next.indexOf(fromId);
-    const toIdx = next.indexOf(toId);
-    if (fromIdx === -1 || toIdx === -1) return;
-    next.splice(fromIdx, 1);
-    next.splice(toIdx, 0, fromId);
-    setCardOrder(next);
-    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
-  };
+  // Live reorder: move cards in state as cursor moves over them
+  const liveReorder = useCallback((overId) => {
+    if (!dragId || overId === dragId || overId === lastOverId.current) return;
+    lastOverId.current = overId;
+    setCardOrder(prev => {
+      const next = [...prev];
+      const fromIdx = next.indexOf(dragId);
+      const toIdx = next.indexOf(overId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, dragId);
+      return next;
+    });
+  }, [dragId]);
 
   const mkDragProps = (id) => ({
     draggable: true,
-    onDragStart: (e) => { setDragId(id); e.dataTransfer.effectAllowed = "move"; },
-    onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverId(id); },
-    onDragLeave: () => { setDragOverId(prev => prev === id ? null : prev); },
-    onDrop: (e) => { e.preventDefault(); if (dragId) handleReorder(dragId, id); setDragId(null); setDragOverId(null); },
-    onDragEnd: () => { setDragId(null); setDragOverId(null); },
+    onDragStart: (e) => {
+      setDragId(id);
+      preDragOrder.current = [...cardOrder];
+      lastOverId.current = null;
+      e.dataTransfer.effectAllowed = "move";
+      // Use a transparent 1x1 image as drag ghost so the browser doesn't show a big card clone
+      const ghost = document.createElement("canvas");
+      ghost.width = 1; ghost.height = 1;
+      e.dataTransfer.setDragImage(ghost, 0, 0);
+    },
+    onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; liveReorder(id); },
+    onDrop: (e) => {
+      e.preventDefault();
+      // Commit — persist current order
+      try { localStorage.setItem(storageKey, JSON.stringify(cardOrder)); } catch {}
+      preDragOrder.current = null;
+      setDragId(null);
+      lastOverId.current = null;
+    },
+    onDragEnd: () => {
+      // If dropped outside a valid target, revert to pre-drag order
+      if (preDragOrder.current) { setCardOrder(preDragOrder.current); preDragOrder.current = null; }
+      setDragId(null);
+      lastOverId.current = null;
+    },
   });
 
   const cardWrapperStyle = (id) => ({
     ...(CARD_GRID[id] || {}),
-    opacity: dragId === id ? 0.4 : 1,
-    outline: dragOverId === id && dragId !== id ? `2px dashed ${CYAN}` : "none",
-    outlineOffset: 2,
+    opacity: dragId === id ? 0.45 : 1,
+    transform: dragId === id ? "scale(0.97)" : "scale(1)",
     borderRadius: 10,
-    transition: "opacity 0.15s",
+    transition: "transform 0.2s ease, opacity 0.2s ease",
   });
 
   const renderCard = (id) => {
