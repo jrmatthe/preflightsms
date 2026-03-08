@@ -2272,7 +2272,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
           {fratCard}
           {reportCard}
           {trainingCard}
-          {isAdmin && approvalCard}
+          {(isAdmin || (profile?.permissions || []).includes("approver")) && approvalCard}
           {isAdmin && investigationCard}
           {isAdmin && myActionsCard}
           {isAdmin && auditCard}
