@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences, updateProfileName } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures, isFreeTier, FREE_TIER_LIMITS } from "../lib/tiers";
 import { getActiveMelItems, getMelExpirationStatus } from "../lib/melHelpers";
 import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE, haversineNm, flattenCoords, formatZulu } from "../lib/analyzeWeather";
@@ -3323,6 +3323,8 @@ export default function PVTAIRFrat() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [profileEmail, setProfileEmail] = useState("");
   const [savingProfileEmail, setSavingProfileEmail] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [savingProfileName, setSavingProfileName] = useState(false);
   // Supabase auth state
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -3789,6 +3791,7 @@ export default function PVTAIRFrat() {
   }, [profile]);
 
   useEffect(() => { setProfileEmail(profile?.email || ""); }, [profile?.email]);
+  useEffect(() => { setProfileName(profile?.full_name || ""); }, [profile?.full_name]);
 
   // ── Initialize: check session or fall back to localStorage ──
   useEffect(() => {
@@ -4920,7 +4923,7 @@ export default function PVTAIRFrat() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px 0" }}>
           <div>
             <h1 style={{ margin: 0, color: WHITE, fontSize: 22, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-              {(() => { const sec = getSection(cv); if (sec.cvs.length > 1) return sec.label.toUpperCase(); return cv === "home" ? "HOME" : cv === "dashboard" ? "SAFETY ANALYTICS" : cv === "audits" ? "AUDITS & COMPLIANCE" : cv === "cbt" ? "TRAINING" : cv === "policy" ? "DOCUMENTS" : cv === "admin" ? "ADMIN" : ""; })()}
+              {(() => { if (cv === "profile") return "PROFILE"; const sec = getSection(cv); if (sec.cvs.length > 1) return sec.label.toUpperCase(); return cv === "home" ? "HOME" : cv === "dashboard" ? "SAFETY ANALYTICS" : cv === "audits" ? "AUDITS & COMPLIANCE" : cv === "cbt" ? "TRAINING" : cv === "policy" ? "DOCUMENTS" : cv === "admin" ? "ADMIN" : ""; })()}
             </h1>
           </div>
           <div className="user-info-desktop" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -4934,22 +4937,22 @@ export default function PVTAIRFrat() {
                 </div>
                 {showProfileMenu && <>
                   <div style={{ position: "fixed", inset: 0, zIndex: 999 }} onClick={() => setShowProfileMenu(false)} />
-                  <div style={{ position: "absolute", top: 42, right: 0, zIndex: 1000, width: 280, background: "#161616", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 16, boxShadow: "0 12px 32px rgba(0,0,0,0.6)" }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 4 }}>{userName}</div>
-                    <div style={{ fontSize: 10, color: MUTED, marginBottom: 12 }}>{profile?.role || "member"}</div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Email</div>
-                    <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-                      <input type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} placeholder="you@example.com"
-                        style={{ flex: 1, padding: "6px 10px", borderRadius: 6, fontSize: 12, background: "#000", color: "#E5E5E5", border: `1px solid ${BORDER}`, boxSizing: "border-box" }} />
-                      <button disabled={savingProfileEmail || profileEmail === (profile?.email || "")} onClick={async () => { setSavingProfileEmail(true); await updateProfileEmail(profile.id, profileEmail); const p = await getProfile(); if (p) setProfile(p); setSavingProfileEmail(false); }}
-                        style={{ padding: "6px 12px", borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: savingProfileEmail || profileEmail === (profile?.email || "") ? "default" : "pointer",
-                          background: savingProfileEmail || profileEmail === (profile?.email || "") ? "transparent" : "rgba(74,222,128,0.13)", color: savingProfileEmail || profileEmail === (profile?.email || "") ? MUTED : GREEN,
-                          border: `1px solid ${savingProfileEmail || profileEmail === (profile?.email || "") ? BORDER : "rgba(74,222,128,0.27)"}` }}>{savingProfileEmail ? "…" : "Save"}</button>
-                    </div>
+                  <div style={{ position: "absolute", top: 42, right: 0, zIndex: 1000, width: 180, background: "#161616", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 6, boxShadow: "0 12px 32px rgba(0,0,0,0.6)" }}>
+                    <button onClick={() => { setShowProfileMenu(false); setCv("profile"); }}
+                      style={{ width: "100%", textAlign: "left", fontSize: 12, color: OFF_WHITE, background: "none", border: "none", borderRadius: 6, padding: "8px 12px", cursor: "pointer", fontWeight: 600 }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                      Profile
+                    </button>
                     {isMobileViewport && <button onClick={() => { setShowProfileMenu(false); setDesktopPreference(false); }}
-                      style={{ width: "100%", fontSize: 12, color: "#22D3EE", background: "rgba(34,211,238,0.08)", border: "1px solid rgba(34,211,238,0.25)", borderRadius: 6, padding: "10px", cursor: "pointer", fontWeight: 700, marginBottom: 8 }}>Switch to Mobile View</button>}
+                      style={{ width: "100%", textAlign: "left", fontSize: 12, color: CYAN, background: "none", border: "none", borderRadius: 6, padding: "8px 12px", cursor: "pointer", fontWeight: 600 }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                      Switch to Mobile View
+                    </button>}
                     <button onClick={async () => { setShowProfileMenu(false); await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); setNotifications([]); setNotifReads([]); }}
-                      style={{ width: "100%", fontSize: 10, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "6px 10px", cursor: "pointer", fontWeight: 600 }}>Log out</button>
+                      style={{ width: "100%", textAlign: "left", fontSize: 12, color: MUTED, background: "none", border: "none", borderRadius: 6, padding: "8px 12px", cursor: "pointer", fontWeight: 600 }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                      Log out
+                    </button>
                   </div>
                 </>}
               </div>
@@ -4990,6 +4993,47 @@ export default function PVTAIRFrat() {
         {isTrialActive && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: trialDaysRemaining <= 3 ? "rgba(245,158,11,0.08)" : "rgba(34,211,238,0.08)", border: `1px solid ${trialDaysRemaining <= 3 ? "rgba(245,158,11,0.25)" : "rgba(34,211,238,0.25)"}`, color: trialDaysRemaining <= 3 ? AMBER : CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{trialDaysRemaining <= 3 ? "\u26A0" : "\u2139\uFE0F"} Free trial — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining</span><button onClick={() => { setInitialAdminTab("subscription"); setCv("admin"); }} style={{ background: "none", border: `1px solid currentColor`, borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Subscribe</button></div>}
         {isFree && <div className="trial-banner" style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(34,211,238,0.06)", border: "1px solid rgba(34,211,238,0.2)", color: CYAN, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>Free Plan — 1 aircraft, basic SMS features</span><button onClick={() => { setInitialAdminTab("subscription"); setCv("admin"); }} style={{ background: "none", border: "1px solid currentColor", borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>Upgrade</button></div>}
         <main style={{ padding: "20px 32px 50px" }}>
+        {cv === "profile" && profile && (() => {
+          const initials = (profile.full_name || "?").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+          const nameChanged = profileName !== (profile.full_name || "");
+          const emailChanged = profileEmail !== (profile.email || "");
+          return (
+            <div style={{ padding: "24px 32px", maxWidth: 560 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 28 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 28, background: BORDER, display: "flex", alignItems: "center", justifyContent: "center", color: WHITE, fontSize: 20, fontWeight: 800 }}>{initials}</div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>{profile.full_name}</div>
+                  <div style={{ fontSize: 11, color: MUTED, textTransform: "capitalize" }}>{(profile.role || "member").replace(/_/g, " ")}</div>
+                </div>
+              </div>
+              <div style={{ ...card, padding: "24px 28px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 20 }}>Edit Profile</div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Full Name</label>
+                  <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} placeholder="Your full name"
+                    style={{ ...inp }} />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Email</label>
+                  <input type="email" value={profileEmail} onChange={e => setProfileEmail(e.target.value)} placeholder="you@example.com"
+                    style={{ ...inp }} />
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button disabled={(!nameChanged && !emailChanged) || savingProfileName || savingProfileEmail}
+                    onClick={async () => {
+                      if (nameChanged) { setSavingProfileName(true); await updateProfileName(profile.id, profileName); setSavingProfileName(false); }
+                      if (emailChanged) { setSavingProfileEmail(true); await updateProfileEmail(profile.id, profileEmail); setSavingProfileEmail(false); }
+                      const p = await getProfile(); if (p) setProfile(p);
+                      setToast({ message: "Profile updated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
+                    }}
+                    style={{ padding: "10px 24px", background: (!nameChanged && !emailChanged) ? "transparent" : WHITE, color: (!nameChanged && !emailChanged) ? MUTED : BLACK, border: `1px solid ${(!nameChanged && !emailChanged) ? BORDER : WHITE}`, borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: (!nameChanged && !emailChanged) ? "default" : "pointer" }}>
+                    {savingProfileName || savingProfileEmail ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
