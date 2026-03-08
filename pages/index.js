@@ -279,7 +279,7 @@ const NAV_SECTIONS = [
   { id: "compliance", label: "Compliance", icon: "audits", cvs: ["audits"] },
   { id: "training", label: "Training", icon: "cbt", cvs: ["cbt"] },
   { id: "documents", label: "Documents", icon: "manuals", cvs: ["policy"] },
-  { id: "analytics", label: "Safety Analytics", icon: "dashboard", cvs: ["dashboard"] },
+  { id: "analytics", label: "Analytics", icon: "dashboard", cvs: ["dashboard"] },
   { id: "admin", label: "Admin", icon: "admin", cvs: ["admin"] },
 ];
 
@@ -1929,12 +1929,17 @@ function ExportView({ records, orgName }) {
           <div style={{ fontSize: 11, color: MUTED }}><strong style={{ color: OFF_WHITE }}>§5.97 Recordkeeping:</strong> SRM records must be retained as long as controls remain relevant. Current records: <strong style={{ color: WHITE }}>{records.length}</strong></div></div></div></div>);
 }
 
-function ModuleCard({ title, tabs, defaultTab, renderContent, featureGate }) {
+function ModuleCard({ title, tabs, defaultTab, renderContent, featureGate, dragHandleProps }) {
   const [activeTab, setActiveTab] = useState(defaultTab || (tabs?.[0]?.id));
   if (featureGate === false) return null;
   return (
-    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
-      <div style={{ padding: "10px 14px", borderBottom: `1px solid ${BORDER}` }}>
+    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, marginBottom: 0, overflow: "hidden" }}>
+      <div style={{ padding: "10px 14px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 8 }}>
+        {dragHandleProps && (
+          <div {...dragHandleProps} style={{ cursor: "grab", opacity: 0.3, transition: "opacity 0.15s", display: "flex", alignItems: "center", flexShrink: 0 }} onMouseEnter={e => e.currentTarget.style.opacity = "1"} onMouseLeave={e => e.currentTarget.style.opacity = "0.3"}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill={MUTED}><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>
+          </div>
+        )}
         <div style={{ fontSize: 12, fontWeight: 700, color: WHITE }}>{title}</div>
       </div>
       {tabs && tabs.length > 1 && (
@@ -1956,18 +1961,23 @@ function ModuleCard({ title, tabs, defaultTab, renderContent, featureGate }) {
   );
 }
 
-function ComplianceBar({ compStats, compColor, part5Compliance, onClick }) {
+function ComplianceBar({ compStats, compColor, part5Compliance, onClick, dragHandleProps }) {
   return (
     <div
       onClick={onClick}
       style={{
         background: CARD, borderRadius: 10, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${compColor}`,
-        padding: "10px 14px", cursor: "pointer", transition: "all 0.15s", marginBottom: 16,
+        padding: "10px 14px", cursor: "pointer", transition: "all 0.15s", marginBottom: 0,
         display: "flex", alignItems: "center", gap: 14,
       }}
       onMouseEnter={e => { e.currentTarget.style.background = "#1E1E1E"; }}
       onMouseLeave={e => { e.currentTarget.style.background = CARD; }}
     >
+      {dragHandleProps && (
+        <div {...dragHandleProps} style={{ cursor: "grab", opacity: 0.3, transition: "opacity 0.15s", display: "flex", alignItems: "center", flexShrink: 0 }} onMouseEnter={e => { e.stopPropagation(); e.currentTarget.style.opacity = "1"; }} onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill={MUTED}><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>
+        </div>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, marginBottom: 2 }}>Compliance Health</div>
         <div style={{ fontSize: 9, color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -2292,11 +2302,129 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
   const chartProps = { records, flights, reports, hazards, actions, riskLevels, erpPlans, erpDrills };
   const overviewNav = (target) => target === "spiDashboard" ? null : onNavigate(target);
 
+  // ── Card registry & drag-to-reorder ──
+  const DEFAULT_CARD_ORDER = [
+    "compliance", "overview", "performance", "safety_metrics", "frat_analytics",
+    "safety_culture", "frat_history", "insurance", "export",
+  ];
+
+  const CARD_GRID = {
+    compliance: { gridColumn: "1 / -1" },
+    overview: { gridColumn: "span 2" },
+    performance: { gridRow: "span 2" },
+  };
+
+  const CARD_GATES = {
+    performance: hasSpi,
+    frat_analytics: hasAnalytics,
+    safety_metrics: hasAnalytics,
+    safety_culture: hasCulture,
+    insurance: hasInsurance,
+    export: !isDashboardFree,
+  };
+
+  const storageKey = "pfms_dashboard_layout";
+  const [cardOrder, setCardOrder] = useState(() => {
+    try {
+      const saved = typeof window !== "undefined" && localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Merge any new cards not in saved order
+        const missing = DEFAULT_CARD_ORDER.filter(id => !parsed.includes(id));
+        return [...parsed.filter(id => DEFAULT_CARD_ORDER.includes(id)), ...missing];
+      }
+    } catch {}
+    return DEFAULT_CARD_ORDER;
+  });
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
+  const visibleCards = cardOrder.filter(id => CARD_GATES[id] !== false);
+
+  const handleReorder = (fromId, toId) => {
+    if (fromId === toId) return;
+    const next = [...cardOrder];
+    const fromIdx = next.indexOf(fromId);
+    const toIdx = next.indexOf(toId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, fromId);
+    setCardOrder(next);
+    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
+  };
+
+  const mkDragProps = (id) => ({
+    draggable: true,
+    onDragStart: (e) => { setDragId(id); e.dataTransfer.effectAllowed = "move"; },
+    onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverId(id); },
+    onDragLeave: () => { setDragOverId(prev => prev === id ? null : prev); },
+    onDrop: (e) => { e.preventDefault(); if (dragId) handleReorder(dragId, id); setDragId(null); setDragOverId(null); },
+    onDragEnd: () => { setDragId(null); setDragOverId(null); },
+  });
+
+  const cardWrapperStyle = (id) => ({
+    ...(CARD_GRID[id] || {}),
+    opacity: dragId === id ? 0.4 : 1,
+    outline: dragOverId === id && dragId !== id ? `2px dashed ${CYAN}` : "none",
+    outlineOffset: 2,
+    borderRadius: 10,
+    transition: "opacity 0.15s",
+  });
+
+  const renderCard = (id) => {
+    const dp = mkDragProps(id);
+    const handleProps = { onMouseDown: (e) => { /* allow drag from grip */ } };
+    switch (id) {
+      case "compliance":
+        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ComplianceBar compStats={compStats} compColor={compColor} part5Compliance={part5Compliance} onClick={() => onNavigate("audits")} dragHandleProps={handleProps} /></div>;
+      case "overview":
+        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Overview" tabs={[
+          { id: "summary", label: "Summary" }, { id: "trends", label: "Trends" },
+          { id: "open_items", label: "Open Items" }, { id: "erp", label: "ERP" },
+          { id: "health", label: "SMS Health" },
+        ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="overview" section={tab} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={overviewNav} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} />} /></div>;
+      case "performance":
+        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Performance"
+          renderContent={() => <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />} /></div>;
+      case "safety_metrics":
+        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Safety Metrics" tabs={[
+          { id: "reports", label: "Reports" }, { id: "investigations", label: "Investigations" },
+          { id: "categories", label: "Categories" }, { id: "actions", label: "Actions" },
+        ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="safety" section={tab} />} /></div>;
+      case "frat_analytics":
+        return (<div key={id} style={cardWrapperStyle(id)} {...dp}>
+          <ModuleCard dragHandleProps={handleProps} title="FRAT Analytics" tabs={[
+            { id: "overview", label: "Overview" }, { id: "distribution", label: "Distribution" },
+            { id: "breakdown", label: "Breakdown" }, { id: "pilots", label: "Pilots" },
+          ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="frat" section={tab} />} />
+          {!hasAnalytics && (
+            <div style={{ padding: "12px 14px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 10, marginTop: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: AMBER }}>Upgrade to Professional for full analytics</div>
+              {onNavigateSubscription && <button onClick={onNavigateSubscription} style={{ marginTop: 6, padding: "6px 14px", background: AMBER, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 10, cursor: "pointer" }}>View Plans</button>}
+            </div>
+          )}
+        </div>);
+      case "safety_culture":
+        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Safety Culture"
+          renderContent={() => <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />} /></div>;
+      case "frat_history":
+        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="FRAT History"
+          renderContent={() => <HistoryView records={records} onDelete={onDelete} onViewDetail={onViewDetail} />} /></div>;
+      case "insurance":
+        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Insurance & Export"
+          renderContent={() => <InsuranceScorecard profile={profile} session={session} org={org} orgProfiles={orgProfiles} records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} trainingReqs={trainingReqs} trainingRecs={trainingRecs} erpPlans={erpPlans} erpDrills={erpDrills} iepAudits={iepAudits} auditSchedules={auditSchedules} insuranceExports={insuranceExports} onGenerateExport={onGenerateExport} onDeleteExport={onDeleteExport} />} /></div>;
+      case "export":
+        return <div key={id} style={cardWrapperStyle(id)} {...dp}><ModuleCard dragHandleProps={handleProps} title="Export"
+          renderContent={() => <ExportView records={records} orgName={org?.name} />} /></div>;
+      default: return null;
+    }
+  };
+
   return (
     <div style={{ maxWidth: analyticsOn ? 1400 : 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Safety Analytics</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Analytics</div>
           <div style={{ fontSize: 11, color: MUTED }}>Organization-wide analytics, trends, and compliance status</div>
         </div>
       </div>
@@ -2385,50 +2513,10 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         </>);
       })()}
 
-      {/* ── 3-Column Modular Grid (admin view only) ── */}
+      {/* ── Dynamic Card Grid (admin view only) ── */}
       {analyticsOn && (
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, alignItems: "start" }}>
-        {/* Column 1 */}
-        <div>
-          <ModuleCard title="Overview" tabs={[
-            { id: "summary", label: "Summary" }, { id: "trends", label: "Trends" },
-            { id: "open_items", label: "Open Items" }, { id: "erp", label: "ERP" },
-            { id: "health", label: "SMS Health" },
-          ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="overview" section={tab} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={overviewNav} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} />} />
-          <ModuleCard title="FRAT Analytics" featureGate={hasAnalytics} tabs={[
-            { id: "overview", label: "Overview" }, { id: "distribution", label: "Distribution" },
-            { id: "breakdown", label: "Breakdown" }, { id: "pilots", label: "Pilots" },
-          ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="frat" section={tab} />} />
-          {!hasAnalytics && (
-            <div style={{ padding: "12px 14px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 10, marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: AMBER }}>Upgrade to Professional for full analytics</div>
-              {onNavigateSubscription && <button onClick={onNavigateSubscription} style={{ marginTop: 6, padding: "6px 14px", background: AMBER, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 10, cursor: "pointer" }}>View Plans</button>}
-            </div>
-          )}
-        </div>
-
-        {/* Column 2 */}
-        <div>
-          <ModuleCard title="Performance" featureGate={hasSpi}
-            renderContent={() => <SafetyPerformanceIndicators profile={profile} org={org} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={onCreateSpi} onUpdateSpi={onUpdateSpi} onDeleteSpi={onDeleteSpi} onCreateTarget={onCreateTarget} onUpdateTarget={onUpdateTarget} onDeleteTarget={onDeleteTarget} onLoadTargets={onLoadTargets} onLoadMeasurements={onLoadMeasurements} onCreateMeasurement={onCreateMeasurement} onInitDefaults={onInitSpiDefaults} />} />
-          <ModuleCard title="Safety Metrics" featureGate={hasAnalytics} tabs={[
-            { id: "reports", label: "Reports" }, { id: "investigations", label: "Investigations" },
-            { id: "categories", label: "Categories" }, { id: "actions", label: "Actions" },
-          ]} renderContent={(tab) => <DashboardCharts {...chartProps} view="safety" section={tab} />} />
-          <ModuleCard title="Safety Culture" featureGate={hasCulture}
-            renderContent={() => <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={onCreateSurvey} onUpdateSurvey={onUpdateSurvey} onDeleteSurvey={onDeleteSurvey} onFetchResponses={onFetchSurveyResponses} onSubmitResponse={onSubmitSurveyResponse} onCheckUserResponse={onCheckUserSurveyResponse} onFetchResults={onFetchSurveyResults} onUpsertResults={onUpsertSurveyResults} />} />
-        </div>
-
-        {/* Column 3 */}
-        <div>
-          <ComplianceBar compStats={compStats} compColor={compColor} part5Compliance={part5Compliance} onClick={() => onNavigate("audits")} />
-          <ModuleCard title="FRAT History"
-            renderContent={() => <HistoryView records={records} onDelete={onDelete} onViewDetail={onViewDetail} />} />
-          <ModuleCard title="Insurance & Export" featureGate={hasInsurance}
-            renderContent={() => <InsuranceScorecard profile={profile} session={session} org={org} orgProfiles={orgProfiles} records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} policies={policies} trainingReqs={trainingReqs} trainingRecs={trainingRecs} erpPlans={erpPlans} erpDrills={erpDrills} iepAudits={iepAudits} auditSchedules={auditSchedules} insuranceExports={insuranceExports} onGenerateExport={onGenerateExport} onDeleteExport={onDeleteExport} />} />
-          <ModuleCard title="Export" featureGate={!isDashboardFree}
-            renderContent={() => <ExportView records={records} orgName={org?.name} />} />
-        </div>
+        {visibleCards.map(id => renderCard(id))}
       </div>
       )}
     </div>
