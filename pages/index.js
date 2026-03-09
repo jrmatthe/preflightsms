@@ -338,6 +338,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
   const visibleSections = NAV_SECTIONS.filter(sec => {
     if (sec.id === "admin") return isAdminRole;
     if (sec.id === "compliance") return isAdminRole;
+    if (sec.id === "analytics") return isAdminRole;
     return true; // Show all sections, even gated ones
   });
   const activeSection = getSection(currentView);
