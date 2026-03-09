@@ -148,17 +148,19 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
   };
 
   // ── Click blocker: covers the entire screen with a clip-path hole over the target ──
-  // This blocks clicks on the dark area while letting clicks through to the real target elements.
-  const blockerClipPath = targetRect
+  // Only cut out the target area for steps that require clicking the target (click/save).
+  // For "continue" steps, block the entire screen so users can't interact with the highlighted element.
+  const allowTargetClicks = step.advanceOn === "click" || step.advanceOn === "save";
+  const blockerClipPath = targetRect && allowTargetClicks
     ? `polygon(0% 0%, 0% 100%, ${targetRect.left}px 100%, ${targetRect.left}px ${targetRect.top}px, ${targetRect.left + targetRect.width}px ${targetRect.top}px, ${targetRect.left + targetRect.width}px ${targetRect.top + targetRect.height}px, ${targetRect.left}px ${targetRect.top + targetRect.height}px, ${targetRect.left}px 100%, 100% 100%, 100% 0%)`
     : undefined;
 
   return (
     <>
-      {/* Click blocker with cutout — blocks dark area clicks, allows target area interaction */}
+      {/* Click blocker — for click/save steps, has a cutout to allow target interaction. For continue steps, blocks everything. */}
       <div style={{
         position: "fixed", inset: 0, zIndex: 10001,
-        pointerEvents: targetRect ? "auto" : "none",
+        pointerEvents: (targetRect || !allowTargetClicks) ? "auto" : "none",
         background: "transparent",
         clipPath: blockerClipPath,
       }} />
@@ -219,7 +221,7 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
               onMouseEnter={e => e.currentTarget.style.color = OFF_WHITE}
               onMouseLeave={e => e.currentTarget.style.color = MUTED}
             >
-              Skip
+              Exit
             </button>
             {(() => {
               const prevStep = currentStep > 0 ? flow.steps[currentStep - 1] : null;
