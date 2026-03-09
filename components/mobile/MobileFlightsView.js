@@ -101,6 +101,25 @@ function ArrivalSheet({ flight, onConfirm, onCancel, aircraftDefs }) {
   const [fuelRemaining, setFuelRemaining] = useState("");
   const [fuelUnit, setFuelUnit] = useState("lbs");
   const [customFieldValues, setCustomFieldValues] = useState({});
+  const sheetRef = useRef(null);
+  const touchStartY = useRef(null);
+  const translateY = useRef(0);
+
+  const onTouchStart = (e) => { touchStartY.current = e.touches[0].clientY; };
+  const onTouchMove = (e) => {
+    if (touchStartY.current === null) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) {
+      translateY.current = dy;
+      if (sheetRef.current) sheetRef.current.style.transform = `translateY(${dy}px)`;
+    }
+  };
+  const onTouchEnd = () => {
+    if (translateY.current > 100) { onCancel(); }
+    else if (sheetRef.current) { sheetRef.current.style.transform = "translateY(0)"; sheetRef.current.style.transition = "transform 0.2s ease-out"; setTimeout(() => { if (sheetRef.current) sheetRef.current.style.transition = ""; }, 200); }
+    touchStartY.current = null;
+    translateY.current = 0;
+  };
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
@@ -109,7 +128,7 @@ function ArrivalSheet({ flight, onConfirm, onCancel, aircraftDefs }) {
         @keyframes arrSlideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
       `}</style>
       <div onClick={onCancel} aria-hidden="true" style={{ flex: 1, background: "rgba(0,0,0,0.6)", animation: "arrBackdropIn 0.2s ease-out" }} />
-      <div role="dialog" aria-label="Mark flight arrived" style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", animation: "arrSlideUp 0.25s ease-out" }}>
+      <div ref={sheetRef} role="dialog" aria-label="Mark flight arrived" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", animation: "arrSlideUp 0.25s ease-out" }}>
         <div style={{ width: 36, height: 4, background: BORDER, borderRadius: 2, margin: "0 auto 16px" }} />
         <div style={{ color: WHITE, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
           Mark Arrived
@@ -267,7 +286,7 @@ function PostFlightNudge({ flight, onFileReport, onNothingToReport, onRemindLate
 }
 
 // ── Flight Card ──
-function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSwipeCancel }) {
+function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSwipeCancel, isLive }) {
   const isPending = flight.approvalStatus === "pending" || flight.approvalStatus === "review";
   const isActive = flight.status === "ACTIVE" && !isPending;
   const isArrived = flight.status === "ARRIVED";
@@ -393,9 +412,9 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
             <div style={{ color: WHITE, fontSize: 20, fontWeight: 700, letterSpacing: "0.02em" }}>
               {flight.departure || "????"} → {flight.destination || "????"}
             </div>
-            <div style={{ color: MUTED, fontSize: 14, marginTop: 2 }}>
-              {flight.tailNumber || flight.aircraft}{flight.tailNumber && flight.aircraft ? ` · ${flight.aircraft}` : ""}
-              {flight.pilot ? ` · ${flight.pilot}` : ""}
+            <div style={{ color: MUTED, fontSize: 14, marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+              <span>{flight.tailNumber || flight.aircraft}{flight.tailNumber && flight.aircraft ? ` · ${flight.aircraft}` : ""}{flight.pilot ? ` · ${flight.pilot}` : ""}</span>
+              {isLive && <span style={{ fontSize: 9, fontWeight: 700, color: GREEN, background: "rgba(74,222,128,0.09)", padding: "2px 6px", borderRadius: 3, border: `1px solid ${GREEN}33` }}>LIVE ADS-B</span>}
             </div>
           </div>
           <span style={{
@@ -492,6 +511,7 @@ function DetailRow({ label, value }) {
 export default function MobileFlightsView({
   flights, profile, onUpdateFlight, onNewFrat, onNavigateToReports,
   onNudgeSubmitReport, onNudgeNothingToReport, onNudgeRemindLater, onNudgeDismiss, nudgeFlight, loading, fleetAircraft,
+  adsbEnabled, session,
 }) {
   const [filter, setFilter] = useState("my");
   const [expandedId, setExpandedId] = useState(null);
@@ -500,6 +520,28 @@ export default function MobileFlightsView({
   const [showNudge, setShowNudge] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef(null);
+
+  // Live ADS-B positions
+  const [livePositions, setLivePositions] = useState({});
+  useEffect(() => {
+    if (!adsbEnabled || !session?.access_token) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/flight-positions", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const data = await res.json();
+        if (!res.ok || cancelled || data.feature_disabled || !data.positions) return;
+        const map = {};
+        for (const p of data.positions) map[p.flight_id] = { ...p, receivedAt: Date.now() };
+        if (!cancelled) setLivePositions(map);
+      } catch (err) { /* silent */ }
+    };
+    poll();
+    const iv = setInterval(poll, 12000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [adsbEnabled, session?.access_token]);
 
   // Pull-to-refresh
   const touchStartY = useRef(null);
@@ -699,6 +741,7 @@ export default function MobileFlightsView({
               onToggle={() => setExpandedId(prev => prev === (f.id || f.dbId) ? null : (f.id || f.dbId))}
               onSwipeArrive={(fl) => setArrivalFlight(fl)}
               onSwipeCancel={(fl) => setCancelFlight(fl)}
+              isLive={!!(livePositions[f.dbId] && (Date.now() - (livePositions[f.dbId].receivedAt || 0)) < 30000)}
             />
           ))
         )}

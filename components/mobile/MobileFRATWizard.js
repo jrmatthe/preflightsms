@@ -215,17 +215,17 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
         </Field>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "start" }}>
         <Field label={`Fuel (${fuelUnit.toUpperCase()})`} error={errors.fuelLbs}>
           <input value={fi.fuelLbs} onChange={e => setFi(p => ({ ...p, fuelLbs: e.target.value }))} style={inputStyle} placeholder={`Enter fuel in ${fuelUnit}`} inputMode="decimal" />
         </Field>
-        <Field label=" ">
+        <div style={{ marginBottom: 14, paddingTop: 23 }}>
           <button onClick={() => setFuelUnit(u => u === "lbs" ? "gal" : u === "gal" ? "hrs" : "lbs")} style={{
             ...inputStyle, width: 70, textAlign: "center", cursor: "pointer", fontWeight: 600,
           }}>
             {fuelUnit.toUpperCase()}
           </button>
-        </Field>
+        </div>
       </div>
 
       <Field label="Cruise Altitude" error={errors.cruiseAlt}>

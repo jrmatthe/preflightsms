@@ -137,7 +137,7 @@ export default function MobileLayout({
   erpPlans, onLoadErpChecklist, onLoadErpCallTree,
   policies, onAcknowledgePolicy,
   // Feature gating
-  hasFlights, hasTraining,
+  hasFlights, hasTraining, adsbEnabled,
   onUpdateEmail,
   org, orgProfiles, records,
   onCreateAircraft,
@@ -238,6 +238,8 @@ export default function MobileLayout({
             onNudgeDismiss={onNudgeDismiss}
             nudgeFlight={nudgeFlight}
             fleetAircraft={fleetAircraft}
+            adsbEnabled={adsbEnabled}
+            session={session}
           />
         );
       case "newFrat":
