@@ -21,10 +21,10 @@ const PART5_REQUIREMENTS = [
 
   { id: "5.3", subpart: "A", title: "Definitions", section: "§ 5.3",
     requirement: "Organization must use Part 5 definitions for hazard, risk, risk control, safety assurance, SMS, safety objective, safety performance, safety policy, safety promotion, and safety risk management.",
-    evidence: "policy", autoCheck: (d) => d.policies?.some(p => (p.title||"").toLowerCase().includes("definition") || (p.content||"").toLowerCase().includes("hazard means")),
-    evidenceDesc: "Policy library should contain a document with Part 5 definitions incorporated into SMS documentation.",
-    guidance: "Upload a document with Part 5 definitions to the Policy Library, or include them in your SMS manual.",
-    navTarget: "policy", navLabel: "Go to Policy Library" },
+    evidence: "policy", autoCheck: (d) => d.manualComplete("safety_policy") || d.policyCoversManual("safety_policy") || d.policies?.some(p => (p.title||"").toLowerCase().includes("definition") || (p.content||"").toLowerCase().includes("hazard means")),
+    evidenceDesc: "Documented in SMS Manuals (Safety Policy — Part 5 Definitions section) or Policy library.",
+    guidance: "Complete the Part 5 Definitions section in the Safety Policy SMS Manual, or upload an equivalent document to the Policy Library.",
+    navTarget: "policy", navLabel: "Go to SMS Manuals" },
 
   { id: "5.5", subpart: "A", title: "General Requirements", section: "§ 5.5",
     requirement: "SMS must include: (1) Safety policy (Subpart B), (2) Safety risk management (Subpart C), (3) Safety assurance (Subpart D), (4) Safety promotion (Subpart E). Must be appropriate to size/scope/complexity.",
@@ -382,7 +382,7 @@ const SUBPART_NAMES = {
 
 // Map each SMS manual template to the Part 5 requirements it satisfies when completed
 const MANUAL_REQUIREMENT_MAP = {
-  safety_policy: ["5.21a1", "5.21a2", "5.21a3", "5.21a4", "5.21a5", "5.21a7", "5.21b", "5.21c", "5.21d", "5.95a"],
+  safety_policy: ["5.3", "5.21a1", "5.21a2", "5.21a3", "5.21a4", "5.21a5", "5.21a7", "5.21b", "5.21c", "5.21d", "5.95a"],
   safety_accountability: ["5.23a", "5.23b", "5.25a", "5.25b", "5.25c"],
   erp: ["5.21a6", "5.27"],
   srm: ["5.51", "5.53a", "5.53c", "5.55a", "5.55b", "5.55c", "5.55d", "5.57"],
