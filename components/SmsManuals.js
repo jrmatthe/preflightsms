@@ -873,6 +873,23 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
     return smsManuals;
   }, [readOnly, smsManuals]);
 
+  // ── Migrate existing safety_policy manuals: inject sp_definitions if missing ──
+  const migrationRan = useRef(false);
+  useEffect(() => {
+    if (migrationRan.current || readOnly || !onSaveManual) return;
+    const sp = smsManuals.find(m => m.manual_key === "safety_policy");
+    if (!sp || !sp.sections) return;
+    const hasDefSection = sp.sections.some(s => s.id === "sp_definitions");
+    if (hasDefSection) return;
+    migrationRan.current = true;
+    const template = SMS_MANUAL_TEMPLATES.find(t => t.manualKey === "safety_policy");
+    const defTemplate = template?.sections?.find(s => s.id === "sp_definitions");
+    if (!defTemplate) return;
+    const newSection = { ...defTemplate, completed: false };
+    const updatedSections = [newSection, ...sp.sections];
+    onSaveManual({ ...sp, sections: updatedSections });
+  }, [smsManuals, readOnly, onSaveManual]);
+
   // Stats
   const stats = useMemo(() => {
     const total = displayManuals.length;
