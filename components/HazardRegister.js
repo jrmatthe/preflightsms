@@ -108,7 +108,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAss
   };
 
   return (
-    <div style={{ maxWidth: 700, margin: "0 auto" }}>
+    <div data-onboarding="inv-form" style={{ maxWidth: 700, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>New Investigation</div>
