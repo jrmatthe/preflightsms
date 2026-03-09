@@ -717,7 +717,10 @@ function ManualEditor({ manual, onSave, onPublish, onBack, templateVariables, si
   const handlePublish = async () => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     setPublishing(true);
-    if (onPublish) await onPublish({ ...manual, sections: sectionsRef.current });
+    const completedSections = sectionsRef.current.map(s => s.completed ? s : { ...s, completed: true });
+    setSections(completedSections);
+    sectionsRef.current = completedSections;
+    if (onPublish) await onPublish({ ...manual, sections: completedSections });
     setDirty(false);
     setPublishing(false);
   };
