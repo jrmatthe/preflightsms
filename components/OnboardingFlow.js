@@ -95,18 +95,17 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
   // ── Continue button: watch for input value ──
   useEffect(() => {
     if (step.advanceOn !== "continue") { setContinueEnabled(false); return; }
-    if (!step.target) { setContinueEnabled(true); return; }
+    if (!step.target || !step.requireInput) { setContinueEnabled(true); return; }
     const check = () => {
       const el = document.querySelector(step.target);
       if (!el) { setContinueEnabled(false); return; }
       const input = el.querySelector("input:not([type='file']):not([type='hidden'])") || el.querySelector("textarea") || el.querySelector("select");
-      // If no user-facing input found (container with checkboxes, buttons, or informational), always enable
       setContinueEnabled(input ? input.value.trim().length > 0 : true);
     };
     check();
     const interval = setInterval(check, 300);
     return () => clearInterval(interval);
-  }, [step.advanceOn, step.target, currentStep]);
+  }, [step.advanceOn, step.target, step.requireInput, currentStep]);
 
   // ── Save advance: watch for fleet-save-btn click ──
   useEffect(() => {
