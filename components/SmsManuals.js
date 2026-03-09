@@ -694,12 +694,12 @@ function ManualEditor({ manual, onSave, onPublish, onBack, templateVariables, si
     await onSave({ ...manual, sections: sectionsRef.current });
     setDirty(false);
     setSaveStatus("saved");
-    setTimeout(() => setSaveStatus(prev => prev === "saved" ? null : prev), 2000);
   }, [manual, onSave]);
 
   const updateSection = (idx, updates) => {
     setSections(prev => prev.map((s, i) => i === idx ? { ...s, ...updates, lastEdited: new Date().toISOString() } : s));
     setDirty(true);
+    setSaveStatus(null);
     // Auto-save after 2 seconds of inactivity
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => doSave(), 2000);
