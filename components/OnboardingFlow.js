@@ -243,7 +243,7 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
 
           {step.advanceOn === "click" && (
             <span style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>
-              Click the highlighted element
+              {step.clickHint || "Click the highlighted element"}
             </span>
           )}
 

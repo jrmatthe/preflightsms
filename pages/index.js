@@ -1025,12 +1025,12 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
                       {tailOptions.map(a => <option key={a.registration} value={a.registration}>{a.registration}</option>)}
                     </select>
               ) : f.type === "fuel" ? (
-                <div style={{ display: "flex", gap: 0 }}>
+                <div style={{ display: "flex", gap: 0, alignItems: "stretch" }}>
                   <input type="text" inputMode="decimal" placeholder={f.placeholder} value={fi[f.key]}
                     onChange={e => { setFi(p => ({ ...p, [f.key]: e.target.value })); if (err) setValidationErrors(p => { const n = {...p}; delete n[f.key]; return n; }); }}
                     style={{...inp, ...(err ? {borderColor: RED} : {}), flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: "none", minWidth: 0}} />
                   <button type="button" onClick={() => setFratFuelUnit(u => u === "lbs" ? "hrs" : "lbs")}
-                    style={{ padding: "8px 10px", background: CARD, border: `1px solid ${err ? RED : BORDER}`, borderTopRightRadius: 6, borderBottomRightRadius: 6, color: WHITE, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{fratFuelUnit}</button>
+                    style={{ padding: "0 14px", background: CARD, border: `1px solid ${err ? RED : BORDER}`, borderTopRightRadius: 8, borderBottomRightRadius: 8, color: WHITE, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{fratFuelUnit}</button>
                 </div>
               ) : f.type === "time" ? (() => {
                 const raw = fi[f.key] || "";
