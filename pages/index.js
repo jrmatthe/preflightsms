@@ -1890,7 +1890,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                         ) : null; })()}
                         <div style={{ display: "flex", gap: 8 }}>
                           <button onClick={(e) => { e.stopPropagation(); const extra = {}; if (parkingSpot.trim()) extra.parkingSpot = parkingSpot.trim(); if (fuelRemaining.trim()) { extra.fuelRemaining = fuelRemaining.trim(); extra.fuelUnit = fuelUnit; } if (Object.keys(customFieldValues).some(k => customFieldValues[k]?.trim())) { extra.customFieldValues = Object.fromEntries(Object.entries(customFieldValues).filter(([,v]) => v?.trim())); } onUpdateFlight(f.id, "ARRIVED", extra); setArrivedForm(null); }}
-                            style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>CONFIRM ARRIVED</button>
+                            data-onboarding="ff-confirm-arrived-btn" style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>CONFIRM ARRIVED</button>
                           <button onClick={(e) => { e.stopPropagation(); setArrivedForm(null); }}
                             style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Back</button>
                         </div>
