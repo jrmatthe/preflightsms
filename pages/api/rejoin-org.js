@@ -31,15 +31,21 @@ export default async function handler(req, res) {
   if (invitation.email.toLowerCase() !== email.toLowerCase().trim()) return res.status(401).json({ error: "Email does not match invitation" });
   if (invitation.org_id !== orgId) return res.status(401).json({ error: "Organization does not match invitation" });
 
-  // Find the existing auth user by email (paginated to avoid fetching all users)
-  const { data: { users }, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1, filter: email.toLowerCase().trim() });
-  if (listErr) return res.status(500).json({ error: listErr.message });
+  // Find the existing auth user by email via GoTrue admin API (listUsers filter is unreliable in JS client)
+  const targetEmail = email.toLowerCase().trim();
+  let user = null;
+  const goTrueRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?filter=${encodeURIComponent(targetEmail)}`, {
+    headers: { Authorization: `Bearer ${supabaseServiceKey}`, apikey: supabaseServiceKey },
+  });
+  if (goTrueRes.ok) {
+    const body = await goTrueRes.json();
+    const users = body.users || body;
+    user = (Array.isArray(users) ? users : []).find(u => u.email === targetEmail);
+  }
+  if (!user) return res.status(404).json({ error: "User not found" });
 
-  const user = users?.[0];
-  if (!user || user.email !== email.toLowerCase().trim()) return res.status(404).json({ error: "User not found" });
-
-  // Update their password to the new one they entered
-  const { error: updateErr } = await supabase.auth.admin.updateUserById(user.id, { password });
+  // Update their password and auto-confirm email (handles unconfirmed re-signups)
+  const { error: updateErr } = await supabase.auth.admin.updateUserById(user.id, { password, email_confirm: true });
   if (updateErr) return res.status(500).json({ error: updateErr.message });
 
   // Upsert their profile
