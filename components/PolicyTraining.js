@@ -155,7 +155,7 @@ export default function PolicyTraining({
   smsManuals, showManuals, readOnlyManuals, tourTab,
   // SMS Manuals props (passed through when showManuals is true)
   templateVariables, signatures, fleetAircraft,
-  onSaveManual, onInitManuals, onSaveVariables, onSaveSignature,
+  onSaveManual, onPublishManual, onInitManuals, onSaveVariables, onSaveSignature,
   onAiDraftPolicy,
 }) {
   const [topTab, setTopTab] = useState("policies");
@@ -234,7 +234,7 @@ export default function PolicyTraining({
         {renderTopTabs()}
         <SmsManuals profile={profile} session={session} smsManuals={smsManuals}
           templateVariables={templateVariables} signatures={signatures}
-          fleetAircraft={fleetAircraft} onSaveManual={readOnlyManuals ? null : onSaveManual}
+          fleetAircraft={fleetAircraft} onSaveManual={readOnlyManuals ? null : onSaveManual} onPublishManual={readOnlyManuals ? null : onPublishManual}
           onInitManuals={readOnlyManuals ? null : onInitManuals} onSaveVariables={readOnlyManuals ? null : onSaveVariables}
           onSaveSignature={readOnlyManuals ? null : onSaveSignature} embedded readOnly={readOnlyManuals} />
       </div>

@@ -666,7 +666,7 @@ const SMS_MANUAL_TEMPLATES = [
 // MANUAL EDITOR
 // ══════════════════════════════════════════════════════
 
-function ManualEditor({ manual, onSave, onBack, templateVariables, signatures, onSaveSignature }) {
+function ManualEditor({ manual, onSave, onPublish, onBack, templateVariables, signatures, onSaveSignature }) {
   // Merge template sample content into any sections that have empty content
   const initSections = () => {
     const dbSections = manual.sections || [];
@@ -679,22 +679,47 @@ function ManualEditor({ manual, onSave, onBack, templateVariables, signatures, o
     });
   };
   const [sections, setSections] = useState(initSections);
-  const [status, setStatus] = useState(manual.status || "draft");
-  const [version, setVersion] = useState(manual.version || "1.0");
   const [expandedSection, setExpandedSection] = useState(null);
   const [dirty, setDirty] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null); // null | "saving" | "saved"
+  const saveTimerRef = useRef(null);
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
 
   const completedCount = sections.filter(s => s.completed).length;
   const pct = sections.length > 0 ? Math.round(completedCount / sections.length * 100) : 0;
 
+  const doSave = useCallback(async () => {
+    setSaveStatus("saving");
+    await onSave({ ...manual, sections: sectionsRef.current });
+    setDirty(false);
+    setSaveStatus("saved");
+    setTimeout(() => setSaveStatus(prev => prev === "saved" ? null : prev), 2000);
+  }, [manual, onSave]);
+
   const updateSection = (idx, updates) => {
     setSections(prev => prev.map((s, i) => i === idx ? { ...s, ...updates, lastEdited: new Date().toISOString() } : s));
     setDirty(true);
+    // Auto-save after 2 seconds of inactivity
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => doSave(), 2000);
   };
 
+  // Cleanup timer on unmount
+  useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
+
   const handleSave = () => {
-    onSave({ ...manual, sections, status, version });
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    doSave();
+  };
+
+  const [publishing, setPublishing] = useState(false);
+  const handlePublish = async () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setPublishing(true);
+    if (onPublish) await onPublish({ ...manual, sections: sectionsRef.current });
     setDirty(false);
+    setPublishing(false);
   };
 
   return (
@@ -708,19 +733,20 @@ function ManualEditor({ manual, onSave, onBack, templateVariables, signatures, o
             <div style={{ fontSize: 11, color: MUTED }}>{manual.cfr_references?.map(r => `\u00A7 ${r}`).join(", ")}</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <select value={status} onChange={e => { setStatus(e.target.value); setDirty(true); }}
-            style={{ ...inp, width: "auto", padding: "6px 10px", fontSize: 11 }}>
-            <option value="draft">Draft</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-          </select>
-          <input value={version} onChange={e => { setVersion(e.target.value); setDirty(true); }}
-            style={{ ...inp, width: 60, padding: "6px 10px", fontSize: 11, textAlign: "center" }} placeholder="v1.0" />
-          <button onClick={handleSave}
-            style={{ padding: "6px 16px", background: dirty ? WHITE : BORDER, color: dirty ? BLACK : MUTED, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: dirty ? "pointer" : "default", opacity: dirty ? 1 : 0.5 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {saveStatus === "saving" && <span style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>Saving...</span>}
+          {saveStatus === "saved" && <span style={{ fontSize: 10, color: GREEN }}>Saved</span>}
+          {dirty && !saveStatus && <span style={{ fontSize: 10, color: AMBER }}>Unsaved changes</span>}
+          <button onClick={handleSave} disabled={!dirty}
+            style={{ padding: "6px 16px", background: "transparent", color: dirty ? OFF_WHITE : MUTED, border: `1px solid ${dirty ? BORDER : BORDER}`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: dirty ? "pointer" : "default", opacity: dirty ? 1 : 0.5 }}>
             Save
           </button>
+          {onPublish && (
+            <button onClick={handlePublish} disabled={publishing}
+              style={{ padding: "6px 16px", background: CYAN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: publishing ? "wait" : "pointer", opacity: publishing ? 0.6 : 1 }}>
+              {publishing ? "Publishing..." : "Publish"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -806,12 +832,11 @@ function ManualEditor({ manual, onSave, onBack, templateVariables, signatures, o
         );
       })}
 
-      {/* Save button at bottom */}
+      {/* Save indicator at bottom */}
       {dirty && (
-        <button onClick={handleSave}
-          style={{ width: "100%", padding: "14px 0", marginTop: 16, background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-          Save Changes
-        </button>
+        <div style={{ textAlign: "center", marginTop: 12, fontSize: 10, color: MUTED }}>
+          {saveStatus === "saving" ? "Saving..." : "Changes auto-save after you stop editing"}
+        </div>
       )}
     </div>
   );
@@ -821,7 +846,7 @@ function ManualEditor({ manual, onSave, onBack, templateVariables, signatures, o
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function SmsManuals({ profile, session, smsManuals, onSaveManual, onInitManuals, templateVariables, signatures, onSaveVariables, onSaveSignature, fleetAircraft, embedded, readOnly }) {
+export default function SmsManuals({ profile, session, smsManuals, onSaveManual, onPublishManual, onInitManuals, templateVariables, signatures, onSaveVariables, onSaveSignature, fleetAircraft, embedded, readOnly }) {
   const [selectedManual, setSelectedManual] = useState(null);
   const [initializing, setInitializing] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
@@ -835,8 +860,6 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
         title: t.title,
         description: t.description,
         cfr_references: t.cfrReferences,
-        status: "active",
-        version: "1.0",
         sections: t.sections.map(s => ({ ...s, completed: false })),
         _isTemplate: true,
       }));
@@ -1017,6 +1040,7 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
       <ManualEditor
         manual={manual}
         onSave={(updated) => { onSaveManual(updated); }}
+        onPublish={onPublishManual}
         onBack={() => setSelectedManual(null)}
         templateVariables={templateVariables}
         signatures={signatures}
@@ -1133,7 +1157,6 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
         const secs = m.sections || [];
         const done = secs.filter(s => s.completed).length;
         const pct = secs.length > 0 ? Math.round(done / secs.length * 100) : 0;
-        const statusColor = m.status === "active" ? GREEN : m.status === "archived" ? MUTED : YELLOW;
         const pctColor = readOnly ? CYAN : (pct === 100 ? GREEN : pct > 0 ? CYAN : MUTED);
 
         return (
@@ -1143,10 +1166,6 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{m.title}</span>
-                  {!readOnly && <>
-                    <span style={{ background: `${statusColor}22`, color: statusColor, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 700 }}>{m.status}</span>
-                    <span style={{ background: BORDER, color: MUTED, padding: "1px 7px", borderRadius: 8, fontSize: 9 }}>v{m.version}</span>
-                  </>}
                   {readOnly && <span style={{ background: `${CYAN}15`, color: CYAN, padding: "1px 7px", borderRadius: 8, fontSize: 9, fontWeight: 600 }}>Preview</span>}
                 </div>
                 <div style={{ fontSize: 11, color: MUTED, marginBottom: 6 }}>{m.description}</div>
