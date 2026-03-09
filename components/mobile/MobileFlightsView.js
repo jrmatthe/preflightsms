@@ -406,18 +406,18 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
           position: "relative", zIndex: 1,
         }}
       >
-        {/* Top: Route + Status */}
+        {/* Top: Tail + Status */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
           <div>
-            <div style={{ color: WHITE, fontSize: 20, fontWeight: 700, letterSpacing: "0.02em" }}>
-              {flight.departure || "????"} → {flight.destination || "????"}
-            </div>
-            <div style={{ color: MUTED, fontSize: 14, marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>{flight.tailNumber || flight.aircraft}{flight.tailNumber && flight.aircraft ? ` · ${flight.aircraft}` : ""}{flight.pilot ? ` · ${flight.pilot}` : ""}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: WHITE, fontSize: 20, fontWeight: 700, letterSpacing: "0.02em" }}>{flight.tailNumber || flight.aircraft}</span>
               {isLive && <span style={{ fontSize: 9, fontWeight: 700, color: GREEN, background: "rgba(74,222,128,0.09)", padding: "2px 6px", borderRadius: 3, border: `1px solid ${GREEN}33` }}>LIVE ADS-B</span>}
               {(isActive || isPending) && flight.tailNumber && (
                 <a href={`https://flightaware.com/live/flight/${flight.tailNumber}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, fontWeight: 700, color: "#00AAFF", background: "rgba(0,170,255,0.09)", padding: "2px 6px", borderRadius: 3, border: "1px solid rgba(0,170,255,0.2)", textDecoration: "none" }}>Track on FlightAware</a>
               )}
+            </div>
+            <div style={{ color: MUTED, fontSize: 14, marginTop: 2 }}>
+              {flight.departure || "????"} → {flight.destination || "????"}{flight.tailNumber && flight.aircraft ? ` · ${flight.aircraft}` : ""}{flight.pilot ? ` · ${flight.pilot}` : ""}
             </div>
           </div>
           <span style={{
