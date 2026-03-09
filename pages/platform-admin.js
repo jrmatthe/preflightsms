@@ -106,6 +106,8 @@ export default function PlatformAdmin() {
   const [addingAdmin, setAddingAdmin] = useState(false);
   const [orgLoading, setOrgLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+  const [growthData, setGrowthData] = useState(null);
+  const [growthLoading, setGrowthLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -132,7 +134,9 @@ export default function PlatformAdmin() {
 
   const loadOrgs = useCallback(async () => { const res = await callApi({ action: "fetch_orgs" }); if (!res._status) setOrgs(res.orgs || []); }, [callApi]);
   const loadAdmins = useCallback(async () => { const res = await callApi({ action: "list_admins" }); if (!res._status) setAdmins(res.admins || []); }, [callApi]);
+  const loadGrowth = useCallback(async () => { setGrowthLoading(true); const res = await callApi({ action: "fetch_growth_data" }); if (!res._status) setGrowthData(res); setGrowthLoading(false); }, [callApi]);
   useEffect(() => { if (state === "app") { loadOrgs(); loadAdmins(); } }, [state, loadOrgs, loadAdmins]);
+  useEffect(() => { if (state === "app" && view === "growth" && !growthData) loadGrowth(); }, [state, view, growthData, loadGrowth]);
 
   const isDirty = selectedOrg && (
     editStatus !== (selectedOrg.subscription_status || "trial") ||
@@ -229,7 +233,7 @@ export default function PlatformAdmin() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 4, padding: "10px 24px", borderBottom: `1px solid ${BORDER}`, background: DARK }}>
-          {[["orgs", "Organizations"], ["admins", "Platform Admins"]].map(([id, label]) => (
+          {[["orgs", "Organizations"], ["growth", "Growth"], ["admins", "Platform Admins"]].map(([id, label]) => (
             <button key={id} onClick={() => {
               if (isDirty && view === "orgs" && id !== "orgs") { setPendingAction({ type: "switchTab", tab: id }); return; }
               setView(id);
@@ -249,12 +253,171 @@ export default function PlatformAdmin() {
         )}
 
         {view === "admins" && <AdminsView admins={admins} admin={admin} newAdmin={newAdmin} setNewAdmin={setNewAdmin} addingAdmin={addingAdmin} onAdd={handleAddAdmin} onRemove={handleRemoveAdmin} />}
+        {view === "growth" && <GrowthView data={growthData} loading={growthLoading} onRefresh={loadGrowth} />}
         {view === "orgs" && <OrgsView orgs={filteredOrgs} selectedOrg={selectedOrg} selectOrg={selectOrg} search={search} setSearch={setSearch} orgUsers={orgUsers} orgStats={orgStats} orgLoading={orgLoading} editStatus={editStatus} editFlags={editFlags} editMaxAircraft={editMaxAircraft} setEditFlags={setEditFlags} setEditStatus={setEditStatus} setEditMaxAircraft={setEditMaxAircraft} saveChanges={saveChanges} saving={saving} onDeleteOrg={handleDeleteOrg} isDirty={isDirty} />}
 
         {toast && <div style={{ position: "fixed", bottom: 24, right: 24, padding: "10px 20px", background: toast.isError ? `${RED}22` : `${GREEN}22`, border: `1px solid ${toast.isError ? RED + "44" : GREEN + "44"}`, borderRadius: 8, color: toast.isError ? RED : GREEN, fontSize: 12, fontWeight: 600 }}>{toast.msg}</div>}
       </div>
       <style>{`*{box-sizing:border-box}input:focus{outline:none;border-color:${WHITE} !important}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}@media(max-width:768px){.pa-orgs-layout{grid-template-columns:1fr !important;min-height:auto !important}.pa-sidebar{border-right:none !important;border-bottom:1px solid ${BORDER};max-height:40vh;overflow-y:auto}.pa-stats-grid{grid-template-columns:repeat(3,1fr) !important}}@media(max-width:480px){.pa-stats-grid{grid-template-columns:repeat(2,1fr) !important}}`}</style>
     </>
+  );
+}
+
+function GrowthView({ data, loading, onRefresh }) {
+  if (loading && !data) return <div style={{ padding: 40, textAlign: "center", color: MUTED }}>Loading growth data...</div>;
+  if (!data) return <div style={{ padding: 40, textAlign: "center", color: MUTED }}>No data available</div>;
+
+  const { kpis, trial_pipeline, engagement_ranking, revenue, recent_signups } = data;
+  const LEVEL_COLORS = { high: GREEN, medium: YELLOW, low: AMBER, inactive: RED };
+
+  const fmt = (n) => typeof n === "number" ? n.toLocaleString() : "–";
+  const fmtUsd = (n) => typeof n === "number" ? "$" + n.toLocaleString() : "–";
+
+  return (
+    <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Growth Intelligence</div>
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>Revenue, trials, engagement, and acquisition metrics</div>
+        </div>
+        <button onClick={onRefresh} disabled={loading} style={{ padding: "8px 20px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}44`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: "pointer", opacity: loading ? 0.6 : 1 }}>{loading ? "Refreshing..." : "Refresh"}</button>
+      </div>
+
+      {/* A. Platform KPIs */}
+      <div className="pa-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20 }}>
+        <div style={{ ...card, padding: "14px 16px", textAlign: "center" }}>
+          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Monthly Revenue</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: GREEN, fontFamily: "Georgia,serif", marginTop: 4 }}>{fmtUsd(kpis.mrr)}</div>
+          <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>MRR</div>
+        </div>
+        <div style={{ ...card, padding: "14px 16px", textAlign: "center" }}>
+          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Total Orgs</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif", marginTop: 4 }}>{fmt(kpis.total_orgs)}</div>
+          <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>{Object.entries(kpis.tier_breakdown || {}).map(([t, c]) => `${c} ${t}`).join(" · ")}</div>
+        </div>
+        <div style={{ ...card, padding: "14px 16px", textAlign: "center" }}>
+          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Total Users</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif", marginTop: 4 }}>{fmt(kpis.total_users)}</div>
+        </div>
+        <div style={{ ...card, padding: "14px 16px", textAlign: "center" }}>
+          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Trial Conversion</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: kpis.conversion_rate >= 50 ? GREEN : kpis.conversion_rate >= 20 ? YELLOW : RED, fontFamily: "Georgia,serif", marginTop: 4 }}>{kpis.conversion_rate}%</div>
+        </div>
+        <div style={{ ...card, padding: "14px 16px", textAlign: "center" }}>
+          <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Churned</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: kpis.churn_count > 0 ? RED : GREEN, fontFamily: "Georgia,serif", marginTop: 4 }}>{fmt(kpis.churn_count)}</div>
+        </div>
+      </div>
+
+      {/* B. Revenue Breakdown */}
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>Revenue Breakdown</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 10, color: MUTED, fontWeight: 600, marginBottom: 8 }}>MRR BY TIER</div>
+            {Object.entries(revenue.mrr_by_tier || {}).length === 0 ? <div style={{ fontSize: 11, color: MUTED }}>No active revenue</div> : Object.entries(revenue.mrr_by_tier).map(([tier, amount]) => (
+              <div key={tier} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${BORDER}` }}>
+                <span style={{ fontSize: 11, color: TIER_COLORS[tier] || MUTED, fontWeight: 600, textTransform: "capitalize" }}>{tier}</span>
+                <span style={{ fontSize: 11, color: WHITE, fontWeight: 700 }}>{fmtUsd(amount)}/mo</span>
+              </div>
+            ))}
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: MUTED, fontWeight: 600, marginBottom: 8 }}>TRIAL POTENTIAL</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: YELLOW }}>{fmtUsd(revenue.potential_trial_revenue)}</div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>If all trials convert at $149/mo</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: MUTED, fontWeight: 600, marginBottom: 8 }}>UPSELL OPPORTUNITY</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: CYAN }}>{fmtUsd(revenue.potential_upsell_revenue)}</div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Starter → Professional delta</div>
+          </div>
+        </div>
+      </div>
+
+      {/* C. Trial Pipeline */}
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>Trial Pipeline ({trial_pipeline.length})</div>
+        {trial_pipeline.length === 0 ? <div style={{ fontSize: 11, color: MUTED }}>No active trials</div> : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
+                  {["Organization", "Days Left", "Users", "Activity (7d)", "Created"].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "6px 10px", color: MUTED, fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {trial_pipeline.map((t, i) => {
+                  const d = t.days_remaining;
+                  const daysColor = d === null ? MUTED : d <= 3 ? RED : d <= 7 ? AMBER : GREEN;
+                  const daysLabel = d === null ? "No end date" : d < 0 ? `${Math.abs(d)}d overdue` : `${d}d`;
+                  return (
+                    <tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                      <td style={{ padding: "8px 10px", color: WHITE, fontWeight: 600 }}>{t.name}</td>
+                      <td style={{ padding: "8px 10px", color: daysColor, fontWeight: 700 }}>{daysLabel}</td>
+                      <td style={{ padding: "8px 10px", color: OFF_WHITE }}>{t.users}</td>
+                      <td style={{ padding: "8px 10px" }}>
+                        <span style={{ color: WHITE, fontWeight: 600 }}>{t.activity_7d}</span>
+                        <span style={{ color: t.activity_7d > 0 ? GREEN : RED, fontSize: 9, marginLeft: 6, fontWeight: 600 }}>{t.activity_7d > 0 ? "active" : "silent"}</span>
+                      </td>
+                      <td style={{ padding: "8px 10px", color: MUTED }}>{new Date(t.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* D. Org Engagement Ranking */}
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>Engagement Ranking</div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
+                {["Organization", "Tier", "Users", "30d Activity", "Last Active", "Level"].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "6px 10px", color: MUTED, fontWeight: 600, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {engagement_ranking.map((e, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                  <td style={{ padding: "8px 10px", color: WHITE, fontWeight: 600 }}>{e.name}</td>
+                  <td style={{ padding: "8px 10px" }}><span style={{ color: TIER_COLORS[e.tier] || MUTED, fontWeight: 600, textTransform: "capitalize", fontSize: 10 }}>{e.tier}</span></td>
+                  <td style={{ padding: "8px 10px", color: OFF_WHITE }}>{e.users}</td>
+                  <td style={{ padding: "8px 10px", color: WHITE, fontWeight: 700 }}>{e.activity_30d}</td>
+                  <td style={{ padding: "8px 10px", color: MUTED }}>{e.last_active}</td>
+                  <td style={{ padding: "8px 10px" }}><span style={{ color: LEVEL_COLORS[e.engagement_level], fontWeight: 700, textTransform: "uppercase", fontSize: 9, letterSpacing: 0.5 }}>{e.engagement_level}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* E. Recent Signups */}
+      <div style={{ ...card, padding: "16px 20px" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 12 }}>Recent Signups ({recent_signups.length})</div>
+        {recent_signups.length === 0 ? <div style={{ fontSize: 11, color: MUTED }}>No signups in the last 30 days</div> : recent_signups.map((s, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{s.name}</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: TIER_COLORS[s.tier] || MUTED, textTransform: "uppercase", padding: "1px 6px", background: `${TIER_COLORS[s.tier] || MUTED}15`, borderRadius: 3 }}>{s.tier}</span>
+              <span style={{ fontSize: 10, color: MUTED }}>{s.users} user{s.users !== 1 ? "s" : ""}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: s.has_activity ? GREEN : RED }}>{s.has_activity ? "Active" : "No activity"}</span>
+              <span style={{ fontSize: 10, color: MUTED }}>{new Date(s.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

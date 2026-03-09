@@ -217,5 +217,123 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, deleted_users: result.deleted_users });
   }
 
+  // ── FETCH GROWTH DATA (aggregated growth intelligence) ──
+  if (action === 'fetch_growth_data') {
+    const claims = verifyToken(token);
+    if (!claims) return res.status(401).json({ error: 'Unauthorized' });
+
+    const now = new Date();
+    const d7 = new Date(now - 7 * 86400000).toISOString();
+    const d30 = new Date(now - 30 * 86400000).toISOString();
+
+    const [orgsRes, profilesRes, frats7, flights7, reports7, frats30, flights30, reports30, recentProfilesRes] = await Promise.all([
+      sb.from('organizations').select('id, name, slug, tier, subscription_status, trial_ends_at, created_at'),
+      sb.from('profiles').select('id, org_id'),
+      sb.from('frat_submissions').select('id, org_id').gte('created_at', d7),
+      sb.from('flights').select('id, org_id').gte('created_at', d7),
+      sb.from('safety_reports').select('id, org_id').gte('created_at', d7),
+      sb.from('frat_submissions').select('id, org_id').gte('created_at', d30),
+      sb.from('flights').select('id, org_id').gte('created_at', d30),
+      sb.from('safety_reports').select('id, org_id').gte('created_at', d30),
+      sb.from('profiles').select('id, org_id, created_at').gte('created_at', d30),
+    ]);
+
+    const allOrgs = orgsRes.data || [];
+    const allProfiles = profilesRes.data || [];
+
+    // User counts per org
+    const usersByOrg = {};
+    allProfiles.forEach(p => { usersByOrg[p.org_id] = (usersByOrg[p.org_id] || 0) + 1; });
+
+    // Activity counts per org (7d and 30d)
+    const activity7 = {}, activity30 = {};
+    [frats7, flights7, reports7].forEach(r => (r.data || []).forEach(row => { activity7[row.org_id] = (activity7[row.org_id] || 0) + 1; }));
+    [frats30, flights30, reports30].forEach(r => (r.data || []).forEach(row => { activity30[row.org_id] = (activity30[row.org_id] || 0) + 1; }));
+
+    // MRR pricing
+    const TIER_PRICE = { free: 0, starter: 149, professional: 349, enterprise: 0 };
+
+    // KPIs
+    const tierBreakdown = {}, statusBreakdown = {};
+    let mrr = 0, churnCount = 0;
+    allOrgs.forEach(o => {
+      const t = o.tier || 'starter';
+      const s = o.subscription_status || 'trial';
+      tierBreakdown[t] = (tierBreakdown[t] || 0) + 1;
+      statusBreakdown[s] = (statusBreakdown[s] || 0) + 1;
+      if (s === 'active') mrr += TIER_PRICE[t] || 0;
+      if (s === 'canceled') churnCount++;
+    });
+
+    const trialOrgs = allOrgs.filter(o => (o.subscription_status || 'trial') === 'trial');
+    const activeOrgs = allOrgs.filter(o => (o.subscription_status || 'trial') === 'active');
+    const conversionRate = allOrgs.length > 0 ? Math.round((activeOrgs.length / allOrgs.length) * 100) : 0;
+
+    // Trial pipeline (sorted by days remaining asc)
+    const trialPipeline = trialOrgs.map(o => {
+      const trialEnd = o.trial_ends_at ? new Date(o.trial_ends_at) : null;
+      const daysRemaining = trialEnd ? Math.ceil((trialEnd - now) / 86400000) : null;
+      return {
+        name: o.name || o.slug || 'Unnamed',
+        days_remaining: daysRemaining,
+        users: usersByOrg[o.id] || 0,
+        activity_7d: activity7[o.id] || 0,
+        created_at: o.created_at,
+      };
+    }).sort((a, b) => (a.days_remaining ?? 999) - (b.days_remaining ?? 999));
+
+    // Engagement ranking (sorted by 30d activity desc)
+    const engagementRanking = allOrgs.map(o => {
+      const act = activity30[o.id] || 0;
+      const level = act >= 20 ? 'high' : act >= 5 ? 'medium' : act >= 1 ? 'low' : 'inactive';
+      // Find last active date from 30d data
+      let lastActive = null;
+      [frats30, flights30, reports30].forEach(r => {
+        (r.data || []).filter(row => row.org_id === o.id).forEach(() => {
+          if (!lastActive) lastActive = d30; // approximate — we know they were active in the window
+        });
+      });
+      return {
+        name: o.name || o.slug || 'Unnamed',
+        tier: o.tier || 'starter',
+        users: usersByOrg[o.id] || 0,
+        activity_30d: act,
+        last_active: act > 0 ? 'Within 30d' : 'Over 30d ago',
+        engagement_level: level,
+      };
+    }).sort((a, b) => b.activity_30d - a.activity_30d);
+
+    // Revenue breakdown
+    const mrrByTier = {};
+    allOrgs.forEach(o => {
+      const t = o.tier || 'starter';
+      const s = o.subscription_status || 'trial';
+      if (s === 'active') mrrByTier[t] = (mrrByTier[t] || 0) + (TIER_PRICE[t] || 0);
+    });
+    const potentialTrialRevenue = trialOrgs.length * 149;
+    const activeStarterCount = allOrgs.filter(o => (o.tier || 'starter') === 'starter' && (o.subscription_status || 'trial') === 'active').length;
+    const potentialUpsellRevenue = activeStarterCount * (349 - 149);
+
+    // Recent signups (last 30 days)
+    const recentSignups = allOrgs
+      .filter(o => new Date(o.created_at) >= new Date(d30))
+      .map(o => ({
+        name: o.name || o.slug || 'Unnamed',
+        tier: o.tier || 'starter',
+        users: usersByOrg[o.id] || 0,
+        has_activity: (activity30[o.id] || 0) > 0,
+        created_at: o.created_at,
+      }))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    return res.status(200).json({
+      kpis: { mrr, total_orgs: allOrgs.length, total_users: allProfiles.length, conversion_rate: conversionRate, churn_count: churnCount, tier_breakdown: tierBreakdown, status_breakdown: statusBreakdown },
+      trial_pipeline: trialPipeline,
+      engagement_ranking: engagementRanking,
+      revenue: { mrr_by_tier: mrrByTier, potential_trial_revenue: potentialTrialRevenue, potential_upsell_revenue: potentialUpsellRevenue },
+      recent_signups: recentSignups,
+    });
+  }
+
   return res.status(400).json({ error: 'Unknown action' });
 }
