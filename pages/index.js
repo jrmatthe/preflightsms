@@ -1782,8 +1782,11 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                     {schedaeroTrips?.some(sc => sc.flight_id === f.dbId) && (
                       <span style={{ fontSize: 8, fontWeight: 700, color: "#60A5FA", background: "rgba(96,165,250,0.09)", padding: "2px 6px", borderRadius: 3, border: "1px solid rgba(96,165,250,0.2)" }}>Schedaero</span>
                     )}
-                    {livePositions[f.dbId] && (Date.now() - (livePositions[f.dbId].receivedAt || 0)) < 30000 && (
+                    {isActiveOrPending(f) && livePositions[f.dbId] && (Date.now() - (livePositions[f.dbId].receivedAt || 0)) < 30000 && (
                       <span style={{ fontSize: 8, fontWeight: 700, color: GREEN, background: "rgba(74,222,128,0.09)", padding: "2px 6px", borderRadius: 3, border: `1px solid ${GREEN}33` }}>LIVE ADS-B</span>
+                    )}
+                    {isActiveOrPending(f) && f.tailNumber && (
+                      <a href={`https://flightaware.com/live/flight/${f.tailNumber}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 8, fontWeight: 700, color: "#00AAFF", background: "rgba(0,170,255,0.09)", padding: "2px 6px", borderRadius: 3, border: "1px solid rgba(0,170,255,0.2)", textDecoration: "none" }}>FlightAware</a>
                     )}
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 4, color: BLACK, background: statusColor, letterSpacing: 0.5 }}>{statusLabel}</span>
