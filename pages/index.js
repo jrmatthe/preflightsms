@@ -2018,7 +2018,7 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick, dragHan
   );
 }
 
-function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, trainingRequirements, trainingRecords, policies, mocItems, erpDrills, onNavigate, org, session }) {
+function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, trainingRequirements, trainingRecords, policies, mocItems, erpPlans, erpDrills, onNavigate, org, session }) {
   const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 20px" };
   const sectionTitle = { fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 };
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
@@ -2251,7 +2251,102 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     {statusBadge(m.status || "draft", m.status === "approved" ? GREEN : m.status === "rejected" ? RED : AMBER)}
   </>), { lockCheck: "management_of_change", clickNav: "moc", emptyColor: GREEN });
 
+  // ── ERP Reviews Due ──
+  const erpReviewDue = (erpPlans || []).filter(p => {
+    if (!p.is_active) return false;
+    if (!p.last_reviewed_at) return true;
+    return (Date.now() - new Date(p.last_reviewed_at).getTime()) > 365 * 86400000;
+  });
+  const erpCard = listCard("ERP Reviews Due", erpReviewDue, "All plans current", "erp", p => {
+    const lastReview = p.last_reviewed_at ? new Date(p.last_reviewed_at) : null;
+    const daysAgo = lastReview ? Math.floor((Date.now() - lastReview.getTime()) / 86400000) : null;
+    return (<>
+      <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+      <span style={{ fontSize: 10, color: lastReview ? RED : AMBER, flexShrink: 0 }}>
+        {lastReview ? `${daysAgo} days ago` : "Never reviewed"}
+      </span>
+    </>);
+  }, { lockCheck: "emergency_response", clickNav: "erp", emptyColor: GREEN });
+
   const gap = 28;
+
+  // ── Card registry for drag-to-reorder ──
+  const CARD_DEFS = {
+    frats: { col: 0, node: fratCard, visible: true },
+    reports: { col: 0, node: reportCard, visible: true },
+    training: { col: 0, node: trainingCard, visible: true },
+    approvals: { col: 0, node: approvalCard, visible: isAdmin || (profile?.permissions || []).includes("approver") },
+    investigations: { col: 0, node: investigationCard, visible: isAdmin },
+    my_actions: { col: 0, node: myActionsCard, visible: isAdmin },
+    audits: { col: 0, node: auditCard, visible: isAdmin },
+    policies: { col: 1, node: policyCard, visible: true },
+    reviews: { col: 1, node: reviewCard, visible: isAdmin },
+    overdue: { col: 1, node: overdueCard, visible: isAdmin },
+    erp: { col: 1, node: erpCard, visible: isAdmin },
+    moc: { col: 1, node: mocCard, visible: isAdmin },
+  };
+  const DEFAULT_ORDER = ["frats","reports","training","approvals","investigations","my_actions","audits","policies","reviews","overdue","erp","moc"];
+
+  const [cardOrder, setCardOrder] = useState(() => {
+    try {
+      const saved = typeof window !== "undefined" && localStorage.getItem("pfms_home_layout");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Merge in any new cards not in saved order
+        const merged = [...parsed.filter(id => CARD_DEFS[id]), ...DEFAULT_ORDER.filter(id => !parsed.includes(id))];
+        return merged;
+      }
+    } catch {}
+    return DEFAULT_ORDER;
+  });
+
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
+  const handleDragStart = (id) => (e) => {
+    setDragId(id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+  const handleDragOver = (id) => (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (id !== dragOverId) setDragOverId(id);
+  };
+  const handleDrop = (targetId) => (e) => {
+    e.preventDefault();
+    if (!dragId || dragId === targetId) { setDragId(null); setDragOverId(null); return; }
+    setCardOrder(prev => {
+      const next = [...prev];
+      const fromIdx = next.indexOf(dragId);
+      const toIdx = next.indexOf(targetId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, dragId);
+      try { localStorage.setItem("pfms_home_layout", JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setDragId(null);
+    setDragOverId(null);
+  };
+  const handleDragEnd = () => { setDragId(null); setDragOverId(null); };
+
+  const visibleCards = cardOrder.filter(id => CARD_DEFS[id]?.visible);
+  const leftCards = visibleCards.filter(id => CARD_DEFS[id].col === 0);
+  const rightCards = visibleCards.filter(id => CARD_DEFS[id].col === 1);
+
+  const dragWrap = (id, node) => (
+    <div key={id} draggable onDragStart={handleDragStart(id)} onDragOver={handleDragOver(id)} onDrop={handleDrop(id)} onDragEnd={handleDragEnd}
+      style={{ opacity: dragId === id ? 0.4 : 1, transition: "opacity 0.15s", position: "relative", borderRadius: 10, outline: dragOverId === id ? `2px solid ${CYAN}` : "none", outlineOffset: 2 }}>
+      {/* Drag grip — visible on hover */}
+      <div style={{ position: "absolute", top: 8, right: 8, cursor: "grab", opacity: 0.25, zIndex: 2, padding: 4 }}
+        className="drag-grip"
+        onMouseDown={e => e.currentTarget.style.cursor = "grabbing"}
+        onMouseUp={e => e.currentTarget.style.cursor = "grab"}>
+        <svg width="10" height="14" viewBox="0 0 10 14" fill={MUTED}><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="7" r="1.5"/><circle cx="8" cy="7" r="1.5"/><circle cx="2" cy="12" r="1.5"/><circle cx="8" cy="12" r="1.5"/></svg>
+      </div>
+      {node}
+    </div>
+  );
 
   return (
     <div>
@@ -2285,22 +2380,11 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
 
       {/* ── Two-column grid ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap, alignItems: "start" }}>
-        {/* Left column */}
         <div style={{ display: "flex", flexDirection: "column", gap }}>
-          {fratCard}
-          {reportCard}
-          {trainingCard}
-          {(isAdmin || (profile?.permissions || []).includes("approver")) && approvalCard}
-          {isAdmin && investigationCard}
-          {isAdmin && myActionsCard}
-          {isAdmin && auditCard}
+          {leftCards.map(id => dragWrap(id, CARD_DEFS[id].node))}
         </div>
-        {/* Right column */}
         <div style={{ display: "flex", flexDirection: "column", gap }}>
-          {policyCard}
-          {isAdmin && reviewCard}
-          {isAdmin && overdueCard}
-          {isAdmin && mocCard}
+          {rightCards.map(id => dragWrap(id, CARD_DEFS[id].node))}
         </div>
       </div>
     </div>
@@ -5087,7 +5171,7 @@ export default function PVTAIRFrat() {
             </div>
           );
         })()}
-        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} />}
+        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
