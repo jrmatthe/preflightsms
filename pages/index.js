@@ -2138,48 +2138,57 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   </>));
 
   // ── Training card (special layout) ──
+  const currentCount = reqStatus.filter(r => r.status === "current").length;
+  const totalReqs = reqStatus.length;
+  const completionPct = totalReqs > 0 ? Math.round((currentCount / totalReqs) * 100) : 0;
+  const trainingStatusColor = (s) => s === "overdue" ? RED : s === "expiring" ? AMBER : s === "current" ? GREEN : MUTED;
+  const trainingStatusLabel = (s) => s === "overdue" ? "Overdue" : s === "expiring" ? "Expiring" : s === "current" ? "Current" : "Incomplete";
+  const trainingStatusIcon = (s) => s === "overdue" ? "\u26A0" : s === "expiring" ? "\u23F3" : s === "current" ? "\u2713" : "\u25CB";
   const trainingCard = (
     <div style={{ ...card, marginBottom: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <div style={sectionTitle}>My Training</div>
         <button onClick={() => onNavigate("cbt")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>
       </div>
       {myReqs.length === 0 ? (
         <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No training requirements configured</div>
       ) : (<>
-        {overdueTraining.length > 0 && (
-          <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", marginBottom: 8 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: RED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Overdue</div>
-            {overdueTraining.map(({ req, expiry }) => (
-              <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
-                <span>{req.title}</span>
-                {expiry && <span style={{ color: RED, fontSize: 10 }}>Expired {expiry.toLocaleDateString()}</span>}
+        {/* Progress bar */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+            <span style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{currentCount} of {totalReqs} current</span>
+            <span style={{ fontSize: 10, color: completionPct === 100 ? GREEN : MUTED, fontWeight: 600 }}>{completionPct}%</span>
+          </div>
+          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)" }}>
+            <div style={{ height: 4, borderRadius: 2, width: `${completionPct}%`, background: completionPct === 100 ? GREEN : completionPct >= 50 ? CYAN : AMBER, transition: "width 0.3s" }} />
+          </div>
+        </div>
+        {/* All-current success state */}
+        {completionPct === 100 ? (
+          <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.15)", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 14 }}>{"\u2713"}</span>
+            <span style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>All training requirements current</span>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {reqStatus.filter(r => r.status !== "current").map(({ req, status, expiry }) => (
+              <div key={req.id} onClick={() => onNavigate("cbt")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, background: `${trainingStatusColor(status)}08`, border: `1px solid ${trainingStatusColor(status)}25`, cursor: "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = `${trainingStatusColor(status)}14`}
+                onMouseLeave={e => e.currentTarget.style.background = `${trainingStatusColor(status)}08`}>
+                <div style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, background: `${trainingStatusColor(status)}18`, color: trainingStatusColor(status), flexShrink: 0 }}>
+                  {trainingStatusIcon(status)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{req.title}</div>
+                  <div style={{ fontSize: 10, color: trainingStatusColor(status), marginTop: 1 }}>
+                    {status === "overdue" && expiry ? `Expired ${expiry.toLocaleDateString()}` : status === "expiring" && expiry ? `Expires ${expiry.toLocaleDateString()}` : "Not yet completed"}
+                  </div>
+                </div>
+                <div style={{ padding: "2px 8px", borderRadius: 10, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, color: trainingStatusColor(status), background: `${trainingStatusColor(status)}15`, flexShrink: 0 }}>
+                  {trainingStatusLabel(status)}
+                </div>
               </div>
             ))}
-          </div>
-        )}
-        {expiringTraining.length > 0 && (
-          <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", marginBottom: 8 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: AMBER, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Expiring Soon</div>
-            {expiringTraining.map(({ req, expiry }) => (
-              <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0", display: "flex", justifyContent: "space-between" }}>
-                <span>{req.title}</span>
-                {expiry && <span style={{ color: AMBER, fontSize: 10 }}>Expires {expiry.toLocaleDateString()}</span>}
-              </div>
-            ))}
-          </div>
-        )}
-        {reqStatus.filter(r => r.status === "not_started").length > 0 && (
-          <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}`, marginBottom: overdueTraining.length > 0 || expiringTraining.length > 0 ? 0 : 8 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Not Completed</div>
-            {reqStatus.filter(r => r.status === "not_started").map(({ req }) => (
-              <div key={req.id} style={{ fontSize: 11, color: OFF_WHITE, padding: "2px 0" }}>{req.title}</div>
-            ))}
-          </div>
-        )}
-        {overdueTraining.length === 0 && expiringTraining.length === 0 && reqStatus.filter(r => r.status === "not_started").length === 0 && (
-          <div style={{ padding: "8px 12px", borderRadius: 6, background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.2)" }}>
-            <div style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>All {reqStatus.filter(r => r.status === "current").length} training requirement{reqStatus.filter(r => r.status === "current").length !== 1 ? "s" : ""} current</div>
           </div>
         )}
       </>)}
