@@ -408,7 +408,7 @@ export default function PolicyTraining({
                 </div>
               </div>
             </div>
-            {isExpanded && (p.content || p.file_url) && (
+            {isExpanded && (
               <div style={{ padding: "0 18px 18px", borderTop: `1px solid ${BORDER}` }}>
                 {p.file_url && (
                   <div style={{ marginTop: 14, marginBottom: p.content ? 10 : 0 }}>
@@ -421,6 +421,9 @@ export default function PolicyTraining({
                   <div style={{ marginTop: p.file_url ? 0 : 14, whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.7, color: OFF_WHITE, maxHeight: 500, overflowY: "auto", background: NEAR_BLACK, borderRadius: 6, padding: 16 }}>
                     {p.content}
                   </div>
+                )}
+                {!p.content && !p.file_url && (
+                  <div style={{ marginTop: 14, fontSize: 12, color: MUTED, fontStyle: "italic" }}>No content</div>
                 )}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
                   {!acked && (
