@@ -293,16 +293,24 @@ function getSection(cv) {
   return NAV_SECTIONS.find(s => s.cvs.includes(cv)) || NAV_SECTIONS[0];
 }
 
-function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding, onboardingState, onStartFlow, isTrial, onStartFresh }) {
+function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding, onboardingState, onStartFlow, isTrial, onStartFresh, activeFlow }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingClosing, setOnboardingClosing] = useState(false);
   const didAutoOpen = useRef(false);
+  const prevActiveFlow = useRef(activeFlow);
   useEffect(() => {
     if (showOnboarding && !didAutoOpen.current) {
       didAutoOpen.current = true;
       setMenuOpen("onboarding");
     }
   }, [showOnboarding]);
+  useEffect(() => {
+    if (prevActiveFlow.current && !activeFlow && showOnboarding) {
+      setMenuOpen("onboarding");
+      setOnboardingClosing(false);
+    }
+    prevActiveFlow.current = activeFlow;
+  }, [activeFlow, showOnboarding]);
   // SVG icons — monochrome, inherit color from parent
   const I = (d, s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
   const icons = {
@@ -414,7 +422,7 @@ function NavBar({ currentView, setCurrentView, isAuthed, orgLogo, orgName, userN
                   transformOrigin: "bottom left",
                 }}>
                 <div style={{ padding: "4px 0" }}>
-                  <OnboardingDashboard onboardingState={onboardingState} onStartFlow={onStartFlow} isTrial={isTrial} onStartFresh={onStartFresh} />
+                  <OnboardingDashboard onboardingState={onboardingState} onStartFlow={(flowId) => { setOnboardingClosing(true); onStartFlow(flowId); }} isTrial={isTrial} onStartFresh={onStartFresh} />
                 </div>
               </div>
             </>)}
@@ -4903,7 +4911,7 @@ export default function PVTAIRFrat() {
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} />
+      <NavBar currentView={cv} setCurrentView={setCv} isAuthed={isAuthed || isOnline} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} activeFlow={activeFlow} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Pending deletion banner — red when read-only countdown active */}
         {isPendingDeletion && (() => {
