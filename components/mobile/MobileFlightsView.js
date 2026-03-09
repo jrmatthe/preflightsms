@@ -416,7 +416,7 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
               <span>{flight.tailNumber || flight.aircraft}{flight.tailNumber && flight.aircraft ? ` · ${flight.aircraft}` : ""}{flight.pilot ? ` · ${flight.pilot}` : ""}</span>
               {isLive && <span style={{ fontSize: 9, fontWeight: 700, color: GREEN, background: "rgba(74,222,128,0.09)", padding: "2px 6px", borderRadius: 3, border: `1px solid ${GREEN}33` }}>LIVE ADS-B</span>}
               {(isActive || isPending) && flight.tailNumber && (
-                <a href={`https://flightaware.com/live/flight/${flight.tailNumber}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, fontWeight: 700, color: "#00AAFF", background: "rgba(0,170,255,0.09)", padding: "2px 6px", borderRadius: 3, border: "1px solid rgba(0,170,255,0.2)", textDecoration: "none" }}>FlightAware</a>
+                <a href={`https://flightaware.com/live/flight/${flight.tailNumber}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 9, fontWeight: 700, color: "#00AAFF", background: "rgba(0,170,255,0.09)", padding: "2px 6px", borderRadius: 3, border: "1px solid rgba(0,170,255,0.2)", textDecoration: "none" }}>Track on FlightAware</a>
               )}
             </div>
           </div>
