@@ -151,13 +151,14 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy }) {
 
 // ── MAIN COMPONENT ────────────────────────────────────────────
 export default function PolicyTraining({
-  profile, session, policies, onCreatePolicy, onAcknowledgePolicy, orgProfiles,
+  profile, session, policies, onCreatePolicy, onDeletePolicy, onAcknowledgePolicy, orgProfiles,
   smsManuals, showManuals, readOnlyManuals, tourTab,
   // SMS Manuals props (passed through when showManuals is true)
   templateVariables, signatures, fleetAircraft,
   onSaveManual, onPublishManual, onInitManuals, onSaveVariables, onSaveSignature,
   onAiDraftPolicy,
 }) {
+  const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const [topTab, setTopTab] = useState("policies");
   useEffect(() => { if (tourTab) setTopTab(tourTab); }, [tourTab]);
   const [view, setView] = useState("list");   // list | new_policy
@@ -421,13 +422,22 @@ export default function PolicyTraining({
                     {p.content}
                   </div>
                 )}
-                {!acked && (
-                  <button onClick={() => onAcknowledgePolicy(p.id)}
-                    style={{ marginTop: 12, padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                      background: WHITE, color: BLACK, border: "none" }}>
-                    I have reviewed this document — Acknowledge
-                  </button>
-                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                  {!acked && (
+                    <button onClick={() => onAcknowledgePolicy(p.id)}
+                      style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        background: WHITE, color: BLACK, border: "none" }}>
+                      I have reviewed this document — Acknowledge
+                    </button>
+                  )}
+                  {isAdmin && onDeletePolicy && (
+                    <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete "${p.title}"? This cannot be undone.`)) onDeletePolicy(p.id); }}
+                      style={{ padding: "10px 16px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        background: `${RED}15`, color: RED, border: `1px solid ${RED}33`, marginLeft: "auto" }}>
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
