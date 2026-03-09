@@ -502,7 +502,7 @@ function RequirementForm({ onSubmit, onCancel }) {
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Required For</label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {["pilot", "safety_manager", "chief_pilot", "accountable_exec", "admin"].map(r => (
+          {["pilot", "dispatcher", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"].map(r => (
             <button key={r} onClick={() => toggleRole(r)}
               style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600, cursor: "pointer",
                 background: form.requiredFor.includes(r) ? `${CYAN}22` : "transparent",
@@ -567,7 +567,7 @@ function CourseForm({ course, onSave, onCancel }) {
       <div style={{ marginBottom: 16 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Required For</label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {["pilot", "safety_manager", "chief_pilot", "dispatcher", "admin"].map(r => (
+          {["pilot", "dispatcher", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"].map(r => (
             <button key={r} onClick={() => toggleRole(r)}
               style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600, cursor: "pointer",
                 background: form.requiredFor.includes(r) ? `${CYAN}22` : "transparent",

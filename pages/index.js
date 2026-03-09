@@ -3038,13 +3038,6 @@ function InviteAcceptScreen({ token, onAuth }) {
         }
         // Mark invitation as accepted
         await acceptInvitation(token, userId);
-        // Auto-enroll in onboarding course based on role
-        try {
-          const { data: orgCourses } = await fetchCbtCourses(invite.org_id);
-          const onboardingTitle = invite.role === "pilot" ? "Getting Started — Pilot Guide" : "Getting Started — Admin & Operations Guide";
-          const onboardingCourse = (orgCourses || []).find(c => c.title === onboardingTitle && c.status === "published");
-          if (onboardingCourse) await upsertCbtEnrollment(invite.org_id, onboardingCourse.id, userId, { status: "enrolled" });
-        } catch (_) { /* enrollment is best-effort */ }
         // Clear URL and auth
         if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname);
         onAuth(session.session);
@@ -4643,15 +4636,8 @@ export default function PVTAIRFrat() {
       await updateProfileRole(profileId, role);
       const { data } = await fetchOrgProfiles(profile.org_id);
       setOrgProfiles(data || []);
-      // Auto-enroll in the correct onboarding course based on new role
-      const orgId = profile.org_id;
-      const onboardingTitle = role === "pilot" ? "Getting Started — Pilot Guide" : "Getting Started — Admin & Operations Guide";
-      const matchingCourse = (cbtCourses || []).find(c => c.title === onboardingTitle && c.status === "published");
-      if (matchingCourse) {
-        await upsertCbtEnrollment(orgId, matchingCourse.id, profileId, { status: "enrolled" });
-      }
     }
-  }, [profile, isOnline, cbtCourses]);
+  }, [profile, isOnline]);
 
   // ── Policy Library ──
   const onCreatePolicy = useCallback(async (policy) => {
@@ -4784,16 +4770,6 @@ export default function PVTAIRFrat() {
       await updateCbtCourse(course.id, { status: "published" });
       createdCourses.push(course);
     }
-    // Auto-enroll existing users in onboarding courses
-    const pilotCourse = createdCourses.find(c => c.title === "Getting Started — Pilot Guide");
-    const adminCourse = createdCourses.find(c => c.title === "Getting Started — Admin & Operations Guide");
-    if (pilotCourse || adminCourse) {
-      const { data: allProfiles } = await fetchOrgProfiles(orgId);
-      for (const p of (allProfiles || [])) {
-        const target = p.role === "pilot" ? pilotCourse : adminCourse;
-        if (target) await upsertCbtEnrollment(orgId, target.id, p.id, { status: "enrolled" });
-      }
-    }
     const { data: reqs } = await fetchTrainingRequirements(orgId);
     setTrainingReqs(reqs || []);
     await refreshCbt();
@@ -4830,13 +4806,6 @@ export default function PVTAIRFrat() {
           await supabase.from("profiles").insert({ id: userId, org_id: inv.org_id, full_name: session.user.user_metadata?.full_name || session.user.email, email: session.user.email, role: inv.role });
         }
         await acceptInvitation(orphanInviteToken, userId);
-        // Auto-enroll in onboarding course based on role
-        try {
-          const { data: orgCourses } = await fetchCbtCourses(inv.org_id);
-          const onboardingTitle = inv.role === "pilot" ? "Getting Started — Pilot Guide" : "Getting Started — Admin & Operations Guide";
-          const onboardingCourse = (orgCourses || []).find(c => c.title === onboardingTitle && c.status === "published");
-          if (onboardingCourse) await upsertCbtEnrollment(inv.org_id, onboardingCourse.id, userId, { status: "enrolled" });
-        } catch (_) { /* enrollment is best-effort */ }
         if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname);
         const p = await getProfile();
         setProfile(p);
