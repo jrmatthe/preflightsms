@@ -178,7 +178,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAss
 
       {/* AI Suggest Risk Scores */}
       {onAiRiskAssess && hasFeature(org, "safety_trend_alerts") && (
-        <div style={{ marginBottom: 12 }}>
+        <div data-onboarding="inv-ai-suggest" style={{ marginBottom: 12 }}>
           <button onClick={async () => {
             setAiLoading(true);
             setAiResult(null);
