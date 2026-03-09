@@ -2121,7 +2121,8 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   const fratCard = listCard("My Recent FRATs", myFrats, "No FRATs submitted yet", "flights", f => (<>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <span style={{ fontSize: 11, color: MUTED, minWidth: 70 }}>{new Date(f.timestamp).toLocaleDateString()}</span>
-      <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{f.id}</span>
+      <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{f.departure && f.destination ? `${f.departure} → ${f.destination}` : f.id}</span>
+      {f.tailNumber && <span style={{ fontSize: 10, color: MUTED }}>{f.tailNumber}</span>}
     </div>
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span style={{ fontSize: 12, fontWeight: 700, color: riskColor(f.score) }}>{f.score}</span>
