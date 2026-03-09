@@ -947,6 +947,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
               <select value={role} onChange={e => setRole(e.target.value)} style={{ ...inp, padding: "10px 12px" }}>
                 <option value="pilot">Pilot</option>
                 <option value="dispatcher">Dispatcher</option>
+                <option value="maintenance">Maintenance</option>
                 <option value="safety_manager">Safety Manager</option>
                 <option value="chief_pilot">Chief Pilot</option>
                 <option value="accountable_exec">Accountable Exec</option>

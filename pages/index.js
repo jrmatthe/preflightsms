@@ -3057,6 +3057,7 @@ function InviteAcceptScreen({ token, onAuth }) {
     invite?.role === "safety_manager" ? "Safety Manager" :
     invite?.role === "chief_pilot" ? "Chief Pilot" :
     invite?.role === "dispatcher" ? "Dispatcher" :
+    invite?.role === "maintenance" ? "Maintenance" :
     invite?.role === "accountable_exec" ? "Accountable Executive" : "Pilot";
 
   return (

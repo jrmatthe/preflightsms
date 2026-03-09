@@ -17,6 +17,8 @@ const ROLE_LABELS = {
   safety_manager: "Safety Manager",
   accountable_exec: "Accountable Executive",
   chief_pilot: "Chief Pilot",
+  dispatcher: "Dispatcher",
+  maintenance: "Maintenance",
   pilot: "Pilot",
 };
 
