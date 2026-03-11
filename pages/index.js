@@ -2100,15 +2100,15 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   const listCard = (title, items, emptyText, navTarget, renderRow, opts = {}) => {
     if (opts.lockCheck && isFree && !hasFeature(org, opts.lockCheck)) return lockOverlay(title);
     return (
-      <div style={{ ...card, marginBottom: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: items.length > 0 ? 10 : 0 }}>
+      <div style={{ ...card, marginBottom: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: items.length > 0 ? 10 : 0, flexShrink: 0 }}>
           <div style={sectionTitle}>{title}{opts.count != null && opts.count > 0 ? <span style={{ fontSize: 11, fontWeight: 700, color: RED, marginLeft: 6 }}>{opts.count}</span> : null}</div>
           {navTarget && <button onClick={() => onNavigate(navTarget)} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>}
         </div>
         {items.length === 0 ? (
           <div style={{ fontSize: 12, color: opts.emptyColor || MUTED, fontStyle: opts.emptyColor ? "normal" : "italic", fontWeight: opts.emptyColor ? 600 : 400 }}>{emptyText}</div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto", minHeight: 0 }}>
             {items.map((item, i) => (
               <div key={item.id || i} onClick={opts.clickNav ? () => onNavigate(opts.clickNav) : undefined} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none", cursor: opts.clickNav ? "pointer" : "default" }}>
                 {renderRow(item)}
@@ -2327,6 +2327,26 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     .map((id, idx) => ({ id, orderIdx: idx }))
     .filter(({ id }) => id && CARD_DEFS[id]?.visible);
 
+  // Fixed box grid positions (analytics layout minus full-width top bar)
+  const getHomeBoxStyle = (idx) => {
+    switch (idx) {
+      case 0: return { gridColumn: "1 / 3", gridRow: "1 / 2" };       // 2-col left
+      case 1: return { gridColumn: "3 / 4", gridRow: "1 / 3" };       // right, spans 2 rows
+      case 2: return { gridColumn: "1 / 2", gridRow: "2 / 3" };       // 1-col left
+      case 3: return { gridColumn: "2 / 3", gridRow: "2 / 3" };       // 1-col middle
+      default: {
+        const r = idx - 4;
+        const row = 3 + Math.floor(r / 3);
+        const col = (r % 3) + 1;
+        return { gridColumn: `${col} / ${col + 1}`, gridRow: `${row} / ${row + 1}` };
+      }
+    }
+  };
+
+  const numVisible = renderSlots.length;
+  const homeRowCount = numVisible <= 0 ? 0 : numVisible === 1 ? 1 : numVisible <= 4 ? 2 : 2 + Math.ceil((numVisible - 4) / 3);
+  const homeGridTemplateRows = Array.from({ length: homeRowCount }, (_, i) => i === 0 ? "320px" : i === 1 ? "380px" : "360px").join(" ");
+
   return (
     <div>
       {/* Welcome Header */}
@@ -2358,8 +2378,8 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
       </div>
 
       {/* ── Slot-based card grid ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridAutoRows: "auto", gap, alignItems: "start" }}>
-        {renderSlots.map(({ id: cardId, orderIdx }) => {
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gridTemplateRows: homeGridTemplateRows, gap: 16 }}>
+        {renderSlots.map(({ id: cardId, orderIdx }, visIdx) => {
           const isDragging = !!dragId;
           const isHole = isDragging && orderIdx === emptyIdxRef.current;
           return (
@@ -2397,13 +2417,14 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
                 setDragId(null);
               }}
               style={{
-                position: "relative", borderRadius: 10,
+                ...getHomeBoxStyle(visIdx),
+                position: "relative", borderRadius: 10, overflow: "hidden",
                 outline: isDragging ? "2px dashed rgba(255,255,255,0.15)" : "2px dashed transparent",
                 outlineOffset: -2,
                 transition: "outline-color 0.2s ease",
               }}>
               {isHole ? (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 100, borderRadius: 10, border: `2px dashed ${CYAN}`, background: "rgba(34,211,238,0.04)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", borderRadius: 10, border: `2px dashed ${CYAN}`, background: "rgba(34,211,238,0.04)" }}>
                   <div style={{ fontSize: 11, color: CYAN, opacity: 0.5, fontWeight: 600 }}>Drop here</div>
                 </div>
               ) : (
