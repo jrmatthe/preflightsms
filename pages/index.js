@@ -2276,18 +2276,18 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
 
   // ── Card registry for drag-to-reorder ──
   const CARD_DEFS = {
-    frats: { col: 0, node: fratCard, visible: true },
-    reports: { col: 0, node: reportCard, visible: true },
-    training: { col: 0, node: trainingCard, visible: true },
-    approvals: { col: 0, node: approvalCard, visible: isAdmin || (profile?.permissions || []).includes("approver") },
-    investigations: { col: 0, node: investigationCard, visible: isAdmin },
-    my_actions: { col: 0, node: myActionsCard, visible: isAdmin },
-    audits: { col: 0, node: auditCard, visible: isAdmin },
-    policies: { col: 1, node: policyCard, visible: true },
-    reviews: { col: 1, node: reviewCard, visible: isAdmin },
-    overdue: { col: 1, node: overdueCard, visible: isAdmin },
-    erp: { col: 1, node: erpCard, visible: isAdmin },
-    moc: { col: 1, node: mocCard, visible: isAdmin },
+    frats: { node: fratCard, visible: true },
+    reports: { node: reportCard, visible: true },
+    training: { node: trainingCard, visible: true },
+    approvals: { node: approvalCard, visible: isAdmin || (profile?.permissions || []).includes("approver") },
+    investigations: { node: investigationCard, visible: isAdmin },
+    my_actions: { node: myActionsCard, visible: isAdmin },
+    audits: { node: auditCard, visible: isAdmin },
+    policies: { node: policyCard, visible: true },
+    reviews: { node: reviewCard, visible: isAdmin },
+    overdue: { node: overdueCard, visible: isAdmin },
+    erp: { node: erpCard, visible: isAdmin },
+    moc: { node: mocCard, visible: isAdmin },
   };
   const DEFAULT_ORDER = ["frats","reports","training","approvals","investigations","my_actions","audits","policies","reviews","overdue","erp","moc"];
 
@@ -2307,93 +2307,25 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   const [dragId, setDragId] = useState(null);
   const dragIdRef = useRef(null);
   const preDragOrder = useRef(null);
-  const lastOverId = useRef(null);
+  const emptyIdxRef = useRef(null);
   const didDrop = useRef(false);
 
-  const liveReorder = (targetId) => {
-    const currentDrag = dragIdRef.current;
-    if (!currentDrag || targetId === lastOverId.current || targetId === currentDrag) return;
-    lastOverId.current = targetId;
+  const swapToEmpty = (targetBlockIdx) => {
+    const ei = emptyIdxRef.current;
+    if (ei === null || targetBlockIdx === ei) return;
     setCardOrder(prev => {
       const next = [...prev];
-      const fromIdx = next.indexOf(currentDrag);
-      const toIdx = next.indexOf(targetId);
-      if (fromIdx === -1 || toIdx === -1) return prev;
-      next.splice(fromIdx, 1);
-      next.splice(toIdx, 0, currentDrag);
+      next[ei] = next[targetBlockIdx];
+      next[targetBlockIdx] = null;
       return next;
     });
+    emptyIdxRef.current = targetBlockIdx;
   };
 
-  const visibleCards = cardOrder.filter(id => CARD_DEFS[id]?.visible);
-  const leftCards = visibleCards.filter(id => CARD_DEFS[id].col === 0);
-  const rightCards = visibleCards.filter(id => CARD_DEFS[id].col === 1);
-
-  const dragWrap = (id, node) => {
-    const isBeingDragged = id === dragId;
-    const isDragging = !!dragId;
-    return (
-    <div key={id} draggable
-      onDragStart={(e) => {
-        dragIdRef.current = id;
-        didDrop.current = false;
-        preDragOrder.current = [...cardOrder];
-        lastOverId.current = null;
-        setDragId(id);
-        e.dataTransfer.effectAllowed = "move";
-      }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        liveReorder(id);
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        didDrop.current = true;
-        setCardOrder(cur => {
-          try { localStorage.setItem("pfms_home_layout", JSON.stringify(cur)); } catch {}
-          return cur;
-        });
-        preDragOrder.current = null;
-        dragIdRef.current = null;
-        setDragId(null);
-        lastOverId.current = null;
-      }}
-      onDragEnd={() => {
-        if (!didDrop.current && preDragOrder.current) setCardOrder(preDragOrder.current);
-        preDragOrder.current = null;
-        dragIdRef.current = null;
-        setDragId(null);
-        lastOverId.current = null;
-      }}
-      style={{
-        position: "relative", borderRadius: 10,
-        outline: isDragging
-          ? (isBeingDragged ? `2px dashed ${CYAN}` : `2px dashed rgba(255,255,255,0.12)`)
-          : "2px dashed transparent",
-        outlineOffset: -2,
-        background: isBeingDragged ? "rgba(34,211,238,0.03)" : "transparent",
-        transition: "outline-color 0.2s ease",
-      }}>
-      {isBeingDragged ? (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 100, borderRadius: 10, border: `2px dashed ${CYAN}`, background: "rgba(34,211,238,0.04)" }}>
-          <div style={{ fontSize: 11, color: CYAN, opacity: 0.5, fontWeight: 600 }}>Drop here</div>
-        </div>
-      ) : (
-        <>
-          {/* Drag grip — visible on hover */}
-          <div style={{ position: "absolute", top: 8, right: 8, cursor: "grab", opacity: 0.25, zIndex: 2, padding: 4 }}
-            className="drag-grip"
-            onMouseDown={e => e.currentTarget.style.cursor = "grabbing"}
-            onMouseUp={e => e.currentTarget.style.cursor = "grab"}>
-            <svg width="10" height="14" viewBox="0 0 10 14" fill={MUTED}><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="7" r="1.5"/><circle cx="8" cy="7" r="1.5"/><circle cx="2" cy="12" r="1.5"/><circle cx="8" cy="12" r="1.5"/></svg>
-          </div>
-          {node}
-        </>
-      )}
-    </div>
-    );
-  };
+  // During drag, include the null (empty) slot; otherwise filter to visible cards only
+  const renderSlots = dragId
+    ? cardOrder.map((id, idx) => ({ id, orderIdx: idx })).filter(({ id }) => id === null || (id && CARD_DEFS[id]?.visible))
+    : cardOrder.filter(id => id && CARD_DEFS[id]?.visible).map(id => ({ id, orderIdx: cardOrder.indexOf(id) }));
 
   return (
     <div>
@@ -2425,14 +2357,79 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
         </button>
       </div>
 
-      {/* ── Two-column grid ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap, alignItems: "start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap }}>
-          {leftCards.map(id => dragWrap(id, CARD_DEFS[id].node))}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap }}>
-          {rightCards.map(id => dragWrap(id, CARD_DEFS[id].node))}
-        </div>
+      {/* ── Slot-based card grid ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridAutoRows: "auto", gap, alignItems: "start" }}>
+        {renderSlots.map(({ id: cardId, orderIdx }) => {
+          const isEmptySlot = cardId === null;
+          const isDragging = !!dragId;
+          return (
+            <div key={isEmptySlot ? "empty-slot" : `block-${cardId}`}
+              draggable={!isEmptySlot}
+              onDragStart={isEmptySlot ? undefined : (e) => {
+                dragIdRef.current = cardId;
+                didDrop.current = false;
+                preDragOrder.current = [...cardOrder];
+                emptyIdxRef.current = orderIdx;
+                setDragId(cardId);
+                setCardOrder(prev => {
+                  const next = [...prev];
+                  next[orderIdx] = null;
+                  return next;
+                });
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (!isEmptySlot) swapToEmpty(orderIdx);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                didDrop.current = true;
+                const draggedCard = dragIdRef.current;
+                setCardOrder(cur => {
+                  const next = [...cur];
+                  const ei = emptyIdxRef.current;
+                  if (ei !== null) next[ei] = draggedCard;
+                  try { localStorage.setItem("pfms_home_layout", JSON.stringify(next.filter(Boolean))); } catch {}
+                  return next;
+                });
+                preDragOrder.current = null;
+                dragIdRef.current = null;
+                emptyIdxRef.current = null;
+                setDragId(null);
+              }}
+              onDragEnd={() => {
+                if (!didDrop.current && preDragOrder.current) setCardOrder(preDragOrder.current);
+                preDragOrder.current = null;
+                dragIdRef.current = null;
+                emptyIdxRef.current = null;
+                setDragId(null);
+              }}
+              style={{
+                position: "relative", borderRadius: 10,
+                outline: isDragging ? "2px dashed rgba(255,255,255,0.15)" : "2px dashed transparent",
+                outlineOffset: -2,
+                transition: "outline-color 0.2s ease",
+              }}>
+              {isEmptySlot ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 100, borderRadius: 10, border: `2px dashed ${CYAN}`, background: "rgba(34,211,238,0.04)" }}>
+                  <div style={{ fontSize: 11, color: CYAN, opacity: 0.5, fontWeight: 600 }}>Drop here</div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ position: "absolute", top: 8, right: 8, cursor: "grab", opacity: 0.25, zIndex: 2, padding: 4 }}
+                    className="drag-grip"
+                    onMouseDown={e => e.currentTarget.style.cursor = "grabbing"}
+                    onMouseUp={e => e.currentTarget.style.cursor = "grab"}>
+                    <svg width="10" height="14" viewBox="0 0 10 14" fill={MUTED}><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="7" r="1.5"/><circle cx="8" cy="7" r="1.5"/><circle cx="2" cy="12" r="1.5"/><circle cx="8" cy="12" r="1.5"/></svg>
+                  </div>
+                  {CARD_DEFS[cardId].node}
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
