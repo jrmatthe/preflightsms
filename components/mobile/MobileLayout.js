@@ -124,7 +124,7 @@ export default function MobileLayout({
   // Phase 2 props
   flights, onUpdateFlight, onSubmitFRAT,
   fleetAircraft, fratTemplate, allFratTemplates, riskLevels,
-  nudgeFlight, onNudgeSubmitReport, onNudgeNothingToReport, onNudgeRemindLater, onNudgeDismiss,
+  nudgeFlight, nudgeSuggestion, onNudgeSubmitReport, onNudgeNothingToReport, onNudgeRemindLater, onNudgeDismiss,
   reportPrefill, setReportPrefill,
   // Phase 3 props
   reports, onSubmitReport,
@@ -237,6 +237,7 @@ export default function MobileLayout({
             onNudgeRemindLater={onNudgeRemindLater}
             onNudgeDismiss={onNudgeDismiss}
             nudgeFlight={nudgeFlight}
+            nudgeSuggestion={nudgeSuggestion}
             fleetAircraft={fleetAircraft}
             adsbEnabled={adsbEnabled}
             session={session}

@@ -59,39 +59,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Create degradation notifications if needed
-    if (degraded.length > 0) {
-      // Get all orgs that have adsb_tracking enabled (professional or enterprise)
-      const { data: orgs } = await supabase
-        .from("organizations")
-        .select("id, tier, feature_flags")
-        .in("tier", ["professional", "enterprise"]);
-
-      for (const org of (orgs || [])) {
-        // Check for existing recent notification (don't spam)
-        const { data: existing } = await supabase
-          .from("notifications")
-          .select("id")
-          .eq("org_id", org.id)
-          .eq("type", "adsb_provider_degraded")
-          .gte("created_at", oneHourAgo)
-          .limit(1);
-
-        if (existing && existing.length > 0) continue;
-
-        const providerList = degraded.join(", ");
-        const rateList = degraded.map(p => `${p}: ${providerStats[p]?.success_rate || 0}%`).join(", ");
-
-        await supabase.from("notifications").insert({
-          org_id: org.id,
-          type: "adsb_provider_degraded",
-          title: "ADS-B Provider Degraded",
-          body: `ADS-B tracking provider${degraded.length > 1 ? "s" : ""} (${providerList}) showing degraded performance. Success rates: ${rateList}. Consider upgrading to a paid ADS-B provider.`,
-          link_tab: "admin",
-        });
-      }
-    }
-
     // Run cleanup
     const { error: cleanupErr } = await supabase.rpc("cleanup_adsb_data");
     if (cleanupErr) {

@@ -1,4 +1,4 @@
-export default function PostFlightNudge({ flight, onSubmitReport, onNothingToReport, onRemindLater, onDismiss }) {
+export default function PostFlightNudge({ flight, suggestion, onSubmitReport, onNothingToReport, onRemindLater, onDismiss }) {
   const route = [flight.departure, flight.destination].filter(Boolean).join(" → ");
 
   return (
@@ -7,9 +7,14 @@ export default function PostFlightNudge({ flight, onSubmitReport, onNothingToRep
         {/* Header */}
         <div style={{ fontSize: 28, marginBottom: 4 }}>✈️</div>
         <div style={{ fontSize: 18, fontWeight: 700, color: "#FFFFFF", marginBottom: 4 }}>Flight Complete</div>
-        <div style={{ fontSize: 12, color: "#888888", marginBottom: 20, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: "#888888", marginBottom: suggestion ? 8 : 20, lineHeight: 1.5 }}>
           Nice work! Before you move on — anything worth noting for safety?
         </div>
+        {suggestion && (
+          <div style={{ fontSize: 12, color: "#22D3EE", marginBottom: 20, lineHeight: 1.5, fontStyle: "italic" }}>
+            {suggestion}
+          </div>
+        )}
 
         {/* Flight details card */}
         <div style={{ background: "#0A0A0A", border: "1px solid #2E2E2E", borderRadius: 8, padding: "12px 16px", marginBottom: 24, textAlign: "left" }}>

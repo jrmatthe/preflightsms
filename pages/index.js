@@ -3880,6 +3880,7 @@ export default function PVTAIRFrat() {
     && !FLOW_ORDER.every(id => onboardingState.flows?.[id]?.status === "completed");
 
   const [nudgeFlight, setNudgeFlight] = useState(null);
+  const [nudgeSuggestion, setNudgeSuggestion] = useState(null);
   const [nudgeResponses, setNudgeResponses] = useState([]);
   const [foreflightConfig, setForeflightConfig] = useState(null);
   const [foreflightFlights, setForeflightFlights] = useState([]);
@@ -4274,7 +4275,9 @@ export default function PVTAIRFrat() {
       toastMsg = `${entry.id} submitted — flight plan created`;
     }
 
-    if (isOnline && profile) {
+    const networkOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
+
+    if (isOnline && profile && networkOnline) {
       const { data: fratData, error: fratErr } = await submitFRAT(profile.org_id, session.user.id, {
         ...entry,
         approvalStatus: fratApprovalStatus,
@@ -4381,9 +4384,12 @@ export default function PVTAIRFrat() {
       const { data: fl } = await fetchFlights(profile.org_id);
       setFlights(prev => mapDbFlights(fl, prev));
     } else {
+      enqueue({ type: "frat_submit", payload: { orgId: profile?.org_id, userId: session?.user?.id, entry } });
+      setPendingSync(getQueueCount());
       const nr = [entry, ...records]; saveLocal(nr);
-      const flight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsBlock ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null };
+      const flight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsBlock ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null, pendingSync: true };
       const nf = [flight, ...flights]; saveFlightsLocal(nf);
+      toastMsg = `${entry.id} saved offline — will sync when connected`;
     }
     setToast({ message: toastMsg, level: getRiskLevel(entry.score, riskLevels) }); setTimeout(() => setToast(null), 4000);
   }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, foreflightConfig]);
@@ -4396,7 +4402,8 @@ export default function PVTAIRFrat() {
       demoFlightRef.current = { ...demoFlightRef.current, status, arrivedAt: status === "ARRIVED" ? new Date().toISOString() : demoFlightRef.current.arrivedAt, ...extra };
       return;
     }
-    if (isOnline && profile) {
+    const networkUp = typeof navigator !== "undefined" ? navigator.onLine : true;
+    if (isOnline && profile && networkUp) {
       const flight = flights.find(f => f.id === id);
       if (flight && flight.dbId) {
         const status = action === "CANCEL" ? "CANCELLED" : action;
@@ -4430,10 +4437,17 @@ export default function PVTAIRFrat() {
         setToast({ message: `Status saved offline — will sync when connected`, level: { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" } }); setTimeout(() => setToast(null), 5000);
       }
     } else {
+      const flight = flights.find(f => f.id === id);
+      if (flight?.dbId) {
+        enqueue({ type: "flight_status", payload: { flightDbId: flight.dbId, status: action === "CANCEL" ? "CANCELLED" : action, ...extra } });
+      } else if (flight) {
+        enqueue({ type: "flight_status", payload: { flightDbId: null, fratCode: flight.id, status: action === "CANCEL" ? "CANCELLED" : action, ...extra } });
+      }
+      setPendingSync(getQueueCount());
       const nf = flights.map(f => {
         if (f.id !== id) return f;
-        if (action === "ARRIVED") return { ...f, status: "ARRIVED", arrivedAt: new Date().toISOString(), ...extra };
-        if (action === "CANCEL") return { ...f, status: "ARRIVED", arrivedAt: new Date().toISOString(), cancelled: true };
+        if (action === "ARRIVED") return { ...f, status: "ARRIVED", arrivedAt: new Date().toISOString(), pendingSync: true, ...extra };
+        if (action === "CANCEL") return { ...f, status: "CANCELLED", arrivedAt: new Date().toISOString(), pendingSync: true };
         return f;
       });
       saveFlightsLocal(nf);
@@ -4446,7 +4460,18 @@ export default function PVTAIRFrat() {
           nr => nr.flight_id === arrivedFlight.dbId &&
           ['submitted_report', 'nothing_to_report', 'dismissed'].includes(nr.response)
         );
-        if (!hasTerminal && activeFlow !== "flights") setTimeout(() => setNudgeFlight(arrivedFlight), 1500);
+        if (!hasTerminal && activeFlow !== "flights") {
+          setTimeout(() => setNudgeFlight(arrivedFlight), 1500);
+          // Fire-and-forget AI suggestion (non-blocking)
+          setNudgeSuggestion(null);
+          if (hasFeature(profile?.organizations, "ai_features") && arrivedFlight.dbId) {
+            supabase.functions.invoke("ai-nudge-suggestion", {
+              body: { orgId: profile.org_id, flightId: arrivedFlight.dbId },
+            }).then(({ data }) => {
+              if (data?.suggestion) setNudgeSuggestion(data.suggestion);
+            }).catch(() => {});
+          }
+        }
       }
     }
     setTimeout(() => setToast(null), 3000);
@@ -4519,6 +4544,7 @@ export default function PVTAIRFrat() {
       dateOccurred: new Date().toISOString().split('T')[0],
     });
     setNudgeFlight(null);
+    setNudgeSuggestion(null);
     setCv("reports");
   }, [nudgeFlight, profile, session]);
 
@@ -4527,6 +4553,7 @@ export default function PVTAIRFrat() {
     await createNudgeResponse(profile.org_id, session.user.id, { flightId: nudgeFlight.dbId, response: 'nothing_to_report' });
     fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
     setNudgeFlight(null);
+    setNudgeSuggestion(null);
   }, [nudgeFlight, profile, session]);
 
   const onNudgeRemindLater = useCallback(async () => {
@@ -4535,6 +4562,7 @@ export default function PVTAIRFrat() {
     await createNudgeResponse(profile.org_id, session.user.id, { flightId: nudgeFlight.dbId, response: 'remind_later', remindAt });
     fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
     setNudgeFlight(null);
+    setNudgeSuggestion(null);
     setToast({ message: "We'll check back in 2 hours", level: { bg: "rgba(34,211,238,0.15)", border: "rgba(34,211,238,0.4)", color: "#22D3EE" } }); setTimeout(() => setToast(null), 4000);
     // Subscribe to push notifications so reminder works even if app is closed
     if ('serviceWorker' in navigator) {
@@ -4551,6 +4579,7 @@ export default function PVTAIRFrat() {
     await createNudgeResponse(profile.org_id, session.user.id, { flightId: nudgeFlight.dbId, response: 'dismissed' });
     fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
     setNudgeFlight(null);
+    setNudgeSuggestion(null);
   }, [nudgeFlight, profile, session]);
 
   // ── Delete FRAT ──
@@ -5031,7 +5060,7 @@ export default function PVTAIRFrat() {
     : actions;
   if (isMobile) return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
-    <MobileLayout session={session} profile={profile} orgData={profile?.organizations || {}} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} flights={flights} onUpdateFlight={roGuard(onUpdateFlight)} onSubmitFRAT={roGuard(onSubmit)} fleetAircraft={fleetAircraft} fratTemplate={fratTemplate} allFratTemplates={fratTemplates} riskLevels={riskLevels} nudgeFlight={nudgeFlight} onNudgeSubmitReport={onNudgeSubmitReport} onNudgeNothingToReport={onNudgeNothingToReport} onNudgeRemindLater={onNudgeRemindLater} onNudgeDismiss={onNudgeDismiss} reportPrefill={reportPrefill} setReportPrefill={setReportPrefill} reports={reports} onSubmitReport={roGuard(onSubmitReport)} cbtCourses={cbtCourses} cbtLessonsMap={cbtLessonsMap} cbtProgress={cbtProgress} cbtEnrollments={cbtEnrollments} trainingReqs={trainingReqs} trainingRecs={trainingRecs} onUpdateCbtProgress={roGuard(onUpdateCbtProgress)} onUpdateCbtEnrollment={roGuard(onUpdateCbtEnrollment)} onLogTraining={roGuard(onLogTraining)} refreshCbt={refreshCbt} hazards={hazards} actions={actions} onUpdateAction={roGuard(onUpdateAction)} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} onUpdateMel={roGuard(async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} erpPlans={erpPlans} onLoadErpChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onLoadErpCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} policies={policies} onAcknowledgePolicy={roGuard(onAcknowledgePolicy)} hasFlights={!!hasFeature(org, "flight_following")} hasTraining={!!hasFeature(org, "cbt_modules")} adsbEnabled={!!hasFeature(org, "adsb_tracking")} onUpdatePreferences={onUpdateNotifPreferences} onUpdateEmail={async (newEmail) => { await updateProfileEmail(profile.id, newEmail); const p = await getProfile(); if (p) setProfile(p); }} org={org} orgProfiles={orgProfiles} records={records} onCreateAircraft={async (aircraft) => { const { data, error } = await createAircraft(profile?.org_id, aircraft); if (error) return { error }; const { data: updated } = await fetchAircraft(profile?.org_id); setFleetAircraft(updated || []); return { data }; }} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} onRefreshDispatchFlights={() => { const orgId = profile?.org_id; if (!orgId) return; if (hasFeature(profile?.organizations, "foreflight_integration")) fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || [])); if (hasFeature(profile?.organizations, "schedaero_integration")) fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || [])); }} /></>
+    <MobileLayout session={session} profile={profile} orgData={profile?.organizations || {}} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} flights={flights} onUpdateFlight={roGuard(onUpdateFlight)} onSubmitFRAT={roGuard(onSubmit)} fleetAircraft={fleetAircraft} fratTemplate={fratTemplate} allFratTemplates={fratTemplates} riskLevels={riskLevels} nudgeFlight={nudgeFlight} nudgeSuggestion={nudgeSuggestion} onNudgeSubmitReport={onNudgeSubmitReport} onNudgeNothingToReport={onNudgeNothingToReport} onNudgeRemindLater={onNudgeRemindLater} onNudgeDismiss={onNudgeDismiss} reportPrefill={reportPrefill} setReportPrefill={setReportPrefill} reports={reports} onSubmitReport={roGuard(onSubmitReport)} cbtCourses={cbtCourses} cbtLessonsMap={cbtLessonsMap} cbtProgress={cbtProgress} cbtEnrollments={cbtEnrollments} trainingReqs={trainingReqs} trainingRecs={trainingRecs} onUpdateCbtProgress={roGuard(onUpdateCbtProgress)} onUpdateCbtEnrollment={roGuard(onUpdateCbtEnrollment)} onLogTraining={roGuard(onLogTraining)} refreshCbt={refreshCbt} hazards={hazards} actions={actions} onUpdateAction={roGuard(onUpdateAction)} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} onUpdateMel={roGuard(async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} erpPlans={erpPlans} onLoadErpChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onLoadErpCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} policies={policies} onAcknowledgePolicy={roGuard(onAcknowledgePolicy)} hasFlights={!!hasFeature(org, "flight_following")} hasTraining={!!hasFeature(org, "cbt_modules")} adsbEnabled={!!hasFeature(org, "adsb_tracking")} onUpdatePreferences={onUpdateNotifPreferences} onUpdateEmail={async (newEmail) => { await updateProfileEmail(profile.id, newEmail); const p = await getProfile(); if (p) setProfile(p); }} org={org} orgProfiles={orgProfiles} records={records} onCreateAircraft={async (aircraft) => { const { data, error } = await createAircraft(profile?.org_id, aircraft); if (error) return { error }; const { data: updated } = await fetchAircraft(profile?.org_id); setFleetAircraft(updated || []); return { data }; }} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} onRefreshDispatchFlights={() => { const orgId = profile?.org_id; if (!orgId) return; if (hasFeature(profile?.organizations, "foreflight_integration")) fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || [])); if (hasFeature(profile?.organizations, "schedaero_integration")) fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || [])); }} /></>
   );
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
@@ -5126,7 +5155,7 @@ export default function PVTAIRFrat() {
           );
         })()}
         {toast && <div style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, padding: "10px 18px", borderRadius: 8, background: toast.level.bg, border: `1px solid ${toast.level.border}`, color: toast.level.color, fontWeight: 700, fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>{toast.message}</div>}
-        {nudgeFlight && <PostFlightNudge flight={nudgeFlight} onSubmitReport={onNudgeSubmitReport} onNothingToReport={onNudgeNothingToReport} onRemindLater={onNudgeRemindLater} onDismiss={onNudgeDismiss} />}
+        {nudgeFlight && <PostFlightNudge flight={nudgeFlight} suggestion={nudgeSuggestion} onSubmitReport={onNudgeSubmitReport} onNothingToReport={onNudgeNothingToReport} onRemindLater={onNudgeRemindLater} onDismiss={onNudgeDismiss} />}
         {fratDetailId && <FRATDetailModal fratId={fratDetailId} records={records} flights={flights} riskCategories={riskCategories} canApprove={["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role) || (profile?.permissions || []).includes("approver")} onApproveFlight={async (flightDbId, fratDbId) => { setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f)); if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r)); setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); await approveFlight(flightDbId, session.user.id); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: fl } = await fetchFlights(profile.org_id); setFlights(prev => mapDbFlights(fl, prev)); }} onRejectFlight={async (flightDbId, fratDbId) => { const fratRecord = fratDbId ? records.find(r => r.dbId === fratDbId) : null; await deleteFlight(flightDbId); if (fratDbId) await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); if (fratRecord?.userId) { createNotification(profile.org_id, { type: "frat_rejected", title: "FRAT Rejected", body: `Your FRAT ${fratDetailId} was rejected`, target_user_id: fratRecord.userId, link_tab: "submit" }); } const { data: fl } = await fetchFlights(profile.org_id); setFlights(prev => mapDbFlights(fl, prev)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, fuelUnit: r.fuel_unit || "lbs", numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "Flight rejected and removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onApproveFRAT={async (fratDbId) => { const matchedFlight = flights.find(f => f.fratDbId === fratDbId); setFlights(prev => prev.map(f => f.fratDbId === fratDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f)); setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r)); setToast({ message: "FRAT approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); await approveRejectFRAT(fratDbId, session.user.id, "approved", ""); if (matchedFlight) await approveFlight(matchedFlight.dbId, session.user.id); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, fuelUnit: r.fuel_unit || "lbs", numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); const { data: fl } = await fetchFlights(profile.org_id); setFlights(prev => mapDbFlights(fl, prev)); }} onRejectFRAT={async (fratDbId) => { await approveRejectFRAT(fratDbId, session.user.id, "rejected", ""); deleteNotificationByLinkId(profile.org_id, fratDetailId); setNotifications(prev => prev.filter(n => n.link_id !== fratDetailId)); const { data: frats } = await fetchFRATs(profile.org_id); setRecords(frats.map(r => ({ id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number, departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt, date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, fuelUnit: r.fuel_unit || "lbs", numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level, factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [], timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id }))); setToast({ message: "FRAT rejected", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} onClose={() => setFratDetailId(null)} />}
         {upgradePrompt && <UpgradePrompt feature={upgradePrompt.feature} message={upgradePrompt.message} onNavigateToSubscription={() => { setUpgradePrompt(null); setInitialAdminTab("subscription"); setCv("admin"); }} onDismiss={() => setUpgradePrompt(null)} />}
         {isPastDue && <div style={{ margin: "12px 32px 0", padding: "10px 16px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}><span>{"\u26A0"} Your subscription payment is past due. Update your payment method to restore access.</span>{isAdmin && <button onClick={async () => { const customerId = org?.stripe_customer_id; if (!customerId) return; const { data } = await supabase.functions.invoke('stripe-portal', { body: { customerId, returnUrl: window.location.origin } }); if (data?.url) window.location.href = data.url; }} style={{ background: "none", border: "1px solid currentColor", borderRadius: 4, color: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>Update Payment</button>}</div>}
