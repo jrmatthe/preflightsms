@@ -7,6 +7,22 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const JWT_SECRET = process.env.PLATFORM_ADMIN_SECRET;
 
+// In-memory rate limiter for login/setup (per-process; resets on cold start)
+const rateLimits = new Map();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  let entry = rateLimits.get(ip);
+  if (!entry || now - entry.windowStart > WINDOW_MS) {
+    entry = { windowStart: now, count: 0 };
+    rateLimits.set(ip, entry);
+  }
+  entry.count++;
+  return entry.count > MAX_ATTEMPTS;
+}
+
 function getServiceClient() {
   if (!supabaseUrl || !supabaseServiceKey) return null;
   return createClient(supabaseUrl, supabaseServiceKey);
@@ -37,6 +53,14 @@ export default async function handler(req, res) {
   if (!sb) return res.status(500).json({ error: 'Server not configured' });
 
   const { action, email, password, name, token } = req.body;
+
+  // Rate limit login and setup actions
+  if (action === 'login' || action === 'setup') {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+    if (checkRateLimit(ip)) {
+      return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+    }
+  }
 
   // ── SETUP: Create first admin (only works if no admins exist) ──
   if (action === 'setup') {

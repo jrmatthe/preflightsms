@@ -22,6 +22,7 @@ export default async function handler(req, res) {
     if (user) userId = user.id;
   }
   if (!userId && req.body.userId) {
+    console.warn("[create-org] JWT auth failed, falling back to userId body param:", req.body.userId);
     // Verify the user actually exists via service role
     const { data: userData } = await supabase.auth.admin.getUserById(req.body.userId);
     if (userData?.user) userId = userData.user.id;

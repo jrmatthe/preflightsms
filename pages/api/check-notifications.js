@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   // Auth: either cron secret OR authenticated user with orgId param
   const authHeader = req.headers["authorization"];
-  const cronSecret = req.headers["x-cron-secret"] || req.query.secret || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
+  const cronSecret = req.headers["x-cron-secret"] || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
   const orgIdParam = req.query.orgId;
   const isCron = !!process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET;
 

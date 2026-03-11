@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
   // Auth — same pattern as check-overdue.js
   const authHeader = req.headers["authorization"];
-  const cronSecret = req.headers["x-cron-secret"] || req.query.secret || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
+  const cronSecret = req.headers["x-cron-secret"] || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
   if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: "Unauthorized" });
   }

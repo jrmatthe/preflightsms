@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST" && req.method !== "GET") return res.status(405).json({ error: "POST or GET only" });
 
   const authHeader = req.headers["authorization"];
-  const cronSecret = req.headers["x-cron-secret"] || req.query.secret || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
+  const cronSecret = req.headers["x-cron-secret"] || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
   if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
     console.error("[check-overdue] Unauthorized request rejected");
     return res.status(401).json({ error: "Unauthorized" });
