@@ -2305,52 +2305,95 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   });
 
   const [dragId, setDragId] = useState(null);
-  const [dragOverId, setDragOverId] = useState(null);
+  const dragIdRef = useRef(null);
+  const preDragOrder = useRef(null);
+  const lastOverId = useRef(null);
+  const didDrop = useRef(false);
 
-  const handleDragStart = (id) => (e) => {
-    setDragId(id);
-    e.dataTransfer.effectAllowed = "move";
-  };
-  const handleDragOver = (id) => (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (id !== dragOverId) setDragOverId(id);
-  };
-  const handleDrop = (targetId) => (e) => {
-    e.preventDefault();
-    if (!dragId || dragId === targetId) { setDragId(null); setDragOverId(null); return; }
+  const liveReorder = (targetId) => {
+    const currentDrag = dragIdRef.current;
+    if (!currentDrag || targetId === lastOverId.current || targetId === currentDrag) return;
+    lastOverId.current = targetId;
     setCardOrder(prev => {
       const next = [...prev];
-      const fromIdx = next.indexOf(dragId);
+      const fromIdx = next.indexOf(currentDrag);
       const toIdx = next.indexOf(targetId);
       if (fromIdx === -1 || toIdx === -1) return prev;
       next.splice(fromIdx, 1);
-      next.splice(toIdx, 0, dragId);
-      try { localStorage.setItem("pfms_home_layout", JSON.stringify(next)); } catch {}
+      next.splice(toIdx, 0, currentDrag);
       return next;
     });
-    setDragId(null);
-    setDragOverId(null);
   };
-  const handleDragEnd = () => { setDragId(null); setDragOverId(null); };
 
   const visibleCards = cardOrder.filter(id => CARD_DEFS[id]?.visible);
   const leftCards = visibleCards.filter(id => CARD_DEFS[id].col === 0);
   const rightCards = visibleCards.filter(id => CARD_DEFS[id].col === 1);
 
-  const dragWrap = (id, node) => (
-    <div key={id} draggable onDragStart={handleDragStart(id)} onDragOver={handleDragOver(id)} onDrop={handleDrop(id)} onDragEnd={handleDragEnd}
-      style={{ opacity: dragId === id ? 0.4 : 1, transition: "opacity 0.15s", position: "relative", borderRadius: 10, outline: dragOverId === id ? `2px solid ${CYAN}` : "none", outlineOffset: 2 }}>
-      {/* Drag grip — visible on hover */}
-      <div style={{ position: "absolute", top: 8, right: 8, cursor: "grab", opacity: 0.25, zIndex: 2, padding: 4 }}
-        className="drag-grip"
-        onMouseDown={e => e.currentTarget.style.cursor = "grabbing"}
-        onMouseUp={e => e.currentTarget.style.cursor = "grab"}>
-        <svg width="10" height="14" viewBox="0 0 10 14" fill={MUTED}><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="7" r="1.5"/><circle cx="8" cy="7" r="1.5"/><circle cx="2" cy="12" r="1.5"/><circle cx="8" cy="12" r="1.5"/></svg>
-      </div>
-      {node}
+  const dragWrap = (id, node) => {
+    const isBeingDragged = id === dragId;
+    const isDragging = !!dragId;
+    return (
+    <div key={id} draggable
+      onDragStart={(e) => {
+        dragIdRef.current = id;
+        didDrop.current = false;
+        preDragOrder.current = [...cardOrder];
+        lastOverId.current = null;
+        setDragId(id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        liveReorder(id);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        didDrop.current = true;
+        setCardOrder(cur => {
+          try { localStorage.setItem("pfms_home_layout", JSON.stringify(cur)); } catch {}
+          return cur;
+        });
+        preDragOrder.current = null;
+        dragIdRef.current = null;
+        setDragId(null);
+        lastOverId.current = null;
+      }}
+      onDragEnd={() => {
+        if (!didDrop.current && preDragOrder.current) setCardOrder(preDragOrder.current);
+        preDragOrder.current = null;
+        dragIdRef.current = null;
+        setDragId(null);
+        lastOverId.current = null;
+      }}
+      style={{
+        position: "relative", borderRadius: 10,
+        outline: isDragging
+          ? (isBeingDragged ? `2px dashed ${CYAN}` : `2px dashed rgba(255,255,255,0.12)`)
+          : "2px dashed transparent",
+        outlineOffset: -2,
+        background: isBeingDragged ? "rgba(34,211,238,0.03)" : "transparent",
+        transition: "outline-color 0.2s ease",
+      }}>
+      {isBeingDragged ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 100, borderRadius: 10, border: `2px dashed ${CYAN}`, background: "rgba(34,211,238,0.04)" }}>
+          <div style={{ fontSize: 11, color: CYAN, opacity: 0.5, fontWeight: 600 }}>Drop here</div>
+        </div>
+      ) : (
+        <>
+          {/* Drag grip — visible on hover */}
+          <div style={{ position: "absolute", top: 8, right: 8, cursor: "grab", opacity: 0.25, zIndex: 2, padding: 4 }}
+            className="drag-grip"
+            onMouseDown={e => e.currentTarget.style.cursor = "grabbing"}
+            onMouseUp={e => e.currentTarget.style.cursor = "grab"}>
+            <svg width="10" height="14" viewBox="0 0 10 14" fill={MUTED}><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="7" r="1.5"/><circle cx="8" cy="7" r="1.5"/><circle cx="2" cy="12" r="1.5"/><circle cx="8" cy="12" r="1.5"/></svg>
+          </div>
+          {node}
+        </>
+      )}
     </div>
-  );
+    );
+  };
 
   return (
     <div>
