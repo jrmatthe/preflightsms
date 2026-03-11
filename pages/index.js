@@ -2310,22 +2310,22 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   const emptyIdxRef = useRef(null);
   const didDrop = useRef(false);
 
-  const swapToEmpty = (targetBlockIdx) => {
+  const swapToEmpty = (targetIdx) => {
     const ei = emptyIdxRef.current;
-    if (ei === null || targetBlockIdx === ei) return;
+    if (ei === null || targetIdx === ei) return;
     setCardOrder(prev => {
       const next = [...prev];
-      next[ei] = next[targetBlockIdx];
-      next[targetBlockIdx] = null;
+      const temp = next[ei];
+      next[ei] = next[targetIdx];
+      next[targetIdx] = temp;
       return next;
     });
-    emptyIdxRef.current = targetBlockIdx;
+    emptyIdxRef.current = targetIdx;
   };
 
-  // During drag, include the null (empty) slot; otherwise filter to visible cards only
-  const renderSlots = dragId
-    ? cardOrder.map((id, idx) => ({ id, orderIdx: idx })).filter(({ id }) => id === null || (id && CARD_DEFS[id]?.visible))
-    : cardOrder.filter(id => id && CARD_DEFS[id]?.visible).map(id => ({ id, orderIdx: cardOrder.indexOf(id) }));
+  const renderSlots = cardOrder
+    .map((id, idx) => ({ id, orderIdx: idx }))
+    .filter(({ id }) => id && CARD_DEFS[id]?.visible);
 
   return (
     <div>
@@ -2360,39 +2360,29 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
       {/* ── Slot-based card grid ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gridAutoRows: "auto", gap, alignItems: "start" }}>
         {renderSlots.map(({ id: cardId, orderIdx }) => {
-          const isEmptySlot = cardId === null;
           const isDragging = !!dragId;
+          const isHole = isDragging && orderIdx === emptyIdxRef.current;
           return (
-            <div key={isEmptySlot ? "empty-slot" : `block-${cardId}`}
-              draggable={!isEmptySlot}
-              onDragStart={isEmptySlot ? undefined : (e) => {
+            <div key={`block-${cardId}`} draggable
+              onDragStart={(e) => {
                 dragIdRef.current = cardId;
                 didDrop.current = false;
                 preDragOrder.current = [...cardOrder];
                 emptyIdxRef.current = orderIdx;
                 setDragId(cardId);
-                setCardOrder(prev => {
-                  const next = [...prev];
-                  next[orderIdx] = null;
-                  return next;
-                });
                 e.dataTransfer.effectAllowed = "move";
               }}
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
-                if (!isEmptySlot) swapToEmpty(orderIdx);
+                swapToEmpty(orderIdx);
               }}
               onDrop={(e) => {
                 e.preventDefault();
                 didDrop.current = true;
-                const draggedCard = dragIdRef.current;
                 setCardOrder(cur => {
-                  const next = [...cur];
-                  const ei = emptyIdxRef.current;
-                  if (ei !== null) next[ei] = draggedCard;
-                  try { localStorage.setItem("pfms_home_layout", JSON.stringify(next.filter(Boolean))); } catch {}
-                  return next;
+                  try { localStorage.setItem("pfms_home_layout", JSON.stringify(cur)); } catch {}
+                  return cur;
                 });
                 preDragOrder.current = null;
                 dragIdRef.current = null;
@@ -2412,7 +2402,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
                 outlineOffset: -2,
                 transition: "outline-color 0.2s ease",
               }}>
-              {isEmptySlot ? (
+              {isHole ? (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 100, borderRadius: 10, border: `2px dashed ${CYAN}`, background: "rgba(34,211,238,0.04)" }}>
                   <div style={{ fontSize: 11, color: CYAN, opacity: 0.5, fontWeight: 600 }}>Drop here</div>
                 </div>
