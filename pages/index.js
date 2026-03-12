@@ -4603,6 +4603,24 @@ export default function PVTAIRFrat() {
     return () => clearInterval(interval);
   }, [profile, session]);
 
+  // ── Refresh data when tab becomes visible (cross-device sync) ──
+  useEffect(() => {
+    const orgId = profile?.org_id;
+    if (!orgId) return;
+    const handleVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      refreshAllData(orgId);
+      if (hasFeature(profile?.organizations, "foreflight_integration")) {
+        fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || []));
+      }
+      if (hasFeature(profile?.organizations, "schedaero_integration")) {
+        fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || []));
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [profile]);
+
   // ── Refresh pending dispatch flights when FRAT view opens ──
   useEffect(() => {
     if (cv !== "submit") return;
