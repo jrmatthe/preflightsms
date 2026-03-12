@@ -2339,19 +2339,25 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
       const saved = typeof window !== "undefined" && localStorage.getItem("pfms_home_layout");
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Merge in any new cards not in saved order, inserting before their default neighbor
+        // Merge in any new cards, preserving saved order
         const existing = parsed.filter(id => CARD_DEFS[id]);
         const newCards = DEFAULT_ORDER.filter(id => !parsed.includes(id));
         for (const nc of newCards) {
-          const defIdx = DEFAULT_ORDER.indexOf(nc);
-          // Find the first card after this one in DEFAULT_ORDER that exists in saved layout
-          let inserted = false;
-          for (let i = defIdx + 1; i < DEFAULT_ORDER.length; i++) {
-            const afterIdx = existing.indexOf(DEFAULT_ORDER[i]);
-            if (afterIdx !== -1) { existing.splice(afterIdx, 0, nc); inserted = true; break; }
+          if (nc === "today_flights") {
+            // Insert at position 0 and push whatever was there down
+            existing.splice(0, 0, nc);
+          } else {
+            const defIdx = DEFAULT_ORDER.indexOf(nc);
+            let inserted = false;
+            for (let i = defIdx + 1; i < DEFAULT_ORDER.length; i++) {
+              const afterIdx = existing.indexOf(DEFAULT_ORDER[i]);
+              if (afterIdx !== -1) { existing.splice(afterIdx, 0, nc); inserted = true; break; }
+            }
+            if (!inserted) existing.push(nc);
           }
-          if (!inserted) existing.push(nc);
         }
+        // Persist corrected order so this migration only runs once
+        try { localStorage.setItem("pfms_home_layout", JSON.stringify(existing)); } catch {}
         return existing;
       }
     } catch {}
