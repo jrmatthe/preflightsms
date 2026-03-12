@@ -714,14 +714,16 @@ export default function MobileFlightsView({
       )}
 
       {/* Today's Schedule */}
-      {myTodayFlights && myTodayFlights.length > 0 && (
-        <div style={{ padding: "12px 16px 4px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
-            <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Today&apos;s Schedule</span>
+      <div style={{ padding: "12px 16px 4px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+          <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Today&apos;s Schedule</span>
+          {myTodayFlights && myTodayFlights.length > 0 && (
             <span style={{ fontSize: 10, fontWeight: 600, color: MUTED, background: BORDER, padding: "2px 7px", borderRadius: 10 }}>{myTodayFlights.length}</span>
-          </div>
-          {myTodayFlights.map((fl, i) => {
+          )}
+        </div>
+        {myTodayFlights && myTodayFlights.length > 0 ? (
+          myTodayFlights.map((fl, i) => {
             const etdTime = fl.etd ? new Date(fl.etd).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
             const isFf = fl._source === "foreflight";
             return (
@@ -751,9 +753,14 @@ export default function MobileFlightsView({
                 </div>
               </button>
             );
-          })}
-        </div>
-      )}
+          })
+        ) : (
+          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px", textAlign: "center", marginBottom: 8 }}>
+            <div style={{ fontSize: 13, color: MUTED }}>No flights scheduled for today</div>
+            <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>Flights from ForeFlight or SchedAero matched to your profile will appear here</div>
+          </div>
+        )}
+      </div>
 
       {/* Filter pills */}
       <div role="radiogroup" aria-label="Filter flights" style={{ padding: "12px 16px 8px", display: "flex", gap: 8, overflowX: "auto" }}>

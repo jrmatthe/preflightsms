@@ -2338,13 +2338,15 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
       </div>
 
       {/* My Flights Today */}
-      {myTodayFlights && myTodayFlights.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
-            <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>My Flights Today</div>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+          <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>My Flights Today</div>
+          {myTodayFlights && myTodayFlights.length > 0 && (
             <span style={{ fontSize: 10, fontWeight: 600, color: MUTED, background: BORDER, padding: "2px 8px", borderRadius: 10 }}>{myTodayFlights.length}</span>
-          </div>
+          )}
+        </div>
+        {myTodayFlights && myTodayFlights.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: myTodayFlights.length >= 2 ? "1fr 1fr" : "1fr", gap: 12 }}>
             {myTodayFlights.map((fl, i) => {
               const etdTime = fl.etd ? new Date(fl.etd).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
@@ -2383,8 +2385,13 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
               );
             })}
           </div>
-        </div>
-      )}
+        ) : (
+          <div style={{ ...card, padding: "20px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 12, color: MUTED }}>No flights scheduled for today</div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Flights from ForeFlight or SchedAero matched to your profile will appear here</div>
+          </div>
+        )}
+      </div>
 
       {/* Quick Actions — full width */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: gap }}>
