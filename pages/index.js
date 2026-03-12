@@ -4443,11 +4443,11 @@ export default function PVTAIRFrat() {
       }
 
       // ForeFlight linking — update FF flight and optionally push FRAT PDF
-      if (entry.foreflightFlightId && flightData) {
+      if (entry.foreflightFlightId) {
         try {
           await updateForeflightFlight(entry.foreflightFlightId, {
-            frat_id: fratData.id,
-            flight_id: flightData.id,
+            frat_id: fratData?.id || null,
+            flight_id: flightData?.id || null,
             status: "frat_created",
           });
           if (foreflightConfig?.push_frat_enabled) {
@@ -4463,11 +4463,11 @@ export default function PVTAIRFrat() {
       }
 
       // Schedaero linking — update Schedaero trip
-      if (entry.schedaeroTripId && flightData) {
+      if (entry.schedaeroTripId) {
         try {
           await updateSchedaeroTrip(entry.schedaeroTripId, {
-            frat_id: fratData.id,
-            flight_id: flightData.id,
+            frat_id: fratData?.id || null,
+            flight_id: flightData?.id || null,
             status: "frat_created",
           });
           setSelectedScTrip(null);
