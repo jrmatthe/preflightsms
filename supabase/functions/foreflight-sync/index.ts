@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
           // Fetch individual flight details for altitude/fuel data
           let flightDetail: any = null;
           try {
-            const detailRes = await fetch(`${FF_BASE}/public/api/Flights/flights/${ffId}`, {
+            const detailRes = await fetch(`${FF_BASE}/public/api/Flights/${ffId}`, {
               method: "GET",
               headers: ffHeaders,
             });
