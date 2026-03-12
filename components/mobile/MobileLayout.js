@@ -122,7 +122,7 @@ export default function MobileLayout({
   session, profile, orgData, notifications, notifReads,
   onMarkNotifRead, onMarkAllNotifsRead, onSignOut, onUpdatePreferences,
   // Phase 2 props
-  flights, onUpdateFlight, onSubmitFRAT,
+  flights, onUpdateFlight, onDeleteFlight, onSubmitFRAT,
   fleetAircraft, fratTemplate, allFratTemplates, riskLevels,
   nudgeFlight, nudgeSuggestion, onNudgeSubmitReport, onNudgeNothingToReport, onNudgeRemindLater, onNudgeDismiss,
   reportPrefill, setReportPrefill,
@@ -234,6 +234,7 @@ export default function MobileLayout({
             flights={flights}
             profile={profile}
             onUpdateFlight={onUpdateFlight}
+            onDeleteFlight={onDeleteFlight}
             onNewFrat={() => setActiveTab("newFrat")}
             onNavigateToReports={() => setActiveTab("reports")}
             onNudgeSubmitReport={() => {

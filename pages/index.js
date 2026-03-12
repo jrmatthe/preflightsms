@@ -1525,7 +1525,7 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
     </div>);
 }
 
-function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight, adsbEnabled, session, fleetAircraft }) {
+function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFlight, onDeleteFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight, adsbEnabled, session, fleetAircraft }) {
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
@@ -1915,6 +1915,11 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                         <button onClick={(e) => { e.stopPropagation(); onSelfDispatch(f.dbId, f.fratDbId); }}
                           style={{ width: "100%", padding: "10px 0", background: AMBER, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>SELF-DISPATCH</button>
                         <div style={{ fontSize: 9, color: MUTED, textAlign: "center", marginTop: 6 }}>Your departure will be logged and flagged for post-flight review</div>
+                      </div>)}
+                    {f.status === "CANCELLED" && onDeleteFlight && (
+                      <div style={{ marginTop: 10 }}>
+                        <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete flight ${f.id}? This cannot be undone.`)) onDeleteFlight(f); }}
+                          style={{ padding: "8px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Delete Flight</button>
                       </div>)}
                   </div>
                 )}
@@ -4027,21 +4032,22 @@ export default function PVTAIRFrat() {
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
   const riskLevels = fratTemplate?.risk_thresholds ? buildRiskLevels(fratTemplate.risk_thresholds) : DEFAULT_RISK_LEVELS;
 
-  // My flights — filtered to logged-in pilot + within next 12 hours
+  // My flights — filtered to logged-in pilot + ETD within past 3h to next 12h
   const myTodayFlights = useMemo(() => {
     const now = Date.now();
+    const lookback = now - 3 * 60 * 60 * 1000;
     const cutoff = now + 12 * 60 * 60 * 1000;
-    const isWithin12h = (etd) => {
+    const isRelevant = (etd) => {
       if (!etd) return false;
       const t = new Date(etd).getTime();
-      return t >= now && t <= cutoff;
+      return t >= lookback && t <= cutoff;
     };
     const pid = profile?.id;
     if (!pid) return [];
     return [
-      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isWithin12h(f.etd))
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd))
         .map(f => ({ ...f, _source: "foreflight" })),
-      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isWithin12h(f.etd))
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd))
         .map(f => ({ ...f, _source: "schedaero" })),
     ].sort((a, b) => new Date(a.etd).getTime() - new Date(b.etd).getTime());
   }, [pendingFfFlights, pendingScTrips, profile?.id]);
@@ -5201,7 +5207,18 @@ export default function PVTAIRFrat() {
     : actions;
   if (isMobile) return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
-    <MobileLayout session={session} profile={profile} orgData={profile?.organizations || {}} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} flights={flights} onUpdateFlight={roGuard(onUpdateFlight)} onSubmitFRAT={roGuard(onSubmit)} fleetAircraft={fleetAircraft} fratTemplate={fratTemplate} allFratTemplates={fratTemplates} riskLevels={riskLevels} nudgeFlight={nudgeFlight} nudgeSuggestion={nudgeSuggestion} onNudgeSubmitReport={onNudgeSubmitReport} onNudgeNothingToReport={onNudgeNothingToReport} onNudgeRemindLater={onNudgeRemindLater} onNudgeDismiss={onNudgeDismiss} reportPrefill={reportPrefill} setReportPrefill={setReportPrefill} reports={reports} onSubmitReport={roGuard(onSubmitReport)} cbtCourses={cbtCourses} cbtLessonsMap={cbtLessonsMap} cbtProgress={cbtProgress} cbtEnrollments={cbtEnrollments} trainingReqs={trainingReqs} trainingRecs={trainingRecs} onUpdateCbtProgress={roGuard(onUpdateCbtProgress)} onUpdateCbtEnrollment={roGuard(onUpdateCbtEnrollment)} onLogTraining={roGuard(onLogTraining)} refreshCbt={refreshCbt} hazards={hazards} actions={actions} onUpdateAction={roGuard(onUpdateAction)} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} onUpdateMel={roGuard(async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} erpPlans={erpPlans} onLoadErpChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onLoadErpCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} policies={policies} onAcknowledgePolicy={roGuard(onAcknowledgePolicy)} hasFlights={!!hasFeature(org, "flight_following")} hasTraining={!!hasFeature(org, "cbt_modules")} adsbEnabled={!!hasFeature(org, "adsb_tracking")} onUpdatePreferences={onUpdateNotifPreferences} onUpdateEmail={async (newEmail) => { await updateProfileEmail(profile.id, newEmail); const p = await getProfile(); if (p) setProfile(p); }} org={org} orgProfiles={orgProfiles} records={records} onCreateAircraft={async (aircraft) => { const { data, error } = await createAircraft(profile?.org_id, aircraft); if (error) return { error }; const { data: updated } = await fetchAircraft(profile?.org_id); setFleetAircraft(updated || []); return { data }; }} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} onRefreshDispatchFlights={() => { const orgId = profile?.org_id; if (!orgId) return; if (hasFeature(profile?.organizations, "foreflight_integration")) fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || [])); if (hasFeature(profile?.organizations, "schedaero_integration")) fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || [])); }} myTodayFlights={myTodayFlights} /></>
+    <MobileLayout session={session} profile={profile} orgData={profile?.organizations || {}} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} flights={flights} onUpdateFlight={roGuard(onUpdateFlight)} onDeleteFlight={async (flight) => {
+      if (!flight.dbId) { setFlights(prev => prev.filter(f => f.id !== flight.id)); return; }
+      try {
+        await deleteFlight(flight.dbId);
+        supabase.from("foreflight_flights").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
+          .eq("flight_id", flight.dbId).then(() => { fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])); });
+        supabase.from("schedaero_trips").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
+          .eq("flight_id", flight.dbId).then(() => { fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])); });
+        setFlights(prev => prev.filter(f => f.id !== flight.id));
+        setToast({ message: "Flight deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
+      } catch (e) { setToast({ message: "Failed to delete flight", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); }
+    }} onSubmitFRAT={roGuard(onSubmit)} fleetAircraft={fleetAircraft} fratTemplate={fratTemplate} allFratTemplates={fratTemplates} riskLevels={riskLevels} nudgeFlight={nudgeFlight} nudgeSuggestion={nudgeSuggestion} onNudgeSubmitReport={onNudgeSubmitReport} onNudgeNothingToReport={onNudgeNothingToReport} onNudgeRemindLater={onNudgeRemindLater} onNudgeDismiss={onNudgeDismiss} reportPrefill={reportPrefill} setReportPrefill={setReportPrefill} reports={reports} onSubmitReport={roGuard(onSubmitReport)} cbtCourses={cbtCourses} cbtLessonsMap={cbtLessonsMap} cbtProgress={cbtProgress} cbtEnrollments={cbtEnrollments} trainingReqs={trainingReqs} trainingRecs={trainingRecs} onUpdateCbtProgress={roGuard(onUpdateCbtProgress)} onUpdateCbtEnrollment={roGuard(onUpdateCbtEnrollment)} onLogTraining={roGuard(onLogTraining)} refreshCbt={refreshCbt} hazards={hazards} actions={actions} onUpdateAction={roGuard(onUpdateAction)} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} onUpdateMel={roGuard(async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} erpPlans={erpPlans} onLoadErpChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onLoadErpCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} policies={policies} onAcknowledgePolicy={roGuard(onAcknowledgePolicy)} hasFlights={!!hasFeature(org, "flight_following")} hasTraining={!!hasFeature(org, "cbt_modules")} adsbEnabled={!!hasFeature(org, "adsb_tracking")} onUpdatePreferences={onUpdateNotifPreferences} onUpdateEmail={async (newEmail) => { await updateProfileEmail(profile.id, newEmail); const p = await getProfile(); if (p) setProfile(p); }} org={org} orgProfiles={orgProfiles} records={records} onCreateAircraft={async (aircraft) => { const { data, error } = await createAircraft(profile?.org_id, aircraft); if (error) return { error }; const { data: updated } = await fetchAircraft(profile?.org_id); setFleetAircraft(updated || []); return { data }; }} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} onRefreshDispatchFlights={() => { const orgId = profile?.org_id; if (!orgId) return; if (hasFeature(profile?.organizations, "foreflight_integration")) fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || [])); if (hasFeature(profile?.organizations, "schedaero_integration")) fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || [])); }} myTodayFlights={myTodayFlights} /></>
   );
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
@@ -5349,7 +5366,19 @@ export default function PVTAIRFrat() {
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
-        {cv === "flights" && <FlightBoard flights={boardFlights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} initialSelectedFlight={activeFlow === "flights" ? "FRAT-DEMO" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} fleetAircraft={fleetAircraft} onApproveFlight={async (flightDbId, fratDbId) => {
+        {cv === "flights" && <FlightBoard flights={boardFlights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} onDeleteFlight={async (flight) => {
+          if (!flight.dbId) { setFlights(prev => prev.filter(f => f.id !== flight.id)); return; }
+          try {
+            await deleteFlight(flight.dbId);
+            // Restore linked ForeFlight/SchedAero flights to pending
+            supabase.from("foreflight_flights").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
+              .eq("flight_id", flight.dbId).then(() => { fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])); });
+            supabase.from("schedaero_trips").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
+              .eq("flight_id", flight.dbId).then(() => { fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])); });
+            setFlights(prev => prev.filter(f => f.id !== flight.id));
+            setToast({ message: "Flight deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
+          } catch (e) { setToast({ message: "Failed to delete flight", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); }
+        }} initialSelectedFlight={activeFlow === "flights" ? "FRAT-DEMO" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} fleetAircraft={fleetAircraft} onApproveFlight={async (flightDbId, fratDbId) => {
           setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f));
           if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r));
           setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);

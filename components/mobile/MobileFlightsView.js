@@ -291,7 +291,7 @@ function PostFlightNudge({ flight, suggestion, onFileReport, onNothingToReport, 
 }
 
 // ── Flight Card ──
-function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSwipeCancel, isLive }) {
+function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSwipeCancel, onDelete, isLive }) {
   const isPending = flight.approvalStatus === "pending" || flight.approvalStatus === "review";
   const isActive = flight.status === "ACTIVE" && !isPending;
   const isArrived = flight.status === "ARRIVED";
@@ -498,6 +498,17 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
                 Cancel Flight
               </button>
             )}
+            {flight.status === "CANCELLED" && onDelete && (
+              <button
+                onClick={(e) => { e.stopPropagation(); if (confirm(`Delete flight ${flight.id}? This cannot be undone.`)) onDelete(flight); }}
+                style={{
+                  width: "100%", marginTop: 8, padding: "12px", background: "transparent", color: RED,
+                  border: `1px solid ${RED}44`, borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                Delete Flight
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -516,7 +527,7 @@ function DetailRow({ label, value }) {
 
 // ── Main component ──
 export default function MobileFlightsView({
-  flights, profile, onUpdateFlight, onNewFrat, onNavigateToReports,
+  flights, profile, onUpdateFlight, onDeleteFlight, onNewFrat, onNavigateToReports,
   onNudgeSubmitReport, onNudgeNothingToReport, onNudgeRemindLater, onNudgeDismiss, nudgeFlight, nudgeSuggestion, loading, fleetAircraft,
   adsbEnabled, session,
   myTodayFlights, onSelectTodayFlight,
@@ -802,6 +813,7 @@ export default function MobileFlightsView({
               onToggle={() => setExpandedId(prev => prev === (f.id || f.dbId) ? null : (f.id || f.dbId))}
               onSwipeArrive={(fl) => setArrivalFlight(fl)}
               onSwipeCancel={(fl) => setCancelFlight(fl)}
+              onDelete={onDeleteFlight}
               isLive={f.status === "ACTIVE" && !!(livePositions[f.dbId] && (Date.now() - (livePositions[f.dbId].receivedAt || 0)) < 30000)}
             />
           ))
