@@ -238,6 +238,7 @@ function StepFlightInfo({ fi, setFi, fuelUnit, setFuelUnit, fleetAircraft, error
 // ── Step 2: Weather ──
 function StepWeather({ wxData, wxAnalysis, wxLoading, wxError }) {
   const [showRaw, setShowRaw] = useState({});
+  const [expandedHazard, setExpandedHazard] = useState(null);
 
   if (wxLoading) {
     return (
@@ -302,15 +303,36 @@ function StepWeather({ wxData, wxAnalysis, wxLoading, wxError }) {
 
             {/* Hazard badges */}
             {s.hazards && s.hazards.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                {s.hazards.map((h, hi) => (
-                  <span key={hi} style={{
-                    padding: "3px 10px", borderRadius: 10, background: `${h.color}18`,
-                    color: h.color, fontSize: 14, fontWeight: 600, border: `1px solid ${h.color}33`,
-                  }}>
-                    {h.label}
-                  </span>
-                ))}
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {s.hazards.map((h, hi) => {
+                    const key = `${i}-${hi}`;
+                    const isOpen = expandedHazard === key;
+                    return (
+                      <button key={hi} onClick={() => setExpandedHazard(isOpen ? null : key)} style={{
+                        padding: "4px 10px", borderRadius: 10, background: `${h.color}18`,
+                        color: h.color, fontSize: 14, fontWeight: 600, border: `1px solid ${isOpen ? h.color : h.color + "33"}`,
+                        cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
+                      }}>
+                        {h.label}
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                    );
+                  })}
+                </div>
+                {s.hazards.map((h, hi) => {
+                  const key = `${i}-${hi}`;
+                  if (expandedHazard !== key) return null;
+                  return (
+                    <div key={`detail-${hi}`} style={{
+                      marginTop: 8, padding: "10px 12px", borderRadius: 8,
+                      background: `${h.color}0A`, border: `1px solid ${h.color}22`,
+                      fontSize: 13, color: OFF_WHITE, lineHeight: 1.5,
+                    }}>
+                      {h.reason || `${h.label} conditions detected`}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
