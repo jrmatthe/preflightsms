@@ -59,10 +59,12 @@ Deno.serve(async (req) => {
     for (const config of configs) {
       try {
         // Check sync interval (skip if not manual and synced too recently)
+        // Use 1-min buffer so pg_cron ticks (which fire on fixed schedule) aren't
+        // skipped due to sync execution time pushing last_synced_at past the boundary
         if (!body.manual && config.last_synced_at) {
           const lastSync = new Date(config.last_synced_at);
           const minutesSince = (now.getTime() - lastSync.getTime()) / 60000;
-          if (minutesSince < (config.sync_interval_minutes || 5)) {
+          if (minutesSince < (config.sync_interval_minutes || 5) - 1) {
             continue;
           }
         }
