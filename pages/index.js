@@ -1525,6 +1525,215 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
     </div>);
 }
 
+// ── My Flights View — personal pilot view with Scheduled / Active / Recent sections ──
+function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdateFlight, onDeleteFlight, onSelectScheduledFlight, onNewFrat }) {
+  const now = Date.now();
+  const h48 = 48 * 60 * 60 * 1000;
+
+  const myActive = useMemo(() => {
+    const uid = session?.user?.id;
+    if (!uid) return [];
+    return (flights || []).filter(f => f.userId === uid && f.status === "ACTIVE");
+  }, [flights, session?.user?.id]);
+
+  const myRecent = useMemo(() => {
+    const uid = session?.user?.id;
+    if (!uid) return [];
+    return (flights || []).filter(f => {
+      if (f.userId !== uid) return false;
+      if (f.status !== "ARRIVED" && f.status !== "CANCELLED") return false;
+      const ts = new Date(f.arrivedAt || f.timestamp).getTime();
+      return ts > now - h48;
+    }).sort((a, b) => new Date(b.arrivedAt || b.timestamp).getTime() - new Date(a.arrivedAt || a.timestamp).getTime());
+  }, [flights, session?.user?.id, now]);
+
+  const fmtTime = (iso) => {
+    if (!iso) return "—";
+    try { return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }); } catch { return "—"; }
+  };
+
+  const parseETE = (ete) => {
+    if (!ete) return 0;
+    const s = ete.trim();
+    if (s.includes(":") || s.includes("+")) { const p = s.split(/[:\+]/); return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0); }
+    const n = parseFloat(s);
+    if (isNaN(n)) return 0;
+    if (n < 10) return Math.round(n * 60);
+    if (n < 100) return Math.round(n);
+    return Math.floor(n / 100) * 60 + (n % 100);
+  };
+
+  const getProgress = (f) => {
+    if (!f.eta) return -1;
+    const end = new Date(f.eta).getTime();
+    const eteMins = parseETE(f.ete);
+    let start = end - eteMins * 60000;
+    if (eteMins <= 0 || isNaN(start) || end <= start) return 0;
+    return Math.max(0, Math.min(((now - start) / (end - start)) * 100, 95));
+  };
+
+  const sectionHeader = (icon, label, count) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+      {icon}
+      <span style={{ fontSize: 13, fontWeight: 700, color: WHITE, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</span>
+      {count > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 8px", borderRadius: 10 }}>{count}</span>}
+    </div>
+  );
+
+  const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10 };
+
+  const isEmpty = myScheduledFlights.length === 0 && myActive.length === 0 && myRecent.length === 0;
+
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 32px" }}>
+      {/* Scheduled section */}
+      {myScheduledFlights.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          {sectionHeader(
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={CYAN} stroke="none"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0011.5 2 1.5 1.5 0 0010 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>,
+            "Scheduled", myScheduledFlights.length
+          )}
+          <div style={{ display: "grid", gap: 10 }}>
+            {myScheduledFlights.map((fl, i) => {
+              const isFf = fl._source === "foreflight";
+              return (
+                <button key={fl.id || i} onClick={() => onSelectScheduledFlight(fl)} style={{
+                  ...card, padding: "14px 16px", cursor: "pointer", textAlign: "left", width: "100%",
+                  border: `1px solid rgba(34,211,238,0.15)`, background: "rgba(34,211,238,0.03)",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
+                      {fl.departure_icao || "—"} → {fl.destination_icao || "—"}
+                    </span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
+                      background: isFf ? "rgba(34,211,238,0.12)" : "rgba(59,130,246,0.12)",
+                      color: isFf ? CYAN : "#3B82F6",
+                    }}>{isFf ? "ForeFlight" : "SchedAero"}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12, marginBottom: 6 }}>
+                    {fl.tail_number && <span><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></span>}
+                    <span><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{fmtTime(fl.etd)}</span></span>
+                    {fl.passenger_count != null && <span><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></span>}
+                    {fl.aircraft_type && <span><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></span>}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: CYAN }}>Start FRAT →</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Active section */}
+      {myActive.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          {sectionHeader(
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            "Active", myActive.length
+          )}
+          <div style={{ display: "grid", gap: 10 }}>
+            {myActive.map(f => {
+              const progress = getProgress(f);
+              const isPending = f.approvalStatus === "pending" || f.approvalStatus === "review";
+              return (
+                <div key={f.id || f.dbId} style={{ ...card, padding: "14px 16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: WHITE }}>
+                      {f.departure || "—"} → {f.destination || "—"}
+                    </span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 8,
+                      background: isPending ? "rgba(250,204,21,0.12)" : "rgba(74,222,128,0.12)",
+                      color: isPending ? YELLOW : GREEN,
+                    }}>{isPending ? "AWAITING APPROVAL" : "ENROUTE"}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 16, fontSize: 12, marginBottom: 10 }}>
+                    <span><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE }}>{fmtTime(f.etd)}</span></span>
+                    {f.eta && <span><span style={{ color: MUTED }}>ETA </span><span style={{ color: WHITE }}>{fmtTime(f.eta)}</span></span>}
+                    {f.tailNumber && <span><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE }}>{f.tailNumber}</span></span>}
+                  </div>
+                  {progress >= 0 && (
+                    <div style={{ height: 4, background: BORDER, borderRadius: 2, overflow: "hidden", marginBottom: 10 }}>
+                      <div style={{ height: "100%", width: `${progress}%`, background: GREEN, borderRadius: 2, transition: "width 0.5s" }} />
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {!isPending && (
+                      <button onClick={() => onUpdateFlight(f.id, "ARRIVED")} style={{
+                        padding: "6px 14px", background: "rgba(34,211,238,0.08)", border: `1px solid rgba(34,211,238,0.25)`,
+                        borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 700, cursor: "pointer",
+                      }}>Mark Arrived</button>
+                    )}
+                    <button onClick={() => onUpdateFlight(f.id, "CANCEL")} style={{
+                      padding: "6px 14px", background: "transparent", border: `1px solid ${BORDER}`,
+                      borderRadius: 6, color: MUTED, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    }}>Cancel</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recent section */}
+      {myRecent.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          {sectionHeader(
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+            "Recent", myRecent.length
+          )}
+          <div style={{ display: "grid", gap: 10 }}>
+            {myRecent.map(f => {
+              const isCancelled = f.status === "CANCELLED";
+              return (
+                <div key={f.id || f.dbId} style={{ ...card, padding: "14px 16px", opacity: 0.75 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>
+                      {f.departure || "—"} → {f.destination || "—"}
+                    </span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 8,
+                      background: isCancelled ? "rgba(239,68,68,0.12)" : "rgba(74,222,128,0.12)",
+                      color: isCancelled ? RED : GREEN,
+                    }}>{isCancelled ? "CANCELLED" : "ARRIVED"}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 16, fontSize: 12, alignItems: "center" }}>
+                    {f.tailNumber && <span><span style={{ color: MUTED }}>Tail </span><span style={{ color: OFF_WHITE }}>{f.tailNumber}</span></span>}
+                    <span><span style={{ color: MUTED }}>{isCancelled ? "Submitted " : "Arrived "}</span><span style={{ color: OFF_WHITE }}>{fmtTime(f.arrivedAt || f.timestamp)}</span></span>
+                    {isCancelled && f.dbId && (
+                      <button onClick={() => onDeleteFlight(f)} style={{
+                        marginLeft: "auto", padding: "4px 10px", background: "transparent", border: `1px solid ${BORDER}`,
+                        borderRadius: 4, color: MUTED, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                      }}>Delete</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {isEmpty && (
+        <div style={{ textAlign: "center", padding: "60px 0" }}>
+          <svg width={48} height={48} viewBox="0 0 24 24" fill="none" style={{ marginBottom: 16, opacity: 0.3 }}>
+            <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill={MUTED}/>
+          </svg>
+          <div style={{ color: WHITE, fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No flights</div>
+          <div style={{ color: MUTED, fontSize: 13, marginBottom: 20 }}>Submit a FRAT to create a flight</div>
+          <button onClick={onNewFrat} style={{
+            padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 8,
+            fontSize: 13, fontWeight: 700, cursor: "pointer",
+          }}>New FRAT</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFlight, onDeleteFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight, adsbEnabled, session, fleetAircraft }) {
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
@@ -3993,6 +4202,7 @@ export default function PVTAIRFrat() {
     && onboardingAdminRoles.includes(profile?.role)
     && !FLOW_ORDER.every(id => onboardingState.flows?.[id]?.status === "completed");
 
+  const [flightsMode, setFlightsMode] = useState("my");
   const [nudgeFlight, setNudgeFlight] = useState(null);
   const [nudgeSuggestion, setNudgeSuggestion] = useState(null);
   const [nudgeResponses, setNudgeResponses] = useState([]);
@@ -4052,6 +4262,24 @@ export default function PVTAIRFrat() {
     ].sort((a, b) => new Date(a.etd).getTime() - new Date(b.etd).getTime());
   }, [pendingFfFlights, pendingScTrips, profile?.id]);
 
+  // My scheduled flights — ALL pending FF/SA flights matched to this pilot (wider than myTodayFlights)
+  const myScheduledFlights = useMemo(() => {
+    const pid = profile?.id;
+    if (!pid) return [];
+    return [
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid)
+        .map(f => ({ ...f, _source: "foreflight" })),
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid)
+        .map(f => ({ ...f, _source: "schedaero" })),
+    ].sort((a, b) => new Date(a.etd || 0).getTime() - new Date(b.etd || 0).getTime());
+  }, [pendingFfFlights, pendingScTrips, profile?.id]);
+
+  // canSeeAllFlights — admins + flight_follower permission holders
+  const canSeeAllFlights = useMemo(() => {
+    return ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role)
+      || (profile?.permissions || []).includes("flight_follower");
+  }, [profile?.role, profile?.permissions]);
+
   // Part 5 compliance for dashboard
   const part5Compliance = useMemo(() =>
     computePart5Compliance({ frats: records, flights, reports, hazards, actions, policies, profiles: orgProfiles, trainingRecords: trainingRecs, smsManuals }),
@@ -4072,6 +4300,7 @@ export default function PVTAIRFrat() {
         status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED",
         approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [],
         parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "",
+        userId: f.user_id,
       })));
       const { data: frats } = await fetchFRATs(orgId);
       if (frats) setRecords(frats.map(r => ({
@@ -4369,6 +4598,7 @@ export default function PVTAIRFrat() {
         approvalStatus: wasApproved && f.approval_status === "pending" ? "approved" : f.approval_status,
         fratDbId: f.frat_id, attachments: f.attachments || [],
         parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "",
+        userId: f.user_id,
       };
     });
   }, []);
@@ -4428,7 +4658,7 @@ export default function PVTAIRFrat() {
         setToast({ message: `${entry.id} saved offline — will sync when connected`, level: { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" } }); setTimeout(() => setToast(null), 5000);
         return;
       }
-      const { data: flightData, error: flightErr } = await createFlight(profile.org_id, fratData.id, entry, needsBlock);
+      const { data: flightData, error: flightErr } = await createFlight(profile.org_id, fratData.id, entry, needsBlock, session.user.id);
       if (flightErr) console.error("Flight create error:", flightErr);
 
       // Save fatigue assessment if present
@@ -5218,7 +5448,7 @@ export default function PVTAIRFrat() {
         setFlights(prev => prev.filter(f => f.id !== flight.id));
         setToast({ message: "Flight deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
       } catch (e) { setToast({ message: "Failed to delete flight", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); }
-    }} onSubmitFRAT={roGuard(onSubmit)} fleetAircraft={fleetAircraft} fratTemplate={fratTemplate} allFratTemplates={fratTemplates} riskLevels={riskLevels} nudgeFlight={nudgeFlight} nudgeSuggestion={nudgeSuggestion} onNudgeSubmitReport={onNudgeSubmitReport} onNudgeNothingToReport={onNudgeNothingToReport} onNudgeRemindLater={onNudgeRemindLater} onNudgeDismiss={onNudgeDismiss} reportPrefill={reportPrefill} setReportPrefill={setReportPrefill} reports={reports} onSubmitReport={roGuard(onSubmitReport)} cbtCourses={cbtCourses} cbtLessonsMap={cbtLessonsMap} cbtProgress={cbtProgress} cbtEnrollments={cbtEnrollments} trainingReqs={trainingReqs} trainingRecs={trainingRecs} onUpdateCbtProgress={roGuard(onUpdateCbtProgress)} onUpdateCbtEnrollment={roGuard(onUpdateCbtEnrollment)} onLogTraining={roGuard(onLogTraining)} refreshCbt={refreshCbt} hazards={hazards} actions={actions} onUpdateAction={roGuard(onUpdateAction)} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} onUpdateMel={roGuard(async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} erpPlans={erpPlans} onLoadErpChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onLoadErpCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} policies={policies} onAcknowledgePolicy={roGuard(onAcknowledgePolicy)} hasFlights={!!hasFeature(org, "flight_following")} hasTraining={!!hasFeature(org, "cbt_modules")} adsbEnabled={!!hasFeature(org, "adsb_tracking")} onUpdatePreferences={onUpdateNotifPreferences} onUpdateEmail={async (newEmail) => { await updateProfileEmail(profile.id, newEmail); const p = await getProfile(); if (p) setProfile(p); }} org={org} orgProfiles={orgProfiles} records={records} onCreateAircraft={async (aircraft) => { const { data, error } = await createAircraft(profile?.org_id, aircraft); if (error) return { error }; const { data: updated } = await fetchAircraft(profile?.org_id); setFleetAircraft(updated || []); return { data }; }} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} onRefreshDispatchFlights={() => { const orgId = profile?.org_id; if (!orgId) return; if (hasFeature(profile?.organizations, "foreflight_integration")) fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || [])); if (hasFeature(profile?.organizations, "schedaero_integration")) fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || [])); }} myTodayFlights={myTodayFlights} /></>
+    }} onSubmitFRAT={roGuard(onSubmit)} fleetAircraft={fleetAircraft} fratTemplate={fratTemplate} allFratTemplates={fratTemplates} riskLevels={riskLevels} nudgeFlight={nudgeFlight} nudgeSuggestion={nudgeSuggestion} onNudgeSubmitReport={onNudgeSubmitReport} onNudgeNothingToReport={onNudgeNothingToReport} onNudgeRemindLater={onNudgeRemindLater} onNudgeDismiss={onNudgeDismiss} reportPrefill={reportPrefill} setReportPrefill={setReportPrefill} reports={reports} onSubmitReport={roGuard(onSubmitReport)} cbtCourses={cbtCourses} cbtLessonsMap={cbtLessonsMap} cbtProgress={cbtProgress} cbtEnrollments={cbtEnrollments} trainingReqs={trainingReqs} trainingRecs={trainingRecs} onUpdateCbtProgress={roGuard(onUpdateCbtProgress)} onUpdateCbtEnrollment={roGuard(onUpdateCbtEnrollment)} onLogTraining={roGuard(onLogTraining)} refreshCbt={refreshCbt} hazards={hazards} actions={actions} onUpdateAction={roGuard(onUpdateAction)} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} onUpdateMel={roGuard(async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} erpPlans={erpPlans} onLoadErpChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onLoadErpCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} policies={policies} onAcknowledgePolicy={roGuard(onAcknowledgePolicy)} hasFlights={!!hasFeature(org, "flight_following")} hasTraining={!!hasFeature(org, "cbt_modules")} adsbEnabled={!!hasFeature(org, "adsb_tracking")} onUpdatePreferences={onUpdateNotifPreferences} onUpdateEmail={async (newEmail) => { await updateProfileEmail(profile.id, newEmail); const p = await getProfile(); if (p) setProfile(p); }} org={org} orgProfiles={orgProfiles} records={records} onCreateAircraft={async (aircraft) => { const { data, error } = await createAircraft(profile?.org_id, aircraft); if (error) return { error }; const { data: updated } = await fetchAircraft(profile?.org_id); setFleetAircraft(updated || []); return { data }; }} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} onRefreshDispatchFlights={() => { const orgId = profile?.org_id; if (!orgId) return; if (hasFeature(profile?.organizations, "foreflight_integration")) fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || [])); if (hasFeature(profile?.organizations, "schedaero_integration")) fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || [])); }} myTodayFlights={myTodayFlights} myScheduledFlights={myScheduledFlights} /></>
   );
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
@@ -5366,19 +5596,36 @@ export default function PVTAIRFrat() {
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
-        {cv === "flights" && <FlightBoard flights={boardFlights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} onDeleteFlight={async (flight) => {
-          if (!flight.dbId) { setFlights(prev => prev.filter(f => f.id !== flight.id)); return; }
-          try {
-            await deleteFlight(flight.dbId);
-            // Restore linked ForeFlight/SchedAero flights to pending
-            supabase.from("foreflight_flights").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
-              .eq("flight_id", flight.dbId).then(() => { fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])); });
-            supabase.from("schedaero_trips").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
-              .eq("flight_id", flight.dbId).then(() => { fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])); });
-            setFlights(prev => prev.filter(f => f.id !== flight.id));
-            setToast({ message: "Flight deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
-          } catch (e) { setToast({ message: "Failed to delete flight", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); }
-        }} initialSelectedFlight={activeFlow === "flights" ? "FRAT-DEMO" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} fleetAircraft={fleetAircraft} onApproveFlight={async (flightDbId, fratDbId) => {
+        {cv === "flights" && (() => {
+          const showMyFlights = flightsMode === "my" || !canSeeAllFlights;
+          const handleDeleteFlight = async (flight) => {
+            if (!flight.dbId) { setFlights(prev => prev.filter(f => f.id !== flight.id)); return; }
+            try {
+              await deleteFlight(flight.dbId);
+              supabase.from("foreflight_flights").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
+                .eq("flight_id", flight.dbId).then(() => { fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])); });
+              supabase.from("schedaero_trips").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
+                .eq("flight_id", flight.dbId).then(() => { fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])); });
+              setFlights(prev => prev.filter(f => f.id !== flight.id));
+              setToast({ message: "Flight deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
+            } catch (e) { setToast({ message: "Failed to delete flight", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); }
+          };
+          return <>
+            {canSeeAllFlights && (
+              <div style={{ display: "flex", alignItems: "center", gap: 0, margin: "0 32px 16px", background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 3, width: "fit-content" }}>
+                {["my", "all"].map(m => (
+                  <button key={m} onClick={() => setFlightsMode(m)} style={{
+                    padding: "7px 18px", borderRadius: 6, border: "none", cursor: "pointer",
+                    background: flightsMode === m ? WHITE : "transparent",
+                    color: flightsMode === m ? BLACK : MUTED,
+                    fontSize: 12, fontWeight: 700, transition: "all 0.15s",
+                  }}>{m === "my" ? "My Flights" : "All Flights"}</button>
+                ))}
+              </div>
+            )}
+            {showMyFlights
+              ? <MyFlightsView flights={boardFlights} myScheduledFlights={myScheduledFlights} session={session} profile={profile} onUpdateFlight={onUpdateFlight} onDeleteFlight={handleDeleteFlight} onSelectScheduledFlight={(fl) => { if (fl._source === "foreflight") setSelectedFfFlight(fl); else setSelectedScTrip(fl); setCv("submit"); }} onNewFrat={() => setCv("submit")} />
+              : <FlightBoard flights={boardFlights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} onDeleteFlight={handleDeleteFlight} initialSelectedFlight={activeFlow === "flights" ? "FRAT-DEMO" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} fleetAircraft={fleetAircraft} onApproveFlight={async (flightDbId, fratDbId) => {
           setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f));
           if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r));
           setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
@@ -5411,6 +5658,8 @@ export default function PVTAIRFrat() {
           createNotification(profile.org_id, { type: "frat_self_dispatched", title: "Pilot Self-Dispatched", body: `${matchingFlight?.pilot || userName} self-dispatched ${matchingFlight?.id || "flight"} (${matchingFlight?.riskLevel || "HIGH"} risk) — ${matchingFlight?.departure || "?"} to ${matchingFlight?.destination || "?"}`, link_tab: "flights", target_roles: ["admin", "safety_manager"] });
           setToast({ message: "Flight self-dispatched — flagged for review", level: { bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.25)", color: AMBER } }); setTimeout(() => setToast(null), 3000);
         }} />}
+          </>;
+        })()}
         {cv === "fleet" && <DashboardCharts flights={flights} view="fleet" fleetAircraft={fleetAircraft} fleetStatusFields={org?.fleet_status_fields} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} />}
         {cv === "reports" && (() => { const canManageReports = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role); const visibleReports = canManageReports ? reports : reports.filter(r => r.reporter_id === session?.user?.id); return <SafetyReporting profile={profile} session={session} onSubmitReport={roGuard(onSubmitReport)} reports={visibleReports} onStatusChange={canManageReports ? roGuard(onReportStatusChange) : null} hazards={hazards} onCreateHazardFromReport={canManageReports ? (report) => { setHazardFromReport(report); setCv("hazards"); } : null} fleetAircraft={fleetAircraft} orgProfiles={orgProfiles} reportPrefill={reportPrefill} onClearPrefill={() => setReportPrefill(null)} activeFlow={activeFlow} org={org} onAiSearch={async (query) => { try { const { data, error } = await supabase.functions.invoke('ai-safety-search', { body: { orgId: profile?.org_id, query } }); if (error) { setToast({ message: "AI search unavailable — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data; } catch { setToast({ message: "AI search unavailable — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } }} onAiCategorize={hasFeature(org, "safety_trend_alerts") ? async ({ title, description, location, tailNumber }) => { try { const { data, error } = await supabase.functions.invoke('ai-categorize-report', { body: { orgId: profile?.org_id, title, description, location, tailNumber } }); if (error) { setToast({ message: "AI categorization unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } return data?.suggestion || null; } catch { setToast({ message: "AI categorization unavailable", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); return null; } } : undefined} />; })()}
         {cv === "asap" && <AsapProgram profile={profile} session={session} org={org} orgProfiles={orgProfiles} asapConfig={asapConfig} asapReports={asapReports} asapCorrActions={asapCorrActions} asapMeetings={asapMeetings} onSaveConfig={roGuard(async (config) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await upsertAsapConfig(orgId, config); if (data) setAsapConfig(data); })} onCreateReport={roGuard(async (report) => { const orgId = profile?.org_id; if (!orgId) return; const { count } = await fetchAsapReportCount(orgId); const prefix = asapConfig?.auto_number_prefix || "ASAP"; const reportNumber = `${prefix}-${String((count || 0) + 1).padStart(3, "0")}`; await createAsapReport(orgId, { ...report, report_number: reportNumber, reporter_id: session.user.id, reporter_name: userName }); createNotification(orgId, { type: "asap_report_submitted", title: "ASAP Report Submitted", body: `New ASAP report ${reportNumber}: ${report.title || "Untitled"}`, link_tab: "asap", target_roles: ["admin", "safety_manager"] }); fetchAsapReports(orgId).then(({ data }) => setAsapReports(data || [])); })} onUpdateReport={roGuard(async (reportId, updates) => { await updateAsapReport(reportId, updates); const orgId = profile?.org_id; if (orgId) fetchAsapReports(orgId).then(({ data }) => setAsapReports(data || [])); })} onDeleteReport={roGuard(async (reportId) => { await deleteAsapReport(reportId); const orgId = profile?.org_id; if (orgId) fetchAsapReports(orgId).then(({ data }) => setAsapReports(data || [])); })} onFetchErcReviews={async (reportId) => { const { data } = await fetchAsapErcReviews(reportId); return data || []; }} onCreateErcReview={roGuard(async (review) => { await createAsapErcReview(review); const orgId = profile?.org_id; if (orgId && review.report_id) { const report = asapReports.find(r => r.id === review.report_id); if (report?.reporter_id) { createNotification(orgId, { type: "asap_erc_decision", title: "ERC Review Decision", body: `ERC has reviewed your ASAP report ${report.report_number || ""}: ${review.decision || "reviewed"}`, link_tab: "asap", link_id: review.report_id, target_user_id: report.reporter_id }); } } })} onUpdateErcReview={roGuard(async (reviewId, updates) => { await updateAsapErcReview(reviewId, updates); })} onCreateCorrAction={roGuard(async (action) => { const orgId = profile?.org_id; if (!orgId) return; await createAsapCorrectiveAction(orgId, action); fetchAsapCorrectiveActions(orgId).then(({ data }) => setAsapCorrActions(data || [])); })} onUpdateCorrAction={roGuard(async (actionId, updates) => { await updateAsapCorrectiveAction(actionId, updates); const orgId = profile?.org_id; if (orgId) fetchAsapCorrectiveActions(orgId).then(({ data }) => setAsapCorrActions(data || [])); })} onDeleteCorrAction={roGuard(async (actionId) => { await deleteAsapCorrectiveAction(actionId); const orgId = profile?.org_id; if (orgId) fetchAsapCorrectiveActions(orgId).then(({ data }) => setAsapCorrActions(data || [])); })} onCreateMeeting={roGuard(async (meeting) => { const orgId = profile?.org_id; if (!orgId) return; await createAsapMeeting(orgId, meeting); fetchAsapMeetings(orgId).then(({ data }) => setAsapMeetings(data || [])); })} onUpdateMeeting={roGuard(async (meetingId, updates) => { await updateAsapMeeting(meetingId, updates); const orgId = profile?.org_id; if (orgId) fetchAsapMeetings(orgId).then(({ data }) => setAsapMeetings(data || [])); })} onDeleteMeeting={roGuard(async (meetingId) => { await deleteAsapMeeting(meetingId); const orgId = profile?.org_id; if (orgId) fetchAsapMeetings(orgId).then(({ data }) => setAsapMeetings(data || [])); })} onRefresh={async () => { const orgId = profile?.org_id; if (orgId) { fetchAsapReports(orgId).then(({ data }) => setAsapReports(data || [])); fetchAsapCorrectiveActions(orgId).then(({ data }) => setAsapCorrActions(data || [])); fetchAsapMeetings(orgId).then(({ data }) => setAsapMeetings(data || [])); } }} onCreateAction={(finding) => { setActionFromInvestigation(finding); setCv("actions"); }} onInitSetup={roGuard(async () => { const { DEFAULT_MOU_TEXT, DEFAULT_ACCEPTANCE_CRITERIA, DEFAULT_EXCLUSION_CRITERIA } = await import("../components/AsapProgram"); const orgId = profile?.org_id; if (!orgId) return; const { data } = await upsertAsapConfig(orgId, { mou_text: DEFAULT_MOU_TEXT, acceptance_criteria: DEFAULT_ACCEPTANCE_CRITERIA, exclusion_criteria: DEFAULT_EXCLUSION_CRITERIA, reporting_window_hours: 24, auto_number_prefix: "ASAP" }); if (data) setAsapConfig(data); setToast({ message: "ASAP program initialized with default templates", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} />}

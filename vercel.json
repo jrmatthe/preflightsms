@@ -27,6 +27,10 @@
     {
       "path": "/api/trial-emails",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/foreflight-sync",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

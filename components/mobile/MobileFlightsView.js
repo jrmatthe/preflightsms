@@ -531,7 +531,9 @@ export default function MobileFlightsView({
   onNudgeSubmitReport, onNudgeNothingToReport, onNudgeRemindLater, onNudgeDismiss, nudgeFlight, nudgeSuggestion, loading, fleetAircraft,
   adsbEnabled, session,
   myTodayFlights, onSelectTodayFlight,
+  canSeeAllFlights, myScheduledFlights,
 }) {
+  const [flightsMode, setFlightsMode] = useState("my");
   const [filter, setFilter] = useState("my");
   const [expandedId, setExpandedId] = useState(null);
   const [arrivalFlight, setArrivalFlight] = useState(null);
@@ -723,6 +725,146 @@ export default function MobileFlightsView({
         </div>
       )}
 
+      {/* My Flights / All Flights toggle */}
+      {canSeeAllFlights && (
+        <div style={{ padding: "12px 16px 0", display: "flex", gap: 0 }}>
+          <div style={{ display: "flex", background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 3 }}>
+            {["my", "all"].map(m => (
+              <button key={m} onClick={() => setFlightsMode(m)} style={{
+                padding: "8px 16px", borderRadius: 6, border: "none", cursor: "pointer",
+                background: flightsMode === m ? WHITE : "transparent",
+                color: flightsMode === m ? BLACK : MUTED,
+                fontSize: 13, fontWeight: 700, minHeight: 36,
+              }}>{m === "my" ? "My Flights" : "All Flights"}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── MY FLIGHTS MODE ── */}
+      {(flightsMode === "my" || !canSeeAllFlights) ? (<>
+        {/* Scheduled flights from FF/SchedAero */}
+        {(myScheduledFlights || []).length > 0 && (
+          <div style={{ padding: "16px 16px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={CYAN} stroke="none"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0011.5 2 1.5 1.5 0 0010 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
+              <span style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>Scheduled</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 8px", borderRadius: 10 }}>{(myScheduledFlights || []).length}</span>
+            </div>
+            {(myScheduledFlights || []).map((fl, i) => {
+              const etdTime = fl.etd ? new Date(fl.etd).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
+              const isFf = fl._source === "foreflight";
+              return (
+                <button key={fl.id || i} onClick={() => onSelectTodayFlight(fl)} style={{
+                  width: "100%", background: "rgba(34,211,238,0.04)", border: `1px solid rgba(34,211,238,0.15)`, borderRadius: 12,
+                  padding: "14px 16px", marginBottom: 8, cursor: "pointer", textAlign: "left",
+                  display: "flex", flexDirection: "column", gap: 8, minHeight: 44,
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
+                      {fl.departure_icao || "—"} → {fl.destination_icao || "—"}
+                    </span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
+                      background: isFf ? "rgba(34,211,238,0.12)" : "rgba(59,130,246,0.12)",
+                      color: isFf ? CYAN : "#3B82F6",
+                    }}>{isFf ? "ForeFlight" : "SchedAero"}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                    {fl.tail_number && <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></span>}
+                    <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></span>
+                    {fl.passenger_count != null && <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></span>}
+                    {fl.aircraft_type && <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></span>}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: CYAN }}>
+                    Start FRAT →
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Active flights (mine) */}
+        {(() => {
+          const uid = session?.user?.id;
+          const myActive = (flights || []).filter(f => f.userId === uid && f.status === "ACTIVE");
+          if (myActive.length === 0) return null;
+          return (
+            <div style={{ padding: "16px 16px 0" }}>
+              {(myScheduledFlights || []).length > 0 && <div style={{ height: 1, background: BORDER, marginBottom: 16 }} />}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>Active</span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: GREEN, background: "rgba(74,222,128,0.1)", padding: "2px 8px", borderRadius: 10 }}>{myActive.length}</span>
+              </div>
+              {myActive.map(f => (
+                <FlightCard
+                  key={f.id || f.dbId}
+                  flight={f}
+                  isOverdue={isOverdue(f)}
+                  expanded={expandedId === (f.id || f.dbId)}
+                  onToggle={() => setExpandedId(prev => prev === (f.id || f.dbId) ? null : (f.id || f.dbId))}
+                  onSwipeArrive={(fl) => setArrivalFlight(fl)}
+                  onSwipeCancel={(fl) => setCancelFlight(fl)}
+                  onDelete={onDeleteFlight}
+                  isLive={f.status === "ACTIVE" && !!(livePositions[f.dbId] && (Date.now() - (livePositions[f.dbId].receivedAt || 0)) < 30000)}
+                />
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* Recent flights (mine, past 48h) */}
+        {(() => {
+          const uid = session?.user?.id;
+          const h48 = 48 * 60 * 60 * 1000;
+          const myRecent = (flights || []).filter(f => {
+            if (f.userId !== uid) return false;
+            if (f.status !== "ARRIVED" && f.status !== "CANCELLED") return false;
+            const ts = new Date(f.arrivedAt || f.timestamp).getTime();
+            return ts > now - h48;
+          }).sort((a, b) => new Date(b.arrivedAt || b.timestamp).getTime() - new Date(a.arrivedAt || a.timestamp).getTime());
+          if (myRecent.length === 0) return null;
+          return (
+            <div style={{ padding: "16px 16px 0" }}>
+              <div style={{ height: 1, background: BORDER, marginBottom: 16 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>Recent</span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: MUTED, background: `${MUTED}18`, padding: "2px 8px", borderRadius: 10 }}>{myRecent.length}</span>
+              </div>
+              {myRecent.map(f => (
+                <FlightCard
+                  key={f.id || f.dbId}
+                  flight={f}
+                  isOverdue={false}
+                  expanded={expandedId === (f.id || f.dbId)}
+                  onToggle={() => setExpandedId(prev => prev === (f.id || f.dbId) ? null : (f.id || f.dbId))}
+                  onSwipeArrive={(fl) => setArrivalFlight(fl)}
+                  onSwipeCancel={(fl) => setCancelFlight(fl)}
+                  onDelete={onDeleteFlight}
+                  isLive={false}
+                />
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* Empty state for My Flights mode */}
+        {(() => {
+          const uid = session?.user?.id;
+          const hasScheduled = (myScheduledFlights || []).length > 0;
+          const hasActive = (flights || []).some(f => f.userId === uid && f.status === "ACTIVE");
+          const h48 = 48 * 60 * 60 * 1000;
+          const hasRecent = (flights || []).some(f => f.userId === uid && (f.status === "ARRIVED" || f.status === "CANCELLED") && new Date(f.arrivedAt || f.timestamp).getTime() > now - h48);
+          if (hasScheduled || hasActive || hasRecent) return null;
+          return <div style={{ padding: "16px" }}><EmptyState onNewFrat={onNewFrat} /></div>;
+        })()}
+      </>) : (<>
+
+      {/* ── ALL FLIGHTS MODE (existing org-wide view) ── */}
+
       {/* My Schedule */}
       {myTodayFlights && myTodayFlights.length > 0 && (
         <div style={{ padding: "16px 16px 0" }}>
@@ -819,6 +961,7 @@ export default function MobileFlightsView({
           ))
         )}
       </div>
+      </>)}
 
       {/* Arrival bottom sheet */}
       {arrivalFlight && (

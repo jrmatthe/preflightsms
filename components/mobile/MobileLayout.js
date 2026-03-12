@@ -146,6 +146,7 @@ export default function MobileLayout({
   pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip,
   onRefreshDispatchFlights,
   myTodayFlights,
+  myScheduledFlights,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -219,6 +220,11 @@ export default function MobileLayout({
     setMoreSubView("profile");
   };
 
+  const canSeeAllFlights = useMemo(() => {
+    return ADMIN_ROLES.includes(profile?.role)
+      || (profile?.permissions || []).includes("flight_follower");
+  }, [profile?.role, profile?.permissions]);
+
   const handleSelectTodayFlight = (flight) => {
     if (flight._source === "foreflight") onSelectFfFlight(flight);
     else onSelectScTrip(flight);
@@ -251,6 +257,8 @@ export default function MobileLayout({
             session={session}
             myTodayFlights={myTodayFlights}
             onSelectTodayFlight={handleSelectTodayFlight}
+            canSeeAllFlights={canSeeAllFlights}
+            myScheduledFlights={myScheduledFlights}
           />
         );
       case "newFrat":
