@@ -652,6 +652,7 @@ export default function MobileFRATWizard({
   pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip,
 }) {
   const [step, setStep] = useState(0);
+  const scrollRef = useRef(null);
   const [showDiscard, setShowDiscard] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -981,8 +982,9 @@ export default function MobileFRATWizard({
   const handleNext = () => {
     if (!validateStep(step)) return;
     setStep(s => Math.min(s + 1, 3));
+    scrollRef.current?.scrollTo(0, 0);
   };
-  const handleBack = () => setStep(s => Math.max(s - 1, 0));
+  const handleBack = () => { setStep(s => Math.max(s - 1, 0)); scrollRef.current?.scrollTo(0, 0); };
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -1105,7 +1107,7 @@ export default function MobileFRATWizard({
       <StepIndicator current={step} total={4} />
 
       {/* Step content — extra bottom padding to clear fixed nav buttons */}
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: step === 2 ? 150 : 100 }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", paddingBottom: step === 2 ? 150 : 100 }}>
         {step === 0 && (
           <>
             {/* ForeFlight suggested flights */}

@@ -4456,6 +4456,7 @@ export default function PVTAIRFrat() {
             }).catch(e => console.error("ForeFlight push error:", e));
           }
           setSelectedFfFlight(null);
+          setPendingFfFlights(prev => prev.filter(f => f.id !== entry.foreflightFlightId));
           fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || []));
           fetchForeflightFlights(profile.org_id).then(({ data }) => setForeflightFlights(data || []));
         } catch (e) { console.error("ForeFlight link error:", e); }
@@ -4470,6 +4471,7 @@ export default function PVTAIRFrat() {
             status: "frat_created",
           });
           setSelectedScTrip(null);
+          setPendingScTrips(prev => prev.filter(f => f.id !== entry.schedaeroTripId));
           fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || []));
           fetchSchedaeroTrips(profile.org_id).then(({ data }) => setSchedaeroTrips(data || []));
         } catch (e) { console.error("Schedaero link error:", e); }
