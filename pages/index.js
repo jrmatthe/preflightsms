@@ -4542,6 +4542,17 @@ export default function PVTAIRFrat() {
           if (error) throw error;
           // Refresh fleet aircraft to pick up status updates from arrival
           if (status === "ARRIVED") { fetchAircraft(profile.org_id).then(({ data }) => setFleetAircraft(data || [])); }
+          // On cancel, restore linked ForeFlight/SchedAero flight back to pending
+          if (status === "CANCELLED") {
+            supabase.from("foreflight_flights").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
+              .eq("flight_id", flight.dbId).then(() => {
+                fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || []));
+              });
+            supabase.from("schedaero_trips").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
+              .eq("flight_id", flight.dbId).then(() => {
+                fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || []));
+              });
+          }
           const { data: fl } = await fetchFlights(profile.org_id);
           setFlights(prev => mapDbFlights(fl, prev));
         } catch (e) {
