@@ -2138,27 +2138,25 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
                 else onSelectScTrip(fl);
                 onNavigate("submit");
               }} style={{
-                background: DARK, borderRadius: 8, padding: "12px 14px", cursor: "pointer", textAlign: "left",
-                display: "flex", flexDirection: "column", gap: 8, border: `1px solid ${BORDER}`, transition: "border-color 0.15s",
+                background: DARK, borderRadius: 8, padding: "12px 16px", cursor: "pointer", textAlign: "left",
+                display: "flex", alignItems: "center", gap: 16, border: `1px solid ${BORDER}`, transition: "border-color 0.15s", width: "100%",
               }} onMouseEnter={e => e.currentTarget.style.borderColor = isFf ? "#22D3EE44" : "#3B82F644"} onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 20, flex: 1, minWidth: 0, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: WHITE, letterSpacing: 0.5, whiteSpace: "nowrap" }}>
                     {fl.departure_icao || "—"} → {fl.destination_icao || "—"}
                   </span>
+                  {fl.tail_number && <span style={{ fontSize: 11, whiteSpace: "nowrap" }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></span>}
+                  <span style={{ fontSize: 11, whiteSpace: "nowrap" }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></span>
+                  {fl.passenger_count != null && <span style={{ fontSize: 11, whiteSpace: "nowrap" }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></span>}
+                  {fl.aircraft_type && <span style={{ fontSize: 11, whiteSpace: "nowrap" }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></span>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                   <span style={{
                     fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
                     background: isFf ? "rgba(34,211,238,0.1)" : "rgba(59,130,246,0.1)",
                     color: isFf ? CYAN : "#3B82F6",
                   }}>{isFf ? "ForeFlight" : "SchedAero"}</span>
-                </div>
-                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-                  {fl.tail_number && <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></span>}
-                  <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></span>
-                  {fl.passenger_count != null && <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></span>}
-                  {fl.aircraft_type && <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></span>}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: CYAN }}>
-                  Start FRAT <span style={{ fontSize: 13 }}>→</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: CYAN, whiteSpace: "nowrap" }}>Start FRAT →</span>
                 </div>
               </button>
             );
