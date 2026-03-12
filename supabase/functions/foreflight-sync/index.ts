@@ -345,20 +345,30 @@ Deno.serve(async (req) => {
 
           syncedCount++;
 
-          // Notify matched pilot if configured
+          // Notify matched pilot if configured (deduplicate via link_id)
           if (
             config.notify_pilots_on_sync &&
             matchedPilot &&
             !existingMap.has(ffId)
           ) {
-            await supabase.from("notifications").insert({
-              org_id: config.org_id,
-              type: "foreflight_sync",
-              title: "ForeFlight Flight Assigned",
-              body: `${record.departure_icao} → ${record.destination_icao} ready for FRAT`,
-              link_tab: "submit",
-              target_user_id: matchedPilot.id,
-            });
+            const notifLinkId = `ff_assigned_${ffId}`;
+            const { data: existingNotif } = await supabase
+              .from("notifications")
+              .select("id")
+              .eq("org_id", config.org_id)
+              .eq("link_id", notifLinkId)
+              .limit(1);
+            if (!existingNotif || existingNotif.length === 0) {
+              await supabase.from("notifications").insert({
+                org_id: config.org_id,
+                type: "foreflight_sync",
+                title: "ForeFlight Flight Assigned",
+                body: `${record.departure_icao} → ${record.destination_icao} ready for FRAT`,
+                link_tab: "submit",
+                link_id: notifLinkId,
+                target_user_id: matchedPilot.id,
+              });
+            }
           }
          } catch (flightErr: any) {
           console.log(`[foreflight-sync] Error processing flight: ${flightErr.message}`);

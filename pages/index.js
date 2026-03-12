@@ -1533,19 +1533,21 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
   const myActive = useMemo(() => {
     const uid = session?.user?.id;
     if (!uid) return [];
-    return (flights || []).filter(f => f.userId === uid && f.status === "ACTIVE");
-  }, [flights, session?.user?.id]);
+    const name = profile?.full_name;
+    return (flights || []).filter(f => (f.userId ? f.userId === uid : f.pilot === name) && f.status === "ACTIVE");
+  }, [flights, session?.user?.id, profile?.full_name]);
 
   const myRecent = useMemo(() => {
     const uid = session?.user?.id;
     if (!uid) return [];
+    const name = profile?.full_name;
     return (flights || []).filter(f => {
-      if (f.userId !== uid) return false;
+      if (!(f.userId ? f.userId === uid : f.pilot === name)) return false;
       if (f.status !== "ARRIVED" && f.status !== "CANCELLED") return false;
       const ts = new Date(f.arrivedAt || f.timestamp).getTime();
       return ts > now - h48;
     }).sort((a, b) => new Date(b.arrivedAt || b.timestamp).getTime() - new Date(a.arrivedAt || a.timestamp).getTime());
-  }, [flights, session?.user?.id, now]);
+  }, [flights, session?.user?.id, profile?.full_name, now]);
 
   const fmtTime = (iso) => {
     if (!iso) return "—";
@@ -4285,10 +4287,12 @@ export default function PVTAIRFrat() {
   const myScheduledFlights = useMemo(() => {
     const pid = profile?.id;
     if (!pid) return [];
+    const cutoff = Date.now() - 3 * 60 * 60 * 1000;
+    const isNotStale = (etd) => !etd || new Date(etd).getTime() >= cutoff;
     return [
-      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && !linkedFfIdsRef.current.has(f.id))
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && !linkedFfIdsRef.current.has(f.id) && isNotStale(f.etd))
         .map(f => ({ ...f, _source: "foreflight" })),
-      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && !linkedScIdsRef.current.has(f.id))
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && !linkedScIdsRef.current.has(f.id) && isNotStale(f.etd))
         .map(f => ({ ...f, _source: "schedaero" })),
     ].sort((a, b) => new Date(a.etd || 0).getTime() - new Date(b.etd || 0).getTime());
   }, [pendingFfFlights, pendingScTrips, profile?.id]);

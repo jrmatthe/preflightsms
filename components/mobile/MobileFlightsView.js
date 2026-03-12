@@ -534,7 +534,7 @@ export default function MobileFlightsView({
   canSeeAllFlights, myScheduledFlights,
 }) {
   const [flightsMode, setFlightsMode] = useState("my");
-  const [filter, setFilter] = useState("my");
+  const [filter, setFilter] = useState("all");
   const [expandedId, setExpandedId] = useState(null);
   const [arrivalFlight, setArrivalFlight] = useState(null);
   const [cancelFlight, setCancelFlight] = useState(null);
@@ -628,9 +628,7 @@ export default function MobileFlightsView({
     });
 
     // Apply filter
-    if (filter === "my") {
-      list = list.filter(f => f.pilot === profile?.full_name);
-    } else if (filter === "active") {
+    if (filter === "active") {
       list = list.filter(f => f.status === "ACTIVE");
     }
 
@@ -681,7 +679,6 @@ export default function MobileFlightsView({
   const FILTERS = [
     { id: "all", label: "All" },
     { id: "active", label: "Active" },
-    { id: "my", label: "My Flights" },
   ];
 
   const activeCount = (flights || []).filter(f => f.status === "ACTIVE").length;
@@ -792,7 +789,8 @@ export default function MobileFlightsView({
         {/* Active flights (mine) */}
         {(() => {
           const uid = session?.user?.id;
-          const myActive = (flights || []).filter(f => f.userId === uid && f.status === "ACTIVE");
+          const pilotName = profile?.full_name;
+          const myActive = (flights || []).filter(f => (f.userId ? f.userId === uid : f.pilot === pilotName) && f.status === "ACTIVE");
           if (myActive.length === 0) return null;
           return (
             <div style={{ padding: "16px 16px 0" }}>
@@ -823,8 +821,9 @@ export default function MobileFlightsView({
         {(() => {
           const uid = session?.user?.id;
           const h48 = 48 * 60 * 60 * 1000;
+          const pilotName2 = profile?.full_name;
           const myRecent = (flights || []).filter(f => {
-            if (f.userId !== uid) return false;
+            if (!(f.userId ? f.userId === uid : f.pilot === pilotName2)) return false;
             if (f.status !== "ARRIVED" && f.status !== "CANCELLED") return false;
             const ts = new Date(f.arrivedAt || f.timestamp).getTime();
             return ts > now - h48;
@@ -858,10 +857,12 @@ export default function MobileFlightsView({
         {/* Empty state for My Flights mode */}
         {(() => {
           const uid = session?.user?.id;
+          const pilotName3 = profile?.full_name;
+          const isMe = (f) => f.userId ? f.userId === uid : f.pilot === pilotName3;
           const hasScheduled = (myScheduledFlights || []).length > 0;
-          const hasActive = (flights || []).some(f => f.userId === uid && f.status === "ACTIVE");
+          const hasActive = (flights || []).some(f => isMe(f) && f.status === "ACTIVE");
           const h48 = 48 * 60 * 60 * 1000;
-          const hasRecent = (flights || []).some(f => f.userId === uid && (f.status === "ARRIVED" || f.status === "CANCELLED") && new Date(f.arrivedAt || f.timestamp).getTime() > now - h48);
+          const hasRecent = (flights || []).some(f => isMe(f) && (f.status === "ARRIVED" || f.status === "CANCELLED") && new Date(f.arrivedAt || f.timestamp).getTime() > now - h48);
           if (hasScheduled || hasActive || hasRecent) return null;
           return <div style={{ padding: "16px" }}><EmptyState onNewFrat={onNewFrat} /></div>;
         })()}
@@ -869,53 +870,8 @@ export default function MobileFlightsView({
 
       {/* ── ALL FLIGHTS MODE (existing org-wide view) ── */}
 
-      {/* My Schedule */}
-      {myTodayFlights && myTodayFlights.length > 0 && (
-        <div style={{ padding: "16px 16px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={CYAN} stroke="none"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0011.5 2 1.5 1.5 0 0010 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
-            <span style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>My Schedule</span>
-            <span style={{ fontSize: 10, fontWeight: 600, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 8px", borderRadius: 10 }}>{myTodayFlights.length}</span>
-          </div>
-          {myTodayFlights.map((fl, i) => {
-            const etdTime = fl.etd ? new Date(fl.etd).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
-            const isFf = fl._source === "foreflight";
-            return (
-              <button key={fl.id || i} onClick={() => onSelectTodayFlight(fl)} style={{
-                width: "100%", background: "rgba(34,211,238,0.04)", border: `1px solid rgba(34,211,238,0.15)`, borderRadius: 12,
-                padding: "14px 16px", marginBottom: 8, cursor: "pointer", textAlign: "left",
-                display: "flex", flexDirection: "column", gap: 8, minHeight: 44,
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
-                    {fl.departure_icao || "—"} → {fl.destination_icao || "—"}
-                  </span>
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
-                    background: isFf ? "rgba(34,211,238,0.12)" : "rgba(59,130,246,0.12)",
-                    color: isFf ? CYAN : "#3B82F6",
-                  }}>{isFf ? "ForeFlight" : "SchedAero"}</span>
-                </div>
-                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-                  {fl.tail_number && <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></span>}
-                  <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></span>
-                  {fl.passenger_count != null && <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></span>}
-                  {fl.aircraft_type && <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></span>}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: CYAN }}>
-                  Start FRAT →
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Flight Following divider + header */}
+      {/* Flight Following header */}
       <div style={{ padding: "16px 16px 0" }}>
-        {myTodayFlights && myTodayFlights.length > 0 && (
-          <div style={{ height: 1, background: BORDER, marginBottom: 16 }} />
-        )}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
           <span style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>Flight Following</span>

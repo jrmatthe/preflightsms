@@ -215,21 +215,31 @@ Deno.serve(async (req) => {
             syncedCount++;
           }
 
-          // Notify matched pilot if configured and trip is new
+          // Notify matched pilot if configured and trip is new (deduplicate via link_id)
           if (
             config.notify_pilots_on_sync &&
             matchedPilot &&
             !existingMap.has(tripId) &&
             status === "pending"
           ) {
-            await supabase.from("notifications").insert({
-              org_id: config.org_id,
-              type: "schedaero_sync",
-              title: "Schedaero Trip Assigned",
-              body: `${record.departure_icao} → ${record.destination_icao} ready for FRAT`,
-              link_tab: "submit",
-              target_user_id: matchedPilot.id,
-            });
+            const notifLinkId = `sc_assigned_${tripId}`;
+            const { data: existingNotif } = await supabase
+              .from("notifications")
+              .select("id")
+              .eq("org_id", config.org_id)
+              .eq("link_id", notifLinkId)
+              .limit(1);
+            if (!existingNotif || existingNotif.length === 0) {
+              await supabase.from("notifications").insert({
+                org_id: config.org_id,
+                type: "schedaero_sync",
+                title: "Schedaero Trip Assigned",
+                body: `${record.departure_icao} → ${record.destination_icao} ready for FRAT`,
+                link_tab: "submit",
+                link_id: notifLinkId,
+                target_user_id: matchedPilot.id,
+              });
+            }
           }
         }
 
