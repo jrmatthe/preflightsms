@@ -4748,19 +4748,19 @@ export default function PVTAIRFrat() {
         }).catch(e => console.error("Fatigue assessment save error:", e));
       }
 
-      // ForeFlight linking — update FF flight and optionally push FRAT PDF
+      // ForeFlight linking — update FF flight via server-side API (bypasses RLS)
       if (entry.foreflightFlightId) {
         // Track as linked immediately — prevents re-appearing even if DB update is slow
         linkedFfIdsRef.current.add(entry.foreflightFlightId);
         setSelectedFfFlight(null);
         setPendingFfFlights(prev => prev.filter(f => f.id !== entry.foreflightFlightId));
         try {
-          const { error: ffErr } = await updateForeflightFlight(entry.foreflightFlightId, {
-            frat_id: fratData?.id || null,
-            flight_id: flightData?.id || null,
-            status: "frat_created",
+          const linkRes = await fetch("/api/link-dispatch-flight", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+            body: JSON.stringify({ table: "foreflight_flights", id: entry.foreflightFlightId, frat_id: fratData?.id || null, flight_id: flightData?.id || null }),
           });
-          if (ffErr) console.error("ForeFlight link update error:", ffErr);
+          if (!linkRes.ok) console.error("ForeFlight link update error:", await linkRes.text());
           if (foreflightConfig?.push_frat_enabled) {
             supabase.functions.invoke("foreflight-push-frat", {
               body: { orgId: profile.org_id, fratId: fratData.id, foreflightFlightId: entry.foreflightFlightId },
@@ -4774,19 +4774,19 @@ export default function PVTAIRFrat() {
         } catch (e) { console.error("ForeFlight link error:", e); }
       }
 
-      // Schedaero linking — update Schedaero trip
+      // Schedaero linking — update trip via server-side API (bypasses RLS)
       if (entry.schedaeroTripId) {
         // Track as linked immediately — prevents re-appearing even if DB update is slow
         linkedScIdsRef.current.add(entry.schedaeroTripId);
         setSelectedScTrip(null);
         setPendingScTrips(prev => prev.filter(f => f.id !== entry.schedaeroTripId));
         try {
-          const { error: scErr } = await updateSchedaeroTrip(entry.schedaeroTripId, {
-            frat_id: fratData?.id || null,
-            flight_id: flightData?.id || null,
-            status: "frat_created",
+          const linkRes = await fetch("/api/link-dispatch-flight", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+            body: JSON.stringify({ table: "schedaero_trips", id: entry.schedaeroTripId, frat_id: fratData?.id || null, flight_id: flightData?.id || null }),
           });
-          if (scErr) console.error("Schedaero link update error:", scErr);
+          if (!linkRes.ok) console.error("Schedaero link update error:", await linkRes.text());
           // Delay re-fetch to let DB propagate — ref filter prevents flicker
           setTimeout(() => {
             fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || []));
@@ -4862,14 +4862,10 @@ export default function PVTAIRFrat() {
           if (status === "ARRIVED") { fetchAircraft(profile.org_id).then(({ data }) => setFleetAircraft(data || [])); }
           // On cancel, restore linked ForeFlight/SchedAero flight back to pending
           if (status === "CANCELLED") {
-            supabase.from("foreflight_flights").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
-              .eq("flight_id", flight.dbId).then(() => {
-                fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || []));
-              });
-            supabase.from("schedaero_trips").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
-              .eq("flight_id", flight.dbId).then(() => {
-                fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || []));
-              });
+            fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "foreflight_flights", action: "unlink", flight_db_id: flight.dbId }) })
+              .then(() => fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])));
+            fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "schedaero_trips", action: "unlink", flight_db_id: flight.dbId }) })
+              .then(() => fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])));
           }
           const { data: fl } = await fetchFlights(profile.org_id);
           setFlights(prev => mapDbFlights(fl, prev));
@@ -5523,10 +5519,10 @@ export default function PVTAIRFrat() {
       if (!flight.dbId) { setFlights(prev => prev.filter(f => f.id !== flight.id)); return; }
       try {
         await deleteFlight(flight.dbId);
-        supabase.from("foreflight_flights").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
-          .eq("flight_id", flight.dbId).then(() => { fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])); });
-        supabase.from("schedaero_trips").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
-          .eq("flight_id", flight.dbId).then(() => { fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])); });
+        fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "foreflight_flights", action: "unlink", flight_db_id: flight.dbId }) })
+          .then(() => fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])));
+        fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "schedaero_trips", action: "unlink", flight_db_id: flight.dbId }) })
+          .then(() => fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])));
         setFlights(prev => prev.filter(f => f.id !== flight.id));
         setToast({ message: "Flight deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
       } catch (e) { setToast({ message: "Failed to delete flight", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); }
@@ -5684,10 +5680,10 @@ export default function PVTAIRFrat() {
             if (!flight.dbId) { setFlights(prev => prev.filter(f => f.id !== flight.id)); return; }
             try {
               await deleteFlight(flight.dbId);
-              supabase.from("foreflight_flights").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
-                .eq("flight_id", flight.dbId).then(() => { fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])); });
-              supabase.from("schedaero_trips").update({ status: "pending", frat_id: null, flight_id: null, updated_at: new Date().toISOString() })
-                .eq("flight_id", flight.dbId).then(() => { fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])); });
+              fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "foreflight_flights", action: "unlink", flight_db_id: flight.dbId }) })
+                .then(() => fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])));
+              fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "schedaero_trips", action: "unlink", flight_db_id: flight.dbId }) })
+                .then(() => fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])));
               setFlights(prev => prev.filter(f => f.id !== flight.id));
               setToast({ message: "Flight deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
             } catch (e) { setToast({ message: "Failed to delete flight", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000); }
