@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, deletePolicy, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences, updateProfileName } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, deletePolicy, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, unlinkForeflightFlightsByFlightId, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, unlinkSchedaeroTripsByFlightId, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences, updateProfileName } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures, isFreeTier, FREE_TIER_LIMITS } from "../lib/tiers";
 import { getActiveMelItems, getMelExpirationStatus } from "../lib/melHelpers";
 import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE, haversineNm, flattenCoords, formatZulu } from "../lib/analyzeWeather";
@@ -4263,22 +4263,6 @@ export default function PVTAIRFrat() {
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
   const riskLevels = fratTemplate?.risk_thresholds ? buildRiskLevels(fratTemplate.risk_thresholds) : DEFAULT_RISK_LEVELS;
 
-  // Build a set of active flight route keys to exclude dispatch flights that already have a FRAT
-  const activeFlightKeys = useMemo(() => {
-    const keys = new Set();
-    for (const f of (flights || [])) {
-      if (f.status === "ACTIVE" || f.status === "ARRIVED" || f.status === "CANCELLED") {
-        keys.add(`${(f.departure || "").toUpperCase()}_${(f.destination || "").toUpperCase()}_${(f.tailNumber || f.aircraft || "").toUpperCase()}`);
-      }
-    }
-    return keys;
-  }, [flights]);
-
-  const isAlreadyFlown = (f) => {
-    const key = `${(f.departure_icao || "").toUpperCase()}_${(f.destination_icao || "").toUpperCase()}_${(f.tail_number || "").toUpperCase()}`;
-    return activeFlightKeys.has(key);
-  };
-
   // My flights — filtered to logged-in pilot + ETD within past 3h to next 12h
   const myTodayFlights = useMemo(() => {
     const now = Date.now();
@@ -4292,12 +4276,12 @@ export default function PVTAIRFrat() {
     const pid = profile?.id;
     if (!pid) return [];
     return [
-      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedFfIdsRef.current.has(f.id) && !isAlreadyFlown(f))
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedFfIdsRef.current.has(f.id))
         .map(f => ({ ...f, _source: "foreflight" })),
-      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedScIdsRef.current.has(f.id) && !isAlreadyFlown(f))
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedScIdsRef.current.has(f.id))
         .map(f => ({ ...f, _source: "schedaero" })),
     ].sort((a, b) => new Date(a.etd).getTime() - new Date(b.etd).getTime());
-  }, [pendingFfFlights, pendingScTrips, profile?.id, activeFlightKeys]);
+  }, [pendingFfFlights, pendingScTrips, profile?.id]);
 
   // My scheduled flights — ALL pending FF/SA flights matched to this pilot (wider than myTodayFlights)
   const myScheduledFlights = useMemo(() => {
@@ -4306,12 +4290,12 @@ export default function PVTAIRFrat() {
     const cutoff = Date.now() - 3 * 60 * 60 * 1000;
     const isNotStale = (etd) => !etd || new Date(etd).getTime() >= cutoff;
     return [
-      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && !linkedFfIdsRef.current.has(f.id) && isNotStale(f.etd) && !isAlreadyFlown(f))
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && !linkedFfIdsRef.current.has(f.id) && isNotStale(f.etd))
         .map(f => ({ ...f, _source: "foreflight" })),
-      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && !linkedScIdsRef.current.has(f.id) && isNotStale(f.etd) && !isAlreadyFlown(f))
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && !linkedScIdsRef.current.has(f.id) && isNotStale(f.etd))
         .map(f => ({ ...f, _source: "schedaero" })),
     ].sort((a, b) => new Date(a.etd || 0).getTime() - new Date(b.etd || 0).getTime());
-  }, [pendingFfFlights, pendingScTrips, profile?.id, activeFlightKeys]);
+  }, [pendingFfFlights, pendingScTrips, profile?.id]);
 
   // canSeeAllFlights — admins + flight_follower permission holders
   const canSeeAllFlights = useMemo(() => {
@@ -4619,35 +4603,6 @@ export default function PVTAIRFrat() {
     return () => clearInterval(interval);
   }, [profile, session]);
 
-  // ── Cross-device sync: poll dispatch flights + refresh on focus/visibility ──
-  useEffect(() => {
-    const orgId = profile?.org_id;
-    if (!orgId) return;
-    const refreshDispatch = () => {
-      if (hasFeature(profile?.organizations, "foreflight_integration")) {
-        fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || []));
-      }
-      if (hasFeature(profile?.organizations, "schedaero_integration")) {
-        fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || []));
-      }
-    };
-    const handleRefresh = () => {
-      refreshAllData(orgId);
-      refreshDispatch();
-    };
-    // Poll every 30s so desktop stays in sync with mobile actions
-    const interval = setInterval(refreshDispatch, 30000);
-    // Also refresh on window focus and tab visibility change
-    window.addEventListener("focus", handleRefresh);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") handleRefresh();
-    });
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", handleRefresh);
-    };
-  }, [profile]);
-
   // ── Refresh pending dispatch flights when FRAT view opens ──
   useEffect(() => {
     if (cv !== "submit") return;
@@ -4764,19 +4719,14 @@ export default function PVTAIRFrat() {
         }).catch(e => console.error("Fatigue assessment save error:", e));
       }
 
-      // ForeFlight linking — update FF flight via server-side API (bypasses RLS)
+      // ForeFlight linking
       if (entry.foreflightFlightId) {
-        // Track as linked immediately — prevents re-appearing even if DB update is slow
         linkedFfIdsRef.current.add(entry.foreflightFlightId);
         setSelectedFfFlight(null);
         setPendingFfFlights(prev => prev.filter(f => f.id !== entry.foreflightFlightId));
         try {
-          const linkRes = await fetch("/api/link-dispatch-flight", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-            body: JSON.stringify({ table: "foreflight_flights", id: entry.foreflightFlightId, frat_id: fratData?.id || null, flight_id: flightData?.id || null }),
-          });
-          if (!linkRes.ok) console.error("ForeFlight link update error:", await linkRes.text());
+          const { error: ffErr } = await updateForeflightFlight(entry.foreflightFlightId, { frat_id: fratData?.id || null, flight_id: flightData?.id || null, status: "frat_created" });
+          if (ffErr) console.error("ForeFlight link update error:", ffErr.message);
           if (foreflightConfig?.push_frat_enabled) {
             supabase.functions.invoke("foreflight-push-frat", {
               body: { orgId: profile.org_id, fratId: fratData.id, foreflightFlightId: entry.foreflightFlightId },
@@ -4790,19 +4740,14 @@ export default function PVTAIRFrat() {
         } catch (e) { console.error("ForeFlight link error:", e); }
       }
 
-      // Schedaero linking — update trip via server-side API (bypasses RLS)
+      // Schedaero linking
       if (entry.schedaeroTripId) {
-        // Track as linked immediately — prevents re-appearing even if DB update is slow
         linkedScIdsRef.current.add(entry.schedaeroTripId);
         setSelectedScTrip(null);
         setPendingScTrips(prev => prev.filter(f => f.id !== entry.schedaeroTripId));
         try {
-          const linkRes = await fetch("/api/link-dispatch-flight", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-            body: JSON.stringify({ table: "schedaero_trips", id: entry.schedaeroTripId, frat_id: fratData?.id || null, flight_id: flightData?.id || null }),
-          });
-          if (!linkRes.ok) console.error("Schedaero link update error:", await linkRes.text());
+          const { error: scErr } = await updateSchedaeroTrip(entry.schedaeroTripId, { frat_id: fratData?.id || null, flight_id: flightData?.id || null, status: "frat_created" });
+          if (scErr) console.error("Schedaero link update error:", scErr.message);
           // Delay re-fetch to let DB propagate — ref filter prevents flicker
           setTimeout(() => {
             fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || []));
@@ -4878,9 +4823,9 @@ export default function PVTAIRFrat() {
           if (status === "ARRIVED") { fetchAircraft(profile.org_id).then(({ data }) => setFleetAircraft(data || [])); }
           // On cancel, restore linked ForeFlight/SchedAero flight back to pending
           if (status === "CANCELLED") {
-            fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "foreflight_flights", action: "unlink", flight_db_id: flight.dbId }) })
+            unlinkForeflightFlightsByFlightId(flight.dbId)
               .then(() => fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])));
-            fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "schedaero_trips", action: "unlink", flight_db_id: flight.dbId }) })
+            unlinkSchedaeroTripsByFlightId(flight.dbId)
               .then(() => fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])));
           }
           const { data: fl } = await fetchFlights(profile.org_id);
@@ -5535,9 +5480,9 @@ export default function PVTAIRFrat() {
       if (!flight.dbId) { setFlights(prev => prev.filter(f => f.id !== flight.id)); return; }
       try {
         await deleteFlight(flight.dbId);
-        fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "foreflight_flights", action: "unlink", flight_db_id: flight.dbId }) })
+        unlinkForeflightFlightsByFlightId(flight.dbId)
           .then(() => fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])));
-        fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "schedaero_trips", action: "unlink", flight_db_id: flight.dbId }) })
+        unlinkSchedaeroTripsByFlightId(flight.dbId)
           .then(() => fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])));
         setFlights(prev => prev.filter(f => f.id !== flight.id));
         setToast({ message: "Flight deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
@@ -5696,9 +5641,9 @@ export default function PVTAIRFrat() {
             if (!flight.dbId) { setFlights(prev => prev.filter(f => f.id !== flight.id)); return; }
             try {
               await deleteFlight(flight.dbId);
-              fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "foreflight_flights", action: "unlink", flight_db_id: flight.dbId }) })
+              unlinkForeflightFlightsByFlightId(flight.dbId)
                 .then(() => fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || [])));
-              fetch("/api/link-dispatch-flight", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ table: "schedaero_trips", action: "unlink", flight_db_id: flight.dbId }) })
+              unlinkSchedaeroTripsByFlightId(flight.dbId)
                 .then(() => fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || [])));
               setFlights(prev => prev.filter(f => f.id !== flight.id));
               setToast({ message: "Flight deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
