@@ -224,10 +224,10 @@ function WeatherBriefing({ briefing, reasons, flags, stationSummaries, wxLoading
                 <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 3,
                   background: `${frColors[s.flight_rules] || MUTED}22`,
                   color: frColors[s.flight_rules] || MUTED,
-                  border: `1px solid ${frColors[s.flight_rules] || MUTED}44` }}>{s.flight_rules}</span>
+                  border: `1px solid ${frColors[s.flight_rules] || MUTED}44` }}>{s.flight_rules === "N/A" ? "No Data" : s.flight_rules}</span>
                 <span style={{ fontSize: 8, color: SUBTLE }}>{s.type}</span>
               </div>
-              <span style={{ fontSize: 11, color: OFF_WHITE, fontFamily: "monospace", lineHeight: 1.3 }}>{s.summary}</span>
+              <span style={{ fontSize: 11, color: s.noData ? MUTED : OFF_WHITE, fontFamily: "monospace", lineHeight: 1.3 }}>{s.noData ? "No METAR/TAF data from AWC" : s.summary}</span>
             </div>))}
         </div>)}
 
@@ -266,7 +266,7 @@ const NAV_SECTIONS = [
 ];
 
 const SUB_TAB_LABELS = {
-  submit: "FRAT", flights: "Flight Following", fleet: "Fleet",
+  submit: "FRAT", flights: "Flights", fleet: "Fleet",
   reports: "Reports", asap: "ASAP", erp: "ERP",
   hazards: "Investigations", actions: "Corrective Actions", moc: "Change Mgmt",
 };
@@ -4209,9 +4209,11 @@ export default function PVTAIRFrat() {
   const [foreflightConfig, setForeflightConfig] = useState(null);
   const [foreflightFlights, setForeflightFlights] = useState([]);
   const [pendingFfFlights, setPendingFfFlights] = useState([]);
+  const linkedFfIdsRef = useRef(new Set());
   const [schedaeroConfig, setSchedaeroConfig] = useState(null);
   const [schedaeroTrips, setSchedaeroTrips] = useState([]);
   const [pendingScTrips, setPendingScTrips] = useState([]);
+  const linkedScIdsRef = useRef(new Set());
   const [erpPlans, setErpPlans] = useState([]);
   const [erpDrills, setErpDrills] = useState([]);
   const [spis, setSpis] = useState([]);
@@ -4255,9 +4257,9 @@ export default function PVTAIRFrat() {
     const pid = profile?.id;
     if (!pid) return [];
     return [
-      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd))
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedFfIdsRef.current.has(f.id))
         .map(f => ({ ...f, _source: "foreflight" })),
-      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd))
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedScIdsRef.current.has(f.id))
         .map(f => ({ ...f, _source: "schedaero" })),
     ].sort((a, b) => new Date(a.etd).getTime() - new Date(b.etd).getTime());
   }, [pendingFfFlights, pendingScTrips, profile?.id]);
@@ -4267,9 +4269,9 @@ export default function PVTAIRFrat() {
     const pid = profile?.id;
     if (!pid) return [];
     return [
-      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid)
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && !linkedFfIdsRef.current.has(f.id))
         .map(f => ({ ...f, _source: "foreflight" })),
-      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid)
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && !linkedScIdsRef.current.has(f.id))
         .map(f => ({ ...f, _source: "schedaero" })),
     ].sort((a, b) => new Date(a.etd || 0).getTime() - new Date(b.etd || 0).getTime());
   }, [pendingFfFlights, pendingScTrips, profile?.id]);
@@ -4680,36 +4682,48 @@ export default function PVTAIRFrat() {
 
       // ForeFlight linking — update FF flight and optionally push FRAT PDF
       if (entry.foreflightFlightId) {
+        // Track as linked immediately — prevents re-appearing even if DB update is slow
+        linkedFfIdsRef.current.add(entry.foreflightFlightId);
+        setSelectedFfFlight(null);
+        setPendingFfFlights(prev => prev.filter(f => f.id !== entry.foreflightFlightId));
         try {
-          await updateForeflightFlight(entry.foreflightFlightId, {
+          const { error: ffErr } = await updateForeflightFlight(entry.foreflightFlightId, {
             frat_id: fratData?.id || null,
             flight_id: flightData?.id || null,
             status: "frat_created",
           });
+          if (ffErr) console.error("ForeFlight link update error:", ffErr);
           if (foreflightConfig?.push_frat_enabled) {
             supabase.functions.invoke("foreflight-push-frat", {
               body: { orgId: profile.org_id, fratId: fratData.id, foreflightFlightId: entry.foreflightFlightId },
             }).catch(e => console.error("ForeFlight push error:", e));
           }
-          setSelectedFfFlight(null);
-          setPendingFfFlights(prev => prev.filter(f => f.id !== entry.foreflightFlightId));
-          fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || []));
-          fetchForeflightFlights(profile.org_id).then(({ data }) => setForeflightFlights(data || []));
+          // Delay re-fetch to let DB propagate — ref filter prevents flicker
+          setTimeout(() => {
+            fetchPendingForeflightFlights(profile.org_id).then(({ data }) => setPendingFfFlights(data || []));
+            fetchForeflightFlights(profile.org_id).then(({ data }) => setForeflightFlights(data || []));
+          }, 2000);
         } catch (e) { console.error("ForeFlight link error:", e); }
       }
 
       // Schedaero linking — update Schedaero trip
       if (entry.schedaeroTripId) {
+        // Track as linked immediately — prevents re-appearing even if DB update is slow
+        linkedScIdsRef.current.add(entry.schedaeroTripId);
+        setSelectedScTrip(null);
+        setPendingScTrips(prev => prev.filter(f => f.id !== entry.schedaeroTripId));
         try {
-          await updateSchedaeroTrip(entry.schedaeroTripId, {
+          const { error: scErr } = await updateSchedaeroTrip(entry.schedaeroTripId, {
             frat_id: fratData?.id || null,
             flight_id: flightData?.id || null,
             status: "frat_created",
           });
-          setSelectedScTrip(null);
-          setPendingScTrips(prev => prev.filter(f => f.id !== entry.schedaeroTripId));
-          fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || []));
-          fetchSchedaeroTrips(profile.org_id).then(({ data }) => setSchedaeroTrips(data || []));
+          if (scErr) console.error("Schedaero link update error:", scErr);
+          // Delay re-fetch to let DB propagate — ref filter prevents flicker
+          setTimeout(() => {
+            fetchPendingSchedaeroTrips(profile.org_id).then(({ data }) => setPendingScTrips(data || []));
+            fetchSchedaeroTrips(profile.org_id).then(({ data }) => setSchedaeroTrips(data || []));
+          }, 2000);
         } catch (e) { console.error("Schedaero link error:", e); }
       }
 

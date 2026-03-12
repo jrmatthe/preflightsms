@@ -280,7 +280,7 @@ function StepWeather({ wxData, wxAnalysis, wxLoading, wxError }) {
       )}
 
       {summaries.map((s, i) => {
-        const frColor = s.flight_rules === "VFR" ? GREEN : s.flight_rules === "MVFR" ? YELLOW : s.flight_rules === "IFR" ? RED : RED;
+        const frColor = s.flight_rules === "VFR" ? GREEN : s.flight_rules === "MVFR" ? YELLOW : s.flight_rules === "IFR" ? RED : s.flight_rules === "N/A" ? MUTED : RED;
         const isRawOpen = showRaw[s.station + i];
         return (
           <div key={s.station + i} style={{ ...cardStyle, padding: 16, marginBottom: 12 }}>
@@ -290,16 +290,20 @@ function StepWeather({ wxData, wxAnalysis, wxLoading, wxError }) {
                 padding: "3px 10px", borderRadius: 10, background: `${frColor}18`,
                 color: frColor, fontSize: 14, fontWeight: 700, border: `1px solid ${frColor}33`,
               }}>
-                {s.flight_rules}
+                {s.flight_rules === "N/A" ? "No Data" : s.flight_rules}
               </span>
             </div>
 
+            {s.noData ? (
+              <div style={{ color: MUTED, fontSize: 14 }}>No METAR/TAF data available from AWC for this station.</div>
+            ) : (<>
             <WxRow label="Ceiling" value={s.ceiling} />
             <WxRow label="Visibility" value={s.visibility} />
             <WxRow label="Wind" value={s.wind} />
             {s.temp && <WxRow label="Temperature" value={s.temp} />}
             {s.altimeter && <WxRow label="Altimeter" value={s.altimeter} />}
             {s.wxString && <WxRow label="Weather" value={s.wxString} />}
+            </>)}
 
             {/* Hazard badges */}
             {s.hazards && s.hazards.length > 0 && (
