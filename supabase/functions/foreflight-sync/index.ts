@@ -192,9 +192,11 @@ Deno.serve(async (req) => {
           // Try to match pilot by crew name → email → org profile
           const crewList = fd.crew || [];
           const pic = crewList.find((c: any) => c.position === "PIC" || c.role === "PIC");
-          const pilotName = pic?.name || pic?.fullname || fd.pilot || "";
-          // ForeFlight uses crewId for email (e.g. "jrmatthe+dispatch@gmail.com")
-          let pilotEmail = (pic?.email || pic?.crewId || pic?.username || crewMap.get(pilotName) || "").toLowerCase();
+          // crewId can be a name OR email — only treat as email if it contains @
+          const rawCrewId = pic?.crewId || "";
+          const crewIdIsEmail = rawCrewId.includes("@");
+          const pilotName = pic?.name || pic?.fullname || (!crewIdIsEmail && rawCrewId ? rawCrewId : "") || fd.pilot || "";
+          let pilotEmail = (pic?.email || (crewIdIsEmail ? rawCrewId : "") || pic?.username || crewMap.get(pilotName) || "").toLowerCase();
 
           const matchedPilot = pilotEmail
             ? (profiles || []).find(
