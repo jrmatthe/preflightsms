@@ -4510,6 +4510,24 @@ export default function PVTAIRFrat() {
           return demo ? [demo, ...mapped] : mapped;
         });
       });
+      // Also refresh pending dispatch flights and FRAT records so all sections stay in sync
+      if (hasFeature(profile?.organizations, "foreflight_integration")) {
+        fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || []));
+      }
+      if (hasFeature(profile?.organizations, "schedaero_integration")) {
+        fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || []));
+      }
+      fetchFRATs(orgId).then(({ data }) => {
+        if (data) setRecords(data.map(r => ({
+          id: r.frat_code, dbId: r.id, pilot: r.pilot, aircraft: r.aircraft, tailNumber: r.tail_number,
+          departure: r.departure, destination: r.destination, cruiseAlt: r.cruise_alt,
+          date: r.flight_date, etd: r.etd, ete: r.ete, eta: r.eta, fuelLbs: r.fuel_lbs, fuelUnit: r.fuel_unit || "lbs",
+          numCrew: r.num_crew, numPax: r.num_pax, score: r.score, riskLevel: r.risk_level,
+          factors: r.factors || [], wxBriefing: r.wx_briefing, remarks: r.remarks, attachments: r.attachments || [],
+          timestamp: r.created_at, approvalStatus: r.approval_status, userId: r.user_id,
+          fatigueScore: r.fatigue_score ?? null, fatigueRiskLevel: r.fatigue_risk_level || null,
+        })));
+      });
     });
     // Load FRAT template
     fetchFratTemplate(orgId).then(({ data }) => { if (data) setFratTemplate(data); });
