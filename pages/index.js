@@ -4263,6 +4263,22 @@ export default function PVTAIRFrat() {
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
   const riskLevels = fratTemplate?.risk_thresholds ? buildRiskLevels(fratTemplate.risk_thresholds) : DEFAULT_RISK_LEVELS;
 
+  // Build a set of active flight route keys to exclude dispatch flights that already have a FRAT
+  const activeFlightKeys = useMemo(() => {
+    const keys = new Set();
+    for (const f of (flights || [])) {
+      if (f.status === "ACTIVE" || f.status === "ARRIVED" || f.status === "CANCELLED") {
+        keys.add(`${(f.departure || "").toUpperCase()}_${(f.destination || "").toUpperCase()}_${(f.tailNumber || f.aircraft || "").toUpperCase()}`);
+      }
+    }
+    return keys;
+  }, [flights]);
+
+  const isAlreadyFlown = (f) => {
+    const key = `${(f.departure_icao || "").toUpperCase()}_${(f.destination_icao || "").toUpperCase()}_${(f.tail_number || "").toUpperCase()}`;
+    return activeFlightKeys.has(key);
+  };
+
   // My flights — filtered to logged-in pilot + ETD within past 3h to next 12h
   const myTodayFlights = useMemo(() => {
     const now = Date.now();
@@ -4276,12 +4292,12 @@ export default function PVTAIRFrat() {
     const pid = profile?.id;
     if (!pid) return [];
     return [
-      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedFfIdsRef.current.has(f.id))
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedFfIdsRef.current.has(f.id) && !isAlreadyFlown(f))
         .map(f => ({ ...f, _source: "foreflight" })),
-      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedScIdsRef.current.has(f.id))
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isRelevant(f.etd) && !linkedScIdsRef.current.has(f.id) && !isAlreadyFlown(f))
         .map(f => ({ ...f, _source: "schedaero" })),
     ].sort((a, b) => new Date(a.etd).getTime() - new Date(b.etd).getTime());
-  }, [pendingFfFlights, pendingScTrips, profile?.id]);
+  }, [pendingFfFlights, pendingScTrips, profile?.id, activeFlightKeys]);
 
   // My scheduled flights — ALL pending FF/SA flights matched to this pilot (wider than myTodayFlights)
   const myScheduledFlights = useMemo(() => {
@@ -4290,12 +4306,12 @@ export default function PVTAIRFrat() {
     const cutoff = Date.now() - 3 * 60 * 60 * 1000;
     const isNotStale = (etd) => !etd || new Date(etd).getTime() >= cutoff;
     return [
-      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && !linkedFfIdsRef.current.has(f.id) && isNotStale(f.etd))
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && !linkedFfIdsRef.current.has(f.id) && isNotStale(f.etd) && !isAlreadyFlown(f))
         .map(f => ({ ...f, _source: "foreflight" })),
-      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && !linkedScIdsRef.current.has(f.id) && isNotStale(f.etd))
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && !linkedScIdsRef.current.has(f.id) && isNotStale(f.etd) && !isAlreadyFlown(f))
         .map(f => ({ ...f, _source: "schedaero" })),
     ].sort((a, b) => new Date(a.etd || 0).getTime() - new Date(b.etd || 0).getTime());
-  }, [pendingFfFlights, pendingScTrips, profile?.id]);
+  }, [pendingFfFlights, pendingScTrips, profile?.id, activeFlightKeys]);
 
   // canSeeAllFlights — admins + flight_follower permission holders
   const canSeeAllFlights = useMemo(() => {
