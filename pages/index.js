@@ -2119,7 +2119,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     <div style={{ ...card, marginBottom: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={CYAN} stroke="none"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0011.5 2 1.5 1.5 0 0010 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
           <div style={sectionTitle}>My Flights Today</div>
           {myTodayFlights && myTodayFlights.length > 0 && (
             <span style={{ fontSize: 10, fontWeight: 600, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 8px", borderRadius: 10 }}>{myTodayFlights.length}</span>
@@ -2164,7 +2164,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
         </div>
       ) : (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill={BORDER} stroke="none"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0011.5 2 1.5 1.5 0 0010 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
           <div style={{ fontSize: 12, color: MUTED }}>No flights scheduled for today</div>
           <div style={{ fontSize: 10, color: MUTED }}>ForeFlight / SchedAero flights matched to your profile appear here</div>
         </div>
