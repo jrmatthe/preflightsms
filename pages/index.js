@@ -562,7 +562,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     if (!selectedFfFlight) return;
     const ff = selectedFfFlight;
     const etdStr = ff.etd ? new Date(ff.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
-    const dateStr = ff.etd ? new Date(ff.etd).toISOString().split("T")[0] : getLocalDate();
+    const dateStr = ff.etd ? (() => { const d = new Date(ff.etd); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })() : getLocalDate();
     // ETE: prefer ete_minutes from sync, fallback to ETD→ETA diff
     let eteStr = "";
     if (ff.ete_minutes != null) {
@@ -631,7 +631,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     if (!selectedScTrip) return;
     const sc = selectedScTrip;
     const etdStr = sc.etd ? new Date(sc.etd).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }).replace(":", "") : "";
-    const dateStr = sc.etd ? new Date(sc.etd).toISOString().split("T")[0] : getLocalDate();
+    const dateStr = sc.etd ? (() => { const d = new Date(sc.etd); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })() : getLocalDate();
     let eteStr = "";
     if (sc.etd && sc.eta) {
       const diffMs = new Date(sc.eta).getTime() - new Date(sc.etd).getTime();
