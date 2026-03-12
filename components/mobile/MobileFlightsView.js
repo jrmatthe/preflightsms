@@ -105,16 +105,17 @@ function ArrivalSheet({ flight, onConfirm, onCancel, aircraftDefs }) {
   const touchStartY = useRef(null);
   const translateY = useRef(0);
 
-  const onTouchStart = (e) => { touchStartY.current = e.touches[0].clientY; };
-  const onTouchMove = (e) => {
+  const onHandleTouchStart = (e) => { touchStartY.current = e.touches[0].clientY; };
+  const onHandleTouchMove = (e) => {
     if (touchStartY.current === null) return;
     const dy = e.touches[0].clientY - touchStartY.current;
     if (dy > 0) {
+      e.preventDefault();
       translateY.current = dy;
       if (sheetRef.current) sheetRef.current.style.transform = `translateY(${dy}px)`;
     }
   };
-  const onTouchEnd = () => {
+  const onHandleTouchEnd = () => {
     if (translateY.current > 100) { onCancel(); }
     else if (sheetRef.current) { sheetRef.current.style.transform = "translateY(0)"; sheetRef.current.style.transition = "transform 0.2s ease-out"; setTimeout(() => { if (sheetRef.current) sheetRef.current.style.transition = ""; }, 200); }
     touchStartY.current = null;
@@ -128,8 +129,10 @@ function ArrivalSheet({ flight, onConfirm, onCancel, aircraftDefs }) {
         @keyframes arrSlideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
       `}</style>
       <div onClick={onCancel} aria-hidden="true" style={{ flex: 1, background: "rgba(0,0,0,0.6)", animation: "arrBackdropIn 0.2s ease-out" }} />
-      <div ref={sheetRef} role="dialog" aria-label="Mark flight arrived" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", animation: "arrSlideUp 0.25s ease-out" }}>
-        <div style={{ width: 36, height: 4, background: BORDER, borderRadius: 2, margin: "0 auto 16px" }} />
+      <div ref={sheetRef} role="dialog" aria-label="Mark flight arrived" style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", animation: "arrSlideUp 0.25s ease-out" }}>
+        <div onTouchStart={onHandleTouchStart} onTouchMove={onHandleTouchMove} onTouchEnd={onHandleTouchEnd} style={{ width: "100%", display: "flex", justifyContent: "center", padding: "0 0 16px", cursor: "grab", touchAction: "none" }}>
+          <div style={{ width: 36, height: 4, background: BORDER, borderRadius: 2 }} />
+        </div>
         <div style={{ color: WHITE, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
           Mark Arrived
         </div>
@@ -202,11 +205,34 @@ function ArrivalSheet({ flight, onConfirm, onCancel, aircraftDefs }) {
 
 // ── Cancel confirmation sheet ──
 function CancelSheet({ flight, onConfirm, onDismiss }) {
+  const sheetRef = useRef(null);
+  const touchStartY = useRef(null);
+  const translateY = useRef(0);
+
+  const onHandleTouchStart = (e) => { touchStartY.current = e.touches[0].clientY; };
+  const onHandleTouchMove = (e) => {
+    if (touchStartY.current === null) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) {
+      e.preventDefault();
+      translateY.current = dy;
+      if (sheetRef.current) sheetRef.current.style.transform = `translateY(${dy}px)`;
+    }
+  };
+  const onHandleTouchEnd = () => {
+    if (translateY.current > 100) { onDismiss(); }
+    else if (sheetRef.current) { sheetRef.current.style.transform = "translateY(0)"; sheetRef.current.style.transition = "transform 0.2s ease-out"; setTimeout(() => { if (sheetRef.current) sheetRef.current.style.transition = ""; }, 200); }
+    touchStartY.current = null;
+    translateY.current = 0;
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 2000, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
       <div onClick={onDismiss} aria-hidden="true" style={{ flex: 1, background: "rgba(0,0,0,0.6)", animation: "arrBackdropIn 0.2s ease-out" }} />
-      <div role="dialog" aria-label="Cancel flight" style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", animation: "arrSlideUp 0.25s ease-out" }}>
-        <div style={{ width: 36, height: 4, background: BORDER, borderRadius: 2, margin: "0 auto 16px" }} />
+      <div ref={sheetRef} role="dialog" aria-label="Cancel flight" style={{ background: CARD, borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0", padding: "20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", animation: "arrSlideUp 0.25s ease-out" }}>
+        <div onTouchStart={onHandleTouchStart} onTouchMove={onHandleTouchMove} onTouchEnd={onHandleTouchEnd} style={{ width: "100%", display: "flex", justifyContent: "center", padding: "0 0 16px", cursor: "grab", touchAction: "none" }}>
+          <div style={{ width: 36, height: 4, background: BORDER, borderRadius: 2 }} />
+        </div>
         <div style={{ color: WHITE, fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
           Cancel Flight
         </div>

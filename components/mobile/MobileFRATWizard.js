@@ -996,9 +996,9 @@ export default function MobileFRATWizard({
   const handleNext = () => {
     if (!validateStep(step)) return;
     setStep(s => Math.min(s + 1, 3));
-    scrollRef.current?.scrollTo(0, 0);
+    requestAnimationFrame(() => { scrollRef.current?.scrollTo(0, 0); });
   };
-  const handleBack = () => { setStep(s => Math.max(s - 1, 0)); scrollRef.current?.scrollTo(0, 0); };
+  const handleBack = () => { setStep(s => Math.max(s - 1, 0)); requestAnimationFrame(() => { scrollRef.current?.scrollTo(0, 0); }); };
 
   const handleSubmit = async () => {
     if (submitting) return;
