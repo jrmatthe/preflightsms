@@ -145,6 +145,7 @@ export default function MobileLayout({
   pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight,
   pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip,
   onRefreshDispatchFlights,
+  myTodayFlights,
 }) {
   const [activeTab, setActiveTab] = useState("flights");
   const [moreSubView, setMoreSubView] = useState(null);
@@ -218,6 +219,12 @@ export default function MobileLayout({
     setMoreSubView("profile");
   };
 
+  const handleSelectTodayFlight = (flight) => {
+    if (flight._source === "foreflight") onSelectFfFlight(flight);
+    else onSelectScTrip(flight);
+    setActiveTab("newFrat");
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case "flights":
@@ -241,6 +248,8 @@ export default function MobileLayout({
             fleetAircraft={fleetAircraft}
             adsbEnabled={adsbEnabled}
             session={session}
+            myTodayFlights={myTodayFlights}
+            onSelectTodayFlight={handleSelectTodayFlight}
           />
         );
       case "newFrat":

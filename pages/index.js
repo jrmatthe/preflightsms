@@ -2003,7 +2003,7 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick, dragHan
   );
 }
 
-function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, trainingRequirements, trainingRecords, policies, mocItems, erpPlans, erpDrills, onNavigate, org, session }) {
+function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, trainingRequirements, trainingRecords, policies, mocItems, erpPlans, erpDrills, onNavigate, org, session, myTodayFlights, onSelectFfFlight, onSelectScTrip }) {
   const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 20px" };
   const sectionTitle = { fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 };
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
@@ -2336,6 +2336,55 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
         <div style={{ fontSize: 20, fontWeight: 700, color: WHITE }}>Welcome back, {firstName}</div>
         <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{dateStr}</div>
       </div>
+
+      {/* My Flights Today */}
+      {myTodayFlights && myTodayFlights.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+            <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>My Flights Today</div>
+            <span style={{ fontSize: 10, fontWeight: 600, color: MUTED, background: BORDER, padding: "2px 8px", borderRadius: 10 }}>{myTodayFlights.length}</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: myTodayFlights.length >= 2 ? "1fr 1fr" : "1fr", gap: 12 }}>
+            {myTodayFlights.map((fl, i) => {
+              const etdTime = fl.etd ? new Date(fl.etd).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
+              const isFf = fl._source === "foreflight";
+              return (
+                <button key={fl.id || i} onClick={() => {
+                  if (isFf) onSelectFfFlight(fl);
+                  else onSelectScTrip(fl);
+                  onNavigate("submit");
+                }} style={{
+                  ...card, padding: "14px 16px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 10,
+                  border: `1px solid ${BORDER}`, transition: "border-color 0.15s",
+                }} onMouseEnter={e => e.currentTarget.style.borderColor = isFf ? "#22D3EE44" : "#3B82F644"} onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
+                        {fl.departure_icao || "—"} → {fl.destination_icao || "—"}
+                      </span>
+                    </div>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
+                      background: isFf ? "rgba(34,211,238,0.1)" : "rgba(59,130,246,0.1)",
+                      color: isFf ? CYAN : "#3B82F6",
+                    }}>{isFf ? "ForeFlight" : "SchedAero"}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    {fl.tail_number && <div style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></div>}
+                    <div style={{ fontSize: 11 }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></div>
+                    {fl.passenger_count != null && <div style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></div>}
+                    {fl.aircraft_type && <div style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></div>}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: CYAN }}>
+                    Start FRAT <span style={{ fontSize: 13 }}>→</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions — full width */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: gap }}>
@@ -3950,6 +3999,25 @@ export default function PVTAIRFrat() {
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
   const riskLevels = fratTemplate?.risk_thresholds ? buildRiskLevels(fratTemplate.risk_thresholds) : DEFAULT_RISK_LEVELS;
 
+  // My flights today — filtered to logged-in pilot + today's date
+  const myTodayFlights = useMemo(() => {
+    const now = new Date();
+    const todayDate = now.getDate(), todayMonth = now.getMonth(), todayYear = now.getFullYear();
+    const isToday = (etd) => {
+      if (!etd) return false;
+      const d = new Date(etd);
+      return d.getDate() === todayDate && d.getMonth() === todayMonth && d.getFullYear() === todayYear;
+    };
+    const pid = profile?.id;
+    if (!pid) return [];
+    return [
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isToday(f.etd))
+        .map(f => ({ ...f, _source: "foreflight" })),
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isToday(f.etd))
+        .map(f => ({ ...f, _source: "schedaero" })),
+    ].sort((a, b) => new Date(a.etd).getTime() - new Date(b.etd).getTime());
+  }, [pendingFfFlights, pendingScTrips, profile?.id]);
+
   // Part 5 compliance for dashboard
   const part5Compliance = useMemo(() =>
     computePart5Compliance({ frats: records, flights, reports, hazards, actions, policies, profiles: orgProfiles, trainingRecords: trainingRecs, smsManuals }),
@@ -5092,7 +5160,7 @@ export default function PVTAIRFrat() {
     : actions;
   if (isMobile) return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
-    <MobileLayout session={session} profile={profile} orgData={profile?.organizations || {}} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} flights={flights} onUpdateFlight={roGuard(onUpdateFlight)} onSubmitFRAT={roGuard(onSubmit)} fleetAircraft={fleetAircraft} fratTemplate={fratTemplate} allFratTemplates={fratTemplates} riskLevels={riskLevels} nudgeFlight={nudgeFlight} nudgeSuggestion={nudgeSuggestion} onNudgeSubmitReport={onNudgeSubmitReport} onNudgeNothingToReport={onNudgeNothingToReport} onNudgeRemindLater={onNudgeRemindLater} onNudgeDismiss={onNudgeDismiss} reportPrefill={reportPrefill} setReportPrefill={setReportPrefill} reports={reports} onSubmitReport={roGuard(onSubmitReport)} cbtCourses={cbtCourses} cbtLessonsMap={cbtLessonsMap} cbtProgress={cbtProgress} cbtEnrollments={cbtEnrollments} trainingReqs={trainingReqs} trainingRecs={trainingRecs} onUpdateCbtProgress={roGuard(onUpdateCbtProgress)} onUpdateCbtEnrollment={roGuard(onUpdateCbtEnrollment)} onLogTraining={roGuard(onLogTraining)} refreshCbt={refreshCbt} hazards={hazards} actions={actions} onUpdateAction={roGuard(onUpdateAction)} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} onUpdateMel={roGuard(async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} erpPlans={erpPlans} onLoadErpChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onLoadErpCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} policies={policies} onAcknowledgePolicy={roGuard(onAcknowledgePolicy)} hasFlights={!!hasFeature(org, "flight_following")} hasTraining={!!hasFeature(org, "cbt_modules")} adsbEnabled={!!hasFeature(org, "adsb_tracking")} onUpdatePreferences={onUpdateNotifPreferences} onUpdateEmail={async (newEmail) => { await updateProfileEmail(profile.id, newEmail); const p = await getProfile(); if (p) setProfile(p); }} org={org} orgProfiles={orgProfiles} records={records} onCreateAircraft={async (aircraft) => { const { data, error } = await createAircraft(profile?.org_id, aircraft); if (error) return { error }; const { data: updated } = await fetchAircraft(profile?.org_id); setFleetAircraft(updated || []); return { data }; }} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} onRefreshDispatchFlights={() => { const orgId = profile?.org_id; if (!orgId) return; if (hasFeature(profile?.organizations, "foreflight_integration")) fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || [])); if (hasFeature(profile?.organizations, "schedaero_integration")) fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || [])); }} /></>
+    <MobileLayout session={session} profile={profile} orgData={profile?.organizations || {}} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} flights={flights} onUpdateFlight={roGuard(onUpdateFlight)} onSubmitFRAT={roGuard(onSubmit)} fleetAircraft={fleetAircraft} fratTemplate={fratTemplate} allFratTemplates={fratTemplates} riskLevels={riskLevels} nudgeFlight={nudgeFlight} nudgeSuggestion={nudgeSuggestion} onNudgeSubmitReport={onNudgeSubmitReport} onNudgeNothingToReport={onNudgeNothingToReport} onNudgeRemindLater={onNudgeRemindLater} onNudgeDismiss={onNudgeDismiss} reportPrefill={reportPrefill} setReportPrefill={setReportPrefill} reports={reports} onSubmitReport={roGuard(onSubmitReport)} cbtCourses={cbtCourses} cbtLessonsMap={cbtLessonsMap} cbtProgress={cbtProgress} cbtEnrollments={cbtEnrollments} trainingReqs={trainingReqs} trainingRecs={trainingRecs} onUpdateCbtProgress={roGuard(onUpdateCbtProgress)} onUpdateCbtEnrollment={roGuard(onUpdateCbtEnrollment)} onLogTraining={roGuard(onLogTraining)} refreshCbt={refreshCbt} hazards={hazards} actions={actions} onUpdateAction={roGuard(onUpdateAction)} onUpdateAircraftStatus={roGuard(async (id, statusFields) => { await updateAircraftStatus(id, statusFields); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} onUpdateMel={roGuard(async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); })} erpPlans={erpPlans} onLoadErpChecklist={async (planId) => { const { data } = await fetchErpChecklistItems(planId); return data || []; }} onLoadErpCallTree={async (planId) => { const { data } = await fetchErpCallTree(planId); return data || []; }} policies={policies} onAcknowledgePolicy={roGuard(onAcknowledgePolicy)} hasFlights={!!hasFeature(org, "flight_following")} hasTraining={!!hasFeature(org, "cbt_modules")} adsbEnabled={!!hasFeature(org, "adsb_tracking")} onUpdatePreferences={onUpdateNotifPreferences} onUpdateEmail={async (newEmail) => { await updateProfileEmail(profile.id, newEmail); const p = await getProfile(); if (p) setProfile(p); }} org={org} orgProfiles={orgProfiles} records={records} onCreateAircraft={async (aircraft) => { const { data, error } = await createAircraft(profile?.org_id, aircraft); if (error) return { error }; const { data: updated } = await fetchAircraft(profile?.org_id); setFleetAircraft(updated || []); return { data }; }} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} onRefreshDispatchFlights={() => { const orgId = profile?.org_id; if (!orgId) return; if (hasFeature(profile?.organizations, "foreflight_integration")) fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || [])); if (hasFeature(profile?.organizations, "schedaero_integration")) fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || [])); }} myTodayFlights={myTodayFlights} /></>
   );
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
@@ -5236,7 +5304,7 @@ export default function PVTAIRFrat() {
             </div>
           );
         })()}
-        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} />}
+        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} myTodayFlights={myTodayFlights} onSelectFfFlight={setSelectedFfFlight} onSelectScTrip={setSelectedScTrip} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
