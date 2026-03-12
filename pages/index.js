@@ -2094,7 +2094,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   const listCard = (title, items, emptyText, navTarget, renderRow, opts = {}) => {
     if (opts.lockCheck && isFree && !hasFeature(org, opts.lockCheck)) return lockOverlay(title);
     return (
-      <div style={{ ...card, marginBottom: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
+      <div style={{ ...card, marginBottom: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: items.length > 0 ? 10 : 0, flexShrink: 0 }}>
           <div style={sectionTitle}>{title}{opts.count != null && opts.count > 0 ? <span style={{ fontSize: 11, fontWeight: 700, color: RED, marginLeft: 6 }}>{opts.count}</span> : null}</div>
           {navTarget && <button onClick={() => onNavigate(navTarget)} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>}
@@ -2116,8 +2116,8 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
 
   // ── My Flights Today card ──
   const todayFlightsCard = (
-    <div style={{ ...card, marginBottom: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexShrink: 0 }}>
+    <div style={{ ...card, marginBottom: 0, display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
           <div style={sectionTitle}>My Flights Today</div>
@@ -2128,7 +2128,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
         <button onClick={() => onNavigate("submit")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Submit FRAT &rarr;</button>
       </div>
       {myTodayFlights && myTodayFlights.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto", minHeight: 0, gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {myTodayFlights.map((fl, i) => {
             const etdTime = fl.etd ? new Date(fl.etd).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
             const isFf = fl._source === "foreflight";
@@ -2138,11 +2138,11 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
                 else onSelectScTrip(fl);
                 onNavigate("submit");
               }} style={{
-                background: DARK, borderRadius: 8, padding: "12px 14px", cursor: "pointer", textAlign: "left",
-                display: "flex", flexDirection: "column", gap: 8, border: `1px solid ${BORDER}`, transition: "border-color 0.15s",
+                background: DARK, borderRadius: 8, padding: "10px 12px", cursor: "pointer", textAlign: "left",
+                display: "flex", flexDirection: "column", gap: 4, border: `1px solid ${BORDER}`, transition: "border-color 0.15s",
               }} onMouseEnter={e => e.currentTarget.style.borderColor = isFf ? "#22D3EE44" : "#3B82F644"} onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
                     {fl.departure_icao || "—"} → {fl.destination_icao || "—"}
                   </span>
                   <span style={{
@@ -2151,24 +2151,21 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
                     color: isFf ? CYAN : "#3B82F6",
                   }}>{isFf ? "ForeFlight" : "SchedAero"}</span>
                 </div>
-                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
                   {fl.tail_number && <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></span>}
                   <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></span>
                   {fl.passenger_count != null && <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></span>}
                   {fl.aircraft_type && <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></span>}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: CYAN }}>
-                  Start FRAT <span style={{ fontSize: 13 }}>→</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: CYAN, marginLeft: "auto" }}>Start FRAT →</span>
                 </div>
               </button>
             );
           })}
         </div>
       ) : (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
-          <div style={{ fontSize: 12, color: MUTED }}>No flights scheduled for today</div>
-          <div style={{ fontSize: 10, color: MUTED }}>ForeFlight / SchedAero flights matched to your profile appear here</div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: "12px 0" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+          <div style={{ fontSize: 11, color: MUTED }}>No flights scheduled for today</div>
         </div>
       )}
     </div>
@@ -2406,7 +2403,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
 
   const numVisible = renderSlots.length;
   const homeRowCount = numVisible <= 0 ? 0 : numVisible === 1 ? 1 : numVisible <= 4 ? 2 : 2 + Math.ceil((numVisible - 4) / 3);
-  const homeGridTemplateRows = Array.from({ length: homeRowCount }, (_, i) => i === 0 ? "320px" : i === 1 ? "380px" : "360px").join(" ");
+  const homeGridTemplateRows = Array.from({ length: homeRowCount }, () => "auto").join(" ");
 
   return (
     <div>
@@ -2596,7 +2593,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
 
   // Grid rows: fixed heights per wireframe
   const rowCount = numVisible <= 0 ? 0 : numVisible === 1 ? 1 : numVisible === 2 ? 2 : numVisible <= 5 ? 3 : 3 + Math.ceil((numVisible - 5) / 3);
-  const gridTemplateRows = Array.from({ length: rowCount }, (_, i) => i === 0 ? "100px" : i === 1 ? "320px" : i === 2 ? "380px" : "360px").join(" ");
+  const gridTemplateRows = Array.from({ length: rowCount }, (_, i) => i === 0 ? "100px" : "auto").join(" ");
 
   // Live reorder: move dragged card to target box position
   const liveReorderToBox = (targetBoxIdx) => {
