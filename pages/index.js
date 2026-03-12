@@ -2339,25 +2339,14 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
       const saved = typeof window !== "undefined" && localStorage.getItem("pfms_home_layout");
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Merge in any new cards, preserving saved order
+        // Merge in any new cards not in saved order
         const existing = parsed.filter(id => CARD_DEFS[id]);
-        const newCards = DEFAULT_ORDER.filter(id => !parsed.includes(id));
-        for (const nc of newCards) {
-          if (nc === "today_flights") {
-            // Insert at position 0 and push whatever was there down
-            existing.splice(0, 0, nc);
-          } else {
-            const defIdx = DEFAULT_ORDER.indexOf(nc);
-            let inserted = false;
-            for (let i = defIdx + 1; i < DEFAULT_ORDER.length; i++) {
-              const afterIdx = existing.indexOf(DEFAULT_ORDER[i]);
-              if (afterIdx !== -1) { existing.splice(afterIdx, 0, nc); inserted = true; break; }
-            }
-            if (!inserted) existing.push(nc);
-          }
-        }
-        // Persist corrected order so this migration only runs once
-        try { localStorage.setItem("pfms_home_layout", JSON.stringify(existing)); } catch {}
+        const newCards = DEFAULT_ORDER.filter(id => !existing.includes(id));
+        for (const nc of newCards) existing.push(nc);
+        // Ensure today_flights is always first
+        const tfIdx = existing.indexOf("today_flights");
+        if (tfIdx > 0) { existing.splice(tfIdx, 1); existing.splice(0, 0, "today_flights"); }
+        if (tfIdx !== 0) { try { localStorage.setItem("pfms_home_layout", JSON.stringify(existing)); } catch {} }
         return existing;
       }
     } catch {}
