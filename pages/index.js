@@ -4027,21 +4027,21 @@ export default function PVTAIRFrat() {
   const riskCategories = fratTemplate?.categories || DEFAULT_RISK_CATEGORIES;
   const riskLevels = fratTemplate?.risk_thresholds ? buildRiskLevels(fratTemplate.risk_thresholds) : DEFAULT_RISK_LEVELS;
 
-  // My flights today — filtered to logged-in pilot + today's date
+  // My flights — filtered to logged-in pilot + within next 12 hours
   const myTodayFlights = useMemo(() => {
-    const now = new Date();
-    const todayDate = now.getDate(), todayMonth = now.getMonth(), todayYear = now.getFullYear();
-    const isToday = (etd) => {
+    const now = Date.now();
+    const cutoff = now + 12 * 60 * 60 * 1000;
+    const isWithin12h = (etd) => {
       if (!etd) return false;
-      const d = new Date(etd);
-      return d.getDate() === todayDate && d.getMonth() === todayMonth && d.getFullYear() === todayYear;
+      const t = new Date(etd).getTime();
+      return t >= now && t <= cutoff;
     };
     const pid = profile?.id;
     if (!pid) return [];
     return [
-      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isToday(f.etd))
+      ...(pendingFfFlights || []).filter(f => f.matched_pilot_id === pid && isWithin12h(f.etd))
         .map(f => ({ ...f, _source: "foreflight" })),
-      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isToday(f.etd))
+      ...(pendingScTrips || []).filter(f => f.matched_pilot_id === pid && isWithin12h(f.etd))
         .map(f => ({ ...f, _source: "schedaero" })),
     ].sort((a, b) => new Date(a.etd).getTime() - new Date(b.etd).getTime());
   }, [pendingFfFlights, pendingScTrips, profile?.id]);
