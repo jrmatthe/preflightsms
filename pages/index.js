@@ -2102,6 +2102,66 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     );
   };
 
+  // ── My Flights Today card ──
+  const todayFlightsCard = (
+    <div style={{ ...card, marginBottom: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+          <div style={sectionTitle}>My Flights Today</div>
+          {myTodayFlights && myTodayFlights.length > 0 && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 8px", borderRadius: 10 }}>{myTodayFlights.length}</span>
+          )}
+        </div>
+        <button onClick={() => onNavigate("submit")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Submit FRAT &rarr;</button>
+      </div>
+      {myTodayFlights && myTodayFlights.length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto", minHeight: 0, gap: 8 }}>
+          {myTodayFlights.map((fl, i) => {
+            const etdTime = fl.etd ? new Date(fl.etd).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
+            const isFf = fl._source === "foreflight";
+            return (
+              <button key={fl.id || i} onClick={() => {
+                if (isFf) onSelectFfFlight(fl);
+                else onSelectScTrip(fl);
+                onNavigate("submit");
+              }} style={{
+                background: DARK, borderRadius: 8, padding: "12px 14px", cursor: "pointer", textAlign: "left",
+                display: "flex", flexDirection: "column", gap: 8, border: `1px solid ${BORDER}`, transition: "border-color 0.15s",
+              }} onMouseEnter={e => e.currentTarget.style.borderColor = isFf ? "#22D3EE44" : "#3B82F644"} onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
+                    {fl.departure_icao || "—"} → {fl.destination_icao || "—"}
+                  </span>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
+                    background: isFf ? "rgba(34,211,238,0.1)" : "rgba(59,130,246,0.1)",
+                    color: isFf ? CYAN : "#3B82F6",
+                  }}>{isFf ? "ForeFlight" : "SchedAero"}</span>
+                </div>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                  {fl.tail_number && <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></span>}
+                  <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></span>
+                  {fl.passenger_count != null && <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></span>}
+                  {fl.aircraft_type && <span style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></span>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: CYAN }}>
+                  Start FRAT <span style={{ fontSize: 13 }}>→</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+          <div style={{ fontSize: 12, color: MUTED }}>No flights scheduled for today</div>
+          <div style={{ fontSize: 10, color: MUTED }}>ForeFlight / SchedAero flights matched to your profile appear here</div>
+        </div>
+      )}
+    </div>
+  );
+
   // ── Left column cards ──
   const fratCard = listCard("My Recent FRATs", myFrats, "No FRATs submitted yet", "flights", f => (<>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2258,6 +2318,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
 
   // ── Card registry for drag-to-reorder ──
   const CARD_DEFS = {
+    today_flights: { node: todayFlightsCard, visible: true },
     frats: { node: fratCard, visible: true },
     reports: { node: reportCard, visible: true },
     training: { node: trainingCard, visible: true },
@@ -2271,7 +2332,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     erp: { node: erpCard, visible: isAdmin },
     moc: { node: mocCard, visible: isAdmin },
   };
-  const DEFAULT_ORDER = ["frats","reports","training","approvals","investigations","my_actions","audits","policies","reviews","overdue","erp","moc"];
+  const DEFAULT_ORDER = ["today_flights","frats","reports","training","approvals","investigations","my_actions","audits","policies","reviews","overdue","erp","moc"];
 
   const [cardOrder, setCardOrder] = useState(() => {
     try {
@@ -2335,62 +2396,6 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: WHITE }}>Welcome back, {firstName}</div>
         <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{dateStr}</div>
-      </div>
-
-      {/* My Flights Today */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
-          <div style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>My Flights Today</div>
-          {myTodayFlights && myTodayFlights.length > 0 && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: MUTED, background: BORDER, padding: "2px 8px", borderRadius: 10 }}>{myTodayFlights.length}</span>
-          )}
-        </div>
-        {myTodayFlights && myTodayFlights.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: myTodayFlights.length >= 2 ? "1fr 1fr" : "1fr", gap: 12 }}>
-            {myTodayFlights.map((fl, i) => {
-              const etdTime = fl.etd ? new Date(fl.etd).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
-              const isFf = fl._source === "foreflight";
-              return (
-                <button key={fl.id || i} onClick={() => {
-                  if (isFf) onSelectFfFlight(fl);
-                  else onSelectScTrip(fl);
-                  onNavigate("submit");
-                }} style={{
-                  ...card, padding: "14px 16px", cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 10,
-                  border: `1px solid ${BORDER}`, transition: "border-color 0.15s",
-                }} onMouseEnter={e => e.currentTarget.style.borderColor = isFf ? "#22D3EE44" : "#3B82F644"} onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 15, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
-                        {fl.departure_icao || "—"} → {fl.destination_icao || "—"}
-                      </span>
-                    </div>
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
-                      background: isFf ? "rgba(34,211,238,0.1)" : "rgba(59,130,246,0.1)",
-                      color: isFf ? CYAN : "#3B82F6",
-                    }}>{isFf ? "ForeFlight" : "SchedAero"}</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    {fl.tail_number && <div style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></div>}
-                    <div style={{ fontSize: 11 }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></div>
-                    {fl.passenger_count != null && <div style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></div>}
-                    {fl.aircraft_type && <div style={{ fontSize: 11 }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></div>}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: CYAN }}>
-                    Start FRAT <span style={{ fontSize: 13 }}>→</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <div style={{ ...card, padding: "20px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 12, color: MUTED }}>No flights scheduled for today</div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Flights from ForeFlight or SchedAero matched to your profile will appear here</div>
-          </div>
-        )}
       </div>
 
       {/* Quick Actions — full width */}
