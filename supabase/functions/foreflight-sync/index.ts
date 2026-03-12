@@ -339,6 +339,22 @@ Deno.serve(async (req) => {
          }
         }
 
+        // Remove stale pending flights no longer in ForeFlight
+        const activeFfIds = new Set(
+          flights.map((ff: any) => String(ff.flightId || ff.id || "")).filter(Boolean)
+        );
+        const stalePending = (existing || []).filter(
+          (e: any) => e.status === "pending" && !activeFfIds.has(e.foreflight_id)
+        );
+        if (stalePending.length > 0) {
+          const staleIds = stalePending.map((e: any) => e.foreflight_id);
+          await supabase
+            .from("foreflight_flights")
+            .delete()
+            .eq("org_id", config.org_id)
+            .in("foreflight_id", staleIds);
+        }
+
         totalSynced += syncedCount;
         orgsProcessed++;
 
