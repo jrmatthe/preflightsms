@@ -713,57 +713,61 @@ export default function MobileFlightsView({
         </div>
       )}
 
-      {/* Today's Schedule */}
-      <div style={{ padding: "12px 16px 4px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
-          <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Today&apos;s Schedule</span>
-          {myTodayFlights && myTodayFlights.length > 0 && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: MUTED, background: BORDER, padding: "2px 7px", borderRadius: 10 }}>{myTodayFlights.length}</span>
-          )}
-        </div>
-        {myTodayFlights && myTodayFlights.length > 0 ? (
-          myTodayFlights.map((fl, i) => {
+      {/* My Schedule */}
+      {myTodayFlights && myTodayFlights.length > 0 && (
+        <div style={{ padding: "16px 16px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1L11 12l-2 3H6l-1 1 3 2 2 3 1-1v-3l3-2 3.7 7.3c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+            <span style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>My Schedule</span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: CYAN, background: "rgba(34,211,238,0.1)", padding: "2px 8px", borderRadius: 10 }}>{myTodayFlights.length}</span>
+          </div>
+          {myTodayFlights.map((fl, i) => {
             const etdTime = fl.etd ? new Date(fl.etd).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
             const isFf = fl._source === "foreflight";
             return (
               <button key={fl.id || i} onClick={() => onSelectTodayFlight(fl)} style={{
-                width: "100%", background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10,
+                width: "100%", background: "rgba(34,211,238,0.04)", border: `1px solid rgba(34,211,238,0.15)`, borderRadius: 12,
                 padding: "14px 16px", marginBottom: 8, cursor: "pointer", textAlign: "left",
                 display: "flex", flexDirection: "column", gap: 8, minHeight: 44,
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: WHITE, letterSpacing: 0.5 }}>
                     {fl.departure_icao || "—"} → {fl.destination_icao || "—"}
                   </span>
                   <span style={{
                     fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 8,
-                    background: isFf ? "rgba(34,211,238,0.1)" : "rgba(59,130,246,0.1)",
+                    background: isFf ? "rgba(34,211,238,0.12)" : "rgba(59,130,246,0.12)",
                     color: isFf ? CYAN : "#3B82F6",
                   }}>{isFf ? "ForeFlight" : "SchedAero"}</span>
                 </div>
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-                  {fl.tail_number && <span style={{ fontSize: 12 }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></span>}
-                  <span style={{ fontSize: 12 }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></span>
-                  {fl.passenger_count != null && <span style={{ fontSize: 12 }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></span>}
-                  {fl.aircraft_type && <span style={{ fontSize: 12 }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></span>}
+                  {fl.tail_number && <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.tail_number}</span></span>}
+                  <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE, fontWeight: 600 }}>{etdTime}</span></span>
+                  {fl.passenger_count != null && <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>Pax </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.passenger_count}</span></span>}
+                  {fl.aircraft_type && <span style={{ fontSize: 13 }}><span style={{ color: MUTED }}>Type </span><span style={{ color: WHITE, fontWeight: 600 }}>{fl.aircraft_type}</span></span>}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700, color: CYAN }}>
-                  Start FRAT <span style={{ fontSize: 14 }}>→</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, color: CYAN }}>
+                  Start FRAT →
                 </div>
               </button>
             );
-          })
-        ) : (
-          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px", textAlign: "center", marginBottom: 8 }}>
-            <div style={{ fontSize: 13, color: MUTED }}>No flights scheduled for today</div>
-            <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>Flights from ForeFlight or SchedAero matched to your profile will appear here</div>
-          </div>
+          })}
+        </div>
+      )}
+
+      {/* Flight Following divider + header */}
+      <div style={{ padding: "16px 16px 0" }}>
+        {myTodayFlights && myTodayFlights.length > 0 && (
+          <div style={{ height: 1, background: BORDER, marginBottom: 16 }} />
         )}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          <span style={{ fontSize: 15, fontWeight: 700, color: WHITE }}>Flight Following</span>
+        </div>
       </div>
 
       {/* Filter pills */}
-      <div role="radiogroup" aria-label="Filter flights" style={{ padding: "12px 16px 8px", display: "flex", gap: 8, overflowX: "auto" }}>
+      <div role="radiogroup" aria-label="Filter flights" style={{ padding: "0 16px 8px", display: "flex", gap: 8, overflowX: "auto" }}>
         {FILTERS.map(f => (
           <button
             key={f.id}

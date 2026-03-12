@@ -236,13 +236,13 @@ Deno.serve(async (req) => {
           const passengerCount = paxArray.length > 0 ? paxArray.length
             : (loadObj.people != null && Array.isArray(fd.crew) ? loadObj.people - fd.crew.length : null);
           const crewCount = Array.isArray(fd.crew) ? fd.crew.length : pick<number>(fd, "crewCount", "numberOfCrew");
-          // Fuel: check detail endpoint performance data, then fallback to list data
-          const perf = flightDetail?.performance || {};
-          const fuelObj = flightDetail?.fuel || {};
-          const fuelLbs = perf.totalFuel ?? perf.fuelToDestination ?? fuelObj.taxi
+          // Fuel: detail endpoint nests under performance.fuel
+          const perfFuel = flightDetail?.performance?.fuel || {};
+          const fuelLbs = perfFuel.totalFuel ?? perfFuel.fuelToDestination
             ?? pick<number>(fd, "fuelLoad", "fuelLbs", "plannedFuel", "fuel");
-          // Altitude: detail endpoint puts it in routeToDestination.altitude
-          const routeAlt = flightDetail?.routeToDestination?.altitude;
+          // Altitude: detail endpoint nests under flightData.routeToDestination.altitude
+          const detailFd = flightDetail?.flightData || {};
+          const routeAlt = detailFd.routeToDestination?.altitude || fd.routeToDestination?.altitude;
           let cruiseAltRaw: string | number | null = null;
           if (routeAlt?.altitude != null) {
             cruiseAltRaw = routeAlt.unit === "FL" ? `FL${routeAlt.altitude}` : routeAlt.altitude;
