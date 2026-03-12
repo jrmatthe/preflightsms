@@ -211,6 +211,10 @@ export default function MobileLayout({
   };
 
   const handleBellTap = () => {
+    if (activeTab === "more" && moreSubView === "notifications") {
+      setMoreSubView(null);
+      return;
+    }
     setActiveTab("more");
     setMoreSubView("notifications");
   };
@@ -224,6 +228,24 @@ export default function MobileLayout({
     return ADMIN_ROLES.includes(profile?.role)
       || (profile?.permissions || []).includes("flight_follower");
   }, [profile?.role, profile?.permissions]);
+
+  const handleNotifNavigate = (linkTab, linkId) => {
+    // Map notification link_tab to mobile tabs
+    const TAB_MAP = {
+      submit: "newFrat",
+      flights: "flights",
+      reports: "reports",
+      cbt: "training",
+    };
+    const MORE_VIEWS = ["fleet", "erp", "hazards", "actions", "policies"];
+    if (MORE_VIEWS.includes(linkTab)) {
+      setActiveTab("more");
+      setMoreSubView(linkTab);
+    } else {
+      setActiveTab(TAB_MAP[linkTab] || "flights");
+      setMoreSubView(null);
+    }
+  };
 
   const handleSelectTodayFlight = (flight) => {
     if (flight._source === "foreflight") onSelectFfFlight(flight);
@@ -340,6 +362,7 @@ export default function MobileLayout({
             onSignOut={onSignOut}
             onUpdatePreferences={onUpdatePreferences}
             onUpdateEmail={onUpdateEmail}
+            onNotifNavigate={handleNotifNavigate}
           />
         );
       default:

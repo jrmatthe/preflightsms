@@ -115,20 +115,31 @@ function EmptyState() {
 }
 
 // ── NOTIFICATION ITEM ────────────────────────────────────────
-function NotificationItem({ notif, isRead, onMarkRead }) {
+function NotificationItem({ notif, isRead, onMarkRead, onTap }) {
   const touchStartX = useRef(0);
+  const didSwipe = useRef(false);
   const color = TYPE_COLORS[notif.type] || MUTED;
 
-  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; didSwipe.current = false; };
   const handleTouchEnd = (e) => {
     const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (diff > 60 && !isRead && onMarkRead) {
-      onMarkRead(notif.id);
+    if (diff > 60) {
+      didSwipe.current = true;
+      if (!isRead && onMarkRead) onMarkRead(notif.id);
     }
+  };
+
+  const handleClick = () => {
+    if (didSwipe.current) return;
+    if (!isRead && onMarkRead) onMarkRead(notif.id);
+    if (onTap && notif.link_tab) onTap(notif.link_tab, notif.link_id || null);
   };
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       style={{
@@ -136,6 +147,7 @@ function NotificationItem({ notif, isRead, onMarkRead }) {
         background: isRead ? "transparent" : `${WHITE}03`,
         borderBottom: `1px solid ${BORDER}`,
         borderLeft: isRead ? "3px solid transparent" : `3px solid ${color}`,
+        cursor: notif.link_tab ? "pointer" : "default",
       }}
     >
       {/* Type icon */}
@@ -252,7 +264,7 @@ function MobilePreferencesPanel({ preferences, onSave }) {
 // ── MAIN VIEW ────────────────────────────────────────────────
 export default function MobileNotificationsView({
   notifications, notifReads, profile, onMarkNotifRead, onMarkAllNotifsRead,
-  onUpdatePreferences,
+  onUpdatePreferences, onNavigate,
 }) {
   const [showPrefs, setShowPrefs] = useState(false);
   const readSet = useMemo(() => new Set(notifReads || []), [notifReads]);
@@ -380,6 +392,7 @@ export default function MobileNotificationsView({
               notif={n}
               isRead={readSet.has(n.id)}
               onMarkRead={onMarkNotifRead}
+              onTap={onNavigate}
             />
           ))}
         </div>
