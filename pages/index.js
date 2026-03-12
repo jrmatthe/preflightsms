@@ -760,6 +760,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
           setWxData(data);
           data.depTimeZ = parseLocalTime(fi.date, fi.etd, depTz?.tz);
           data.arrTimeZ = calcArrivalTime(fi.date, fi.etd, fi.ete, depTz?.tz);
+          data.stationOrder = [dep, dest].filter(Boolean);
           // Pass ForeFlight leg count for ops_multi_leg detection
           if (selectedFfFlight?.raw_data) {
             const rd = selectedFfFlight.raw_data;

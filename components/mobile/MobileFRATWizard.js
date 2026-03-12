@@ -898,6 +898,7 @@ export default function MobileFRATWizard({
           setWxAnalysis({ flags: {}, reasons: {}, briefing: [], stationSummaries: [] });
         } else {
           setWxData(data);
+          data.stationOrder = [dep, dest].filter(Boolean);
           // Pass ForeFlight leg count for ops_multi_leg detection
           if (selectedFfFlight?.raw_data) {
             const rd = selectedFfFlight.raw_data;
