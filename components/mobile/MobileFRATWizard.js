@@ -1135,13 +1135,16 @@ export default function MobileFRATWizard({
             )}
             {/* ForeFlight selected banner */}
             {selectedFfFlight && (
-              <div style={{ margin: "0 16px 12px", padding: "10px 14px", borderRadius: 10, background: "rgba(34,211,238,0.08)", border: `1px solid rgba(34,211,238,0.25)`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: CYAN }}>ForeFlight</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: BLACK, background: CYAN, padding: "2px 8px", borderRadius: 3 }}>{selectedFfFlight.departure_icao} → {selectedFfFlight.destination_icao}</span>
-                  {selectedFfFlight.passenger_count != null && <span style={{ fontSize: 9, fontWeight: 700, color: CYAN, background: "rgba(34,211,238,0.12)", padding: "2px 6px", borderRadius: 3 }}>{selectedFfFlight.passenger_count} pax</span>}
+              <div style={{ margin: "0 16px 12px", padding: "12px 14px", borderRadius: 10, background: "rgba(34,211,238,0.08)", border: `1px solid rgba(34,211,238,0.25)`, borderLeft: `3px solid ${CYAN}` }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: CYAN }}>Populated from ForeFlight Dispatch</span>
+                  <button onClick={onClearFfFlight} style={{ background: "none", border: "none", color: MUTED, fontSize: 18, cursor: "pointer", padding: "0 4px", lineHeight: 1, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u00D7"}</button>
                 </div>
-                <button onClick={onClearFfFlight} style={{ background: "none", border: "none", color: MUTED, fontSize: 18, cursor: "pointer", padding: "0 4px", lineHeight: 1, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u00D7"}</button>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: BLACK, background: CYAN, padding: "2px 8px", borderRadius: 4 }}>{selectedFfFlight.departure_icao} → {selectedFfFlight.destination_icao}</span>
+                  {selectedFfFlight.passenger_count != null && <span style={{ fontSize: 10, fontWeight: 600, color: CYAN }}>{selectedFfFlight.passenger_count} pax</span>}
+                  {selectedFfFlight.tail_number && <span style={{ fontSize: 10, fontWeight: 600, color: CYAN }}>{selectedFfFlight.tail_number}</span>}
+                </div>
               </div>
             )}
             {/* Schedaero suggested trips */}
@@ -1163,12 +1166,16 @@ export default function MobileFRATWizard({
             )}
             {/* Schedaero selected banner */}
             {selectedScTrip && (
-              <div style={{ margin: "0 16px 12px", padding: "10px 14px", borderRadius: 10, background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.25)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "#60A5FA" }}>Schedaero</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: BLACK, background: "#60A5FA", padding: "2px 8px", borderRadius: 3 }}>{selectedScTrip.trip_number || `${selectedScTrip.departure_icao} → ${selectedScTrip.destination_icao}`}</span>
+              <div style={{ margin: "0 16px 12px", padding: "12px 14px", borderRadius: 10, background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.25)", borderLeft: "3px solid #60A5FA" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#60A5FA" }}>Populated from SchedAero</span>
+                  <button onClick={onClearScTrip} style={{ background: "none", border: "none", color: MUTED, fontSize: 18, cursor: "pointer", padding: "0 4px", lineHeight: 1, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u00D7"}</button>
                 </div>
-                <button onClick={onClearScTrip} style={{ background: "none", border: "none", color: MUTED, fontSize: 18, cursor: "pointer", padding: "0 4px", lineHeight: 1, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u00D7"}</button>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: BLACK, background: "#60A5FA", padding: "2px 8px", borderRadius: 4 }}>{selectedScTrip.departure_icao} → {selectedScTrip.destination_icao}</span>
+                  {selectedScTrip.trip_number && <span style={{ fontSize: 10, fontWeight: 600, color: "#60A5FA" }}>{selectedScTrip.trip_number}</span>}
+                  {selectedScTrip.tail_number && <span style={{ fontSize: 10, fontWeight: 600, color: "#60A5FA" }}>{selectedScTrip.tail_number}</span>}
+                </div>
               </div>
             )}
             <StepFlightInfo fi={fi} setFi={setFi} fuelUnit={fuelUnit} setFuelUnit={setFuelUnit}
