@@ -869,6 +869,17 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     if (!fi.fuelLbs) errs.fuelLbs = `Enter fuel onboard in ${fratFuelUnit}`;
     if (!fi.numCrew) errs.numCrew = "Enter number of crew";
     if (!fi.numPax) errs.numPax = "Enter number of passengers";
+    // 12-hour advance submission limit
+    if (fi.date && fi.etd && !errs.date && !errs.etd) {
+      const t = (fi.etd || "").replace(/[^0-9]/g, "").padStart(4, "0");
+      const hh = parseInt(t.slice(0, 2), 10), mm = parseInt(t.slice(2, 4), 10);
+      if (!isNaN(hh) && !isNaN(mm)) {
+        const etdDate = new Date(`${fi.date}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00`);
+        if (!isNaN(etdDate.getTime()) && etdDate.getTime() - Date.now() > 12 * 60 * 60 * 1000) {
+          errs.etd = "FRATs can only be submitted within 12 hours of departure";
+        }
+      }
+    }
     if (Object.keys(errs).length > 0) { setValidationErrors(errs); const firstKey = Object.keys(errs)[0]; const el = document.querySelector(`[data-field="${firstKey}"]`); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     setValidationErrors({});
     

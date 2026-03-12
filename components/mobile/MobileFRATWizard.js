@@ -961,6 +961,17 @@ export default function MobileFRATWizard({
       if (!fi.ete.trim()) errs.ete = "Enter time enroute (e.g. 1:30)";
       if (!fi.fuelLbs.trim()) errs.fuelLbs = `Enter fuel onboard in ${fuelUnit}`;
       if (!fi.numCrew || fi.numCrew === "0") errs.numCrew = "Enter number of crew";
+      // 12-hour advance submission limit
+      if (fi.date && fi.etd && !errs.date && !errs.etd) {
+        const t = (fi.etd || "").replace(/[^0-9]/g, "").padStart(4, "0");
+        const hh = parseInt(t.slice(0, 2), 10), mm = parseInt(t.slice(2, 4), 10);
+        if (!isNaN(hh) && !isNaN(mm)) {
+          const etdDate = new Date(`${fi.date}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00`);
+          if (!isNaN(etdDate.getTime()) && etdDate.getTime() - Date.now() > 12 * 60 * 60 * 1000) {
+            errs.etd = "FRATs can only be submitted within 12 hours of departure";
+          }
+        }
+      }
       setErrors(errs);
       return Object.keys(errs).length === 0;
     }
