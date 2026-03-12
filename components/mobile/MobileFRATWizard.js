@@ -266,7 +266,17 @@ function StepWeather({ wxData, wxAnalysis, wxLoading, wxError }) {
     );
   }
 
-  const summaries = wxAnalysis?.stationSummaries || [];
+  // Show one card per station (prefer METAR over TAF entries)
+  const summaries = (() => {
+    const all = wxAnalysis?.stationSummaries || [];
+    const seen = new Set();
+    return all.filter(s => {
+      const key = (s.station || "").toUpperCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  })();
 
   return (
     <div style={{ padding: "0 16px 16px" }}>

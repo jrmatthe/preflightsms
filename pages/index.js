@@ -4103,7 +4103,9 @@ export default function PVTAIRFrat() {
       setComplianceFrameworks([]); setComplianceStatusData([]);
       setInsuranceExports([]);
       setForeflightConfig(null); setForeflightFlights([]); setPendingFfFlights([]);
+      linkedFfIdsRef.current.clear();
       setSchedaeroConfig(null); setSchedaeroTrips([]); setPendingScTrips([]);
+      linkedScIdsRef.current.clear();
       setNudgeResponses([]); setReportPrefill(null);
 
       // Reset onboarding
@@ -4208,12 +4210,27 @@ export default function PVTAIRFrat() {
   const [nudgeResponses, setNudgeResponses] = useState([]);
   const [foreflightConfig, setForeflightConfig] = useState(null);
   const [foreflightFlights, setForeflightFlights] = useState([]);
-  const [pendingFfFlights, setPendingFfFlights] = useState([]);
+  const [pendingFfFlights, setPendingFfFlightsRaw] = useState([]);
   const linkedFfIdsRef = useRef(new Set());
   const [schedaeroConfig, setSchedaeroConfig] = useState(null);
   const [schedaeroTrips, setSchedaeroTrips] = useState([]);
-  const [pendingScTrips, setPendingScTrips] = useState([]);
+  const [pendingScTrips, setPendingScTripsRaw] = useState([]);
   const linkedScIdsRef = useRef(new Set());
+  // Safe setters that always filter out linked (FRAT-submitted) dispatch flights
+  const setPendingFfFlights = useCallback((dataOrFn) => {
+    setPendingFfFlightsRaw(prev => {
+      const next = typeof dataOrFn === "function" ? dataOrFn(prev) : dataOrFn;
+      if (!Array.isArray(next) || linkedFfIdsRef.current.size === 0) return next;
+      return next.filter(f => !linkedFfIdsRef.current.has(f.id));
+    });
+  }, []);
+  const setPendingScTrips = useCallback((dataOrFn) => {
+    setPendingScTripsRaw(prev => {
+      const next = typeof dataOrFn === "function" ? dataOrFn(prev) : dataOrFn;
+      if (!Array.isArray(next) || linkedScIdsRef.current.size === 0) return next;
+      return next.filter(f => !linkedScIdsRef.current.has(f.id));
+    });
+  }, []);
   const [erpPlans, setErpPlans] = useState([]);
   const [erpDrills, setErpDrills] = useState([]);
   const [spis, setSpis] = useState([]);
