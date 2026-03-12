@@ -725,8 +725,8 @@ export default function MobileFlightsView({
         </div>
       )}
 
-      {/* My Flights / All Flights toggle */}
-      {canSeeAllFlights && (
+      {/* My Flights / All Flights toggle or title */}
+      {canSeeAllFlights ? (
         <div style={{ padding: "12px 16px 0", display: "flex", gap: 0 }}>
           <div style={{ display: "flex", background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 3 }}>
             {["my", "all"].map(m => (
@@ -738,6 +738,10 @@ export default function MobileFlightsView({
               }}>{m === "my" ? "My Flights" : "All Flights"}</button>
             ))}
           </div>
+        </div>
+      ) : (
+        <div style={{ padding: "14px 16px 0" }}>
+          <span style={{ fontSize: 17, fontWeight: 800, color: WHITE }}>My Flights</span>
         </div>
       )}
 
