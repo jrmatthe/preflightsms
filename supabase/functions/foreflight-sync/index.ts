@@ -186,6 +186,16 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Fetch individual flight details for altitude/fuel data
+          let flightDetail: any = null;
+          try {
+            const detailRes = await fetch(`${FF_BASE}/public/api/Flights/flights/${ffId}`, {
+              method: "GET",
+              headers: ffHeaders,
+            });
+            if (detailRes.ok) flightDetail = await detailRes.json();
+          } catch { /* detail fetch optional */ }
+
           // Extract flight data — ForeFlight uses nested flightData object
           const fd = ff.flightData || ff;
 
@@ -226,8 +236,20 @@ Deno.serve(async (req) => {
           const passengerCount = paxArray.length > 0 ? paxArray.length
             : (loadObj.people != null && Array.isArray(fd.crew) ? loadObj.people - fd.crew.length : null);
           const crewCount = Array.isArray(fd.crew) ? fd.crew.length : pick<number>(fd, "crewCount", "numberOfCrew");
-          const fuelLbs = pick<number>(fd, "fuelLoad", "fuelLbs", "plannedFuel", "fuel");
-          const cruiseAltRaw = pick<string | number>(fd, "cruisingAltitude", "cruiseAltitude", "altitude");
+          // Fuel: check detail endpoint performance data, then fallback to list data
+          const perf = flightDetail?.performance || {};
+          const fuelObj = flightDetail?.fuel || {};
+          const fuelLbs = perf.totalFuel ?? perf.fuelToDestination ?? fuelObj.taxi
+            ?? pick<number>(fd, "fuelLoad", "fuelLbs", "plannedFuel", "fuel");
+          // Altitude: detail endpoint puts it in routeToDestination.altitude
+          const routeAlt = flightDetail?.routeToDestination?.altitude;
+          let cruiseAltRaw: string | number | null = null;
+          if (routeAlt?.altitude != null) {
+            cruiseAltRaw = routeAlt.unit === "FL" ? `FL${routeAlt.altitude}` : routeAlt.altitude;
+          }
+          if (cruiseAltRaw == null) {
+            cruiseAltRaw = pick<string | number>(fd, "cruisingAltitude", "cruiseAltitude", "altitude");
+          }
           const routeRaw = pick<string | string[]>(fd, "route", "routeOfFlight", "plannedRoute");
           const route = Array.isArray(routeRaw) ? routeRaw.join(" ") : routeRaw;
           // ForeFlight uses tripTime (seconds)
@@ -270,7 +292,7 @@ Deno.serve(async (req) => {
             eta,
             status: existingStatus || "pending",
             matched_pilot_id: matchedPilot?.id || null,
-            raw_data: ff,
+            raw_data: flightDetail || ff,
             updated_at: now.toISOString(),
             // Enhanced fields
             passenger_count: passengerCount,
