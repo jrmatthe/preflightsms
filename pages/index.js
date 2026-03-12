@@ -4603,13 +4603,11 @@ export default function PVTAIRFrat() {
     return () => clearInterval(interval);
   }, [profile, session]);
 
-  // ── Refresh data when tab becomes visible (cross-device sync) ──
+  // ── Cross-device sync: poll dispatch flights + refresh on focus/visibility ──
   useEffect(() => {
     const orgId = profile?.org_id;
     if (!orgId) return;
-    const handleVisibility = () => {
-      if (document.visibilityState !== "visible") return;
-      refreshAllData(orgId);
+    const refreshDispatch = () => {
       if (hasFeature(profile?.organizations, "foreflight_integration")) {
         fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || []));
       }
@@ -4617,8 +4615,21 @@ export default function PVTAIRFrat() {
         fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || []));
       }
     };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+    const handleRefresh = () => {
+      refreshAllData(orgId);
+      refreshDispatch();
+    };
+    // Poll every 30s so desktop stays in sync with mobile actions
+    const interval = setInterval(refreshDispatch, 30000);
+    // Also refresh on window focus and tab visibility change
+    window.addEventListener("focus", handleRefresh);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") handleRefresh();
+    });
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleRefresh);
+    };
   }, [profile]);
 
   // ── Refresh pending dispatch flights when FRAT view opens ──
