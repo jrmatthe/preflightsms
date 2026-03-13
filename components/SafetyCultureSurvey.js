@@ -506,7 +506,9 @@ export default function SafetyCultureSurvey({
     const { data: resp } = await onFetchResponses(survey.id);
     setResponses(resp || []);
     const { data: res } = await onFetchResults(survey.id);
-    setResults(res);
+    const fetchedResp = resp || [];
+    const totalMembers = (orgProfiles || []).length;
+    setResults(res || (fetchedResp.length > 0 ? calculateResults(survey, fetchedResp, totalMembers) : null));
     // Load all results for comparison
     const closedSurveys = (surveys || []).filter(s => s.status === "closed");
     const allRes = [];
