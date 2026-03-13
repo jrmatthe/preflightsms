@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, deletePolicy, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, unlinkForeflightFlightsByFlightId, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, unlinkSchedaeroTripsByFlightId, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences, updateProfileName } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, deletePolicy, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, unlinkForeflightFlightsByFlightId, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, unlinkSchedaeroTripsByFlightId, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, fetchUserSurveyResponseIds, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences, updateProfileName } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures, isFreeTier, FREE_TIER_LIMITS } from "../lib/tiers";
 import { getActiveMelItems, getMelExpirationStatus } from "../lib/melHelpers";
 import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE, haversineNm, flattenCoords, formatZulu } from "../lib/analyzeWeather";
@@ -2231,7 +2231,7 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick, dragHan
   );
 }
 
-function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, trainingRequirements, trainingRecords, policies, mocItems, erpPlans, erpDrills, onNavigate, org, session, myTodayFlights, onSelectFfFlight, onSelectScTrip }) {
+function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, trainingRequirements, trainingRecords, policies, mocItems, erpPlans, erpDrills, onNavigate, org, session, myTodayFlights, onSelectFfFlight, onSelectScTrip, cultureSurveys, mySurveyResponseIds, asapCorrActions }) {
   const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 20px" };
   const sectionTitle = { fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 };
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
@@ -2281,8 +2281,9 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   const overdueTraining = reqStatus.filter(r => r.status === "overdue");
   const expiringTraining = reqStatus.filter(r => r.status === "expiring");
 
-  // ── My Policies needing acknowledgment ──
-  const unackedPolicies = (policies || []).filter(Boolean).filter(p => {
+  // ── My Policies needing acknowledgment (only active policies require ack) ──
+  const activePolicies = (policies || []).filter(Boolean).filter(p => p.status === "active");
+  const unackedPolicies = activePolicies.filter(p => {
     const acks = p.acknowledgments || [];
     return !acks.some(a => a.user_id === userId);
   });
@@ -2467,32 +2468,133 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     </div>
   );
 
-  const allPolicies = (policies || []).filter(Boolean);
-  const policyCard = (
-    <div style={{ ...card, marginBottom: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: allPolicies.length > 0 ? 6 : 0, flexShrink: 0 }}>
-        <div style={sectionTitle}>My Policies</div>
-        <button onClick={() => onNavigate("policy")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>
-      </div>
-      {unackedPolicies.length > 0
-        ? <div style={{ fontSize: 11, color: AMBER, fontWeight: 600, marginBottom: 6 }}>{unackedPolicies.length} polic{unackedPolicies.length === 1 ? "y" : "ies"} need{unackedPolicies.length === 1 ? "s" : ""} acknowledgment</div>
-        : allPolicies.length > 0
-          ? <div style={{ fontSize: 11, color: GREEN, fontWeight: 600, marginBottom: 6 }}>All policies acknowledged</div>
-          : null
+  // ── My Compliance to-do list ──
+  const complianceItems = (() => {
+    const items = [];
+    const userRole = profile?.role || "pilot";
+    const isApprover = isAdmin || (profile?.permissions || []).includes("approver");
+    const isMgr = ["admin", "safety_manager"].includes(userRole);
+
+    // — All users: Unacknowledged policies —
+    unackedPolicies.forEach(p => {
+      items.push({ id: `policy-${p.id}`, label: p.title || "Untitled Policy", category: "Acknowledge Policy", nav: "policy", priority: 1, color: AMBER });
+    });
+
+    // — All users: Training —
+    reqStatus.forEach(({ req, status, expiry }) => {
+      if (status === "overdue") {
+        items.push({ id: `train-${req.id}`, label: req.title, category: "Overdue Training", detail: expiry ? `Expired ${expiry.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : null, nav: "cbt", priority: 0, color: RED });
+      } else if (status === "expiring") {
+        items.push({ id: `train-${req.id}`, label: req.title, category: "Training Due Soon", detail: expiry ? `Expires ${expiry.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : null, nav: "cbt", priority: 1, color: AMBER });
+      } else if (status === "not_started") {
+        items.push({ id: `train-${req.id}`, label: req.title, category: "Complete Training", nav: "cbt", priority: 2, color: CYAN });
       }
-      {allPolicies.length === 0 ? (
-        <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No policies published</div>
+    });
+
+    // — All users: Assigned corrective actions —
+    myActions.forEach(a => {
+      const overdue = a.due_date && new Date(a.due_date) < now;
+      items.push({ id: `action-${a.id}`, label: a.title || "Corrective Action", category: overdue ? "Overdue Action" : "Corrective Action", detail: a.due_date ? `Due ${new Date(a.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : null, nav: "hazards", priority: overdue ? 0 : 2, color: overdue ? RED : AMBER });
+    });
+
+    // — All users: Active culture surveys not yet responded —
+    const respondedSet = new Set(mySurveyResponseIds || []);
+    (cultureSurveys || []).filter(s => s.status === "active" && !respondedSet.has(s.id)).forEach(s => {
+      items.push({ id: `survey-${s.id}`, label: s.title || "Safety Culture Survey", category: "Complete Survey", nav: "dashboard", priority: 2, color: CYAN });
+    });
+
+    // — Approvers only: Pending FRAT approvals —
+    if (isApprover) {
+      pendingApprovals.forEach(f => {
+        items.push({ id: `approval-${f.dbId}`, label: `${pilotName(f.userId)} — ${f.departure || "?"} to ${f.destination || "?"}`, category: "FRAT Approval", detail: `Score ${f.score}`, nav: "flights", priority: 1, color: AMBER });
+      });
+    }
+
+    // — Admin/Safety Manager: Reports needing review —
+    if (isMgr) {
+      reportsNeedingReview.forEach(r => {
+        items.push({ id: `report-${r.id}`, label: r.title || r.report_code || "Safety Report", category: "Review Report", nav: "reports", priority: 2, color: CYAN });
+      });
+    }
+
+    // — Admin/Safety Manager: Org-wide overdue corrective actions (exclude already-listed personal ones) —
+    if (isMgr) {
+      allOverdueActions.filter(a => a.assigned_to !== userId).forEach(a => {
+        items.push({ id: `orgaction-${a.id}`, label: `${a.title || "Action"} — ${pilotName(a.assigned_to)}`, category: "Overdue Action (Org)", detail: a.due_date ? `Due ${new Date(a.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : null, nav: "hazards", priority: 0, color: RED });
+      });
+    }
+
+    // — Admin/Safety Manager: Audits due or overdue (within 30 days) —
+    if (isMgr) {
+      const auditSoon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      (auditSchedules || []).filter(Boolean).filter(a => a.next_due_date && new Date(a.next_due_date) <= auditSoon).forEach(a => {
+        const due = new Date(a.next_due_date);
+        const overdue = due < now;
+        items.push({ id: `audit-${a.id}`, label: a.name || a.template_name || "Audit", category: overdue ? "Overdue Audit" : "Audit Due Soon", detail: `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, nav: "audits", priority: overdue ? 0 : 1, color: overdue ? RED : AMBER });
+      });
+    }
+
+    // — Admin/Safety Manager: ERP plans needing review (within 30 days of 365-day cycle) —
+    if (isMgr) {
+      (erpPlans || []).filter(Boolean).filter(p => p.is_active).forEach(p => {
+        const lastReview = p.last_reviewed_at ? new Date(p.last_reviewed_at) : null;
+        const reviewDue = lastReview ? new Date(lastReview.getTime() + 365 * 86400000) : null;
+        const dueWithin30 = reviewDue ? reviewDue.getTime() <= now.getTime() + 30 * 86400000 : true;
+        if (!dueWithin30) return;
+        const overdue = !lastReview || reviewDue.getTime() <= now.getTime();
+        items.push({ id: `erp-${p.id}`, label: p.name || "ERP Plan", category: overdue ? "ERP Review Overdue" : "ERP Review Due Soon", detail: lastReview ? `Last reviewed ${lastReview.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "Never reviewed", nav: "erp", priority: overdue ? 0 : 1, color: overdue ? RED : AMBER });
+      });
+    }
+
+    // — Admin/Safety Manager: Open MOC items —
+    if (isMgr) {
+      openMocItems.forEach(m => {
+        items.push({ id: `moc-${m.id}`, label: m.title || "Change Request", category: "Review MOC", nav: "moc", priority: 2, color: CYAN });
+      });
+    }
+
+    // — Admin/Safety Manager: ASAP corrective actions not completed —
+    if (isMgr) {
+      (asapCorrActions || []).filter(a => a.status !== "completed" && a.status !== "closed").forEach(a => {
+        items.push({ id: `asap-${a.id}`, label: a.title || "ASAP Action", category: "ASAP Action Due", nav: "asap", priority: 1, color: AMBER });
+      });
+    }
+
+    // Sort: priority 0 (overdue/red) first, then 1 (amber), then 2 (cyan)
+    items.sort((a, b) => a.priority - b.priority);
+    return items;
+  })();
+
+  const complianceCard = (
+    <div style={{ ...card, marginBottom: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={sectionTitle}>My Compliance</div>
+          {complianceItems.length > 0 && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: complianceItems[0]?.color || AMBER, background: `${complianceItems[0]?.color || AMBER}15`, padding: "2px 8px", borderRadius: 10 }}>{complianceItems.length}</span>
+          )}
+        </div>
+      </div>
+      {complianceItems.length === 0 ? (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          <div style={{ fontSize: 13, fontWeight: 600, color: GREEN }}>All caught up</div>
+          <div style={{ fontSize: 11, color: MUTED }}>No compliance items need attention</div>
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto", minHeight: 0 }}>
-          {allPolicies.map((p, i) => {
-            const acked = (p.acknowledgments || []).some(a => a.user_id === userId);
-            return (
-              <div key={p.id || i} onClick={() => onNavigate("policy")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none", cursor: "pointer", gap: 8 }}>
-                <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.title || "Untitled Policy"}</span>
-                {statusBadge(acked ? "Acknowledged" : "Needs Ack", acked ? GREEN : AMBER)}
+          {complianceItems.map((item, i) => (
+            <div key={item.id} onClick={() => onNavigate(item.nav)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none", cursor: "pointer" }}>
+              <div style={{ width: 6, height: 6, borderRadius: 3, background: item.color, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</div>
+                <div style={{ fontSize: 10, color: MUTED, marginTop: 1, display: "flex", gap: 8 }}>
+                  <span>{item.category}</span>
+                  {item.detail && <span style={{ color: item.color }}>{item.detail}</span>}
+                </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -2578,7 +2680,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     investigations: { node: investigationCard, visible: isAdmin },
     my_actions: { node: myActionsCard, visible: isAdmin },
     audits: { node: auditCard, visible: isAdmin },
-    policies: { node: policyCard, visible: true },
+    policies: { node: complianceCard, visible: true },
     reviews: { node: reviewCard, visible: isAdmin },
     overdue: { node: overdueCard, visible: isAdmin },
     erp: { node: erpCard, visible: isAdmin },
@@ -4270,6 +4372,7 @@ export default function PVTAIRFrat() {
   const [declarations, setDeclarations] = useState([]);
   const [mocItems, setMocItems] = useState([]);
   const [cultureSurveys, setCultureSurveys] = useState([]);
+  const [mySurveyResponseIds, setMySurveyResponseIds] = useState([]);
   const [apiKeys, setApiKeys] = useState([]);
   const [webhooksData, setWebhooksData] = useState([]);
   const [asapConfig, setAsapConfig] = useState(null);
@@ -4508,6 +4611,7 @@ export default function PVTAIRFrat() {
     fetchDeclarations(orgId).then(({ data }) => setDeclarations(data || []));
     fetchMocItems(orgId).then(({ data }) => setMocItems(data || []));
     fetchCultureSurveys(orgId).then(({ data }) => setCultureSurveys(data || []));
+    if (session?.user?.id) fetchUserSurveyResponseIds(session.user.id).then(({ data }) => setMySurveyResponseIds(data || []));
     // API keys & webhooks
     fetchApiKeys(orgId).then(({ data }) => setApiKeys(data || []));
     fetchWebhooks(orgId).then(({ data }) => setWebhooksData(data || []));
@@ -5657,7 +5761,7 @@ export default function PVTAIRFrat() {
             </div>
           );
         })()}
-        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} myTodayFlights={myTodayFlights} onSelectFfFlight={setSelectedFfFlight} onSelectScTrip={setSelectedScTrip} />}
+        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} myTodayFlights={myTodayFlights} onSelectFfFlight={setSelectedFfFlight} onSelectScTrip={setSelectedScTrip} cultureSurveys={cultureSurveys} mySurveyResponseIds={mySurveyResponseIds} asapCorrActions={asapCorrActions} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
