@@ -2569,7 +2569,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     <div style={{ ...card, marginBottom: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={sectionTitle}>My Compliance</div>
+          <div style={sectionTitle}>My Compliance To Do List</div>
           {complianceItems.length > 0 && (
             <span style={{ fontSize: 10, fontWeight: 700, color: complianceItems[0]?.color || AMBER, background: `${complianceItems[0]?.color || AMBER}15`, padding: "2px 8px", borderRadius: 10 }}>{complianceItems.length}</span>
           )}
