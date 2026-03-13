@@ -2467,10 +2467,36 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     </div>
   );
 
-  const policyCard = listCard("My Policies", unackedPolicies.slice(0, 5), "All policies acknowledged", "policy", p => (<>
-    <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title || "Untitled Policy"}</span>
-    {statusBadge("Needs Ack", AMBER)}
-  </>), { emptyColor: GREEN });
+  const allPolicies = (policies || []).filter(Boolean);
+  const policyCard = (
+    <div style={{ ...card, marginBottom: 0, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: allPolicies.length > 0 ? 6 : 0, flexShrink: 0 }}>
+        <div style={sectionTitle}>My Policies</div>
+        <button onClick={() => onNavigate("policy")} style={{ background: "none", border: "none", color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>View All &rarr;</button>
+      </div>
+      {unackedPolicies.length > 0
+        ? <div style={{ fontSize: 11, color: AMBER, fontWeight: 600, marginBottom: 6 }}>{unackedPolicies.length} polic{unackedPolicies.length === 1 ? "y" : "ies"} need{unackedPolicies.length === 1 ? "s" : ""} acknowledgment</div>
+        : allPolicies.length > 0
+          ? <div style={{ fontSize: 11, color: GREEN, fontWeight: 600, marginBottom: 6 }}>All policies acknowledged</div>
+          : null
+      }
+      {allPolicies.length === 0 ? (
+        <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No policies published</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto", minHeight: 0 }}>
+          {allPolicies.map((p, i) => {
+            const acked = (p.acknowledgments || []).some(a => a.user_id === userId);
+            return (
+              <div key={p.id || i} onClick={() => onNavigate("policy")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none", cursor: "pointer", gap: 8 }}>
+                <span style={{ fontSize: 12, color: WHITE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.title || "Untitled Policy"}</span>
+                {statusBadge(acked ? "Acknowledged" : "Needs Ack", acked ? GREEN : AMBER)}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   // ── Admin cards ──
   const approvalCard = listCard("Pending FRAT Approvals", pendingApprovals.slice(0, 8), "No pending approvals", "flights", f => (<>
