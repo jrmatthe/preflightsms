@@ -370,20 +370,26 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
   // Progress for active flights — always based on ETD, not submission/approval time
   const progress = useMemo(() => {
     if (isArrived) return 100;
-    if (isPending || !flight.eta) return -1;
+    if (isPending) return 0;
+    if (!flight.eta) return -1;
     const now = Date.now();
-    const end = new Date(flight.eta).getTime();
     const eteMins = parseETE(flight.ete);
-    // Derive ETD from date + etd fields (preferred), or fall back to ETA - ETE
-    let start = null;
+    if (eteMins <= 0) return 0;
+    // Effective start = latest of: approvedAt, ETD, submission time
+    const candidates = [new Date(flight.timestamp).getTime()];
+    if (flight.approvedAt) candidates.push(new Date(flight.approvedAt).getTime());
+    if (flight.etd) candidates.push(new Date(flight.etd).getTime());
     if (flight.date && flight.etd) {
       const t = (flight.etd || "").replace(/[^0-9]/g, "").padStart(4, "0");
       const d = new Date(`${flight.date}T${t.slice(0, 2)}:${t.slice(2, 4)}:00`);
-      if (!isNaN(d.getTime())) start = d.getTime();
+      if (!isNaN(d.getTime())) candidates.push(d.getTime());
     }
-    if (start == null && eteMins > 0) start = end - eteMins * 60000;
-    if (start == null || isNaN(start) || end <= start) return 0;
-    return Math.max(0, Math.min(((now - start) / (end - start)) * 100, 95));
+    const effectiveStart = Math.max(...candidates.filter(t => !isNaN(t)));
+    const effectiveEnd = effectiveStart + eteMins * 60000;
+    if (isNaN(effectiveStart) || effectiveEnd <= effectiveStart) return 0;
+    if (now < effectiveStart) return 0;
+    const pct = ((now - effectiveStart) / (effectiveEnd - effectiveStart)) * 100;
+    return Math.max(0, Math.min(pct, 95));
   }, [flight, isArrived, isPending]);
 
   const borderColor = isOverdue ? `${RED}66` : isPending ? `${YELLOW}44` : BORDER;

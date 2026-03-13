@@ -1566,12 +1566,21 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
   };
 
   const getProgress = (f) => {
+    if (f.status === "ARRIVED") return 100;
+    if (f.approvalStatus === "pending" || f.status === "PENDING_APPROVAL") return 0;
     if (!f.eta) return -1;
-    const end = new Date(f.eta).getTime();
     const eteMins = parseETE(f.ete);
-    let start = end - eteMins * 60000;
-    if (eteMins <= 0 || isNaN(start) || end <= start) return 0;
-    return Math.max(0, Math.min(((now - start) / (end - start)) * 100, 95));
+    if (eteMins <= 0) return 0;
+    // Effective start = latest of: approvedAt, ETD, submission time
+    const candidates = [new Date(f.timestamp).getTime()];
+    if (f.approvedAt) candidates.push(new Date(f.approvedAt).getTime());
+    if (f.etd) candidates.push(new Date(f.etd).getTime());
+    const effectiveStart = Math.max(...candidates.filter(t => !isNaN(t)));
+    const effectiveEnd = effectiveStart + eteMins * 60000;
+    if (isNaN(effectiveStart) || effectiveEnd <= effectiveStart) return 0;
+    if (now < effectiveStart) return 0;
+    const pct = ((now - effectiveStart) / (effectiveEnd - effectiveStart)) * 100;
+    return Math.max(0, Math.min(pct, 95));
   };
 
   const sectionHeader = (icon, label, count) => (
@@ -1843,22 +1852,17 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
     if (f.status === "ARRIVED") return 100;
     if (isPending(f)) return 0;
     if (!f.eta) return -1;
-    const end = new Date(f.eta).getTime();
     const eteMins = parseETE(f.ete);
-    // If flight was approved, use max(approvedAt, planned ETD) as start
-    if (f.approvedAt) {
-      const approvedAtMs = new Date(f.approvedAt).getTime();
-      const plannedEtdMs = eteMins > 0 ? end - eteMins * 60000 : approvedAtMs;
-      const actualStart = Math.max(approvedAtMs, plannedEtdMs);
-      const adjustedEnd = actualStart + eteMins * 60000;
-      if (isNaN(actualStart) || isNaN(adjustedEnd) || adjustedEnd <= actualStart) return 0;
-      const pct = ((now - actualStart) / (adjustedEnd - actualStart)) * 100;
-      return Math.max(0, Math.min(pct, 95));
-    }
-    // Compute actual departure time from eta minus ete (more accurate than created_at)
-    const start = eteMins > 0 ? end - eteMins * 60000 : new Date(f.timestamp).getTime();
-    if (isNaN(end) || isNaN(start) || end <= start) return 0;
-    const pct = ((now - start) / (end - start)) * 100;
+    if (eteMins <= 0) return 0;
+    // Effective start = latest of: approvedAt, ETD, submission time
+    const candidates = [new Date(f.timestamp).getTime()];
+    if (f.approvedAt) candidates.push(new Date(f.approvedAt).getTime());
+    if (f.etd) candidates.push(new Date(f.etd).getTime());
+    const effectiveStart = Math.max(...candidates.filter(t => !isNaN(t)));
+    const effectiveEnd = effectiveStart + eteMins * 60000;
+    if (isNaN(effectiveStart) || effectiveEnd <= effectiveStart) return 0;
+    if (now < effectiveStart) return 0;
+    const pct = ((now - effectiveStart) / (effectiveEnd - effectiveStart)) * 100;
     return Math.max(0, Math.min(pct, 95));
   };
 
