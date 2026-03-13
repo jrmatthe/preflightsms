@@ -263,7 +263,7 @@ export default function InternalEvaluation({
   profile, session, org, orgProfiles,
   auditTemplates, iepAudits, auditSchedules,
   onCreateTemplate, onUpdateTemplate, onDeleteTemplate,
-  onCreateAudit, onUpdateAudit,
+  onCreateAudit, onUpdateAudit, onDeleteAudit,
   onLoadResponses, onSaveResponse, onSaveResponses,
   onCreateSchedule, onUpdateSchedule, onDeleteSchedule,
   onInitTemplates, onCreateAction, onRefreshAudits,
@@ -952,6 +952,12 @@ export default function InternalEvaluation({
                     {a.overall_score != null && <span style={{ fontSize: 14, fontWeight: 800, color: a.overall_score >= 80 ? GREEN : a.overall_score >= 60 ? AMBER : RED }}>{a.overall_score}%</span>}
                     <span style={{ fontSize: 11, color: MUTED }}>{auditorName}</span>
                     <span style={{ fontSize: 11, color: MUTED }}>{a.started_at ? new Date(a.started_at).toLocaleDateString() : "—"}</span>
+                    {isAdmin && onDeleteAudit && (
+                      <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete audit ${a.audit_code}? This cannot be undone.`)) onDeleteAudit(a.id); }}
+                        style={{ padding: "4px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "rgba(239,68,68,0.1)", color: RED, border: `1px solid rgba(239,68,68,0.25)` }}>
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
