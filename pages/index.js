@@ -2260,7 +2260,7 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick, dragHan
   );
 }
 
-function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSchedules, auditTemplates, trainingRequirements, trainingRecords, policies, mocItems, erpPlans, erpDrills, onNavigate, org, session, myTodayFlights, onSelectFfFlight, onSelectScTrip, cultureSurveys, mySurveyResponseIds, asapCorrActions }) {
+function HomeView({ profile, profiles, frats, flights, reports, actions, hazards, auditSchedules, auditTemplates, trainingRequirements, trainingRecords, policies, mocItems, erpPlans, erpDrills, onNavigate, org, session, myTodayFlights, onSelectFfFlight, onSelectScTrip, cultureSurveys, mySurveyResponseIds, asapCorrActions }) {
   const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 20px" };
   const sectionTitle = { fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 };
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
@@ -2330,8 +2330,16 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
   const openMocItems = (mocItems || []).filter(Boolean).filter(m => m.status !== "completed" && m.status !== "cancelled");
 
   const riskColor = (score) => score >= 46 ? RED : score >= 31 ? AMBER : score >= 16 ? YELLOW : GREEN;
-  const approvalLabel = (s) => s === "approved" ? "Approved" : s === "rejected" ? "Rejected" : s === "auto_approved" ? "Auto" : "Pending";
-  const approvalColor = (s) => s === "approved" || s === "auto_approved" ? GREEN : s === "rejected" ? RED : AMBER;
+  const resolveApprovalStatus = (frat) => {
+    if (frat.approvalStatus === "pending") {
+      const linkedFlight = (flights || []).find(f => f.id === frat.id || f.fratDbId === frat.dbId);
+      if (linkedFlight && (linkedFlight.approvalStatus === "approved" || linkedFlight.status === "ARRIVED")) return "approved";
+      if (linkedFlight && linkedFlight.approvalStatus === "pilot_dispatched") return "pilot_dispatched";
+    }
+    return frat.approvalStatus;
+  };
+  const approvalLabel = (s) => s === "approved" ? "Approved" : s === "rejected" ? "Rejected" : s === "auto_approved" ? "Auto" : s === "pilot_dispatched" ? "Self-Dispatch" : "Pending";
+  const approvalColor = (s) => s === "approved" || s === "auto_approved" ? GREEN : s === "rejected" ? RED : s === "pilot_dispatched" ? AMBER : AMBER;
   const reportStatusColor = (s) => s === "closed" ? GREEN : s === "under_review" || s === "investigation" ? AMBER : CYAN;
 
   const pilotName = (uid) => {
@@ -2430,7 +2438,7 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
     </div>
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span style={{ fontSize: 12, fontWeight: 700, color: riskColor(f.score) }}>{f.score} <span style={{ fontSize: 9, fontWeight: 600, color: MUTED }}>score</span></span>
-      {statusBadge(approvalLabel(f.approvalStatus), approvalColor(f.approvalStatus))}
+      {statusBadge(approvalLabel(resolveApprovalStatus(f)), approvalColor(resolveApprovalStatus(f)))}
     </div>
   </>));
 
@@ -5794,7 +5802,7 @@ export default function PVTAIRFrat() {
             </div>
           );
         })()}
-        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} auditTemplates={auditTemplatesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} myTodayFlights={myTodayFlights} onSelectFfFlight={setSelectedFfFlight} onSelectScTrip={setSelectedScTrip} cultureSurveys={cultureSurveys} mySurveyResponseIds={mySurveyResponseIds} asapCorrActions={asapCorrActions} />}
+        {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} flights={flights} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} auditTemplates={auditTemplatesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} myTodayFlights={myTodayFlights} onSelectFfFlight={setSelectedFfFlight} onSelectScTrip={setSelectedScTrip} cultureSurveys={cultureSurveys} mySurveyResponseIds={mySurveyResponseIds} asapCorrActions={asapCorrActions} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
           : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
