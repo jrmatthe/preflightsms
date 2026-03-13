@@ -445,10 +445,20 @@ export default function InternalEvaluation({
       completed_at: new Date().toISOString(),
       overall_score: score,
     });
+    // Advance any linked schedule's next_due_date
+    const linkedSchedule = (auditSchedules || []).find(s => s.template_id === executingAudit.template_id && s.is_active);
+    if (linkedSchedule && onUpdateSchedule) {
+      const freq = FREQUENCY_OPTIONS.find(f => f.id === linkedSchedule.frequency);
+      if (freq) {
+        const next = new Date();
+        next.setMonth(next.getMonth() + freq.months);
+        await onUpdateSchedule(linkedSchedule.id, { next_due_date: next.toISOString().split("T")[0], last_completed_at: new Date().toISOString() });
+      }
+    }
     if (onRefreshAudits) await onRefreshAudits();
     setExecutingAudit(null);
     setAuditResponses([]);
-  }, [executingAudit, auditResponses, onUpdateAudit, onRefreshAudits]);
+  }, [executingAudit, auditResponses, onUpdateAudit, onRefreshAudits, auditSchedules, onUpdateSchedule]);
 
   // ── PDF Export ──
   const exportPdf = useCallback((audit, responses) => {
@@ -468,10 +478,17 @@ export default function InternalEvaluation({
       html += `<h2>${sec.title}</h2>`;
       const secResponses = responses.filter(r => r.section_title === sec.title);
       for (const r of secResponses) {
-        html += `<div class="q"><div class="q-text">${r.question_text}</div>`;
-        html += `<div class="q-resp">Response: <strong>${r.response || "—"}</strong></div>`;
-        if (r.finding_text) html += `<div class="finding">Finding: ${r.finding_text} (${r.severity || ""})</div>`;
-        if (r.evidence) html += `<div class="q-resp" style="color:#555">Evidence: ${r.evidence}</div>`;
+        const isNonYes = r.response && r.response !== "yes";
+        const respColor = r.response === "no" ? "#d32f2f" : r.response === "partial" ? "#ed6c02" : "#333";
+        html += `<div class="q" ${isNonYes ? 'style="border-left:3px solid ' + respColor + ';background:#fafafa"' : ''}>`;
+        html += `<div class="q-text">${r.question_text}</div>`;
+        html += `<div class="q-resp">Response: <strong style="color:${isNonYes ? respColor : '#2e7d32'}">${r.response || "—"}</strong></div>`;
+        if (isNonYes) {
+          if (r.severity) html += `<div style="margin-top:4px;font-size:11px;font-weight:700;color:${respColor}">Severity: ${r.severity === "major_finding" ? "Major Finding" : r.severity === "minor_finding" ? "Minor Finding" : "Observation"}</div>`;
+          if (r.finding_text) html += `<div class="finding" style="margin-top:4px">Finding: ${r.finding_text}</div>`;
+          else html += `<div style="margin-top:4px;font-size:11px;color:#999;font-style:italic">No finding description provided</div>`;
+          if (r.evidence) html += `<div class="q-resp" style="color:#555;margin-top:2px">Evidence: ${r.evidence}</div>`;
+        }
         html += `</div>`;
       }
     }
@@ -789,17 +806,41 @@ export default function InternalEvaluation({
           return (
             <div key={si} style={{ marginBottom: 16 }}>
               <h3 style={{ fontSize: 14, color: CYAN, fontWeight: 700, marginBottom: 8, borderBottom: `1px solid ${BORDER}`, paddingBottom: 6 }}>{sec.title}</h3>
-              {secResp.map((r, ri) => (
-                <div key={ri} style={{ padding: "10px 14px", marginBottom: 4, borderRadius: 6, background: r.severity ? "rgba(245,158,11,0.05)" : "transparent", border: `1px solid ${r.severity ? "rgba(245,158,11,0.2)" : BORDER}` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12, color: WHITE, fontWeight: 600 }}>{r.question_text}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: r.response === "yes" ? GREEN : r.response === "no" ? RED : r.response === "partial" ? AMBER : MUTED }}>{r.response || "—"}</span>
+              {secResp.map((r, ri) => {
+                const isNonYes = r.response && r.response !== "yes";
+                const responseColor = r.response === "yes" ? GREEN : r.response === "no" ? RED : r.response === "partial" ? AMBER : MUTED;
+                return (
+                  <div key={ri} style={{ padding: "10px 14px", marginBottom: isNonYes ? 8 : 4, borderRadius: 6, background: isNonYes ? "rgba(245,158,11,0.05)" : "transparent", border: `1px solid ${isNonYes ? "rgba(245,158,11,0.2)" : BORDER}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <span style={{ fontSize: 12, color: WHITE, fontWeight: 600, flex: 1 }}>{r.question_text}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: responseColor, flexShrink: 0, marginLeft: 12 }}>{r.response || "—"}</span>
+                    </div>
+                    {isNonYes && (
+                      <div style={{ marginTop: 8, padding: 10, background: DARK, borderRadius: 6, border: `1px solid ${BORDER}` }}>
+                        {r.severity && (
+                          <div style={{ marginBottom: 6 }}>
+                            <span style={badge(SEVERITY_COLORS[r.severity]?.bg || "", SEVERITY_COLORS[r.severity]?.color || MUTED)}>{SEVERITY_COLORS[r.severity]?.label || r.severity}</span>
+                          </div>
+                        )}
+                        {r.finding_text ? (
+                          <div style={{ marginBottom: 6 }}>
+                            <span style={{ fontSize: 10, color: AMBER, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Finding</span>
+                            <div style={{ fontSize: 12, color: OFF_WHITE, marginTop: 2, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{r.finding_text}</div>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic", marginBottom: 6 }}>No finding description provided</div>
+                        )}
+                        {r.evidence && (
+                          <div>
+                            <span style={{ fontSize: 10, color: MUTED, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Evidence</span>
+                            <div style={{ fontSize: 12, color: OFF_WHITE, marginTop: 2, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{r.evidence}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {r.finding_text && <div style={{ fontSize: 11, color: AMBER, marginTop: 4 }}>Finding: {r.finding_text}</div>}
-                  {r.severity && <span style={badge(SEVERITY_COLORS[r.severity]?.bg || "", SEVERITY_COLORS[r.severity]?.color || MUTED)}>{SEVERITY_COLORS[r.severity]?.label || r.severity}</span>}
-                  {r.evidence && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>Evidence: {r.evidence}</div>}
-                </div>
-              ))}
+                );
+              })}
             </div>
           );
         })}
