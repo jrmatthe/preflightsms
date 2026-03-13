@@ -506,7 +506,7 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip, org, prefill, onClearPrefill }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip, org, prefill, onClearPrefill, session, profile, onUpdateMel }) {
   // AI Risk Suggestions state
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
@@ -859,33 +859,37 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
         notes: melDeferForm.notes.trim(),
         status: "open",
         closed_date: null,
-        deferred_by: session?.user?.id,
+        deferred_by: session?.user?.id || null,
         deferred_by_name: profile?.full_name || "Unknown",
       };
       const updatedItems = [...(selectedAircraftObj.mel_items || []), newItem];
-      await updateAircraftMel(selectedAircraftObj.id, updatedItems);
-      const { data } = await fetchAircraft(profile?.org_id);
-      setFleetAircraft(data || []);
+      if (onUpdateMel) {
+        await onUpdateMel(selectedAircraftObj.id, updatedItems);
+      } else {
+        await updateAircraftMel(selectedAircraftObj.id, updatedItems);
+      }
       // Audit log
-      createMelAuditEntry(profile.org_id, {
-        aircraft_id: selectedAircraftObj.id,
-        mel_item_id: newItem.id,
-        action: "deferred",
-        performed_by: session.user.id,
-        performed_by_name: profile.full_name || "Unknown",
-        category: newItem.category,
-        description: newItem.description,
-        mel_reference: newItem.mel_reference,
-      });
-      // Notify maintenance + chief_pilot
-      createNotification(profile.org_id, {
-        type: "mel_deferred",
-        title: "MEL Item Deferred",
-        body: `${profile.full_name} deferred MEL on ${selectedAircraftObj.registration}: ${newItem.description}`,
-        link_tab: "fleet",
-        link_id: selectedAircraftObj.id,
-        target_roles: ["maintenance", "chief_pilot", "admin"],
-      });
+      if (orgId) {
+        createMelAuditEntry(orgId, {
+          aircraft_id: selectedAircraftObj.id,
+          mel_item_id: newItem.id,
+          action: "deferred",
+          performed_by: session?.user?.id || null,
+          performed_by_name: profile?.full_name || "Unknown",
+          category: newItem.category,
+          description: newItem.description,
+          mel_reference: newItem.mel_reference,
+        });
+        // Notify maintenance + chief_pilot
+        createNotification(orgId, {
+          type: "mel_deferred",
+          title: "MEL Item Deferred",
+          body: `${profile?.full_name || "Pilot"} deferred MEL on ${selectedAircraftObj.registration}: ${newItem.description}`,
+          link_tab: "fleet",
+          link_id: selectedAircraftObj.id,
+          target_roles: ["maintenance", "chief_pilot", "admin"],
+        });
+      }
       setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" });
       setMelDeferOpen(false);
       setMelDeferSuccess("MEL item deferred — ac_mel risk factor applied");
@@ -5964,7 +5968,7 @@ export default function PVTAIRFrat() {
         {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} flights={flights} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} auditTemplates={auditTemplatesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} myTodayFlights={myTodayFlights} onSelectFfFlight={setSelectedFfFlight} onSelectScTrip={setSelectedScTrip} cultureSurveys={cultureSurveys} mySurveyResponseIds={mySurveyResponseIds} asapCorrActions={asapCorrActions} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} session={session} profile={profile} onUpdateMel={async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); }} />)}
         {cv === "flights" && (() => {
           const showMyFlights = flightsMode === "my" || !canSeeAllFlights;
           const handleDeleteFlight = async (flight) => {
