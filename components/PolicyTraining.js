@@ -205,9 +205,34 @@ export default function PolicyTraining({
     return list;
   }, [allUserPolicies, filter, search, sortBy]);
 
+  const ackComplianceMatrix = useMemo(() => {
+    if (!isAdmin || !orgProfiles?.length) return { users: [], tags: PART5_TAG_OPTIONS, matrix: {}, compliantCount: 0, totalUsers: 0 };
+    const activePolicies = policies.filter(p => p.status === "active");
+    const users = orgProfiles.filter(u => u.full_name).sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
+    const matrix = {};
+    let compliantCount = 0;
+    users.forEach(user => {
+      matrix[user.id] = {};
+      let fullyCompliant = true;
+      PART5_TAG_OPTIONS.forEach(tag => {
+        const taggedPolicies = activePolicies.filter(p => p.part5_tags?.includes(tag.id));
+        if (taggedPolicies.length === 0) {
+          matrix[user.id][tag.id] = "no_document";
+        } else {
+          const hasAck = taggedPolicies.some(p => p.acknowledgments?.some(a => a.user_id === user.id));
+          matrix[user.id][tag.id] = hasAck ? "acknowledged" : "not_acknowledged";
+          if (!hasAck) fullyCompliant = false;
+        }
+      });
+      if (fullyCompliant) compliantCount++;
+    });
+    return { users, tags: PART5_TAG_OPTIONS, matrix, compliantCount, totalUsers: users.length };
+  }, [isAdmin, policies, orgProfiles]);
+
   // Top-level tab bar (Policy Library | SMS Manuals)
   const tabs = [["policies", "Policy Library"]];
   if (showManuals) tabs.push(["manuals", "SMS Manual Templates"]);
+  if (isAdmin) tabs.push(["compliance", "Acknowledgment Compliance"]);
   const renderTopTabs = () => tabs.length > 1 ? (
     <div data-tour="tour-policy-tabs" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {tabs.map(([id, label]) => (
@@ -221,6 +246,72 @@ export default function PolicyTraining({
 
   // Forms
   if (view === "new_policy") return <PolicyForm onSubmit={p => { onCreatePolicy(p); setView("list"); }} onCancel={() => setView("list")} onAiDraftPolicy={onAiDraftPolicy} />;
+
+  // Compliance tab (admin-only)
+  if (topTab === "compliance" && isAdmin) {
+    const { users, tags, matrix, compliantCount, totalUsers } = ackComplianceMatrix;
+    const ackDot = (status) => {
+      if (status === "no_document") return <span title="No document uploaded" style={{ color: MUTED, fontSize: 14, lineHeight: 1 }}>—</span>;
+      if (status === "acknowledged") return <span title="Acknowledged" style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: GREEN }} />;
+      return <span title="Not acknowledged" style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "#333" }} />;
+    };
+    return (
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Document Acknowledgment Compliance</div>
+            <div style={{ fontSize: 11, color: MUTED }}>Per-user acknowledgment status across Part 5 requirements</div>
+          </div>
+        </div>
+        {renderTopTabs()}
+        <div style={{ ...card, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: compliantCount === totalUsers ? GREEN : YELLOW }}>
+            {compliantCount} of {totalUsers}
+          </div>
+          <div style={{ fontSize: 12, color: MUTED }}>users fully compliant</div>
+          <div style={{ flex: 1 }} />
+          <div style={{ display: "flex", gap: 12, fontSize: 10, color: MUTED }}>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: GREEN, marginRight: 4 }} />Acknowledged</span>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#333", marginRight: 4 }} />Not acknowledged</span>
+            <span><span style={{ color: MUTED, marginRight: 4 }}>—</span> No document</span>
+          </div>
+        </div>
+        {users.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
+            <div style={{ fontSize: 42, marginBottom: 12 }}>📊</div>
+            <div style={{ fontSize: 14 }}>No users found</div>
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111", minWidth: 140 }}>User</th>
+                  {tags.map(t => (
+                    <th key={t.id} style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, fontSize: 10, maxWidth: 100, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={`${t.label} (${t.cfr})`}>
+                      {t.label.length > 16 ? t.label.slice(0, 15) + "…" : t.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(user => (
+                  <tr key={user.id}>
+                    <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111" }}>{user.full_name}</td>
+                    {tags.map(t => (
+                      <td key={t.id} style={{ textAlign: "center", padding: "6px", borderBottom: `1px solid ${BORDER}` }}>
+                        {ackDot(matrix[user.id]?.[t.id] || "not_acknowledged")}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // SMS Manual Templates subtab
   if (topTab === "manuals" && showManuals) {
