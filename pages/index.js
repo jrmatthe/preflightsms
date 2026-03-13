@@ -2932,8 +2932,9 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
     "safety_culture", "frat_history", "insurance", "export",
   ];
 
-  // Fixed box grid positions (wireframe structure — these never change)
-  const getBoxStyle = (idx) => {
+  // Fixed box grid positions — first 5 are fixed, idx 5+ flow dynamically
+  const WIDE_CARDS = { safety_culture: 2 };
+  const getBoxStyle = (idx, cardId) => {
     switch (idx) {
       case 0: return { gridColumn: "1 / -1", gridRow: "1 / 2" };       // full width
       case 1: return { gridColumn: "1 / 3", gridRow: "2 / 3" };       // 2-col left
@@ -2941,10 +2942,19 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
       case 3: return { gridColumn: "1 / 2", gridRow: "3 / 4" };       // 1-col left
       case 4: return { gridColumn: "2 / 3", gridRow: "3 / 4" };       // 1-col middle
       default: {
-        const r = idx - 5;
-        const row = 4 + Math.floor(r / 3);
-        const col = (r % 3) + 1;
-        return { gridColumn: `${col} / ${col + 1}`, gridRow: `${row} / ${row + 1}` };
+        // Compute flow positions for idx 5+ accounting for wide cards
+        let col = 1, row = 4;
+        for (let i = 5; i <= idx; i++) {
+          const cId = visibleCards[i];
+          const span = WIDE_CARDS[cId] || 1;
+          if (i === idx) {
+            if (col + span - 1 > 3) { col = 1; row++; }
+            return { gridColumn: span > 1 ? `${col} / ${col + span}` : `${col} / ${col + 1}`, gridRow: `${row} / ${row + 1}` };
+          }
+          if (col + span - 1 > 3) { col = 1; row++; }
+          col += span;
+          if (col > 3) { col = 1; row++; }
+        }
       }
     }
   };
@@ -2979,8 +2989,9 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
   const visibleCards = cardOrder.filter(id => CARD_GATES[id] !== false);
   const numVisible = visibleCards.length;
 
-  // Grid rows: fixed heights per wireframe
-  const rowCount = numVisible <= 0 ? 0 : numVisible === 1 ? 1 : numVisible === 2 ? 2 : numVisible <= 5 ? 3 : 3 + Math.ceil((numVisible - 5) / 3);
+  // Grid rows: fixed heights per wireframe (account for wide cards in dynamic section)
+  const dynamicSlots = visibleCards.slice(5).reduce((sum, id) => sum + (WIDE_CARDS[id] || 1), 0);
+  const rowCount = numVisible <= 0 ? 0 : numVisible === 1 ? 1 : numVisible === 2 ? 2 : numVisible <= 5 ? 3 : 3 + Math.ceil(dynamicSlots / 3);
   const gridTemplateRows = Array.from({ length: rowCount }, (_, i) => i === 0 ? "100px" : i === 1 ? "320px" : i === 2 ? "380px" : "360px").join(" ");
 
   // Live reorder: move dragged card to target box position
@@ -3169,7 +3180,7 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
                   lastOverBox.current = null;
                 }}
                 style={{
-                  ...getBoxStyle(boxIdx),
+                  ...getBoxStyle(boxIdx, cardId),
                   borderRadius: 10,
                   overflow: "hidden",
                   outline: isDragging
