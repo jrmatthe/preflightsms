@@ -222,6 +222,7 @@ export default function EmergencyResponsePlan({
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [filterCat, setFilterCat] = useState("all");
   const [search, setSearch] = useState("");
+  const [ackingPlanId, setAckingPlanId] = useState(null);
   const [form, setForm] = useState({ name: "", category: "general", description: "" });
   const [showHelp, setShowHelp] = useState(false);
 
@@ -310,7 +311,16 @@ export default function EmergencyResponsePlan({
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {needsAck && <Badge label="Acknowledge" color={AMBER} />}
+                  {needsAck && onAcknowledgeErp && (
+                    <button onClick={async (e) => {
+                      e.stopPropagation();
+                      setAckingPlanId(plan.id);
+                      await onAcknowledgeErp(plan.id, plan.version || 1);
+                      setAckingPlanId(null);
+                    }} disabled={ackingPlanId === plan.id} style={{ display: "inline-block", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: `${AMBER}15`, color: AMBER, border: `1px solid ${AMBER}30`, letterSpacing: 0.3, cursor: "pointer", fontFamily: "inherit" }}>
+                      {ackingPlanId === plan.id ? "..." : "Acknowledge"}
+                    </button>
+                  )}
                   {!needsAck && myAck && plan.is_active && <Badge label="Acknowledged" color={GREEN} />}
                   {nr && <Badge label="Needs Review" color={AMBER} />}
                   <Badge label={plan.is_active ? "Active" : "Inactive"} color={plan.is_active ? GREEN : MUTED} />

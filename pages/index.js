@@ -2425,8 +2425,17 @@ function HomeView({ profile, profiles, frats, flights, reports, actions, hazards
 
   // ── Resolve FRAT approval status by cross-referencing linked flights ──
   const resolveApprovalStatus = (frat) => {
-    if (frat.approvalStatus === "pending") {
-      const linkedFlight = (flights || []).find(f => f.id === frat.id || f.fratDbId === frat.dbId);
+    if (frat.approvalStatus === "pending" || frat.approvalStatus === "review") {
+      // Primary: match by frat_code or frat_id linkage
+      let linkedFlight = (flights || []).find(f => f.id === frat.id || f.fratDbId === frat.dbId);
+      // Fallback: match by route + tail + same day (handles orphaned FRATs where flight link is missing)
+      if (!linkedFlight && frat.departure && frat.destination) {
+        const fratDate = frat.timestamp ? new Date(frat.timestamp).toDateString() : null;
+        linkedFlight = (flights || []).find(f =>
+          f.departure === frat.departure && f.destination === frat.destination &&
+          f.tailNumber === frat.tailNumber && fratDate && new Date(f.timestamp).toDateString() === fratDate
+        );
+      }
       if (linkedFlight && (linkedFlight.approvalStatus === "approved" || linkedFlight.status === "ARRIVED")) return "approved";
       if (linkedFlight && linkedFlight.approvalStatus === "pilot_dispatched") return "pilot_dispatched";
     }
