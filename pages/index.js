@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, deletePolicy, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, unlinkForeflightFlightsByFlightId, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, unlinkSchedaeroTripsByFlightId, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, acknowledgeErpPlan, clearErpAcknowledgments, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, deleteAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, fetchUserSurveyResponseIds, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences, updateProfileName, reconcileStaleFratApprovals } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, deletePolicy, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, saveTourState, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, unlinkForeflightFlightsByFlightId, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, unlinkSchedaeroTripsByFlightId, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, acknowledgeErpPlan, clearErpAcknowledgments, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, deleteAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, fetchUserSurveyResponseIds, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences, updateProfileName, reconcileStaleFratApprovals } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures, isFreeTier, FREE_TIER_LIMITS } from "../lib/tiers";
 import { getActiveMelItems, getMelExpirationStatus } from "../lib/melHelpers";
 import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE, haversineNm, flattenCoords, formatZulu } from "../lib/analyzeWeather";
@@ -28,9 +28,11 @@ const InsuranceScorecard = dynamic(() => import("../components/InsuranceScorecar
 const UpgradePrompt = dynamic(() => import("../components/UpgradePrompt"), { ssr: false });
 const OnboardingDashboard = dynamic(() => import("../components/OnboardingDashboard"), { ssr: false });
 const OnboardingFlow = dynamic(() => import("../components/OnboardingFlow"), { ssr: false });
+const TourChecklist = dynamic(() => import("../components/TourChecklist"), { ssr: false });
 const MobileLayout = dynamic(() => import("../components/mobile/MobileLayout"), { ssr: false });
 import useIsMobile, { setDesktopPreference } from "../lib/useIsMobile";
 import { ONBOARDING_FLOWS, FLOW_ORDER } from "../lib/onboardingFlows";
+import { getTourFlowsForRole } from "../lib/tourFlows";
 
 const COMPANY_NAME = "PreflightSMS";
 const LOGO_URL = "/logo.png";
@@ -275,17 +277,21 @@ function getSection(cv) {
   return NAV_SECTIONS.find(s => s.cvs.includes(cv)) || NAV_SECTIONS[0];
 }
 
-function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding, onboardingState, onStartFlow, isTrial, onStartFresh, activeFlow }) {
+function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding, onboardingState, onStartFlow, isTrial, onStartFresh, activeFlow, showTour, tourState, tourFlows, tourOrder, onStartTour, onDismissTour, activeTour }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingClosing, setOnboardingClosing] = useState(false);
   const didAutoOpen = useRef(false);
   const prevActiveFlow = useRef(activeFlow);
+  const prevActiveTour = useRef(activeTour);
   useEffect(() => {
     if (showOnboarding && !didAutoOpen.current) {
       didAutoOpen.current = true;
       setMenuOpen("onboarding");
+    } else if (showTour && !didAutoOpen.current) {
+      didAutoOpen.current = true;
+      setMenuOpen("tour");
     }
-  }, [showOnboarding]);
+  }, [showOnboarding, showTour]);
   useEffect(() => {
     if (prevActiveFlow.current && !activeFlow && showOnboarding) {
       setMenuOpen("onboarding");
@@ -293,6 +299,13 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
     }
     prevActiveFlow.current = activeFlow;
   }, [activeFlow, showOnboarding]);
+  useEffect(() => {
+    if (prevActiveTour.current && !activeTour && showTour) {
+      setMenuOpen("tour");
+      setOnboardingClosing(false);
+    }
+    prevActiveTour.current = activeTour;
+  }, [activeTour, showTour]);
   // SVG icons — monochrome, inherit color from parent
   const I = (d, s = 18) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
   const icons = {
@@ -407,6 +420,57 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
                 }}>
                 <div style={{ padding: "4px 0" }}>
                   <OnboardingDashboard onboardingState={onboardingState} onStartFlow={(flowId) => { setOnboardingClosing(true); onStartFlow(flowId); }} isTrial={isTrial} onStartFresh={onStartFresh} />
+                </div>
+              </div>
+            </>)}
+          </div>
+        );
+      })()}
+      {showTour && (() => {
+        const tFlows = tourState?.flows || {};
+        const totalSteps = tourOrder.length || 1;
+        const doneSteps = tourOrder.filter(id => tFlows[id]?.status === "completed").length;
+        const pct = Math.round((doneSteps / totalSteps) * 100);
+        return (
+          <div style={{ position: "relative" }}>
+            <button onClick={() => {
+                if (menuOpen === "tour" || onboardingClosing) {
+                  setOnboardingClosing(true);
+                } else {
+                  setOnboardingClosing(false);
+                  setMenuOpen("tour");
+                }
+              }}
+              style={{
+                width: "100%", display: "flex", flexDirection: "column", gap: 6, padding: "10px 14px",
+                background: "rgba(34,211,238,0.06)",
+                color: "#22D3EE",
+                border: "none", borderTop: `1px solid ${BORDER}`,
+                cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+              }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.3 }}>Getting Started</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: menuOpen === "tour" && !onboardingClosing ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}><path d="M18 15l-6-6-6 6"/></svg>
+              </div>
+              <div style={{ display: "flex", gap: 3, width: "100%" }}>
+                {Array.from({ length: totalSteps }).map((_, i) => (
+                  <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < doneSteps ? "#22D3EE" : BORDER }} />
+                ))}
+              </div>
+            </button>
+            {(menuOpen === "tour" || onboardingClosing) && (<>
+              <div onClick={() => setOnboardingClosing(true)} style={{ position: "fixed", inset: 0, zIndex: 199 }} />
+              <div
+                onAnimationEnd={() => { if (onboardingClosing) { setMenuOpen(false); setOnboardingClosing(false); } }}
+                style={{
+                  position: "absolute", bottom: "100%", left: 0, width: 420, maxHeight: "70vh", overflowY: "auto",
+                  background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
+                  boxShadow: "0 -8px 40px rgba(0,0,0,0.6)", marginBottom: 4, zIndex: 200,
+                  animation: onboardingClosing ? "genieClose 0.25s ease-in forwards" : "genieOpen 0.25s ease-out",
+                  transformOrigin: "bottom left",
+                }}>
+                <div style={{ padding: "4px 0" }}>
+                  <TourChecklist tourState={tourState} tourFlows={tourFlows} tourOrder={tourOrder} onStartFlow={(flowId) => { setOnboardingClosing(true); onStartTour(flowId); }} onDismissTour={() => { setOnboardingClosing(true); onDismissTour(); }} />
                 </div>
               </div>
             </>)}
@@ -4013,14 +4077,9 @@ export default function PVTAIRFrat() {
   }, [cv, org]);
   // ── Onboarding v2 ──────────────────────────────────
   const onboardingAdminRoles = ["admin", "safety_manager", "accountable_exec", "chief_pilot"];
-  const ONBOARDING_SHIP_DATE = "2026-03-04";
-
   useEffect(() => {
     if (!profile || !org?.id) return;
     if (!onboardingAdminRoles.includes(profile.role)) return;
-    // Only show for orgs created after ship date
-    const orgCreated = org.created_at || org.inserted_at;
-    if (orgCreated && orgCreated < ONBOARDING_SHIP_DATE) return;
     const existing = org.settings?.onboarding_v2;
     if (existing) {
       if (existing.dismissed_at) {
@@ -4323,6 +4382,9 @@ export default function PVTAIRFrat() {
         flows: Object.fromEntries(FLOW_ORDER.map(id => [id, { status: "not_started", current_step: 0 }])),
       };
       setOnboardingState(initial);
+      setTourState(null);
+      setActiveTour(null);
+      setActiveTourStep(0);
 
       // Refresh profile, navigate to home
       getProfile().then(p => { if (p) setProfile(p); });
@@ -4411,6 +4473,106 @@ export default function PVTAIRFrat() {
   const showOnboarding = onboardingState
     && onboardingAdminRoles.includes(profile?.role)
     && !FLOW_ORDER.every(id => onboardingState.flows?.[id]?.status === "completed");
+
+  // ── Role-based tour for non-admin users ──────────────
+  const [tourState, setTourState] = useState(null);
+  const [activeTour, setActiveTour] = useState(null);
+  const [activeTourStep, setActiveTourStep] = useState(0);
+
+  const tourConfig = !onboardingAdminRoles.includes(profile?.role) ? getTourFlowsForRole(profile?.role) : null;
+  const tourFlows = tourConfig?.flows || null;
+  const tourOrder = tourConfig?.order || [];
+
+  useEffect(() => {
+    if (!profile?.id || !org?.id) return;
+    if (onboardingAdminRoles.includes(profile.role)) return;
+    const existing = profile.onboarding_tour;
+    if (existing) {
+      if (!existing.dismissed_at) setTourState(existing);
+    } else {
+      const { order } = getTourFlowsForRole(profile.role);
+      const initial = {
+        started_at: new Date().toISOString(),
+        completed_at: null,
+        dismissed_at: null,
+        flows: Object.fromEntries(order.map(id => [id, { status: "not_started", current_step: 0 }])),
+      };
+      setTourState(initial);
+      saveTourState(profile.id, initial);
+    }
+  }, [profile?.id, org?.id]);
+
+  const persistTour = useCallback(async (next) => {
+    setTourState(next);
+    if (profile?.id) await saveTourState(profile.id, next);
+  }, [profile?.id]);
+
+  const showTour = tourState && tourFlows
+    && !onboardingAdminRoles.includes(profile?.role)
+    && !tourState.completed_at && !tourState.dismissed_at
+    && !tourOrder.every(id => tourState.flows?.[id]?.status === "completed");
+
+  const handleStartTour = useCallback(async (flowId) => {
+    if (!tourFlows || !tourState) return;
+    const flow = tourFlows[flowId];
+    if (!flow) return;
+    // Navigate to the correct tab
+    if (flow.tab) setCv(flow.tab);
+    setActiveTour(flowId);
+    setActiveTourStep(0);
+    await persistTour({
+      ...tourState,
+      flows: { ...tourState.flows, [flowId]: { ...tourState.flows[flowId], status: "in_progress", current_step: 0 } },
+    });
+  }, [tourFlows, tourState, persistTour]);
+
+  const handleTourAdvance = useCallback(async () => {
+    if (!activeTour || !tourState) return;
+    const flow = tourFlows[activeTour];
+    const newStep = activeTourStep + 1;
+    if (newStep >= flow.steps.length) return;
+    setActiveTourStep(newStep);
+    await persistTour({
+      ...tourState,
+      flows: { ...tourState.flows, [activeTour]: { ...tourState.flows[activeTour], current_step: newStep } },
+    });
+  }, [activeTour, activeTourStep, tourState, tourFlows, persistTour]);
+
+  const handleTourBack = useCallback(async () => {
+    if (!activeTour || !tourState || activeTourStep <= 0) return;
+    const newStep = activeTourStep - 1;
+    setActiveTourStep(newStep);
+    await persistTour({
+      ...tourState,
+      flows: { ...tourState.flows, [activeTour]: { ...tourState.flows[activeTour], current_step: newStep } },
+    });
+  }, [activeTour, activeTourStep, tourState, persistTour]);
+
+  const handleTourComplete = useCallback(async (flowId) => {
+    if (!tourState) return;
+    const next = {
+      ...tourState,
+      flows: { ...tourState.flows, [flowId]: { status: "completed", completed_at: new Date().toISOString(), current_step: tourFlows[flowId]?.steps.length || 0 } },
+    };
+    const allDone = tourOrder.every(id => (id === flowId ? true : next.flows[id]?.status === "completed"));
+    if (allDone) next.completed_at = new Date().toISOString();
+    setActiveTour(null);
+    setActiveTourStep(0);
+    await persistTour(next);
+  }, [tourState, tourFlows, tourOrder, persistTour]);
+
+  const handleTourSkip = useCallback(() => {
+    setActiveTour(null);
+    setActiveTourStep(0);
+  }, []);
+
+  const handleDismissTour = useCallback(async () => {
+    if (!tourState) return;
+    const next = { ...tourState, dismissed_at: new Date().toISOString() };
+    setActiveTour(null);
+    setActiveTourStep(0);
+    await persistTour(next);
+  }, [tourState, persistTour]);
 
   const [flightsMode, setFlightsMode] = useState("my");
   const [nudgeFlight, setNudgeFlight] = useState(null);
@@ -5709,7 +5871,7 @@ export default function PVTAIRFrat() {
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
-      <NavBar currentView={cv} setCurrentView={setCv} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} activeFlow={activeFlow} />
+      <NavBar currentView={cv} setCurrentView={setCv} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainingReqs([]); setTrainingRecs([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} activeFlow={activeFlow} showTour={showTour} tourState={tourState} tourFlows={tourFlows} tourOrder={tourOrder} onStartTour={handleStartTour} onDismissTour={handleDismissTour} activeTour={activeTour} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Pending deletion banner — red when read-only countdown active */}
         {isPendingDeletion && (() => {
@@ -6173,6 +6335,7 @@ export default function PVTAIRFrat() {
       </div>{/* end main-content */}
       {/* ── Onboarding Flow Overlay ──────────────────────── */}
       {activeFlow && ONBOARDING_FLOWS[activeFlow] && <OnboardingFlow flow={ONBOARDING_FLOWS[activeFlow]} currentStep={activeFlowStep} onAdvance={handleFlowStepAdvance} onBack={handleFlowStepBack} onComplete={handleFlowComplete} onSkip={handleFlowSkip} />}
+      {activeTour && tourFlows?.[activeTour] && <OnboardingFlow flow={tourFlows[activeTour]} currentStep={activeTourStep} onAdvance={handleTourAdvance} onBack={handleTourBack} onComplete={handleTourComplete} onSkip={handleTourSkip} />}
       {/* ── Floating Action Buttons ─────────────────────── */}
       {session && cv !== "submit" && (
         <div className="fab-container" style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column", gap: 10, zIndex: 1000 }}>

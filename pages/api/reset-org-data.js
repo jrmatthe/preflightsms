@@ -191,6 +191,11 @@ export default async function handler(req, res) {
 
     await supabase.from("organizations").update({ settings }).eq("id", orgId);
 
+    // Reset tour state for all users in org
+    if (userIds.length > 0) {
+      await supabase.from("profiles").update({ onboarding_tour: null }).in("id", userIds);
+    }
+
     return res.status(200).json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });

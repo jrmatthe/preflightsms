@@ -21,7 +21,7 @@ CREATE INDEX IF NOT EXISTS idx_mel_audit_log_aircraft ON mel_audit_log(org_id, a
 ALTER TABLE mel_audit_log ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "mel_audit_log_select" ON mel_audit_log
-  FOR SELECT USING (org_id = (SELECT org_id FROM profiles WHERE user_id = auth.uid()));
+  FOR SELECT USING (org_id = (SELECT org_id FROM profiles WHERE id = auth.uid()));
 
 CREATE POLICY "mel_audit_log_insert" ON mel_audit_log
-  FOR INSERT WITH CHECK (org_id = (SELECT org_id FROM profiles WHERE user_id = auth.uid()));
+  FOR INSERT WITH CHECK (org_id = (SELECT org_id FROM profiles WHERE id = auth.uid()));
