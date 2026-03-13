@@ -361,15 +361,19 @@ export default function InternalEvaluation({
     setExecutingAudit(audit);
     setActiveSection(0);
     const { data } = await onLoadResponses(audit.id);
-    if (data && data.length > 0) {
-      setAuditResponses(data);
-    } else {
-      // Initialize responses from snapshot
-      const initial = [];
-      let order = 0;
-      for (const sec of snap.sections || []) {
-        for (const q of sec.questions || []) {
-          initial.push({
+    // Build full response list from template snapshot, merging any saved responses
+    const saved = data || [];
+    const savedMap = {};
+    saved.forEach(r => { savedMap[`${r.section_title}|||${r.question_text}`] = r; });
+    const merged = [];
+    let order = 0;
+    for (const sec of snap.sections || []) {
+      for (const q of sec.questions || []) {
+        const key = `${sec.title}|||${q.text}`;
+        if (savedMap[key]) {
+          merged.push({ ...savedMap[key], _guidance: q.guidance, _response_type: q.response_type, sort_order: order++ });
+        } else {
+          merged.push({
             audit_id: audit.id,
             section_title: sec.title,
             question_text: q.text,
@@ -384,8 +388,8 @@ export default function InternalEvaluation({
           });
         }
       }
-      setAuditResponses(initial);
     }
+    setAuditResponses(merged);
   }, [onLoadResponses]);
 
   // ── Open completed audit detail ──
