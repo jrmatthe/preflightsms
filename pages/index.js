@@ -2533,7 +2533,8 @@ function HomeView({ profile, profiles, frats, reports, actions, hazards, auditSc
       (auditSchedules || []).filter(Boolean).filter(a => a.next_due_date && new Date(a.next_due_date) <= auditSoon).forEach(a => {
         const due = new Date(a.next_due_date);
         const overdue = due < now;
-        items.push({ id: `audit-${a.id}`, label: a.name || a.template_name || "Audit", category: overdue ? "Overdue Audit" : "Audit Due Soon", detail: `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, nav: "audits", priority: overdue ? 0 : 1, color: overdue ? RED : AMBER });
+        const tmplName = (auditTemplates || []).find(t => t.id === a.template_id)?.name || a.name || "Audit";
+        items.push({ id: `audit-${a.id}`, label: tmplName, category: overdue ? "Overdue Audit" : "Audit Due Soon", detail: `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`, nav: "audits", priority: overdue ? 0 : 1, color: overdue ? RED : AMBER });
       });
     }
 
