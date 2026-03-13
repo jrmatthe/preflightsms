@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, deletePolicy, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, unlinkForeflightFlightsByFlightId, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, unlinkSchedaeroTripsByFlightId, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, acknowledgeErpPlan, clearErpAcknowledgments, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, deleteAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, fetchUserSurveyResponseIds, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences, updateProfileName, createMelAuditEntry, fetchMelAuditLog, reconcileStaleFratApprovals } from "../lib/supabase";
+import { supabase, signIn, signUp, signOut, resetPasswordForEmail, updateUserPassword, getSession, getProfile, submitFRAT, fetchFRATs, deleteFRAT, createFlight, deleteFlight, fetchFlights, updateFlightStatus, subscribeToFlights, subscribeToNotifications, submitReport, fetchReports, updateReport, deleteReport, createHazard, fetchHazards, updateHazard, createAction, fetchActions, updateAction, fetchOrgProfiles, updateProfileRole, updateProfilePermissions, updateProfileEmail, createPolicy, fetchPolicies, acknowledgePolicy, createTrainingRequirement, fetchTrainingRequirements, createTrainingRecord, fetchTrainingRecords, deleteTrainingRecord, deleteTrainingRequirement, uploadOrgLogo, fetchFratTemplate, fetchAllFratTemplates, upsertFratTemplate, createFratTemplate, deleteFratTemplate, setActiveFratTemplate, uploadFratAttachment, approveFlight, rejectFlight, selfDispatchFlight, approveRejectFRAT, updateOrg, fetchAircraft, createAircraft, updateAircraft, updateAircraftStatus, updateAircraftMel, deleteAircraft, fetchCbtCourses, createCbtCourse, updateCbtCourse, deleteCbtCourse, fetchCbtLessons, upsertCbtLesson, deleteCbtLesson, fetchCbtProgress, upsertCbtProgress, fetchCbtEnrollments, upsertCbtEnrollment, fetchInvitations, createInvitation, revokeInvitation, resendInvitation, getInvitationByToken, acceptInvitation, reconcileInvitations, removeUserFromOrg, fetchSmsManuals, upsertSmsManual, updateSmsManualSections, deleteSmsManual, saveSmsTemplateVariables, saveSmsSignatures, publishManualToPolicy, clearPolicyAcknowledgments, deletePolicy, uploadPolicyFile, fetchNotifications, createNotification, deleteNotificationByLinkId, fetchNotificationReads, markNotificationRead, saveOnboardingStatus, createNudgeResponse, fetchNudgeResponsesForUser, fetchForeflightConfig, upsertForeflightConfig, fetchForeflightFlights, fetchPendingForeflightFlights, updateForeflightFlight, unlinkForeflightFlightsByFlightId, fetchSchedaeroConfig, upsertSchedaeroConfig, fetchSchedaeroTrips, fetchPendingSchedaeroTrips, updateSchedaeroTrip, unlinkSchedaeroTripsByFlightId, fetchErpPlans, createErpPlan, updateErpPlan, deleteErpPlan, fetchErpChecklistItems, upsertErpChecklistItems, fetchErpCallTree, upsertErpCallTree, fetchErpDrills, createErpDrill, updateErpDrill, deleteErpDrill, acknowledgeErpPlan, clearErpAcknowledgments, fetchSpis, createSpi, updateSpi, deleteSpi, fetchSpiTargets, createSpiTarget, updateSpiTarget, deleteSpiTarget, fetchSpiMeasurements, fetchAllSpiMeasurements, createSpiMeasurement, fetchAuditTemplates, createAuditTemplate, updateAuditTemplate, deleteAuditTemplate, fetchAudits, createAudit, updateAudit, deleteAudit, fetchAuditResponses, upsertAuditResponse, upsertAuditResponses, fetchAuditSchedules, createAuditSchedule, updateAuditSchedule, deleteAuditSchedule, fetchTrendAlerts, acknowledgeTrendAlert, fetchDeclarations, createDeclaration, updateDeclaration, uploadDeclarationPdf, fetchMocItems, createMocItem, updateMocItem, deleteMocItem, fetchMocAttachments, createMocAttachment, deleteMocAttachment, uploadMocFile, fetchCultureSurveys, createCultureSurvey, updateCultureSurvey, deleteCultureSurvey, fetchCultureSurveyResponses, submitCultureSurveyResponse, fetchCultureSurveyResults, upsertCultureSurveyResults, checkUserSurveyResponse, fetchUserSurveyResponseIds, createFatigueAssessment, fetchApiKeys, createApiKey, updateApiKey, deleteApiKey, fetchWebhooks, createWebhook, updateWebhook, deleteWebhook, fetchAsapConfig, upsertAsapConfig, fetchAsapReports, fetchAsapReport, createAsapReport, updateAsapReport, deleteAsapReport, fetchAsapReportCount, fetchAsapErcReviews, createAsapErcReview, updateAsapErcReview, fetchAsapCorrectiveActions, fetchAsapCorrectiveActionsForReport, createAsapCorrectiveAction, updateAsapCorrectiveAction, deleteAsapCorrectiveAction, fetchAsapMeetings, createAsapMeeting, updateAsapMeeting, deleteAsapMeeting, fetchComplianceFrameworks, upsertComplianceFramework, deleteComplianceFramework, fetchAllComplianceChecklistItems, fetchComplianceStatus, upsertComplianceStatus, fetchComplianceCrosswalk, fetchInsuranceExports, createInsuranceExport, deleteInsuranceExport, uploadInsuranceExportPdf, updateNotificationPreferences, updateProfileName, reconcileStaleFratApprovals } from "../lib/supabase";
 import { hasFeature, NAV_FEATURE_MAP, TIERS, FEATURE_LABELS, getTierFeatures, isFreeTier, FREE_TIER_LIMITS } from "../lib/tiers";
-import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpiration, CATEGORY_LIMITS, getDaysOpen } from "../lib/melHelpers";
+import { getActiveMelItems, getMelExpirationStatus } from "../lib/melHelpers";
 import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE, haversineNm, flattenCoords, formatZulu } from "../lib/analyzeWeather";
 import { initOfflineQueue, enqueue, getQueueCount, flushQueue } from "../lib/offlineQueue";
 const DashboardCharts = dynamic(() => import("../components/DashboardCharts"), { ssr: false });
@@ -506,7 +506,7 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip, org, prefill, onClearPrefill, session, profile, onUpdateMel }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip, org, prefill, onClearPrefill }) {
   // AI Risk Suggestions state
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
@@ -836,71 +836,6 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       });
     }
   }, [activeMelItems, fi.tailNumber]);
-
-  // MEL deferral inline form state
-  const [melDeferOpen, setMelDeferOpen] = useState(false);
-  const [melDeferForm, setMelDeferForm] = useState({ description: "", mel_reference: "", category: "C", notes: "" });
-  const [melDeferSaving, setMelDeferSaving] = useState(false);
-  const [melDeferSuccess, setMelDeferSuccess] = useState(null);
-  const melDeferExpiration = useMemo(() => calculateExpiration(melDeferForm.category, new Date().toISOString().slice(0, 10)), [melDeferForm.category]);
-
-  const handleDeferMel = async () => {
-    if (!selectedAircraftObj || !melDeferForm.description.trim() || melDeferSaving) return;
-    setMelDeferSaving(true);
-    try {
-      const today = new Date().toISOString().slice(0, 10);
-      const newItem = {
-        id: generateMelId(),
-        description: melDeferForm.description.trim(),
-        mel_reference: melDeferForm.mel_reference.trim(),
-        category: melDeferForm.category,
-        deferred_date: today,
-        expiration_date: melDeferExpiration || "",
-        notes: melDeferForm.notes.trim(),
-        status: "open",
-        closed_date: null,
-        deferred_by: session?.user?.id || null,
-        deferred_by_name: profile?.full_name || "Unknown",
-      };
-      const updatedItems = [...(selectedAircraftObj.mel_items || []), newItem];
-      if (onUpdateMel) {
-        await onUpdateMel(selectedAircraftObj.id, updatedItems);
-      } else {
-        await updateAircraftMel(selectedAircraftObj.id, updatedItems);
-      }
-      // Audit log
-      if (orgId) {
-        createMelAuditEntry(orgId, {
-          aircraft_id: selectedAircraftObj.id,
-          mel_item_id: newItem.id,
-          action: "deferred",
-          performed_by: session?.user?.id || null,
-          performed_by_name: profile?.full_name || "Unknown",
-          category: newItem.category,
-          description: newItem.description,
-          mel_reference: newItem.mel_reference,
-        });
-        // Notify maintenance + chief_pilot
-        createNotification(orgId, {
-          type: "mel_deferred",
-          title: "MEL Item Deferred",
-          body: `${profile?.full_name || "Pilot"} deferred MEL on ${selectedAircraftObj.registration}: ${newItem.description}`,
-          link_tab: "fleet",
-          link_id: selectedAircraftObj.id,
-          target_roles: ["maintenance", "chief_pilot", "admin"],
-        });
-      }
-      setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" });
-      setMelDeferOpen(false);
-      setMelDeferSuccess("MEL item deferred — ac_mel risk factor applied");
-      setTimeout(() => setMelDeferSuccess(null), 4000);
-    } catch (err) {
-      setMelDeferSuccess("Failed to defer MEL item — " + (err?.message || "unknown error"));
-      setTimeout(() => setMelDeferSuccess(null), 4000);
-    } finally {
-      setMelDeferSaving(false);
-    }
-  };
 
   // Photo attachment handlers
   const handleAddPhoto = (e) => {
@@ -1238,59 +1173,6 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Inline MEL Deferral */}
-      {melDeferSuccess && (
-        <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 10, fontSize: 12, fontWeight: 600, background: melDeferSuccess.startsWith("Failed") ? "rgba(239,68,68,0.08)" : "rgba(74,222,128,0.08)", border: `1px solid ${melDeferSuccess.startsWith("Failed") ? "rgba(239,68,68,0.25)" : "rgba(74,222,128,0.25)"}`, color: melDeferSuccess.startsWith("Failed") ? RED : GREEN }}>{melDeferSuccess}</div>
-      )}
-      {fi.tailNumber && selectedAircraftObj && (
-        <div style={{ ...card, padding: "12px 18px", marginBottom: 14 }}>
-          {!melDeferOpen ? (
-            <button onClick={() => setMelDeferOpen(true)} style={{ background: "none", border: `1px dashed ${CYAN}44`, borderRadius: 6, padding: "8px 14px", color: CYAN, fontSize: 11, fontWeight: 600, cursor: "pointer", width: "100%" }}>
-              + Defer MEL Item
-            </button>
-          ) : (
-            <div style={{ background: NEAR_BLACK, borderRadius: 10, border: `1px solid ${CYAN}33`, padding: "14px 16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: WHITE }}>Defer MEL Item</span>
-                <button onClick={() => { setMelDeferOpen(false); setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" }); }} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 16, padding: 0 }}>&times;</button>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Description *</div>
-                  <input value={melDeferForm.description} onChange={e => setMelDeferForm(p => ({ ...p, description: e.target.value }))} placeholder="e.g. Weather radar inoperative" style={{ width: "100%", padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>MEL Reference</div>
-                  <input value={melDeferForm.mel_reference} onChange={e => setMelDeferForm(p => ({ ...p, mel_reference: e.target.value }))} placeholder="e.g. 34-1" style={{ width: "100%", padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Category</div>
-                  <select value={melDeferForm.category} onChange={e => setMelDeferForm(p => ({ ...p, category: e.target.value }))} style={{ width: "100%", padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" }}>
-                    {Object.keys(CATEGORY_LIMITS).map(c => <option key={c} value={c}>{c} — {CATEGORY_LIMITS[c].days ? `${CATEGORY_LIMITS[c].days} days` : "As specified"}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Deferred Date</div>
-                  <input type="date" value={new Date().toISOString().slice(0, 10)} readOnly style={{ width: "100%", padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Expiration Date (auto)</div>
-                  <input type="date" value={melDeferExpiration || ""} readOnly style={{ width: "100%", padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" }} />
-                </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Notes</div>
-                  <input value={melDeferForm.notes} onChange={e => setMelDeferForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional notes" style={{ width: "100%", padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" }} />
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button onClick={handleDeferMel} disabled={!melDeferForm.description.trim() || melDeferSaving} style={{ padding: "8px 18px", background: melDeferForm.description.trim() ? GREEN : `${GREEN}44`, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: melDeferForm.description.trim() ? "pointer" : "not-allowed" }}>{melDeferSaving ? "Saving..." : "Defer MEL Item"}</button>
-                <button onClick={() => { setMelDeferOpen(false); setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" }); }} style={{ padding: "8px 18px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -5968,7 +5850,7 @@ export default function PVTAIRFrat() {
         {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} flights={flights} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} auditTemplates={auditTemplatesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} myTodayFlights={myTodayFlights} onSelectFfFlight={setSelectedFfFlight} onSelectScTrip={setSelectedScTrip} cultureSurveys={cultureSurveys} mySurveyResponseIds={mySurveyResponseIds} asapCorrActions={asapCorrActions} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} session={session} profile={profile} onUpdateMel={async (id, melItems) => { await updateAircraftMel(id, melItems); const { data } = await fetchAircraft(profile?.org_id); setFleetAircraft(data || []); }} />)}
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
         {cv === "flights" && (() => {
           const showMyFlights = flightsMode === "my" || !canSeeAllFlights;
           const handleDeleteFlight = async (flight) => {

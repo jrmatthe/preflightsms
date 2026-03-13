@@ -302,7 +302,6 @@ export default function MobileLayout({
         return (
           <MobileFRATWizard
             profile={profile}
-            session={session}
             fleetAircraft={fleetAircraft}
             fratTemplate={fratTemplate}
             allTemplates={allFratTemplates}
@@ -310,7 +309,6 @@ export default function MobileLayout({
             onSubmit={onSubmitFRAT}
             onCancel={() => setActiveTab("flights")}
             onNavigateToFlights={() => setActiveTab("flights")}
-            onUpdateMel={onUpdateMel}
             pendingFfFlights={pendingFfFlights}
             selectedFfFlight={selectedFfFlight}
             onSelectFfFlight={onSelectFfFlight}
