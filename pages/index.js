@@ -4512,19 +4512,51 @@ export default function PVTAIRFrat() {
     && !tourState.completed_at && !tourState.dismissed_at
     && !tourOrder.every(id => tourState.flows?.[id]?.status === "completed");
 
+  const tourDemoAircraftRef = useRef(null);
+  const tourDemoFlightRef = useRef(null);
+
   const handleStartTour = useCallback(async (flowId) => {
     if (!tourFlows || !tourState) return;
     const flow = tourFlows[flowId];
     if (!flow) return;
-    // Navigate to the correct tab
     if (flow.tab) setCv(flow.tab);
     setActiveTour(flowId);
     setActiveTourStep(0);
+
+    // submit_frat: inject demo aircraft so the FRAT form renders
+    if (flowId === "submit_frat") {
+      if (fleetAircraft.length === 0) {
+        tourDemoAircraftRef.current = {
+          id: "TOUR-DEMO-AC", type: "C172", registration: "N12345",
+          status: "active", mel_items: [], org_id: profile?.org_id,
+        };
+      }
+    }
+
+    // log_flight: inject demo flight on the flight board
+    if (flowId === "log_flight") {
+      tourDemoFlightRef.current = {
+        id: "TOUR-DEMO-FLIGHT", dbId: null,
+        pilot: profile?.full_name || "Demo Pilot",
+        aircraft: fleetAircraft[0]?.type || "C172",
+        tailNumber: fleetAircraft[0]?.registration || "N12345",
+        departure: "KSFF", destination: "KBOI",
+        cruiseAlt: "8500", etd: "14:00", ete: "1:30",
+        eta: new Date(Date.now() + 90 * 60000).toISOString(),
+        fuelLbs: "48", fuelUnit: "gal",
+        numCrew: "1", numPax: "2",
+        score: 5, riskLevel: "LOW RISK",
+        status: "ACTIVE", timestamp: new Date().toISOString(),
+        arrivedAt: null, approvalStatus: "auto_approved",
+        factors: [], attachments: [],
+      };
+    }
+
     await persistTour({
       ...tourState,
       flows: { ...tourState.flows, [flowId]: { ...tourState.flows[flowId], status: "in_progress", current_step: 0 } },
     });
-  }, [tourFlows, tourState, persistTour]);
+  }, [tourFlows, tourState, persistTour, fleetAircraft, profile]);
 
   const handleTourAdvance = useCallback(async () => {
     if (!activeTour || !tourState) return;
@@ -4548,8 +4580,14 @@ export default function PVTAIRFrat() {
     });
   }, [activeTour, activeTourStep, tourState, persistTour]);
 
+  const cleanupTourDemo = useCallback((flowId) => {
+    if (flowId === "submit_frat") tourDemoAircraftRef.current = null;
+    if (flowId === "log_flight") tourDemoFlightRef.current = null;
+  }, []);
+
   const handleTourComplete = useCallback(async (flowId) => {
     if (!tourState) return;
+    cleanupTourDemo(flowId);
     const next = {
       ...tourState,
       flows: { ...tourState.flows, [flowId]: { status: "completed", completed_at: new Date().toISOString(), current_step: tourFlows[flowId]?.steps.length || 0 } },
@@ -4559,12 +4597,13 @@ export default function PVTAIRFrat() {
     setActiveTour(null);
     setActiveTourStep(0);
     await persistTour(next);
-  }, [tourState, tourFlows, tourOrder, persistTour]);
+  }, [tourState, tourFlows, tourOrder, persistTour, cleanupTourDemo]);
 
   const handleTourSkip = useCallback(() => {
+    if (activeTour) cleanupTourDemo(activeTour);
     setActiveTour(null);
     setActiveTourStep(0);
-  }, []);
+  }, [activeTour, cleanupTourDemo]);
 
   const handleDismissTour = useCallback(async () => {
     if (!tourState) return;
@@ -5846,7 +5885,13 @@ export default function PVTAIRFrat() {
   // Merge demo flight from ref during flights onboarding (immune to data fetches)
   const boardFlights = activeFlow === "flights" && demoFlightRef.current
     ? [demoFlightRef.current, ...flights.filter(f => f.id !== "FRAT-DEMO")]
+    : activeTour === "log_flight" && tourDemoFlightRef.current
+    ? [tourDemoFlightRef.current, ...flights.filter(f => f.id !== "TOUR-DEMO-FLIGHT")]
     : flights;
+  // Merge demo aircraft for pilot tour
+  const boardFleetAircraft = activeTour === "submit_frat" && tourDemoAircraftRef.current
+    ? [tourDemoAircraftRef.current, ...fleetAircraft.filter(a => a.id !== "TOUR-DEMO-AC")]
+    : fleetAircraft;
   const boardHazards = activeFlow === "investigations" && demoHazardsRef.current
     ? [...demoHazardsRef.current, ...hazards.filter(h => !h.id?.startsWith("DEMO-HAZ"))]
     : hazards;
@@ -6013,7 +6058,7 @@ export default function PVTAIRFrat() {
         {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} flights={flights} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} auditTemplates={auditTemplatesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} myTodayFlights={myTodayFlights} onSelectFfFlight={setSelectedFfFlight} onSelectScTrip={setSelectedScTrip} cultureSurveys={cultureSurveys} mySurveyResponseIds={mySurveyResponseIds} asapCorrActions={asapCorrActions} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={fleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={boardFleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
         {cv === "flights" && (() => {
           const showMyFlights = flightsMode === "my" || !canSeeAllFlights;
           const handleDeleteFlight = async (flight) => {
