@@ -1449,7 +1449,6 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAi
       {/* MEL Deferrals per aircraft */}
       <div style={{ marginTop: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <span style={{ fontSize: 14 }}>{"\uD83D\uDD27"}</span>
           <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>MEL Deferrals by Aircraft</span>
         </div>
         {fleetStatus.map(ac => (
