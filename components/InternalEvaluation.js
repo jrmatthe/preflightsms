@@ -352,6 +352,7 @@ export default function InternalEvaluation({
     };
     await onCreateAudit(audit);
     if (onRefreshAudits) await onRefreshAudits();
+    setTab("audits");
   }, [audits, session, onCreateAudit, onRefreshAudits]);
 
   // ── Open audit execution ──
