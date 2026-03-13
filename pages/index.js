@@ -1736,7 +1736,7 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
   );
 }
 
-function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFlight, onDeleteFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight, adsbEnabled, session, fleetAircraft }) {
+function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFlight, onDeleteFlight, onApproveFlight, onRejectFlight, canApprove, onSelfDispatch, initialSelectedFlight, adsbEnabled, session, fleetAircraft, fratRecords, riskCategories }) {
   const STATUSES = {
     ACTIVE: { label: "ENROUTE", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
     ARRIVED: { label: "ARRIVED", color: GREEN, bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)" },
@@ -2104,11 +2104,35 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                             style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Back</button>
                         </div>
                       </div>)}
-                    {pending && canApprove && onApproveFlight && (
+                    {pending && canApprove && onApproveFlight && (() => {
+                      const fratRec = (fratRecords || []).find(r => r.dbId === f.fratDbId || r.id === f.id);
+                      const allFactors = (riskCategories || DEFAULT_RISK_CATEGORIES).flatMap(c => c.factors.map(ff => ({ ...ff, category: c.name })));
+                      const checkedFactors = fratRec ? allFactors.filter(ff => (fratRec.factors || []).includes(ff.id)) : [];
+                      return (
                       <div style={{ marginTop: 10 }}>
                         <div style={{ padding: "10px 14px", background: "rgba(250,204,21,0.08)", border: `1px solid rgba(250,204,21,0.25)`, borderRadius: 8, marginBottom: 10 }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: YELLOW, marginBottom: 4 }}>🔒 Supervisor Approval Required</div>
-                          <div style={{ fontSize: 10, color: MUTED }}>This flight scored {f.score} ({f.riskLevel}) which requires management approval before departure.</div>
+                          <div style={{ fontSize: 10, color: MUTED, marginBottom: checkedFactors.length > 0 ? 8 : 0 }}>This flight scored {f.score} ({f.riskLevel}) which requires management approval before departure.</div>
+                          {checkedFactors.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: YELLOW, marginBottom: 4 }}>Risk Factors ({checkedFactors.length})</div>
+                              {checkedFactors.map(ff => (
+                                <div key={ff.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", marginBottom: 3, background: "rgba(0,0,0,0.3)", borderRadius: 4 }}>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: AMBER, minWidth: 16, textAlign: "center" }}>+{ff.score}</span>
+                                  <span style={{ fontSize: 10, color: OFF_WHITE, flex: 1 }}>{ff.label}</span>
+                                  <span style={{ fontSize: 9, color: MUTED }}>{ff.category}</span>
+                                </div>))}
+                            </div>)}
+                          {fratRec?.wxBriefing && (
+                            <div style={{ marginTop: 6 }}>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: YELLOW, marginBottom: 2 }}>Weather Briefing</div>
+                              <div style={{ fontSize: 10, color: OFF_WHITE, whiteSpace: "pre-wrap" }}>{fratRec.wxBriefing}</div>
+                            </div>)}
+                          {fratRec?.remarks && (
+                            <div style={{ marginTop: 6 }}>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: YELLOW, marginBottom: 2 }}>Pilot Remarks</div>
+                              <div style={{ fontSize: 10, color: OFF_WHITE, fontStyle: "italic" }}>"{fratRec.remarks}"</div>
+                            </div>)}
                         </div>
                         <div style={{ display: "flex", gap: 8 }}>
                           <button onClick={(e) => { e.stopPropagation(); onApproveFlight(f.dbId, f.fratDbId); }}
@@ -2116,7 +2140,8 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                           <button onClick={(e) => { e.stopPropagation(); onRejectFlight(f.dbId, f.fratDbId); }}
                             style={{ padding: "10px 16px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Reject</button>
                         </div>
-                      </div>)}
+                      </div>);
+                    })()}
                     {pending && !canApprove && onSelfDispatch && (
                       <div style={{ marginTop: 10 }}>
                         <div style={{ padding: "10px 14px", background: "rgba(245,158,11,0.08)", border: `1px solid rgba(245,158,11,0.25)`, borderRadius: 8, marginBottom: 10 }}>
@@ -5798,7 +5823,7 @@ export default function PVTAIRFrat() {
             )}
             {showMyFlights
               ? <MyFlightsView flights={boardFlights} myScheduledFlights={myScheduledFlights} session={session} profile={profile} onUpdateFlight={onUpdateFlight} onDeleteFlight={handleDeleteFlight} onSelectScheduledFlight={(fl) => { if (fl._source === "foreflight") setSelectedFfFlight(fl); else setSelectedScTrip(fl); setCv("submit"); }} onNewFrat={() => setCv("submit")} />
-              : <FlightBoard flights={boardFlights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} onDeleteFlight={handleDeleteFlight} initialSelectedFlight={activeFlow === "flights" ? "FRAT-DEMO" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} fleetAircraft={fleetAircraft} onApproveFlight={async (flightDbId, fratDbId) => {
+              : <FlightBoard flights={boardFlights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} onDeleteFlight={handleDeleteFlight} initialSelectedFlight={activeFlow === "flights" ? "FRAT-DEMO" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} fleetAircraft={fleetAircraft} fratRecords={records} riskCategories={riskCategories} onApproveFlight={async (flightDbId, fratDbId) => {
           setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f));
           if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r));
           setToast({ message: "Flight approved", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
