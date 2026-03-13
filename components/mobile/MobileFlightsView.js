@@ -375,15 +375,11 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
     const now = Date.now();
     const eteMins = parseETE(flight.ete);
     if (eteMins <= 0) return 0;
-    // Effective start = latest of: approvedAt, ETD, submission time
+    const etaMs = new Date(flight.eta).getTime();
     const candidates = [new Date(flight.timestamp).getTime()];
     if (flight.approvedAt) candidates.push(new Date(flight.approvedAt).getTime());
-    if (flight.etd) candidates.push(new Date(flight.etd).getTime());
-    if (flight.date && flight.etd) {
-      const t = (flight.etd || "").replace(/[^0-9]/g, "").padStart(4, "0");
-      const d = new Date(`${flight.date}T${t.slice(0, 2)}:${t.slice(2, 4)}:00`);
-      if (!isNaN(d.getTime())) candidates.push(d.getTime());
-    }
+    // Derive planned ETD from ETA - ETE
+    if (eteMins > 0 && !isNaN(etaMs)) candidates.push(etaMs - eteMins * 60000);
     const effectiveStart = Math.max(...candidates.filter(t => !isNaN(t)));
     const effectiveEnd = effectiveStart + eteMins * 60000;
     if (isNaN(effectiveStart) || effectiveEnd <= effectiveStart) return 0;
