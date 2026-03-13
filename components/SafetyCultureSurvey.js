@@ -493,6 +493,7 @@ export default function SafetyCultureSurvey({
   const handleSubmitResponse = async (answers) => {
     await onSubmitResponse({
       survey_id: selectedSurvey.id,
+      org_id: selectedSurvey.org_id,
       respondent_id: selectedSurvey.is_anonymous ? null : session?.user?.id,
       respondent_role: profile?.role || "unknown",
       answers,
