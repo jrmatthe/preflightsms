@@ -288,8 +288,8 @@ export default function PolicyTraining({
                 <tr>
                   <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111", minWidth: 140 }}>User</th>
                   {tags.map(t => (
-                    <th key={t.id} style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, fontSize: 10, maxWidth: 100, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={`${t.label} (${t.cfr})`}>
-                      {t.label.length > 16 ? t.label.slice(0, 15) + "…" : t.label}
+                    <th key={t.id} style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, fontSize: 10, minWidth: 80 }} title={`${t.label} (${t.cfr})`}>
+                      {t.label}
                     </th>
                   ))}
                 </tr>
