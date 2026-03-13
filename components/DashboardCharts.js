@@ -1178,6 +1178,7 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
   const [showAudit, setShowAudit] = useState(false);
   const [auditLog, setAuditLog] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState(null);
 
   const melItems = aircraft.mel_items || [];
   const activeItems = getActiveMelItems(melItems);
@@ -1205,6 +1206,11 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
       }
       setForm({ description: "", mel_reference: "", category: "C", notes: "" });
       setMelFormOpen(false);
+      setSuccessMsg("MEL item deferred successfully");
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err) {
+      setSuccessMsg("Failed to defer MEL item — " + (err?.message || "unknown error"));
+      setTimeout(() => setSuccessMsg(null), 4000);
     } finally { setSaving(false); }
   };
 
@@ -1221,6 +1227,11 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
         createNotification(orgId, { type: "mel_rectified", title: "MEL Item Rectified", body: `${userName} rectified MEL on ${aircraft.registration}: ${item.description}`, link_tab: "fleet", link_id: aircraft.id, target_user_id: item.deferred_by || undefined, target_roles: ["admin", "safety_manager"] });
       }
       setRectifyingId(null); setRectifyWork("");
+      setSuccessMsg("MEL item rectified successfully");
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err) {
+      setSuccessMsg("Failed to rectify — " + (err?.message || "unknown error"));
+      setTimeout(() => setSuccessMsg(null), 4000);
     } finally { setRectifySaving(false); }
   };
 
@@ -1237,6 +1248,10 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
           <button onClick={() => setMelFormOpen(true)} style={{ padding: "4px 10px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${CYAN}44`, color: CYAN }}>+ Defer MEL</button>
         )}
       </div>
+
+      {successMsg && (
+        <div style={{ padding: "8px 12px", borderRadius: 6, marginBottom: 8, fontSize: 11, fontWeight: 600, background: successMsg.startsWith("Failed") ? `${RED}12` : `${GREEN}12`, border: `1px solid ${successMsg.startsWith("Failed") ? `${RED}33` : `${GREEN}33`}`, color: successMsg.startsWith("Failed") ? RED : GREEN }}>{successMsg}</div>
+      )}
 
       {activeItems.length === 0 && !melFormOpen && <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic" }}>No active MEL deferrals</div>}
 

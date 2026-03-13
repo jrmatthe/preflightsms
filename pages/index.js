@@ -841,6 +841,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
   const [melDeferOpen, setMelDeferOpen] = useState(false);
   const [melDeferForm, setMelDeferForm] = useState({ description: "", mel_reference: "", category: "C", notes: "" });
   const [melDeferSaving, setMelDeferSaving] = useState(false);
+  const [melDeferSuccess, setMelDeferSuccess] = useState(null);
   const melDeferExpiration = useMemo(() => calculateExpiration(melDeferForm.category, new Date().toISOString().slice(0, 10)), [melDeferForm.category]);
 
   const handleDeferMel = async () => {
@@ -887,6 +888,11 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       });
       setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" });
       setMelDeferOpen(false);
+      setMelDeferSuccess("MEL item deferred — ac_mel risk factor applied");
+      setTimeout(() => setMelDeferSuccess(null), 4000);
+    } catch (err) {
+      setMelDeferSuccess("Failed to defer MEL item — " + (err?.message || "unknown error"));
+      setTimeout(() => setMelDeferSuccess(null), 4000);
     } finally {
       setMelDeferSaving(false);
     }
@@ -1232,6 +1238,9 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       )}
 
       {/* Inline MEL Deferral */}
+      {melDeferSuccess && (
+        <div style={{ padding: "10px 14px", borderRadius: 8, marginBottom: 10, fontSize: 12, fontWeight: 600, background: melDeferSuccess.startsWith("Failed") ? "rgba(239,68,68,0.08)" : "rgba(74,222,128,0.08)", border: `1px solid ${melDeferSuccess.startsWith("Failed") ? "rgba(239,68,68,0.25)" : "rgba(74,222,128,0.25)"}`, color: melDeferSuccess.startsWith("Failed") ? RED : GREEN }}>{melDeferSuccess}</div>
+      )}
       {fi.tailNumber && selectedAircraftObj && (
         <div style={{ ...card, padding: "12px 18px", marginBottom: 14 }}>
           {!melDeferOpen ? (

@@ -965,6 +965,7 @@ export default function MobileFRATWizard({
   const [melDeferOpen, setMelDeferOpen] = useState(false);
   const [melDeferForm, setMelDeferForm] = useState({ description: "", mel_reference: "", category: "C", notes: "" });
   const [melDeferSaving, setMelDeferSaving] = useState(false);
+  const [melDeferSuccess, setMelDeferSuccess] = useState(null);
   const melDeferExpiration = useMemo(() => calculateExpiration(melDeferForm.category, new Date().toISOString().slice(0, 10)), [melDeferForm.category]);
 
   const handleDeferMel = async () => {
@@ -1013,6 +1014,11 @@ export default function MobileFRATWizard({
       else createNotification(profile.org_id, notif);
       setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" });
       setMelDeferOpen(false);
+      setMelDeferSuccess("MEL item deferred — ac_mel risk factor applied");
+      setTimeout(() => setMelDeferSuccess(null), 4000);
+    } catch (err) {
+      setMelDeferSuccess("Failed to defer MEL item — " + (err?.message || "unknown error"));
+      setTimeout(() => setMelDeferSuccess(null), 4000);
     } finally {
       setMelDeferSaving(false);
     }
@@ -1290,6 +1296,9 @@ export default function MobileFRATWizard({
               </div>
             )}
             {/* Inline MEL Deferral */}
+            {melDeferSuccess && (
+              <div style={{ margin: "0 16px 8px", padding: "10px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, background: melDeferSuccess.startsWith("Failed") ? "rgba(239,68,68,0.08)" : "rgba(74,222,128,0.08)", border: `1px solid ${melDeferSuccess.startsWith("Failed") ? "rgba(239,68,68,0.25)" : "rgba(74,222,128,0.25)"}`, color: melDeferSuccess.startsWith("Failed") ? "#EF4444" : "#4ADE80" }}>{melDeferSuccess}</div>
+            )}
             {fi.tailNumber && selectedAircraftObj && (
               <div style={{ margin: "0 16px 12px", padding: 12, background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` }}>
                 {!melDeferOpen ? (
