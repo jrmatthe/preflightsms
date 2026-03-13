@@ -321,6 +321,7 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
     if (sec.id === "admin") return isAdminRole;
     if (sec.id === "compliance") return isAdminRole;
     if (sec.id === "analytics") return isAdminRole;
+    if (sec.id === "investigations") return isAdminRole;
     return true; // Show all sections, even gated ones
   });
   const activeSection = getSection(currentView);
@@ -462,7 +463,7 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
           NAV_SECTIONS.find(s => s.id === "home"),
           NAV_SECTIONS.find(s => s.id === "operations"),
           NAV_SECTIONS.find(s => s.id === "safety"),
-          NAV_SECTIONS.find(s => s.id === "investigations"),
+          ...(isAdminRole ? [NAV_SECTIONS.find(s => s.id === "investigations")] : []),
         ].filter(Boolean).map(sec => {
           const isActive = activeSection.id === sec.id;
           const isGated = sectionFullyGated(sec);
@@ -2847,7 +2848,7 @@ function HomeView({ profile, profiles, frats, flights, reports, actions, hazards
       </div>
 
       {/* ── Slot-based card grid ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gridTemplateRows: homeGridTemplateRows, gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gridTemplateRows: homeGridTemplateRows, gap: 24 }}>
         {renderSlots.map(({ id: cardId, orderIdx }, visIdx) => {
           const isDragging = !!dragId;
           const isHole = isDragging && orderIdx === emptyIdxRef.current;
