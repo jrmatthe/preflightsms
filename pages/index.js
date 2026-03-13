@@ -1780,7 +1780,6 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
   // Live ADS-B positions
   const [livePositions, setLivePositions] = useState({});
   useEffect(() => {
-    console.log("[adsb] polling check — adsbEnabled:", adsbEnabled, "hasToken:", !!session?.access_token);
     if (!adsbEnabled || !session?.access_token) return;
     let cancelled = false;
     const poll = async () => {
@@ -1789,7 +1788,6 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
         const data = await res.json();
-        console.log("[adsb] poll result:", { status: res.status, cached: data.cached, positions: data.positions?.length, provider: data.provider, feature_disabled: data.feature_disabled, reason: data.reason });
         if (!res.ok || cancelled || data.feature_disabled || !data.positions) return;
         const map = {};
         for (const p of data.positions) {
