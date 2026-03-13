@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpiration, getCategoryLabel, CATEGORY_LIMITS } from "../lib/melHelpers";
+import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpiration, getCategoryLabel, CATEGORY_LIMITS, getDaysOpen } from "../lib/melHelpers";
+import { createMelAuditEntry, fetchMelAuditLog, createNotification } from "../lib/supabase";
 
 const normalizeAircraftKey = (name) => (name || "").toLowerCase().replace(/[-\s.]/g, "");
 
@@ -24,7 +25,7 @@ function getLocalDate() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, onUpdateMel, canManage, maxAircraft }) {
+export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, onUpdateMel, canManage, maxAircraft, session, profile, orgId }) {
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -138,7 +139,7 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, o
         </div>
         {(selected||editing)&&<div style={{...card,padding:"20px 24px",overflowY:"auto",maxHeight:"calc(100vh - 200px)"}}>
           {editing?<AircraftForm form={form} setField={setField} onSave={save} onCancel={()=>setEditing(false)} isNew={!selected} aircraft={fleet} />
-          :selected?<DetailView aircraft={selected} canManage={canManage} onEdit={startEdit} onDelete={handleDelete} confirmDelete={confirmDelete} setConfirmDelete={setConfirmDelete} onUpdateMel={onUpdateMel} />
+          :selected?<DetailView aircraft={selected} canManage={canManage} onEdit={startEdit} onDelete={handleDelete} confirmDelete={confirmDelete} setConfirmDelete={setConfirmDelete} onUpdateMel={onUpdateMel} session={session} profile={profile} orgId={orgId} />
           :null}
         </div>}
       </div>
@@ -160,7 +161,7 @@ function ExpirationBadge({ item }) {
   return <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:3,background:`${color}18`,color,border:`1px solid ${color}44`}}>{label}</span>;
 }
 
-function MelItemRow({ item, canManage, onClose, onEdit }) {
+function MelItemRow({ item, canManage, onEdit, onRectify, rectifying, rectifyWork, setRectifyWork, rectifySaving }) {
   return (
     <div style={{padding:"10px 12px",marginBottom:6,background:NEAR_BLACK,borderRadius:8,border:`1px solid ${BORDER}`}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
@@ -168,17 +169,28 @@ function MelItemRow({ item, canManage, onClose, onEdit }) {
           <MelBadge category={item.category} />
           {item.mel_reference && <span style={{fontSize:10,color:OFF_WHITE,fontWeight:600}}>Ref {item.mel_reference}</span>}
           <ExpirationBadge item={item} />
+          {item.deferred_by_name && <span style={{fontSize:9,color:MUTED}}>by {item.deferred_by_name}</span>}
         </div>
-        {canManage && item.status === "open" && (
+        {canManage && item.status === "open" && !rectifying && (
           <div style={{display:"flex",gap:4}}>
             <button onClick={()=>onEdit(item)} style={{padding:"3px 8px",borderRadius:4,fontSize:10,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${BORDER}`,color:CYAN}}>Edit</button>
-            <button onClick={()=>onClose(item)} style={{padding:"3px 8px",borderRadius:4,fontSize:10,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${GREEN}44`,color:GREEN}}>Close</button>
+            <button onClick={()=>onRectify(item)} style={{padding:"3px 8px",borderRadius:4,fontSize:10,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${GREEN}44`,color:GREEN}}>Rectify</button>
           </div>
         )}
       </div>
       <div style={{fontSize:12,color:WHITE,marginBottom:2}}>{item.description}</div>
-      {item.deferred_date && <div style={{fontSize:10,color:MUTED}}>Deferred: {item.deferred_date}</div>}
+      {item.deferred_date && <div style={{fontSize:10,color:MUTED}}>Deferred: {item.deferred_date} ({getDaysOpen(item.deferred_date)} days open)</div>}
       {item.notes && <div style={{fontSize:10,color:MUTED,marginTop:2,fontStyle:"italic"}}>{item.notes}</div>}
+      {rectifying && (
+        <div style={{marginTop:8,padding:"8px 10px",background:`${GREEN}08`,border:`1px solid ${GREEN}22`,borderRadius:6}}>
+          <div style={{fontSize:10,fontWeight:600,color:GREEN,marginBottom:4}}>Rectification</div>
+          <textarea value={rectifyWork} onChange={e=>setRectifyWork(e.target.value)} placeholder="Work performed (required)" rows={2} style={{width:"100%",padding:"6px 8px",background:NEAR_BLACK,border:`1px solid ${BORDER}`,borderRadius:4,color:WHITE,fontSize:11,resize:"vertical",boxSizing:"border-box",fontFamily:"inherit"}} />
+          <div style={{display:"flex",gap:6,marginTop:6}}>
+            <button onClick={()=>onRectify(null)} style={{padding:"4px 10px",borderRadius:4,fontSize:10,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${BORDER}`,color:MUTED}}>Cancel</button>
+            <button onClick={()=>onRectify(item,true)} disabled={!rectifyWork.trim()||rectifySaving} style={{padding:"4px 10px",borderRadius:4,fontSize:10,fontWeight:600,cursor:rectifyWork.trim()?"pointer":"not-allowed",background:rectifyWork.trim()?GREEN:`${GREEN}44`,border:"none",color:BLACK}}>{rectifySaving?"Saving...":"Confirm Rectification"}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -252,10 +264,16 @@ function MelForm({ initial, onSave, onCancel }) {
   );
 }
 
-function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfirmDelete,onUpdateMel}) {
+function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfirmDelete,onUpdateMel,session,profile,orgId}) {
   const [melFormOpen, setMelFormOpen] = useState(false);
   const [editingMel, setEditingMel] = useState(null);
   const [showClosed, setShowClosed] = useState(false);
+  const [rectifyingMel, setRectifyingMel] = useState(null);
+  const [rectifyWork, setRectifyWork] = useState("");
+  const [rectifySaving, setRectifySaving] = useState(false);
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  const [auditLog, setAuditLog] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   const melItems = a.mel_items || [];
   const activeItems = getActiveMelItems(melItems);
@@ -280,12 +298,60 @@ function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfi
     setEditingMel(null);
   };
 
-  const handleCloseMel = async (item) => {
-    if (!onUpdateMel) return;
-    const items = melItems.map(m =>
-      m.id === item.id ? { ...m, status: "closed", closed_date: getLocalDate() } : m
-    );
-    await onUpdateMel(a.id, items);
+  const handleRectifyMel = async (item) => {
+    if (!onUpdateMel || !rectifyWork.trim() || rectifySaving) return;
+    setRectifySaving(true);
+    try {
+      const today = getLocalDate();
+      const userId = session?.user?.id || profile?.user_id;
+      const userName = profile?.full_name || "Unknown";
+      const items = melItems.map(m =>
+        m.id === item.id ? {
+          ...m,
+          status: "closed",
+          closed_date: today,
+          rectified_by: userId,
+          rectified_by_name: userName,
+          rectified_date: today,
+          work_performed: rectifyWork.trim(),
+        } : m
+      );
+      await onUpdateMel(a.id, items);
+      if (orgId) {
+        createMelAuditEntry(orgId, {
+          aircraft_id: a.id,
+          mel_item_id: item.id,
+          action: "rectified",
+          performed_by: userId,
+          performed_by_name: userName,
+          category: item.category,
+          description: item.description,
+          mel_reference: item.mel_reference || "",
+          work_performed: rectifyWork.trim(),
+        });
+        createNotification(orgId, {
+          type: "mel_rectified",
+          title: "MEL Item Rectified",
+          body: `${userName} rectified MEL on ${a.registration}: ${item.description}`,
+          link_tab: "fleet",
+          link_id: a.id,
+          target_user_id: item.deferred_by || undefined,
+          target_roles: ["admin", "safety_manager"],
+        });
+      }
+      setRectifyingMel(null);
+      setRectifyWork("");
+    } finally {
+      setRectifySaving(false);
+    }
+  };
+
+  const loadAuditLog = async () => {
+    if (!orgId) return;
+    setAuditLoading(true);
+    const { data } = await fetchMelAuditLog(orgId, a.id);
+    setAuditLog(data);
+    setAuditLoading(false);
   };
 
   const handleEditMel = (item) => {
@@ -337,7 +403,9 @@ function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfi
       )}
 
       {activeItems.map(item => (
-        <MelItemRow key={item.id} item={item} canManage={canManage} onClose={handleCloseMel} onEdit={handleEditMel} />
+        <MelItemRow key={item.id} item={item} canManage={canManage} onEdit={handleEditMel}
+          onRectify={(it,confirm)=>{ if(!it){setRectifyingMel(null);setRectifyWork("");} else if(confirm){handleRectifyMel(it);} else{setRectifyingMel(it.id);setRectifyWork("");}}}
+          rectifying={rectifyingMel===item.id} rectifyWork={rectifyWork} setRectifyWork={setRectifyWork} rectifySaving={rectifySaving} />
       ))}
 
       {melFormOpen && (
@@ -358,13 +426,43 @@ function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfi
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                 <MelBadge category={item.category} />
                 {item.mel_reference && <span style={{fontSize:10,color:MUTED}}>Ref {item.mel_reference}</span>}
-                <span style={{fontSize:9,color:GREEN,fontWeight:600}}>CLOSED {item.closed_date || ""}</span>
+                <span style={{fontSize:9,color:GREEN,fontWeight:600}}>RECTIFIED {item.closed_date || ""}</span>
               </div>
               <div style={{fontSize:11,color:MUTED}}>{item.description}</div>
+              {item.rectified_by_name && <div style={{fontSize:9,color:MUTED}}>By: {item.rectified_by_name}</div>}
+              {item.work_performed && <div style={{fontSize:9,color:GREEN,marginTop:2}}>Work: {item.work_performed}</div>}
             </div>
           ))}
         </div>
       )}
+
+      {/* MEL Audit History */}
+      <div style={{marginTop:8}}>
+        <button onClick={()=>{if(!showAuditLog){loadAuditLog();}setShowAuditLog(!showAuditLog);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:10,color:CYAN,fontWeight:600,padding:0}}>
+          {showAuditLog ? "\u25BC" : "\u25B6"} MEL History
+        </button>
+        {showAuditLog && (
+          <div style={{marginTop:6}}>
+            {auditLoading && <div style={{fontSize:10,color:MUTED}}>Loading...</div>}
+            {!auditLoading && auditLog.length === 0 && <div style={{fontSize:10,color:MUTED,fontStyle:"italic"}}>No audit history</div>}
+            {auditLog.map(entry => {
+              const isDeferred = entry.action === "deferred";
+              const color = isDeferred ? CYAN : GREEN;
+              return (
+                <div key={entry.id} style={{padding:"6px 10px",marginBottom:3,background:NEAR_BLACK,borderRadius:6,border:`1px solid ${color}22`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                    <span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:3,background:`${color}18`,color,textTransform:"uppercase"}}>{entry.action}</span>
+                    <span style={{fontSize:9,color:MUTED}}>{new Date(entry.created_at).toLocaleDateString()}</span>
+                    <span style={{fontSize:9,color:OFF_WHITE}}>{entry.performed_by_name}</span>
+                  </div>
+                  <div style={{fontSize:10,color:OFF_WHITE}}>{entry.description}</div>
+                  {entry.work_performed && <div style={{fontSize:9,color:GREEN,marginTop:1}}>Work: {entry.work_performed}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
 
     {a.notes&&<div style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${BORDER}`,padding:"14px 16px"}}><div style={{...lbl}}>Notes</div><div style={{fontSize:12,color:OFF_WHITE,whiteSpace:"pre-wrap"}}>{a.notes}</div></div>}

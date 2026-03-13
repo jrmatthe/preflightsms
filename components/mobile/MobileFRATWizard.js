@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { getActiveMelItems, getMelExpirationStatus } from "../../lib/melHelpers";
+import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpiration, CATEGORY_LIMITS } from "../../lib/melHelpers";
+import { updateAircraftMel, fetchAircraft, createMelAuditEntry, createNotification } from "../../lib/supabase";
 import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE } from "../../lib/analyzeWeather";
 
 const BLACK = "#000000";
@@ -664,6 +665,7 @@ export default function MobileFRATWizard({
   onSubmit, onCancel, onNavigateToFlights,
   pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight,
   pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip,
+  session, onUpdateMel, onCreateNotification,
 }) {
   const [step, setStep] = useState(0);
   const scrollRef = useRef(null);
@@ -959,6 +961,63 @@ export default function MobileFRATWizard({
     }
   }, [activeMelItems, fi.tailNumber]);
 
+  // MEL deferral inline form
+  const [melDeferOpen, setMelDeferOpen] = useState(false);
+  const [melDeferForm, setMelDeferForm] = useState({ description: "", mel_reference: "", category: "C", notes: "" });
+  const [melDeferSaving, setMelDeferSaving] = useState(false);
+  const melDeferExpiration = useMemo(() => calculateExpiration(melDeferForm.category, new Date().toISOString().slice(0, 10)), [melDeferForm.category]);
+
+  const handleDeferMel = async () => {
+    if (!selectedAircraftObj || !melDeferForm.description.trim() || melDeferSaving) return;
+    setMelDeferSaving(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const newItem = {
+        id: generateMelId(),
+        description: melDeferForm.description.trim(),
+        mel_reference: melDeferForm.mel_reference.trim(),
+        category: melDeferForm.category,
+        deferred_date: today,
+        expiration_date: melDeferExpiration || "",
+        notes: melDeferForm.notes.trim(),
+        status: "open",
+        closed_date: null,
+        deferred_by: session?.user?.id || profile?.user_id,
+        deferred_by_name: profile?.full_name || "Unknown",
+      };
+      const updatedItems = [...(selectedAircraftObj.mel_items || []), newItem];
+      if (onUpdateMel) {
+        await onUpdateMel(selectedAircraftObj.id, updatedItems);
+      } else {
+        await updateAircraftMel(selectedAircraftObj.id, updatedItems);
+      }
+      createMelAuditEntry(profile.org_id, {
+        aircraft_id: selectedAircraftObj.id,
+        mel_item_id: newItem.id,
+        action: "deferred",
+        performed_by: session?.user?.id || profile?.user_id,
+        performed_by_name: profile?.full_name || "Unknown",
+        category: newItem.category,
+        description: newItem.description,
+        mel_reference: newItem.mel_reference,
+      });
+      const notif = {
+        type: "mel_deferred",
+        title: "MEL Item Deferred",
+        body: `${profile.full_name} deferred MEL on ${selectedAircraftObj.registration}: ${newItem.description}`,
+        link_tab: "fleet",
+        link_id: selectedAircraftObj.id,
+        target_roles: ["maintenance", "chief_pilot", "admin"],
+      };
+      if (onCreateNotification) onCreateNotification(profile.org_id, notif);
+      else createNotification(profile.org_id, notif);
+      setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" });
+      setMelDeferOpen(false);
+    } finally {
+      setMelDeferSaving(false);
+    }
+  };
+
   // Validation — matches desktop required fields
   const validateStep = (stepNum) => {
     if (stepNum === 0) {
@@ -1228,6 +1287,36 @@ export default function MobileFRATWizard({
                     </div>
                   );
                 })}
+              </div>
+            )}
+            {/* Inline MEL Deferral */}
+            {fi.tailNumber && selectedAircraftObj && (
+              <div style={{ margin: "0 16px 12px", padding: 12, background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` }}>
+                {!melDeferOpen ? (
+                  <button onClick={() => setMelDeferOpen(true)} style={{ background: "none", border: `1px dashed ${CYAN}44`, borderRadius: 8, padding: "12px", color: CYAN, fontSize: 13, fontWeight: 600, cursor: "pointer", width: "100%", minHeight: 44, fontFamily: "inherit" }}>
+                    + Defer MEL Item
+                  </button>
+                ) : (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Defer MEL Item</span>
+                      <button onClick={() => { setMelDeferOpen(false); setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" }); }} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 20, padding: 4, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>&times;</button>
+                    </div>
+                    <input value={melDeferForm.description} onChange={e => setMelDeferForm(p => ({ ...p, description: e.target.value }))} placeholder="Description (required)" style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, marginBottom: 8, boxSizing: "border-box", fontFamily: "inherit" }} />
+                    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                      <input value={melDeferForm.mel_reference} onChange={e => setMelDeferForm(p => ({ ...p, mel_reference: e.target.value }))} placeholder="MEL Ref (optional)" style={{ flex: 1, padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+                      <select value={melDeferForm.category} onChange={e => setMelDeferForm(p => ({ ...p, category: e.target.value }))} style={{ padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, fontFamily: "inherit" }}>
+                        {Object.keys(CATEGORY_LIMITS).map(c => <option key={c} value={c}>Cat {c}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>Expires: {melDeferExpiration || "As specified in MEL"}</div>
+                    <input value={melDeferForm.notes} onChange={e => setMelDeferForm(p => ({ ...p, notes: e.target.value }))} placeholder="Notes (optional)" style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit" }} />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => { setMelDeferOpen(false); setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" }); }} style={{ flex: 1, padding: "12px", borderRadius: 8, fontSize: 14, fontWeight: 600, background: "transparent", border: `1px solid ${BORDER}`, color: MUTED, cursor: "pointer", fontFamily: "inherit", minHeight: 44 }}>Cancel</button>
+                      <button onClick={handleDeferMel} disabled={!melDeferForm.description.trim() || melDeferSaving} style={{ flex: 1, padding: "12px", borderRadius: 8, fontSize: 14, fontWeight: 600, background: melDeferForm.description.trim() ? CYAN : `${CYAN}44`, border: "none", color: BLACK, cursor: melDeferForm.description.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", minHeight: 44 }}>{melDeferSaving ? "Saving..." : "Defer"}</button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <StepRiskAssessment categories={categories} checked={checked} setChecked={setChecked}

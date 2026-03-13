@@ -113,7 +113,7 @@ export default function MobileMoreMenu({
     const renderSubView = () => {
       switch (subView) {
         case "fleet":
-          return <MobileFleetView fleetAircraft={fleetAircraft} onUpdateAircraftStatus={onUpdateAircraftStatus} onUpdateMel={onUpdateMel} />;
+          return <MobileFleetView fleetAircraft={fleetAircraft} onUpdateAircraftStatus={onUpdateAircraftStatus} onUpdateMel={onUpdateMel} session={session} profile={profile} orgId={profile?.org_id} />;
         case "erp":
           return <MobileERPView erpPlans={erpPlans} onLoadChecklist={onLoadErpChecklist} onLoadCallTree={onLoadErpCallTree} onAcknowledgeErp={onAcknowledgeErp} session={session} />;
         case "hazards":
