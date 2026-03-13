@@ -341,7 +341,9 @@ export default function PolicyTraining({
           <div style={{ fontSize: 11, color: MUTED }}>§5.21–5.25 — Safety policy and documentation</div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button data-onboarding="policy-add-doc" onClick={() => setView("new_policy")} style={{ padding: "8px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Document</button>
+          {isAdmin && (
+            <button data-onboarding="policy-add-doc" onClick={() => setView("new_policy")} style={{ padding: "8px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Document</button>
+          )}
         </div>
       </div>
       {renderTopTabs()}
