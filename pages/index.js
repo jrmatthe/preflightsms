@@ -4523,7 +4523,7 @@ export default function PVTAIRFrat() {
     setActiveTour(flowId);
     setActiveTourStep(0);
 
-    // submit_frat: inject demo aircraft so the FRAT form renders
+    // submit_frat: inject demo aircraft + prefill form with airports so weather loads
     if (flowId === "submit_frat") {
       if (fleetAircraft.length === 0) {
         tourDemoAircraftRef.current = {
@@ -4531,6 +4531,16 @@ export default function PVTAIRFrat() {
           status: "active", mel_items: [], org_id: profile?.org_id,
         };
       }
+      setFratPrefill({
+        pilot: profile?.full_name || "Demo Pilot",
+        aircraft: fleetAircraft[0]?.type || "C172",
+        tailNumber: fleetAircraft[0]?.registration || "N12345",
+        departure: "KSFF",
+        destination: "KBOI",
+        cruiseAlt: "8500",
+        numCrew: "1",
+        numPax: "2",
+      });
     }
 
     // log_flight: inject demo flight on the flight board
@@ -4581,7 +4591,7 @@ export default function PVTAIRFrat() {
   }, [activeTour, activeTourStep, tourState, persistTour]);
 
   const cleanupTourDemo = useCallback((flowId) => {
-    if (flowId === "submit_frat") tourDemoAircraftRef.current = null;
+    if (flowId === "submit_frat") { tourDemoAircraftRef.current = null; setFratPrefill(null); }
     if (flowId === "log_flight") tourDemoFlightRef.current = null;
   }, []);
 
