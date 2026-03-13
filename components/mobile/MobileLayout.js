@@ -6,6 +6,7 @@ import MobileFlightsView from "./MobileFlightsView";
 import MobileFRATWizard from "./MobileFRATWizard";
 import MobileReportsView from "./MobileReportsView";
 import MobileTrainingView from "./MobileTrainingView";
+import MobileComplianceView from "./MobileComplianceView";
 import { getQueueCount } from "../../lib/offlineQueue";
 
 const DARK = "#111111";
@@ -139,7 +140,9 @@ export default function MobileLayout({
   // Feature gating
   hasFlights, hasTraining, adsbEnabled,
   onUpdateEmail,
-  org, orgProfiles, records,
+  org, orgProfiles, records, frats,
+  // Compliance data
+  auditSchedules, cultureSurveys, mySurveyResponseIds, asapCorrActions, mocItems,
   onCreateAircraft,
   onUpdateMel,
   pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight,
@@ -235,15 +238,27 @@ export default function MobileLayout({
       submit: "newFrat",
       flights: "flights",
       reports: "reports",
-      cbt: "training",
     };
-    const MORE_VIEWS = ["fleet", "erp", "hazards", "actions", "policies"];
-    if (MORE_VIEWS.includes(linkTab)) {
+    const MORE_VIEWS = ["fleet", "erp", "hazards", "actions", "policies", "training"];
+    if (linkTab === "cbt" || MORE_VIEWS.includes(linkTab)) {
       setActiveTab("more");
-      setMoreSubView(linkTab);
+      setMoreSubView(linkTab === "cbt" ? "training" : linkTab);
     } else {
       setActiveTab(TAB_MAP[linkTab] || "flights");
       setMoreSubView(null);
+    }
+  };
+
+  const handleComplianceNavigate = (nav) => {
+    // Map compliance item nav targets to mobile navigation
+    const TAB_TARGETS = { flights: "flights", reports: "reports" };
+    if (TAB_TARGETS[nav]) {
+      setActiveTab(TAB_TARGETS[nav]);
+      setMoreSubView(null);
+    } else {
+      // Everything else lives under the More menu
+      setActiveTab("more");
+      setMoreSubView(nav);
     }
   };
 
@@ -316,22 +331,24 @@ export default function MobileLayout({
             onClearPrefill={() => { if (setReportPrefill) setReportPrefill(null); }}
           />
         );
-      case "training":
-        if (hasTraining === false) return <UpgradeScreen feature="Training & CBT" description="Access computer-based training courses, track requirements, and log training records. Available on the Starter plan and above." />;
+      case "todo":
         return (
-          <MobileTrainingView
-            courses={cbtCourses}
-            lessonsMap={cbtLessonsMap}
-            progress={cbtProgress}
-            enrollments={cbtEnrollments}
-            trainingRequirements={trainingReqs}
-            trainingRecords={trainingRecs}
+          <MobileComplianceView
             profile={profile}
             session={session}
-            onUpdateProgress={onUpdateCbtProgress}
-            onUpdateEnrollment={onUpdateCbtEnrollment}
-            onLogTraining={onLogTraining}
-            onRefresh={refreshCbt}
+            policies={policies}
+            trainingRequirements={trainingReqs}
+            trainingRecords={trainingRecs}
+            actions={actions}
+            frats={frats}
+            reports={reports}
+            auditSchedules={auditSchedules}
+            erpPlans={erpPlans}
+            mocItems={mocItems}
+            cultureSurveys={cultureSurveys}
+            mySurveyResponseIds={mySurveyResponseIds}
+            asapCorrActions={asapCorrActions}
+            onNavigate={handleComplianceNavigate}
           />
         );
       case "more":
@@ -352,6 +369,7 @@ export default function MobileLayout({
             profile={profile}
             session={session}
             orgData={orgData}
+            orgProfiles={orgProfiles}
             onUpdateAction={onUpdateAction}
             policies={policies}
             onAcknowledgePolicy={onAcknowledgePolicy}
@@ -363,6 +381,18 @@ export default function MobileLayout({
             onUpdatePreferences={onUpdatePreferences}
             onUpdateEmail={onUpdateEmail}
             onNotifNavigate={handleNotifNavigate}
+            // Training props (now accessible via More menu)
+            cbtCourses={cbtCourses}
+            cbtLessonsMap={cbtLessonsMap}
+            cbtProgress={cbtProgress}
+            cbtEnrollments={cbtEnrollments}
+            trainingReqs={trainingReqs}
+            trainingRecs={trainingRecs}
+            onUpdateCbtProgress={onUpdateCbtProgress}
+            onUpdateCbtEnrollment={onUpdateCbtEnrollment}
+            onLogTraining={onLogTraining}
+            refreshCbt={refreshCbt}
+            hasTraining={hasTraining}
           />
         );
       default:

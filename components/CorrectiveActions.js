@@ -96,7 +96,7 @@ function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation, orgP
   );
 }
 
-function ActionCard({ a, onUpdateAction, linkedInvestigation }) {
+function ActionCard({ a, onUpdateAction, linkedInvestigation, orgProfiles }) {
   const priority = PRIORITIES.find(p => p.id === a.priority) || PRIORITIES[1];
   const status = STATUSES.find(s => s.id === a.status) || STATUSES[0];
   const isOverdue = a.status === "overdue";
@@ -132,7 +132,7 @@ function ActionCard({ a, onUpdateAction, linkedInvestigation }) {
             </div>
           )}
           <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Update Status</div>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
             {STATUSES.filter(s => s.id !== "overdue").map(s => (
               <button key={s.id} onClick={() => {
                 if (s.id === a.status) return;
@@ -149,6 +149,18 @@ function ActionCard({ a, onUpdateAction, linkedInvestigation }) {
               </button>
             ))}
           </div>
+          {orgProfiles && orgProfiles.length > 0 && (
+            <>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Assigned To</div>
+              <select value={a.assigned_to || ""} onChange={e => {
+                const p = orgProfiles.find(p => p.id === e.target.value);
+                if (p) onUpdateAction(a.id, { assigned_to: p.id, assigned_to_name: p.full_name });
+              }} style={inp}>
+                <option value="">Unassigned</option>
+                {orgProfiles.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+              </select>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -283,7 +295,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
         </div>
       ) : (<>
         {filtered.slice(0, showCount).map(a => (
-          <ActionCard key={a.id} a={a} onUpdateAction={onUpdateAction} linkedInvestigation={a.hazard_id ? hazardMap[a.hazard_id] : null} />
+          <ActionCard key={a.id} a={a} onUpdateAction={onUpdateAction} linkedInvestigation={a.hazard_id ? hazardMap[a.hazard_id] : null} orgProfiles={orgProfiles} />
         ))}
         {filtered.length > showCount && (
           <button onClick={() => setShowCount(c => c + 25)}

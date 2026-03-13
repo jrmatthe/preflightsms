@@ -121,9 +121,10 @@ function StatusSheet({ action, onUpdate, onClose }) {
 }
 
 // ── ACTION CARD ──────────────────────────────────────────────
-function ActionCard({ action, hazards, onUpdateAction }) {
+function ActionCard({ action, hazards, onUpdateAction, orgProfiles }) {
   const [expanded, setExpanded] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
+  const [showReassign, setShowReassign] = useState(false);
 
   const priorityColor = PRIORITY_COLORS[action.priority] || MUTED;
   const statusColor = STATUS_COLORS[action.status] || MUTED;
@@ -195,15 +196,26 @@ function ActionCard({ action, hazards, onUpdateAction }) {
               <div style={{ marginTop: 10, fontSize: 14, color: MUTED }}>Code: {action.action_code}</div>
             )}
 
-            {/* Update Status button */}
+            {/* Update Status + Reassign buttons */}
             {onUpdateAction && action.status !== "completed" && action.status !== "cancelled" && (
-              <button onClick={(e) => { e.stopPropagation(); setShowSheet(true); }} style={{
-                width: "100%", padding: "14px 0", borderRadius: 10, marginTop: 14,
-                background: WHITE, color: BLACK, fontSize: 15, fontWeight: 600,
-                border: "none", cursor: "pointer", fontFamily: "inherit", minHeight: 48,
-              }}>
-                Update Status
-              </button>
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                <button onClick={(e) => { e.stopPropagation(); setShowSheet(true); }} style={{
+                  flex: 1, padding: "14px 0", borderRadius: 10,
+                  background: WHITE, color: BLACK, fontSize: 15, fontWeight: 600,
+                  border: "none", cursor: "pointer", fontFamily: "inherit", minHeight: 48,
+                }}>
+                  Update Status
+                </button>
+                {orgProfiles && orgProfiles.length > 0 && (
+                  <button onClick={(e) => { e.stopPropagation(); setShowReassign(true); }} style={{
+                    flex: 1, padding: "14px 0", borderRadius: 10,
+                    background: "transparent", color: CYAN, fontSize: 15, fontWeight: 600,
+                    border: `1px solid ${CYAN}44`, cursor: "pointer", fontFamily: "inherit", minHeight: 48,
+                  }}>
+                    Reassign
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -216,12 +228,54 @@ function ActionCard({ action, hazards, onUpdateAction }) {
           onClose={() => setShowSheet(false)}
         />
       )}
+
+      {showReassign && orgProfiles && (
+        <>
+          <div onClick={() => setShowReassign(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9998 }} />
+          <div style={{
+            position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
+            background: "#161616", borderRadius: "16px 16px 0 0", padding: "16px 16px",
+            paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+            animation: "sheetSlideUp 0.25s ease-out", maxHeight: "60vh", overflowY: "auto",
+          }}>
+            <div aria-hidden="true" style={{ width: 36, height: 4, borderRadius: 2, background: BORDER, margin: "0 auto 16px" }} />
+            <div style={{ fontSize: 16, fontWeight: 600, color: WHITE, marginBottom: 16, textAlign: "center" }}>Reassign To</div>
+            {orgProfiles.map(p => {
+              const isCurrent = action.assigned_to === p.id;
+              return (
+                <button key={p.id} onClick={() => {
+                  if (!isCurrent) onUpdateAction(action.id, { assigned_to: p.id, assigned_to_name: p.full_name });
+                  setShowReassign(false);
+                }} style={{
+                  width: "100%", padding: "14px 16px", borderRadius: 10, marginBottom: 8,
+                  display: "flex", alignItems: "center", gap: 12,
+                  background: isCurrent ? `${CYAN}12` : "transparent",
+                  border: `1px solid ${isCurrent ? CYAN : BORDER}`,
+                  cursor: "pointer", fontFamily: "inherit", minHeight: 48,
+                }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: isCurrent ? CYAN : OFF_WHITE, flex: 1, textAlign: "left" }}>{p.full_name}</span>
+                  {isCurrent && (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+            <button onClick={() => setShowReassign(false)} style={{
+              width: "100%", padding: "14px 0", borderRadius: 10, marginTop: 4,
+              background: "transparent", border: `1px solid ${BORDER}`,
+              color: MUTED, fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", minHeight: 48,
+            }}>Cancel</button>
+          </div>
+        </>
+      )}
     </>
   );
 }
 
 // ── MAIN VIEW ────────────────────────────────────────────────
-export default function MobileCorrActionsView({ actions, hazards, profile, onUpdateAction }) {
+export default function MobileCorrActionsView({ actions, hazards, profile, onUpdateAction, orgProfiles }) {
   if (actions === undefined || actions === null) return <SkeletonLoader />;
 
   // Only show actions assigned to current user
@@ -268,7 +322,7 @@ export default function MobileCorrActionsView({ actions, hazards, profile, onUpd
       </div>
 
       {sorted.map(a => (
-        <ActionCard key={a.id} action={a} hazards={hazards} onUpdateAction={onUpdateAction} />
+        <ActionCard key={a.id} action={a} hazards={hazards} onUpdateAction={onUpdateAction} orgProfiles={orgProfiles} />
       ))}
     </div>
   );
