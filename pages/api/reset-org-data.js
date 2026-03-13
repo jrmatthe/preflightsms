@@ -92,10 +92,11 @@ export default async function handler(req, res) {
 
     // ERP
     await supabase.from("erp_drills").delete().eq("org_id", orgId);
-    // erp_call_tree and erp_checklist_items reference erp_plans
+    // erp_call_tree, erp_checklist_items, and erp_acknowledgments reference erp_plans
     const { data: erpPlans } = await supabase.from("erp_plans").select("id").eq("org_id", orgId);
     const erpPlanIds = (erpPlans || []).map(p => p.id);
     if (erpPlanIds.length > 0) {
+      await supabase.from("erp_acknowledgments").delete().in("erp_plan_id", erpPlanIds);
       await supabase.from("erp_call_tree").delete().in("erp_plan_id", erpPlanIds);
       await supabase.from("erp_checklist_items").delete().in("erp_plan_id", erpPlanIds);
     }
@@ -105,14 +106,22 @@ export default async function handler(req, res) {
     await supabase.from("moc_attachments").delete().eq("org_id", orgId);
     await supabase.from("management_of_change").delete().eq("org_id", orgId);
 
+    // Integrations (MUST come before flights/frat_submissions — FK references without CASCADE)
+    await supabase.from("foreflight_flights").delete().eq("org_id", orgId);
+    await supabase.from("foreflight_config").delete().eq("org_id", orgId);
+    await supabase.from("schedaero_trips").delete().eq("org_id", orgId);
+    await supabase.from("schedaero_config").delete().eq("org_id", orgId);
+
     // Safety core
     await supabase.from("corrective_actions").delete().eq("org_id", orgId);
     await supabase.from("hazard_register").delete().eq("org_id", orgId);
     await supabase.from("safety_reports").delete().eq("org_id", orgId);
     await supabase.from("nudge_responses").delete().eq("org_id", orgId);
+    await supabase.from("fatigue_assessments").delete().eq("org_id", orgId);
+    await supabase.from("flight_positions").delete().eq("org_id", orgId);
     await supabase.from("flights").delete().eq("org_id", orgId);
     await supabase.from("frat_submissions").delete().eq("org_id", orgId);
-    await supabase.from("flight_positions").delete().eq("org_id", orgId);
+    await supabase.from("mel_audit_log").delete().eq("org_id", orgId);
     await supabase.from("aircraft").delete().eq("org_id", orgId);
 
     // SPI
@@ -132,21 +141,16 @@ export default async function handler(req, res) {
     // Engagement (user-scoped)
     await supabase.from("pilot_engagement").delete().eq("org_id", orgId);
     await supabase.from("safety_recognitions").delete().eq("org_id", orgId);
-    await supabase.from("fatigue_assessments").delete().eq("org_id", orgId);
 
     // AI & analytics
     await supabase.from("trend_alerts").delete().eq("org_id", orgId);
     await supabase.from("ai_suggestions").delete().eq("org_id", orgId);
     await supabase.from("safety_digests").delete().eq("org_id", orgId);
-
-    // Integrations
-    await supabase.from("foreflight_flights").delete().eq("org_id", orgId);
-    await supabase.from("foreflight_config").delete().eq("org_id", orgId);
-    await supabase.from("schedaero_trips").delete().eq("org_id", orgId);
-    await supabase.from("schedaero_config").delete().eq("org_id", orgId);
+    await supabase.from("ai_usage_log").delete().eq("org_id", orgId);
 
     // API & webhooks
     await supabase.from("api_keys").delete().eq("org_id", orgId);
+    await supabase.from("api_request_log").delete().eq("org_id", orgId);
     await supabase.from("webhooks").delete().eq("org_id", orgId);
 
     // Notifications
@@ -176,6 +180,9 @@ export default async function handler(req, res) {
         safety_report: { status: "not_started", current_step: 0 },
         policy_manuals: { status: "not_started", current_step: 0 },
         training: { status: "not_started", current_step: 0 },
+        investigations: { status: "not_started", current_step: 0 },
+        integrations: { status: "not_started", current_step: 0 },
+        custom_frat: { status: "not_started", current_step: 0 },
         compliance: { status: "not_started", current_step: 0 },
       },
     };
