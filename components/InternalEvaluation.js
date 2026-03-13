@@ -446,13 +446,20 @@ export default function InternalEvaluation({
       overall_score: score,
     });
     // Advance any linked schedule's next_due_date
-    const linkedSchedule = (auditSchedules || []).find(s => s.template_id === executingAudit.template_id && s.is_active);
-    if (linkedSchedule && onUpdateSchedule) {
-      const freq = FREQUENCY_OPTIONS.find(f => f.id === linkedSchedule.frequency);
-      if (freq) {
-        const next = new Date();
-        next.setMonth(next.getMonth() + freq.months);
-        await onUpdateSchedule(linkedSchedule.id, { next_due_date: next.toISOString().split("T")[0], last_completed_at: new Date().toISOString() });
+    const templateId = executingAudit.template_id;
+    if (templateId && onUpdateSchedule) {
+      const linkedSchedule = (auditSchedules || []).find(s => s.template_id === templateId && s.is_active);
+      if (linkedSchedule) {
+        const freq = FREQUENCY_OPTIONS.find(f => f.id === linkedSchedule.frequency);
+        if (freq) {
+          const next = new Date();
+          next.setMonth(next.getMonth() + freq.months);
+          try {
+            await onUpdateSchedule(linkedSchedule.id, { next_due_date: next.toISOString().split("T")[0], last_completed_at: new Date().toISOString() });
+          } catch (err) {
+            console.error("Failed to advance schedule:", err);
+          }
+        }
       }
     }
     if (onRefreshAudits) await onRefreshAudits();
