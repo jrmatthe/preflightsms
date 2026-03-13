@@ -2317,8 +2317,18 @@ function HomeView({ profile, profiles, frats, flights, reports, actions, hazards
     return !acks.some(a => a.user_id === userId);
   });
 
+  // ── Resolve FRAT approval status by cross-referencing linked flights ──
+  const resolveApprovalStatus = (frat) => {
+    if (frat.approvalStatus === "pending") {
+      const linkedFlight = (flights || []).find(f => f.id === frat.id || f.fratDbId === frat.dbId);
+      if (linkedFlight && (linkedFlight.approvalStatus === "approved" || linkedFlight.status === "ARRIVED")) return "approved";
+      if (linkedFlight && linkedFlight.approvalStatus === "pilot_dispatched") return "pilot_dispatched";
+    }
+    return frat.approvalStatus;
+  };
+
   // ── Admin sections data ──
-  const pendingApprovals = (frats || []).filter(Boolean).filter(f => f.approvalStatus === "pending" || f.approvalStatus === "review");
+  const pendingApprovals = (frats || []).filter(Boolean).filter(f => { const s = resolveApprovalStatus(f); return s === "pending" || s === "review"; });
   const reportsNeedingReview = (reports || []).filter(Boolean).filter(r => r.status === "open" || r.status === "under_review");
   const openInvestigations = (hazards || []).filter(Boolean).filter(h => h.status === "active" || h.status === "identified" || h.status === "open");
   const myActions = (actions || []).filter(Boolean).filter(a => a.assigned_to === userId && a.status !== "completed" && a.status !== "closed");
@@ -2330,14 +2340,6 @@ function HomeView({ profile, profiles, frats, flights, reports, actions, hazards
   const openMocItems = (mocItems || []).filter(Boolean).filter(m => m.status !== "completed" && m.status !== "cancelled");
 
   const riskColor = (score) => score >= 46 ? RED : score >= 31 ? AMBER : score >= 16 ? YELLOW : GREEN;
-  const resolveApprovalStatus = (frat) => {
-    if (frat.approvalStatus === "pending") {
-      const linkedFlight = (flights || []).find(f => f.id === frat.id || f.fratDbId === frat.dbId);
-      if (linkedFlight && (linkedFlight.approvalStatus === "approved" || linkedFlight.status === "ARRIVED")) return "approved";
-      if (linkedFlight && linkedFlight.approvalStatus === "pilot_dispatched") return "pilot_dispatched";
-    }
-    return frat.approvalStatus;
-  };
   const approvalLabel = (s) => s === "approved" ? "Approved" : s === "rejected" ? "Rejected" : s === "auto_approved" ? "Auto" : s === "pilot_dispatched" ? "Self-Dispatch" : "Pending";
   const approvalColor = (s) => s === "approved" || s === "auto_approved" ? GREEN : s === "rejected" ? RED : s === "pilot_dispatched" ? AMBER : AMBER;
   const reportStatusColor = (s) => s === "closed" ? GREEN : s === "under_review" || s === "investigation" ? AMBER : CYAN;
