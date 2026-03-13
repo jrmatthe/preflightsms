@@ -95,7 +95,7 @@ export default function MobileMoreMenu({
   subView, onNavigate, onBack, unreadCount,
   // Sub-view data props
   fleetAircraft, onUpdateAircraftStatus, onUpdateMel,
-  erpPlans, onLoadErpChecklist, onLoadErpCallTree,
+  erpPlans, onLoadErpChecklist, onLoadErpCallTree, onAcknowledgeErp,
   hazards, actions, profile, session, orgData, orgProfiles,
   onUpdateAction,
   policies, onAcknowledgePolicy,
@@ -115,7 +115,7 @@ export default function MobileMoreMenu({
         case "fleet":
           return <MobileFleetView fleetAircraft={fleetAircraft} onUpdateAircraftStatus={onUpdateAircraftStatus} onUpdateMel={onUpdateMel} />;
         case "erp":
-          return <MobileERPView erpPlans={erpPlans} onLoadChecklist={onLoadErpChecklist} onLoadCallTree={onLoadErpCallTree} />;
+          return <MobileERPView erpPlans={erpPlans} onLoadChecklist={onLoadErpChecklist} onLoadCallTree={onLoadErpCallTree} onAcknowledgeErp={onAcknowledgeErp} session={session} />;
         case "hazards":
           return <MobileHazardsView hazards={hazards} actions={actions} />;
         case "actions":

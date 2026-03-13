@@ -53,12 +53,17 @@ function BackHeader({ title, onBack }) {
 }
 
 // ── PLAN DETAIL VIEW ─────────────────────────────────────────
-function PlanDetail({ plan, onLoadChecklist, onLoadCallTree, onBack }) {
+function PlanDetail({ plan, onLoadChecklist, onLoadCallTree, onBack, onAcknowledgeErp, session }) {
   const [checklist, setChecklist] = useState(null);
   const [callTree, setCallTree] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [acking, setAcking] = useState(false);
 
   const cat = ERP_CATEGORIES[plan.category] || ERP_CATEGORIES.general;
+
+  // Acknowledgment status
+  const myAck = (plan.acknowledgments || []).find(a => a.user_id === session?.user?.id);
+  const needsAck = plan.is_active && (!myAck || myAck.plan_version < (plan.version || 1) || (plan.acknowledgment_frequency_months && new Date(myAck.acknowledged_at).getTime() + plan.acknowledgment_frequency_months * 30 * 86400000 < Date.now()));
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +89,36 @@ function PlanDetail({ plan, onLoadChecklist, onLoadCallTree, onBack }) {
       <BackHeader title="Emergency Plan" onBack={onBack} />
 
       <div style={{ padding: 16 }}>
+        {/* Acknowledgment banner */}
+        {needsAck && onAcknowledgeErp && (
+          <div style={{ ...cardStyle, padding: 16, marginBottom: 16, borderLeft: `3px solid ${AMBER}` }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: WHITE, marginBottom: 4 }}>Acknowledgment Required</div>
+            <div style={{ fontSize: 13, color: MUTED, marginBottom: 12 }}>
+              {!myAck ? "You have not yet acknowledged this ERP." : "This plan has been updated or your acknowledgment has expired."}
+            </div>
+            <button
+              disabled={acking}
+              onClick={async () => {
+                setAcking(true);
+                await onAcknowledgeErp(plan.id, plan.version || 1);
+                setAcking(false);
+              }}
+              style={{
+                width: "100%", padding: "12px 16px", borderRadius: 8, border: "none",
+                background: WHITE, color: BLACK, fontSize: 15, fontWeight: 600,
+                cursor: acking ? "not-allowed" : "pointer", opacity: acking ? 0.5 : 1,
+              }}
+            >{acking ? "Acknowledging..." : "Acknowledge"}</button>
+          </div>
+        )}
+        {!needsAck && myAck && plan.is_active && (
+          <div style={{ ...cardStyle, padding: 12, marginBottom: 16, borderLeft: `3px solid ${GREEN}`, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: GREEN }} />
+            <span style={{ fontSize: 13, color: GREEN, fontWeight: 600 }}>Acknowledged</span>
+            <span style={{ fontSize: 12, color: MUTED }}>on {new Date(myAck.acknowledged_at).toLocaleDateString()}</span>
+          </div>
+        )}
+
         {/* Plan header */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>{cat.icon}</div>
@@ -226,17 +261,22 @@ function PlanDetail({ plan, onLoadChecklist, onLoadCallTree, onBack }) {
 }
 
 // ── MAIN ERP VIEW ────────────────────────────────────────────
-export default function MobileERPView({ erpPlans, onLoadChecklist, onLoadCallTree }) {
+export default function MobileERPView({ erpPlans, onLoadChecklist, onLoadCallTree, onAcknowledgeErp, session }) {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const plans = (erpPlans || []).filter(p => p.is_active !== false);
 
-  if (selectedPlan) {
+  // Sync selected plan with upstream data
+  const activePlan = selectedPlan ? (erpPlans || []).find(p => p.id === selectedPlan.id) || selectedPlan : null;
+
+  if (activePlan) {
     return (
       <PlanDetail
-        plan={selectedPlan}
+        plan={activePlan}
         onLoadChecklist={onLoadChecklist}
         onLoadCallTree={onLoadCallTree}
         onBack={() => setSelectedPlan(null)}
+        onAcknowledgeErp={onAcknowledgeErp}
+        session={session}
       />
     );
   }

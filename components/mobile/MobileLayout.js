@@ -135,7 +135,7 @@ export default function MobileLayout({
   onUpdateCbtProgress, onUpdateCbtEnrollment, onLogTraining, refreshCbt,
   // Phase 5 props
   hazards, actions, onUpdateAction, onUpdateAircraftStatus,
-  erpPlans, onLoadErpChecklist, onLoadErpCallTree,
+  erpPlans, onLoadErpChecklist, onLoadErpCallTree, onAcknowledgeErp,
   policies, onAcknowledgePolicy,
   // Feature gating
   hasFlights, hasTraining, adsbEnabled,
@@ -364,6 +364,7 @@ export default function MobileLayout({
             erpPlans={erpPlans}
             onLoadErpChecklist={onLoadErpChecklist}
             onLoadErpCallTree={onLoadErpCallTree}
+            onAcknowledgeErp={onAcknowledgeErp}
             hazards={hazards}
             actions={actions}
             profile={profile}

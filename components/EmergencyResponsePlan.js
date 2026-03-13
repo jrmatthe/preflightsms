@@ -216,6 +216,7 @@ export default function EmergencyResponsePlan({
   onLoadChecklist, onSaveChecklist, onLoadCallTree, onSaveCallTree,
   onCreateDrill, onUpdateDrill, onDeleteDrill,
   onInitTemplates, onCreateActionFromDrill,
+  onAcknowledgeErp, orgProfiles,
 }) {
   const [view, setView] = useState("list");
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -251,6 +252,7 @@ export default function EmergencyResponsePlan({
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Btn onClick={() => setView("drills")}>Drills</Btn>
+            {isAdmin && <Btn onClick={() => setView("compliance")}>Compliance</Btn>}
             {isAdmin && <Btn primary disabled={atLimit} onClick={() => setView("new")}>+ New Plan</Btn>}
           </div>
         </div>
@@ -295,6 +297,8 @@ export default function EmergencyResponsePlan({
         {plans.map(plan => {
           const cat = getCat(plan.category);
           const nr = needsReview(plan);
+          const myAck = (plan.acknowledgments || []).find(a => a.user_id === session?.user?.id);
+          const needsAck = plan.is_active && (!myAck || myAck.plan_version < (plan.version || 1) || (plan.acknowledgment_frequency_months && new Date(myAck.acknowledged_at).getTime() + plan.acknowledgment_frequency_months * 30 * 86400000 < Date.now()));
           return (
             <div key={plan.id} onClick={() => { setSelectedPlan(plan); setView("detail"); }} style={{ ...card, padding: 16, marginBottom: 8, cursor: "pointer", borderLeft: `3px solid ${cat.color}`, transition: "border-color 0.15s" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
@@ -306,6 +310,8 @@ export default function EmergencyResponsePlan({
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {needsAck && <Badge label="Acknowledge" color={AMBER} />}
+                  {!needsAck && myAck && plan.is_active && <Badge label="Acknowledged" color={GREEN} />}
                   {nr && <Badge label="Needs Review" color={AMBER} />}
                   <Badge label={plan.is_active ? "Active" : "Inactive"} color={plan.is_active ? GREEN : MUTED} />
                   {plan.last_reviewed_at && (
@@ -366,6 +372,18 @@ export default function EmergencyResponsePlan({
       onSaveCallTree={onSaveCallTree}
       session={session}
       erpPlans={erpPlans}
+      onAcknowledgeErp={onAcknowledgeErp}
+    />;
+  }
+
+  // ── COMPLIANCE VIEW (admin-only) ────────────────────────────
+  if (view === "compliance" && isAdmin) {
+    return <ErpComplianceView
+      erpPlans={erpPlans}
+      orgProfiles={orgProfiles}
+      onBack={() => setView("list")}
+      onUpdatePlan={onUpdatePlan}
+      session={session}
     />;
   }
 
@@ -390,10 +408,11 @@ export default function EmergencyResponsePlan({
 // ════════════════════════════════════════════════════════════════
 // PLAN DETAIL (checklist / call tree / quick ref)
 // ════════════════════════════════════════════════════════════════
-function PlanDetail({ plan, isAdmin, onBack, onUpdatePlan, onDeletePlan, onLoadChecklist, onSaveChecklist, onLoadCallTree, onSaveCallTree, session, erpPlans }) {
+function PlanDetail({ plan, isAdmin, onBack, onUpdatePlan, onDeletePlan, onLoadChecklist, onSaveChecklist, onLoadCallTree, onSaveCallTree, session, erpPlans, onAcknowledgeErp }) {
   const [tab, setTab] = useState("checklist");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [localPlan, setLocalPlan] = useState(plan);
+  const [acking, setAcking] = useState(false);
 
   // Sync if upstream plan changes
   useEffect(() => {
@@ -404,9 +423,37 @@ function PlanDetail({ plan, isAdmin, onBack, onUpdatePlan, onDeletePlan, onLoadC
   const cat = getCat(localPlan.category);
   const nr = needsReview(localPlan);
 
+  // Acknowledgment status for current user
+  const myAck = (localPlan.acknowledgments || []).find(a => a.user_id === session?.user?.id);
+  const needsAck = localPlan.is_active && (!myAck || myAck.plan_version < (localPlan.version || 1) || (localPlan.acknowledgment_frequency_months && new Date(myAck.acknowledged_at).getTime() + localPlan.acknowledgment_frequency_months * 30 * 86400000 < Date.now()));
+
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <button onClick={onBack} style={{ background: "none", border: "none", color: MUTED, fontSize: 12, cursor: "pointer", marginBottom: 12 }}>← Back to Plans</button>
+
+      {/* Acknowledgment banner */}
+      {needsAck && onAcknowledgeErp && (
+        <div style={{ ...card, padding: 16, marginBottom: 12, borderLeft: `3px solid ${AMBER}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: WHITE }}>Acknowledgment Required</div>
+            <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+              {!myAck ? "You have not yet acknowledged this ERP." : myAck.plan_version < (localPlan.version || 1) ? "This plan has been updated since your last acknowledgment." : "Your acknowledgment has expired and needs to be renewed."}
+            </div>
+          </div>
+          <Btn primary small disabled={acking} onClick={async () => {
+            setAcking(true);
+            await onAcknowledgeErp(localPlan.id, localPlan.version || 1);
+            setAcking(false);
+          }}>{acking ? "Acknowledging..." : "Acknowledge"}</Btn>
+        </div>
+      )}
+      {!needsAck && myAck && localPlan.is_active && (
+        <div style={{ ...card, padding: 12, marginBottom: 12, borderLeft: `3px solid ${GREEN}`, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: GREEN }} />
+          <span style={{ fontSize: 12, color: GREEN, fontWeight: 600 }}>Acknowledged</span>
+          <span style={{ fontSize: 11, color: MUTED }}>on {new Date(myAck.acknowledged_at).toLocaleDateString()}</span>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ ...card, padding: 20, marginBottom: 16 }}>
@@ -455,6 +502,9 @@ function PlanDetail({ plan, isAdmin, onBack, onUpdatePlan, onDeletePlan, onLoadC
         {localPlan.description && <div style={{ fontSize: 12, color: MUTED, marginTop: 10, lineHeight: 1.5 }}>{localPlan.description}</div>}
         {localPlan.last_reviewed_at && (
           <div style={{ fontSize: 10, color: MUTED, marginTop: 8 }}>Last reviewed: {new Date(localPlan.last_reviewed_at).toLocaleDateString()}</div>
+        )}
+        {isAdmin && localPlan.acknowledgment_frequency_months && (
+          <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Re-acknowledgment required every {localPlan.acknowledgment_frequency_months} month{localPlan.acknowledgment_frequency_months !== 1 ? "s" : ""}</div>
         )}
       </div>
 
@@ -961,6 +1011,158 @@ function DrillsView({ erpDrills, erpPlans, isAdmin, onBack, onCreateDrill, onUpd
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ERP COMPLIANCE VIEW (admin-only)
+// ════════════════════════════════════════════════════════════════
+const ACK_FREQ_OPTIONS = [
+  { value: "", label: "Only on change" },
+  { value: "3", label: "Every 3 months" },
+  { value: "6", label: "Every 6 months" },
+  { value: "12", label: "Every 12 months" },
+  { value: "24", label: "Every 24 months" },
+];
+
+function ErpComplianceView({ erpPlans, orgProfiles, onBack, onUpdatePlan, session }) {
+  const activePlans = (erpPlans || []).filter(p => p.is_active);
+  const users = (orgProfiles || []).filter(u => u.full_name).sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
+  const now = Date.now();
+
+  // Build compliance matrix
+  const matrix = {};
+  let compliantCount = 0;
+  users.forEach(user => {
+    matrix[user.id] = {};
+    let fullyCompliant = true;
+    activePlans.forEach(plan => {
+      const ack = (plan.acknowledgments || []).find(a => a.user_id === user.id);
+      if (!ack) {
+        matrix[user.id][plan.id] = "not_acknowledged";
+        fullyCompliant = false;
+      } else if (ack.plan_version < (plan.version || 1)) {
+        matrix[user.id][plan.id] = "outdated";
+        fullyCompliant = false;
+      } else if (plan.acknowledgment_frequency_months) {
+        const expiry = new Date(ack.acknowledged_at).getTime() + plan.acknowledgment_frequency_months * 30 * 86400000;
+        if (expiry < now) {
+          matrix[user.id][plan.id] = "expired";
+          fullyCompliant = false;
+        } else {
+          matrix[user.id][plan.id] = "acknowledged";
+        }
+      } else {
+        matrix[user.id][plan.id] = "acknowledged";
+      }
+    });
+    if (fullyCompliant) compliantCount++;
+  });
+
+  const ackDot = (status) => {
+    if (status === "acknowledged") return <span title="Acknowledged" style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: GREEN }} />;
+    if (status === "outdated") return <span title="Plan updated — needs re-acknowledgment" style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: AMBER }} />;
+    if (status === "expired") return <span title="Acknowledgment expired" style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: AMBER }} />;
+    return <span title="Not acknowledged" style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: "#333" }} />;
+  };
+
+  return (
+    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: MUTED, fontSize: 12, cursor: "pointer", marginBottom: 12 }}>← Back to Plans</button>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>ERP Acknowledgment Compliance</div>
+          <div style={{ fontSize: 11, color: MUTED }}>Per-user acknowledgment status across active Emergency Response Plans</div>
+        </div>
+      </div>
+
+      {/* Summary bar */}
+      <div style={{ ...card, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: compliantCount === users.length ? GREEN : YELLOW }}>
+          {compliantCount} of {users.length}
+        </div>
+        <div style={{ fontSize: 12, color: MUTED }}>users fully compliant</div>
+        <div style={{ flex: 1 }} />
+        <div style={{ display: "flex", gap: 12, fontSize: 10, color: MUTED }}>
+          <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: GREEN, marginRight: 4 }} />Acknowledged</span>
+          <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: AMBER, marginRight: 4 }} />Needs re-ack</span>
+          <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#333", marginRight: 4 }} />Not acknowledged</span>
+        </div>
+      </div>
+
+      {/* Frequency settings */}
+      {activePlans.length > 0 && (
+        <div style={{ ...card, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: WHITE, marginBottom: 10 }}>Re-acknowledgment Schedule</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {activePlans.map(plan => (
+              <div key={plan.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 12, color: OFF_WHITE, minWidth: 200 }}>{plan.name}</span>
+                <select
+                  value={plan.acknowledgment_frequency_months || ""}
+                  onChange={async (e) => {
+                    const val = e.target.value ? parseInt(e.target.value) : null;
+                    await onUpdatePlan(plan.id, { acknowledgment_frequency_months: val });
+                  }}
+                  style={{ ...inp, maxWidth: 200, padding: "4px 8px", fontSize: 12 }}
+                >
+                  {ACK_FREQ_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Compliance matrix */}
+      {activePlans.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
+          <div style={{ fontSize: 42, marginBottom: 12 }}>📊</div>
+          <div style={{ fontSize: 14 }}>No active ERP plans</div>
+        </div>
+      ) : users.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
+          <div style={{ fontSize: 42, marginBottom: 12 }}>📊</div>
+          <div style={{ fontSize: 14 }}>No users found</div>
+        </div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111", minWidth: 160 }}>User</th>
+                {activePlans.map(p => {
+                  const cat = getCat(p.category);
+                  return (
+                    <th key={p.id} style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, fontSize: 10, minWidth: 100 }} title={p.name}>
+                      {cat.icon} {p.name.length > 20 ? p.name.slice(0, 18) + "..." : p.name}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <tr key={user.id}>
+                  <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111" }}>
+                    {user.full_name}
+                    <div style={{ fontSize: 10, color: MUTED }}>{user.role}</div>
+                  </td>
+                  {activePlans.map(p => (
+                    <td key={p.id} style={{ textAlign: "center", padding: "6px", borderBottom: `1px solid ${BORDER}` }}>
+                      {ackDot(matrix[user.id]?.[p.id] || "not_acknowledged")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
