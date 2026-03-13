@@ -384,86 +384,30 @@ function DetailView({aircraft:a,canManage,onEdit,onDelete,confirmDelete,setConfi
       </div>
     </div>
 
-    {/* MEL Deferrals Section */}
-    <div data-onboarding="fleet-mel-section" style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${activeItems.length > 0 ? `${AMBER}44` : BORDER}`,padding:"14px 16px",marginBottom:12}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:activeItems.length > 0 || canManage ? 8 : 0}}>
-        <div style={{display:"flex",alignItems:"center",gap:6}}>
+    {/* MEL Summary (read-only — manage from Operations > Fleet) */}
+    {activeItems.length > 0 && (
+      <div style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${AMBER}44`,padding:"14px 16px",marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
           <span style={{fontSize:10,fontWeight:600,color:OFF_WHITE}}>MEL Deferrals</span>
-          {activeItems.length > 0 && (
-            <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,background:`${AMBER}18`,color:AMBER}}>{activeItems.length} active</span>
-          )}
+          <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:4,background:`${AMBER}18`,color:AMBER}}>{activeItems.length} active</span>
         </div>
-        {canManage && !melFormOpen && (
-          <button onClick={()=>{setEditingMel(null);setMelFormOpen(true);}} style={{padding:"4px 10px",borderRadius:5,fontSize:10,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${CYAN}44`,color:CYAN}}>+ Add MEL</button>
-        )}
-      </div>
-
-      {activeItems.length === 0 && !melFormOpen && (
-        <div style={{fontSize:11,color:MUTED,fontStyle:"italic"}}>No active MEL deferrals</div>
-      )}
-
-      {activeItems.map(item => (
-        <MelItemRow key={item.id} item={item} canManage={canManage} onEdit={handleEditMel}
-          onRectify={(it,confirm)=>{ if(!it){setRectifyingMel(null);setRectifyWork("");} else if(confirm){handleRectifyMel(it);} else{setRectifyingMel(it.id);setRectifyWork("");}}}
-          rectifying={rectifyingMel===item.id} rectifyWork={rectifyWork} setRectifyWork={setRectifyWork} rectifySaving={rectifySaving} />
-      ))}
-
-      {melFormOpen && (
-        <MelForm
-          initial={editingMel ? { description: editingMel.description, mel_reference: editingMel.mel_reference, category: editingMel.category, deferred_date: editingMel.deferred_date, expiration_date: editingMel.expiration_date, notes: editingMel.notes } : null}
-          onSave={handleSaveMel}
-          onCancel={()=>{setMelFormOpen(false);setEditingMel(null);}}
-        />
-      )}
-
-      {closedItems.length > 0 && (
-        <div style={{marginTop:8}}>
-          <button onClick={()=>setShowClosed(!showClosed)} style={{background:"none",border:"none",cursor:"pointer",fontSize:10,color:MUTED,fontWeight:600,padding:0}}>
-            {showClosed ? "\u25BC" : "\u25B6"} {closedItems.length} closed item{closedItems.length !== 1 ? "s" : ""}
-          </button>
-          {showClosed && closedItems.map(item => (
-            <div key={item.id} style={{padding:"8px 12px",marginTop:4,background:`${NEAR_BLACK}88`,borderRadius:8,border:`1px solid ${BORDER}`,opacity:0.7}}>
-              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+        {activeItems.map(item => {
+          const expStatus = getMelExpirationStatus(item);
+          const expColor = expStatus === "expired" ? RED : expStatus === "warning" ? AMBER : GREEN;
+          return (
+            <div key={item.id} style={{padding:"6px 10px",marginBottom:3,background:`${NEAR_BLACK}88`,borderRadius:6,border:`1px solid ${BORDER}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <MelBadge category={item.category} />
                 {item.mel_reference && <span style={{fontSize:10,color:MUTED}}>Ref {item.mel_reference}</span>}
-                <span style={{fontSize:9,color:GREEN,fontWeight:600}}>RECTIFIED {item.closed_date || ""}</span>
+                <span style={{flex:1,fontSize:11,color:OFF_WHITE}}>{item.description}</span>
+                {item.expiration_date && <span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:3,background:`${expColor}18`,color:expColor}}>{expStatus==="expired"?"EXPIRED":expStatus==="warning"?"EXPIRING":`Exp ${item.expiration_date}`}</span>}
               </div>
-              <div style={{fontSize:11,color:MUTED}}>{item.description}</div>
-              {item.rectified_by_name && <div style={{fontSize:9,color:MUTED}}>By: {item.rectified_by_name}</div>}
-              {item.work_performed && <div style={{fontSize:9,color:GREEN,marginTop:2}}>Work: {item.work_performed}</div>}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* MEL Audit History */}
-      <div style={{marginTop:8}}>
-        <button onClick={()=>{if(!showAuditLog){loadAuditLog();}setShowAuditLog(!showAuditLog);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:10,color:CYAN,fontWeight:600,padding:0}}>
-          {showAuditLog ? "\u25BC" : "\u25B6"} MEL History
-        </button>
-        {showAuditLog && (
-          <div style={{marginTop:6}}>
-            {auditLoading && <div style={{fontSize:10,color:MUTED}}>Loading...</div>}
-            {!auditLoading && auditLog.length === 0 && <div style={{fontSize:10,color:MUTED,fontStyle:"italic"}}>No audit history</div>}
-            {auditLog.map(entry => {
-              const isDeferred = entry.action === "deferred";
-              const color = isDeferred ? CYAN : GREEN;
-              return (
-                <div key={entry.id} style={{padding:"6px 10px",marginBottom:3,background:NEAR_BLACK,borderRadius:6,border:`1px solid ${color}22`}}>
-                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                    <span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:3,background:`${color}18`,color,textTransform:"uppercase"}}>{entry.action}</span>
-                    <span style={{fontSize:9,color:MUTED}}>{new Date(entry.created_at).toLocaleDateString()}</span>
-                    <span style={{fontSize:9,color:OFF_WHITE}}>{entry.performed_by_name}</span>
-                  </div>
-                  <div style={{fontSize:10,color:OFF_WHITE}}>{entry.description}</div>
-                  {entry.work_performed && <div style={{fontSize:9,color:GREEN,marginTop:1}}>Work: {entry.work_performed}</div>}
-                </div>
-              );
-            })}
-          </div>
-        )}
+          );
+        })}
+        <div style={{fontSize:10,color:MUTED,marginTop:6,fontStyle:"italic"}}>Manage MEL items from Operations &rarr; Fleet</div>
       </div>
-    </div>
+    )}
 
     {a.notes&&<div style={{background:NEAR_BLACK,borderRadius:10,border:`1px solid ${BORDER}`,padding:"14px 16px"}}><div style={{...lbl}}>Notes</div><div style={{fontSize:12,color:OFF_WHITE,whiteSpace:"pre-wrap"}}>{a.notes}</div></div>}
 

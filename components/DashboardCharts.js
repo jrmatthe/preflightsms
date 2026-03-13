@@ -1,4 +1,6 @@
 import { useMemo, useState, Fragment } from "react";
+import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpiration, CATEGORY_LIMITS, getDaysOpen } from "../lib/melHelpers";
+import { createMelAuditEntry, fetchMelAuditLog, createNotification } from "../lib/supabase";
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis } from "recharts";
 
 const CARD = "#222222";
@@ -1164,7 +1166,176 @@ function FleetStatusRow({ ac, columns, fields, onUpdateStatus }) {
   );
 }
 
-function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus }) {
+function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
+  const orgId = profile?.org_id;
+  const [melFormOpen, setMelFormOpen] = useState(false);
+  const [form, setForm] = useState({ description: "", mel_reference: "", category: "C", notes: "" });
+  const [saving, setSaving] = useState(false);
+  const [rectifyingId, setRectifyingId] = useState(null);
+  const [rectifyWork, setRectifyWork] = useState("");
+  const [rectifySaving, setRectifySaving] = useState(false);
+  const [showClosed, setShowClosed] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
+  const [auditLog, setAuditLog] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const melItems = aircraft.mel_items || [];
+  const activeItems = getActiveMelItems(melItems);
+  const closedItems = melItems.filter(m => m.status !== "open");
+  const today = new Date().toISOString().slice(0, 10);
+  const expiration = useMemo(() => calculateExpiration(form.category, today), [form.category]);
+
+  const lbl = { fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 };
+  const inp = { width: "100%", padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" };
+
+  const handleSaveDefer = async () => {
+    if (!form.description.trim() || saving) return;
+    setSaving(true);
+    try {
+      const newItem = {
+        id: generateMelId(), description: form.description.trim(), mel_reference: form.mel_reference.trim(),
+        category: form.category, deferred_date: today, expiration_date: expiration || "",
+        notes: form.notes.trim(), status: "open", closed_date: null,
+        deferred_by: session?.user?.id, deferred_by_name: profile?.full_name || "Unknown",
+      };
+      await onUpdateMel(aircraft.id, [...melItems, newItem]);
+      if (orgId) {
+        createMelAuditEntry(orgId, { aircraft_id: aircraft.id, mel_item_id: newItem.id, action: "deferred", performed_by: session.user.id, performed_by_name: profile.full_name || "Unknown", category: newItem.category, description: newItem.description, mel_reference: newItem.mel_reference });
+        createNotification(orgId, { type: "mel_deferred", title: "MEL Item Deferred", body: `${profile.full_name} deferred MEL on ${aircraft.registration}: ${newItem.description}`, link_tab: "fleet", link_id: aircraft.id, target_roles: ["maintenance", "chief_pilot", "admin"] });
+      }
+      setForm({ description: "", mel_reference: "", category: "C", notes: "" });
+      setMelFormOpen(false);
+    } finally { setSaving(false); }
+  };
+
+  const handleRectify = async (item) => {
+    if (!rectifyWork.trim() || rectifySaving) return;
+    setRectifySaving(true);
+    try {
+      const userId = session?.user?.id || profile?.user_id;
+      const userName = profile?.full_name || "Unknown";
+      const items = melItems.map(m => m.id === item.id ? { ...m, status: "closed", closed_date: today, rectified_by: userId, rectified_by_name: userName, rectified_date: today, work_performed: rectifyWork.trim() } : m);
+      await onUpdateMel(aircraft.id, items);
+      if (orgId) {
+        createMelAuditEntry(orgId, { aircraft_id: aircraft.id, mel_item_id: item.id, action: "rectified", performed_by: userId, performed_by_name: userName, category: item.category, description: item.description, mel_reference: item.mel_reference || "", work_performed: rectifyWork.trim() });
+        createNotification(orgId, { type: "mel_rectified", title: "MEL Item Rectified", body: `${userName} rectified MEL on ${aircraft.registration}: ${item.description}`, link_tab: "fleet", link_id: aircraft.id, target_user_id: item.deferred_by || undefined, target_roles: ["admin", "safety_manager"] });
+      }
+      setRectifyingId(null); setRectifyWork("");
+    } finally { setRectifySaving(false); }
+  };
+
+  const loadAudit = async () => { if (!orgId) return; setAuditLoading(true); const { data } = await fetchMelAuditLog(orgId, aircraft.id); setAuditLog(data); setAuditLoading(false); };
+
+  return (
+    <div style={{ background: NEAR_BLACK, borderRadius: 10, border: `1px solid ${activeItems.length > 0 ? `${AMBER}44` : BORDER}`, padding: "14px 16px", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: OFF_WHITE }}>MEL Deferrals</span>
+          {activeItems.length > 0 && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: `${AMBER}18`, color: AMBER }}>{activeItems.length} active</span>}
+        </div>
+        {onUpdateMel && !melFormOpen && (
+          <button onClick={() => setMelFormOpen(true)} style={{ padding: "4px 10px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${CYAN}44`, color: CYAN }}>+ Defer MEL</button>
+        )}
+      </div>
+
+      {activeItems.length === 0 && !melFormOpen && <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic" }}>No active MEL deferrals</div>}
+
+      {activeItems.map(item => {
+        const expStatus = getMelExpirationStatus(item);
+        const expColor = expStatus === "expired" ? RED : expStatus === "warning" ? AMBER : GREEN;
+        const isRect = rectifyingId === item.id;
+        return (
+          <div key={item.id} style={{ padding: "10px 12px", marginBottom: 6, background: NEAR_BLACK, borderRadius: 8, border: `1px solid ${BORDER}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: `${CYAN}18`, color: CYAN, border: `1px solid ${CYAN}44` }}>Cat {item.category}</span>
+                {item.mel_reference && <span style={{ fontSize: 10, color: OFF_WHITE, fontWeight: 600 }}>Ref {item.mel_reference}</span>}
+                {item.expiration_date && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: `${expColor}18`, color: expColor }}>{expStatus === "expired" ? "EXPIRED" : expStatus === "warning" ? "EXPIRING" : `Exp ${item.expiration_date}`}</span>}
+                {item.deferred_by_name && <span style={{ fontSize: 9, color: MUTED }}>by {item.deferred_by_name}</span>}
+              </div>
+              {onUpdateMel && !isRect && <button onClick={() => { setRectifyingId(item.id); setRectifyWork(""); }} style={{ padding: "3px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${GREEN}44`, color: GREEN }}>Rectify</button>}
+            </div>
+            <div style={{ fontSize: 12, color: WHITE, marginBottom: 2 }}>{item.description}</div>
+            {item.deferred_date && <div style={{ fontSize: 10, color: MUTED }}>Deferred: {item.deferred_date} ({getDaysOpen(item.deferred_date)} days open)</div>}
+            {item.notes && <div style={{ fontSize: 10, color: MUTED, marginTop: 2, fontStyle: "italic" }}>{item.notes}</div>}
+            {isRect && (
+              <div style={{ marginTop: 8, padding: "8px 10px", background: `${GREEN}08`, border: `1px solid ${GREEN}22`, borderRadius: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: GREEN, marginBottom: 4 }}>Rectification</div>
+                <textarea value={rectifyWork} onChange={e => setRectifyWork(e.target.value)} placeholder="Work performed (required)" rows={2} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                  <button onClick={() => { setRectifyingId(null); setRectifyWork(""); }} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${BORDER}`, color: MUTED }}>Cancel</button>
+                  <button onClick={() => handleRectify(item)} disabled={!rectifyWork.trim() || rectifySaving} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: rectifyWork.trim() ? "pointer" : "not-allowed", background: rectifyWork.trim() ? GREEN : `${GREEN}44`, border: "none", color: BLACK }}>{rectifySaving ? "Saving..." : "Confirm Rectification"}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {melFormOpen && (
+        <div style={{ background: NEAR_BLACK, borderRadius: 10, border: `1px solid ${CYAN}33`, padding: "14px 16px", marginTop: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: WHITE, marginBottom: 10 }}>Defer MEL Item</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div style={{ gridColumn: "1 / -1" }}><div style={lbl}>Description *</div><input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="e.g. Weather radar inoperative" style={inp} /></div>
+            <div><div style={lbl}>MEL Reference</div><input value={form.mel_reference} onChange={e => setForm(p => ({ ...p, mel_reference: e.target.value }))} placeholder="e.g. 34-1" style={inp} /></div>
+            <div><div style={lbl}>Category</div><select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} style={inp}>{Object.keys(CATEGORY_LIMITS).map(c => <option key={c} value={c}>{c} — {CATEGORY_LIMITS[c].days ? `${CATEGORY_LIMITS[c].days} days` : "As specified"}</option>)}</select></div>
+            <div><div style={lbl}>Deferred Date</div><input type="date" value={today} readOnly style={inp} /></div>
+            <div><div style={lbl}>Expiration Date (auto)</div><input type="date" value={expiration || ""} readOnly style={inp} /></div>
+            <div style={{ gridColumn: "1 / -1" }}><div style={lbl}>Notes</div><input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional notes" style={inp} /></div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button onClick={handleSaveDefer} disabled={!form.description.trim() || saving} style={{ padding: "8px 18px", background: form.description.trim() ? GREEN : `${GREEN}44`, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: form.description.trim() ? "pointer" : "not-allowed" }}>{saving ? "Saving..." : "Defer MEL Item"}</button>
+            <button onClick={() => { setMelFormOpen(false); setForm({ description: "", mel_reference: "", category: "C", notes: "" }); }} style={{ padding: "8px 18px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {closedItems.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <button onClick={() => setShowClosed(!showClosed)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: MUTED, fontWeight: 600, padding: 0 }}>{showClosed ? "\u25BC" : "\u25B6"} {closedItems.length} closed item{closedItems.length !== 1 ? "s" : ""}</button>
+          {showClosed && closedItems.map(item => (
+            <div key={item.id} style={{ padding: "8px 12px", marginTop: 4, background: `${NEAR_BLACK}88`, borderRadius: 8, border: `1px solid ${BORDER}`, opacity: 0.7 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: `${CYAN}18`, color: CYAN }}>Cat {item.category}</span>
+                <span style={{ fontSize: 9, color: GREEN, fontWeight: 600 }}>RECTIFIED {item.closed_date || ""}</span>
+              </div>
+              <div style={{ fontSize: 11, color: MUTED }}>{item.description}</div>
+              {item.rectified_by_name && <div style={{ fontSize: 9, color: MUTED }}>By: {item.rectified_by_name}</div>}
+              {item.work_performed && <div style={{ fontSize: 9, color: GREEN, marginTop: 2 }}>Work: {item.work_performed}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginTop: 8 }}>
+        <button onClick={() => { if (!showAudit) loadAudit(); setShowAudit(!showAudit); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 10, color: CYAN, fontWeight: 600, padding: 0 }}>{showAudit ? "\u25BC" : "\u25B6"} MEL History</button>
+        {showAudit && (
+          <div style={{ marginTop: 6 }}>
+            {auditLoading && <div style={{ fontSize: 10, color: MUTED }}>Loading...</div>}
+            {!auditLoading && auditLog.length === 0 && <div style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>No audit history</div>}
+            {auditLog.map(entry => {
+              const isDeferred = entry.action === "deferred";
+              const color = isDeferred ? CYAN : GREEN;
+              return (
+                <div key={entry.id} style={{ padding: "6px 10px", marginBottom: 3, background: NEAR_BLACK, borderRadius: 6, border: `1px solid ${color}22` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: `${color}18`, color, textTransform: "uppercase" }}>{entry.action}</span>
+                    <span style={{ fontSize: 9, color: MUTED }}>{new Date(entry.created_at).toLocaleDateString()}</span>
+                    <span style={{ fontSize: 9, color: OFF_WHITE }}>{entry.performed_by_name}</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: OFF_WHITE }}>{entry.description}</div>
+                  {entry.work_performed && <div style={{ fontSize: 9, color: GREEN, marginTop: 1 }}>Work: {entry.work_performed}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus, onUpdateMel, session, profile }) {
   const fields = fleetStatusFields || { tailNumber: true, type: true, location: true, fuel: true, updated: true };
   const customFieldNames = useMemo(() => {
     const names = new Set();
@@ -1259,6 +1430,20 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAi
           );
         })}
       </div>
+
+      {/* MEL Deferrals per aircraft */}
+      <div style={{ marginTop: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span style={{ fontSize: 14 }}>{"\uD83D\uDD27"}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>MEL Deferrals by Aircraft</span>
+        </div>
+        {fleetStatus.map(ac => (
+          <div key={`mel-${ac.id}`} style={{ marginBottom: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: CYAN, marginBottom: 4 }}>{ac.registration} {ac.type ? <span style={{ fontWeight: 400, color: MUTED }}>— {ac.type}</span> : null}</div>
+            <FleetMelSection aircraft={ac} onUpdateMel={onUpdateMel} session={session} profile={profile} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1266,7 +1451,7 @@ function FleetStatusView({ flights, fleetAircraft, fleetStatusFields, onUpdateAi
 // ════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ════════════════════════════════════════════════════════════════
-export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, section, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus, part5Compliance }) {
+export default function DashboardCharts({ records, flights, reports, hazards, actions, riskLevels, view, section, erpPlans, erpDrills, spis, spiMeasurements, trendAlerts, onAcknowledgeTrendAlert, mocItems, insuranceScore, isDashboardFree, onNavigateSubscription, onNavigate, fleetAircraft, fleetStatusFields, onUpdateAircraftStatus, onUpdateMel, session, profile, part5Compliance }) {
   const r = records || [];
   const f = flights || [];
   const rp = reports || [];
@@ -1274,7 +1459,7 @@ export default function DashboardCharts({ records, flights, reports, hazards, ac
   const a = actions || [];
 
   if (view === "overview") return <OverviewDashboard records={r} flights={f} reports={rp} hazards={h} actions={a} erpPlans={erpPlans} erpDrills={erpDrills} spis={spis} spiMeasurements={spiMeasurements} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={onAcknowledgeTrendAlert} mocItems={mocItems} insuranceScore={insuranceScore} isDashboardFree={isDashboardFree} onNavigateSubscription={onNavigateSubscription} onNavigate={onNavigate} part5Compliance={part5Compliance} section={section} />;
-  if (view === "fleet") return <FleetStatusView flights={f} fleetAircraft={fleetAircraft} fleetStatusFields={fleetStatusFields} onUpdateAircraftStatus={onUpdateAircraftStatus} />;
+  if (view === "fleet") return <FleetStatusView flights={f} fleetAircraft={fleetAircraft} fleetStatusFields={fleetStatusFields} onUpdateAircraftStatus={onUpdateAircraftStatus} onUpdateMel={onUpdateMel} session={session} profile={profile} />;
   if (view === "frat") return <FRATAnalytics records={r} section={section} />;
   if (view === "safety") return <SafetyMetrics reports={rp} hazards={h} actions={a} section={section} />;
 

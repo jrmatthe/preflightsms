@@ -1297,23 +1297,40 @@ export default function MobileFRATWizard({
                     + Defer MEL Item
                   </button>
                 ) : (
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div style={{ background: BLACK, borderRadius: 10, border: `1px solid ${CYAN}33`, padding: "14px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>Defer MEL Item</span>
                       <button onClick={() => { setMelDeferOpen(false); setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" }); }} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 20, padding: 4, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>&times;</button>
                     </div>
-                    <input value={melDeferForm.description} onChange={e => setMelDeferForm(p => ({ ...p, description: e.target.value }))} placeholder="Description (required)" style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, marginBottom: 8, boxSizing: "border-box", fontFamily: "inherit" }} />
-                    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                      <input value={melDeferForm.mel_reference} onChange={e => setMelDeferForm(p => ({ ...p, mel_reference: e.target.value }))} placeholder="MEL Ref (optional)" style={{ flex: 1, padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
-                      <select value={melDeferForm.category} onChange={e => setMelDeferForm(p => ({ ...p, category: e.target.value }))} style={{ padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, fontFamily: "inherit" }}>
-                        {Object.keys(CATEGORY_LIMITS).map(c => <option key={c} value={c}>Cat {c}</option>)}
-                      </select>
+                    <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Description *</div>
+                    <input value={melDeferForm.description} onChange={e => setMelDeferForm(p => ({ ...p, description: e.target.value }))} placeholder="e.g. Weather radar inoperative" style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit" }} />
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>MEL Reference</div>
+                        <input value={melDeferForm.mel_reference} onChange={e => setMelDeferForm(p => ({ ...p, mel_reference: e.target.value }))} placeholder="e.g. 34-1" style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Category</div>
+                        <select value={melDeferForm.category} onChange={e => setMelDeferForm(p => ({ ...p, category: e.target.value }))} style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }}>
+                          {Object.keys(CATEGORY_LIMITS).map(c => <option key={c} value={c}>{c} — {CATEGORY_LIMITS[c].days ? `${CATEGORY_LIMITS[c].days} days` : "As specified"}</option>)}
+                        </select>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: MUTED, marginBottom: 8 }}>Expires: {melDeferExpiration || "As specified in MEL"}</div>
-                    <input value={melDeferForm.notes} onChange={e => setMelDeferForm(p => ({ ...p, notes: e.target.value }))} placeholder="Notes (optional)" style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit" }} />
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Deferred Date</div>
+                        <input type="date" value={new Date().toISOString().slice(0, 10)} readOnly style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Expiration (auto)</div>
+                        <input type="date" value={melDeferExpiration || ""} readOnly style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 }}>Notes</div>
+                    <input value={melDeferForm.notes} onChange={e => setMelDeferForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional notes" style={{ width: "100%", padding: "10px 12px", background: BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, color: WHITE, fontSize: 14, marginBottom: 12, boxSizing: "border-box", fontFamily: "inherit" }} />
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => { setMelDeferOpen(false); setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" }); }} style={{ flex: 1, padding: "12px", borderRadius: 8, fontSize: 14, fontWeight: 600, background: "transparent", border: `1px solid ${BORDER}`, color: MUTED, cursor: "pointer", fontFamily: "inherit", minHeight: 44 }}>Cancel</button>
-                      <button onClick={handleDeferMel} disabled={!melDeferForm.description.trim() || melDeferSaving} style={{ flex: 1, padding: "12px", borderRadius: 8, fontSize: 14, fontWeight: 600, background: melDeferForm.description.trim() ? CYAN : `${CYAN}44`, border: "none", color: BLACK, cursor: melDeferForm.description.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", minHeight: 44 }}>{melDeferSaving ? "Saving..." : "Defer"}</button>
+                      <button onClick={handleDeferMel} disabled={!melDeferForm.description.trim() || melDeferSaving} style={{ padding: "10px 18px", background: melDeferForm.description.trim() ? GREEN : `${GREEN}44`, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: melDeferForm.description.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", minHeight: 44 }}>{melDeferSaving ? "Saving..." : "Defer MEL Item"}</button>
+                      <button onClick={() => { setMelDeferOpen(false); setMelDeferForm({ description: "", mel_reference: "", category: "C", notes: "" }); }} style={{ padding: "10px 18px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", minHeight: 44 }}>Cancel</button>
                     </div>
                   </div>
                 )}
