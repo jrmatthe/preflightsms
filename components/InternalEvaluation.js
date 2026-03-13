@@ -449,15 +449,18 @@ export default function InternalEvaluation({
     const templateId = executingAudit.template_id;
     if (templateId && onUpdateSchedule) {
       const linkedSchedule = (auditSchedules || []).find(s => s.template_id === templateId && s.is_active);
+      console.log("[completeAudit] templateId:", templateId, "linkedSchedule:", linkedSchedule, "allSchedules:", auditSchedules);
       if (linkedSchedule) {
         const freq = FREQUENCY_OPTIONS.find(f => f.id === linkedSchedule.frequency);
         if (freq) {
           const next = new Date();
           next.setMonth(next.getMonth() + freq.months);
+          const newDate = next.toISOString().split("T")[0];
+          console.log("[completeAudit] Advancing schedule", linkedSchedule.id, "to", newDate);
           try {
-            await onUpdateSchedule(linkedSchedule.id, { next_due_date: next.toISOString().split("T")[0], last_completed_at: new Date().toISOString() });
+            await onUpdateSchedule(linkedSchedule.id, { next_due_date: newDate });
           } catch (err) {
-            console.error("Failed to advance schedule:", err);
+            console.error("[completeAudit] Schedule update error:", err);
           }
         }
       }
