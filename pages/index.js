@@ -3497,19 +3497,19 @@ function SignupFlow({ onAuth }) {
   const proofCard = { display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px", background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 6 };
 
   const slides = {
-    1: { label: "For Directors of Ops", headline: "Hand Your POI a Login. Let Them See a Real SMS.", body: "When the FSDO walks in, you need more than binders. PreflightSMS gives you an audit-ready system your inspector can see for themselves \u2014 no surprises.", proofs: [
-      { icon: "\u2713", title: "14 CFR Part 5 Aligned", desc: "Every feature maps directly to a Part 5 requirement. Nothing to explain." },
-      { icon: "\u26E8", title: "Audit-Ready Out of the Box", desc: "Policies, hazard register, corrective actions \u2014 all documented and exportable." },
-      { icon: "\u2606", title: "No Credit Card Required", desc: "Full Professional access for 14 days. See it before you pitch it." },
+    1: { label: "Let\u2019s Get You Set Up", headline: "You\u2019re About to Have a Real SMS.", body: "No more spreadsheets. No more binders. In a few minutes you\u2019ll have a fully operational safety management system \u2014 the kind that impresses your POI and makes life easier for your pilots.", proofs: [
+      { icon: "\u2713", title: "Part 5 Compliant From Day One", desc: "Every feature maps to a 14 CFR Part 5 requirement. You\u2019re already ahead." },
+      { icon: "\u26A1", title: "Live Today, Not Next Quarter", desc: "Your fleet, your FRATs, your safety reports \u2014 all running before lunch." },
+      { icon: "\u2606", title: "No Credit Card. No Strings.", desc: "Full Professional access for 14 days. Just see what it can do." },
     ]},
-    2: { label: "For Chief Pilots & Safety", headline: "90 Seconds From the Ramp. No App Download. Pilots Use It.", body: "The best SMS is the one your crew actually uses. PreflightSMS works on any device, any browser \u2014 so FRATs get submitted, not ignored.", proofs: [
-      { icon: "\u25C8", title: "Built for the Line", desc: "Pilots complete FRATs from their phone in under two minutes. No training needed." },
-      { icon: "\u26A0", title: "Closed-Loop Accountability", desc: "Every report becomes an action. Every action has an owner. Nothing falls through." },
-      { icon: "\u2691", title: "Anonymous Reporting", desc: "Non-punitive hazard reporting \u2014 the foundation of just culture." },
+    2: { label: "Almost There", headline: "Your Pilots Are Going to Love This.", body: "90 seconds from the ramp. No app to download. FRATs that actually get filled out \u2014 because we made it dead simple. Your crew will thank you.", proofs: [
+      { icon: "\u25C8", title: "Works on Any Device", desc: "Phone, tablet, crew room computer \u2014 open a browser and go." },
+      { icon: "\u2691", title: "Everything Has an Owner", desc: "Every hazard report becomes an action item. Nothing falls through the cracks." },
+      { icon: "\u26A0", title: "Anonymous Reporting Built In", desc: "Real just culture. Pilots report without fear. You see what\u2019s actually happening." },
     ]},
-    3: { label: "Real SMS. Real Price.", headline: "Real SMS for $149/mo. Not $1,500/mo.", body: "Enterprise platforms charge airline prices for features you\u2019ll never use. PreflightSMS is purpose-built for Part 135 \u2014 everything you need, nothing you don\u2019t.", proofs: [
-      { icon: "\u2713", title: "Full Features During Trial", desc: "FRAT, flight following, crew management, CBT, analytics \u2014 everything." },
-      { icon: "\u29D7", title: "Live in Days, Not Months", desc: "Configure your fleet and start documenting immediately." },
+    3: { label: "One More Step", headline: "This Is Going to Change How You Run Safety.", body: "Operators who switch to PreflightSMS stop dreading audits and start running a safety program they\u2019re proud of. You\u2019re about to be one of them.", proofs: [
+      { icon: "\u2713", title: "Everything Unlocked", desc: "FRAT, flight following, crew management, CBT, hazard tracking, analytics \u2014 all of it." },
+      { icon: "\u29D7", title: "Real SMS. Not Enterprise Prices.", desc: "Starts at $149/mo. Not the $1,500 the airline platforms charge." },
     ]},
   };
   const slide = slides[step];
@@ -3560,7 +3560,7 @@ function SignupFlow({ onAuth }) {
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderTop: `1px solid ${BORDER}`, background: CARD }}>
-            {[{ num: "\u00A75.1\u20135.97", label: "Part 5 Aligned" }, { num: "90 sec", label: "FRAT from the ramp" }, { num: "$149", label: "Per Month" }].map((s, i) => (
+            {[{ num: "\u00A75.1\u20135.97", label: "Part 5 Compliant" }, { num: "90 sec", label: "FRAT Submission" }, { num: "$0", label: "To Start Today" }].map((s, i) => (
               <div key={s.label} style={{ padding: "16px", textAlign: "center", borderRight: i < 2 ? `1px solid ${BORDER}` : "none" }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: WHITE, marginBottom: 2 }}>{s.num}</div>
                 <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: SUBTLE }}>{s.label}</div>
