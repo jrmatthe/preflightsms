@@ -183,9 +183,22 @@ Deno.serve(async (req) => {
           if (!ffId) continue;
 
           // Only sync flights that have been released in ForeFlight Dispatch
-          // ForeFlight status values: draft, scheduled, released, completed, cancelled
-          const ffStatus = (ff.status || ff.flightStatus || ff.flightData?.status || "").toLowerCase();
-          if (ffStatus && ffStatus !== "released" && ffStatus !== "completed" && ffStatus !== "active" && ffStatus !== "enroute") {
+          // ForeFlight uses a boolean "released" field and/or a "status" field
+          const fd = ff.flightData || ff;
+          const isReleased = ff.released === true || fd.released === true
+            || ff.isReleased === true || fd.isReleased === true;
+          const ffStatus = (ff.status || ff.flightStatus || fd.status || "").toLowerCase();
+          // If the API provides a released field, require it to be true
+          // If the API provides a status field instead, accept released/completed/active/enroute
+          // If neither field exists, skip the flight (fail closed — don't sync unknown states)
+          const hasReleasedField = ff.released !== undefined || fd.released !== undefined
+            || ff.isReleased !== undefined || fd.isReleased !== undefined;
+          if (hasReleasedField) {
+            if (!isReleased) continue;
+          } else if (ffStatus) {
+            if (ffStatus !== "released" && ffStatus !== "completed" && ffStatus !== "active" && ffStatus !== "enroute") continue;
+          } else {
+            // No release or status info — skip to be safe
             continue;
           }
 
@@ -385,8 +398,15 @@ Deno.serve(async (req) => {
         // Remove stale pending flights: either no longer in ForeFlight, or no longer released
         const releasedFfIds = new Set(
           flights.filter((ff: any) => {
-            const s = (ff.status || ff.flightStatus || ff.flightData?.status || "").toLowerCase();
-            return !s || s === "released" || s === "completed" || s === "active" || s === "enroute";
+            const fd2 = ff.flightData || ff;
+            const rel = ff.released === true || fd2.released === true
+              || ff.isReleased === true || fd2.isReleased === true;
+            const s = (ff.status || ff.flightStatus || fd2.status || "").toLowerCase();
+            const hasRel = ff.released !== undefined || fd2.released !== undefined
+              || ff.isReleased !== undefined || fd2.isReleased !== undefined;
+            if (hasRel) return rel;
+            if (s) return s === "released" || s === "completed" || s === "active" || s === "enroute";
+            return false;
           }).map((ff: any) => String(ff.flightId || ff.id || "")).filter(Boolean)
         );
         const stalePending = (existing || []).filter(
