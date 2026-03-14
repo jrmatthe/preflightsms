@@ -147,9 +147,9 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
   };
 
   // ── Click blocker: covers the entire screen with a clip-path hole over the target ──
-  // Only cut out the target area for steps that require clicking the target (click/save).
-  // For "continue" steps, block the entire screen so users can't interact with the highlighted element.
-  const allowTargetClicks = step.advanceOn === "click" || step.advanceOn === "save";
+  // Cut out the target area for click/save steps AND continue steps that require input.
+  // For other continue steps, block the entire screen so users can't interact with the highlighted element.
+  const allowTargetClicks = step.advanceOn === "click" || step.advanceOn === "save" || (step.advanceOn === "continue" && step.requireInput);
   const blockerClipPath = targetRect && allowTargetClicks
     ? `polygon(0% 0%, 0% 100%, ${targetRect.left}px 100%, ${targetRect.left}px ${targetRect.top}px, ${targetRect.left + targetRect.width}px ${targetRect.top}px, ${targetRect.left + targetRect.width}px ${targetRect.top + targetRect.height}px, ${targetRect.left}px ${targetRect.top + targetRect.height}px, ${targetRect.left}px 100%, 100% 100%, 100% 0%)`
     : undefined;
