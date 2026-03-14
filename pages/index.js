@@ -1703,7 +1703,7 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
 
       {/* Active section */}
       {myActive.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
+        <div data-tour="tour-my-active" style={{ marginBottom: 28 }}>
           {sectionHeader(
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
             "Active", myActive.length
@@ -1736,7 +1736,7 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
                   )}
                   <div style={{ display: "flex", gap: 8 }}>
                     {!isPending && (
-                      <button onClick={() => onUpdateFlight(f.id, "ARRIVED")} style={{
+                      <button data-tour="tour-my-arrived" onClick={() => onUpdateFlight(f.id, "ARRIVED")} style={{
                         padding: "6px 14px", background: "rgba(34,211,238,0.08)", border: `1px solid rgba(34,211,238,0.25)`,
                         borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 700, cursor: "pointer",
                       }}>Mark Arrived</button>
@@ -4561,8 +4561,9 @@ export default function PVTAIRFrat() {
       });
     }
 
-    // log_flight: inject demo flight on the flight board
+    // log_flight: inject demo flight visible in My Flights
     if (flowId === "log_flight") {
+      const etdTime = new Date(Date.now() - 30 * 60000); // departed 30 min ago
       tourDemoFlightRef.current = {
         id: "TOUR-DEMO-FLIGHT", dbId: null,
         userId: session?.user?.id,
@@ -4570,12 +4571,12 @@ export default function PVTAIRFrat() {
         aircraft: fleetAircraft[0]?.type || "C172",
         tailNumber: fleetAircraft[0]?.registration || "N12345",
         departure: "KSFF", destination: "KBOI",
-        cruiseAlt: "8500", etd: "14:00", ete: "1:30",
-        eta: new Date(Date.now() + 90 * 60000).toISOString(),
+        cruiseAlt: "8500", etd: etdTime.toISOString(), ete: "1:30",
+        eta: new Date(Date.now() + 60 * 60000).toISOString(),
         fuelLbs: "48", fuelUnit: "gal",
         numCrew: "1", numPax: "2",
         score: 5, riskLevel: "LOW RISK",
-        status: "ACTIVE", timestamp: new Date().toISOString(),
+        status: "ACTIVE", timestamp: etdTime.toISOString(),
         arrivedAt: null, approvalStatus: "auto_approved",
         factors: [], attachments: [],
       };
