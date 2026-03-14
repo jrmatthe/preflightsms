@@ -571,7 +571,7 @@ function RiskScoreGauge({ score }) {
       <div style={{ marginTop: 6, color: MUTED, fontSize: 11, maxWidth: 260, margin: "6px auto 0", lineHeight: 1.4 }}>{l.action}</div></div>);
 }
 
-function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip, org, prefill, onClearPrefill }) {
+function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, userName, allTemplates, activeTemplate, fleetAircraft, pendingFfFlights, selectedFfFlight, onSelectFfFlight, onClearFfFlight, pendingScTrips, selectedScTrip, onSelectScTrip, onClearScTrip, org, prefill, onClearPrefill, isAdmin }) {
   // AI Risk Suggestions state
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
@@ -974,8 +974,8 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: "48px 36px" }}>
       <svg width="48" height="48" viewBox="0 0 24 24" fill={MUTED} style={{ opacity: 0.4, marginBottom: 16 }}><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
       <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>No Aircraft Registered</div>
-      <div style={{ fontSize: 12, color: MUTED, marginBottom: 20, lineHeight: 1.6, maxWidth: 380, margin: "0 auto 20px" }}>Add your fleet to enable FRAT submissions. You can add aircraft in the Admin panel under Fleet Management.</div>
-      <button onClick={() => onNavigate("admin")} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Fleet Management</button>
+      <div style={{ fontSize: 12, color: MUTED, marginBottom: 20, lineHeight: 1.6, maxWidth: 380, margin: "0 auto 20px" }}>{isAdmin ? "Add your fleet to enable FRAT submissions. You can add aircraft in the Admin panel under Fleet Management." : "Your organization hasn't added any aircraft yet. Ask an admin to add aircraft in Fleet Management to enable FRAT submissions."}</div>
+      {isAdmin && <button onClick={() => onNavigate("admin")} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Fleet Management</button>}
     </div>
   );
 
@@ -6134,7 +6134,7 @@ export default function PVTAIRFrat() {
         {cv === "home" && <HomeView profile={profile} profiles={orgProfiles} frats={records} flights={flights} reports={reports} actions={actions} hazards={hazards} auditSchedules={auditSchedulesData} auditTemplates={auditTemplatesData} trainingRequirements={trainingReqs} trainingRecords={trainingRecs} policies={policies} mocItems={mocItems} erpPlans={erpPlans} erpDrills={erpDrills} onNavigate={setCv} org={org} session={session} myTodayFlights={myTodayFlights} onSelectFfFlight={setSelectedFfFlight} onSelectScTrip={setSelectedScTrip} cultureSurveys={cultureSurveys} mySurveyResponseIds={mySurveyResponseIds} asapCorrActions={asapCorrActions} />}
         {cv === "submit" && (isReadOnly
           ? <div style={{ maxWidth: 600, margin: "40px auto", textAlign: "center", ...card, padding: 36 }}><div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Read-Only Mode</div><div style={{ fontSize: 12, color: MUTED }}>{isTrialExpired ? "Your free trial has expired. Subscribe to resume submitting FRATs." : `New FRAT submissions are disabled while your subscription is ${subStatus}.`}</div></div>
-          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={boardFleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} />)}
+          : <FRATForm onSubmit={onSubmit} onNavigate={(view) => setCv(view)} riskCategories={riskCategories} riskLevels={riskLevels} orgId={profile?.org_id} userName={userName} allTemplates={fratTemplates} activeTemplate={fratTemplate} fleetAircraft={boardFleetAircraft} pendingFfFlights={pendingFfFlights} selectedFfFlight={selectedFfFlight} onSelectFfFlight={setSelectedFfFlight} onClearFfFlight={() => setSelectedFfFlight(null)} pendingScTrips={pendingScTrips} selectedScTrip={selectedScTrip} onSelectScTrip={setSelectedScTrip} onClearScTrip={() => setSelectedScTrip(null)} org={org} prefill={fratPrefill} onClearPrefill={() => setFratPrefill(null)} isAdmin={isAdmin} />)}
         {cv === "flights" && (() => {
           const showMyFlights = flightsMode === "my" || !canSeeAllFlights;
           const handleDeleteFlight = async (flight) => {
