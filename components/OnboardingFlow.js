@@ -291,7 +291,7 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
               onMouseEnter={e => e.currentTarget.style.opacity = "0.9"}
               onMouseLeave={e => e.currentTarget.style.opacity = "1"}
             >
-              Return to Dashboard
+              Done
             </button>
           )}
         </div>

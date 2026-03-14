@@ -4662,6 +4662,7 @@ export default function PVTAIRFrat() {
     if (allDone) next.completed_at = new Date().toISOString();
     setActiveTour(null);
     setActiveTourStep(0);
+    setCv("home");
     await persistTour(next);
   }, [tourState, tourFlows, tourOrder, persistTour, cleanupTourDemo]);
 
@@ -4669,6 +4670,7 @@ export default function PVTAIRFrat() {
     if (activeTour) cleanupTourDemo(activeTour);
     setActiveTour(null);
     setActiveTourStep(0);
+    setCv("home");
   }, [activeTour, cleanupTourDemo]);
 
   const handleDismissTour = useCallback(async () => {
