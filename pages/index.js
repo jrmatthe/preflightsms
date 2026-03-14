@@ -5497,14 +5497,14 @@ export default function PVTAIRFrat() {
   // ── Submit Safety Report ──
   const onSubmitReport = useCallback(async (report) => {
     if (isOnline && profile) {
-      const { error } = await submitReport(profile.org_id, session.user.id, report);
+      const { data: created, error } = await submitReport(profile.org_id, session.user.id, report);
       if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
+      // Capture the report ID immediately for demo cleanup during safety_report onboarding
+      if (activeFlowRef.current === "safety_report" && created?.id) {
+        demoReportRef.current = created.id;
+      }
       const { data } = await fetchReports(profile.org_id);
       setReports(data || []);
-      // Capture the newest report's ID for demo cleanup during safety_report onboarding
-      if (activeFlowRef.current === "safety_report" && data?.length) {
-        demoReportRef.current = data[0].id;
-      }
       createNotification(profile.org_id, { type: "report_submitted", title: "New Safety Report", body: `${profile.full_name} submitted a safety report`, link_tab: "reports", target_roles: ["admin", "safety_manager"] });
       setToast({ message: `${report.reportCode} submitted`, level: { bg: "rgba(34,211,238,0.15)", border: "rgba(34,211,238,0.4)", color: "#22D3EE" } }); setTimeout(() => setToast(null), 4000);
     }
