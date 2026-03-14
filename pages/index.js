@@ -3497,19 +3497,19 @@ function SignupFlow({ onAuth }) {
   const proofCard = { display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px", background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 6 };
 
   const slides = {
-    1: { label: "Why PreflightSMS", headline: "SMS Compliance Without the Enterprise Price Tag.", body: "Most Part 135 operators are stuck between bloated airline platforms and cobbled-together spreadsheets. We built PreflightSMS to fill that gap.", proofs: [
-      { icon: "\u2713", title: "14 CFR Part 5 Aligned", desc: "Every feature maps to a Part 5 requirement." },
-      { icon: "\u29D7", title: "Live in Days, Not Months", desc: "Configure your fleet and start documenting immediately." },
-      { icon: "\u2606", title: "No Credit Card Required", desc: "Full Professional access for 14 days." },
+    1: { label: "For Directors of Ops", headline: "Hand Your POI a Login. Let Them See a Real SMS.", body: "When the FSDO walks in, you need more than binders. PreflightSMS gives you an audit-ready system your inspector can see for themselves \u2014 no surprises.", proofs: [
+      { icon: "\u2713", title: "14 CFR Part 5 Aligned", desc: "Every feature maps directly to a Part 5 requirement. Nothing to explain." },
+      { icon: "\u26E8", title: "Audit-Ready Out of the Box", desc: "Policies, hazard register, corrective actions \u2014 all documented and exportable." },
+      { icon: "\u2606", title: "No Credit Card Required", desc: "Full Professional access for 14 days. See it before you pitch it." },
     ]},
-    2: { label: "Built for Charter", headline: "Designed for Part 135. Not Retrofitted From Airlines.", body: "Every workflow and default is calibrated for how charter operators actually run \u2014 small crews, fast turnarounds, distributed bases.", proofs: [
-      { icon: "\u25A3", title: "One Platform", desc: "FRAT, flight following, crew, training, hazards \u2014 all integrated." },
-      { icon: "\u25C8", title: "Mobile-First", desc: "Pilots complete FRATs from any device. No app download." },
-      { icon: "\u26A0", title: "Anonymous Reporting", desc: "Non-punitive hazard reporting \u2014 the foundation of just culture." },
+    2: { label: "For Chief Pilots & Safety", headline: "90 Seconds From the Ramp. No App Download. Pilots Use It.", body: "The best SMS is the one your crew actually uses. PreflightSMS works on any device, any browser \u2014 so FRATs get submitted, not ignored.", proofs: [
+      { icon: "\u25C8", title: "Built for the Line", desc: "Pilots complete FRATs from their phone in under two minutes. No training needed." },
+      { icon: "\u26A0", title: "Closed-Loop Accountability", desc: "Every report becomes an action. Every action has an owner. Nothing falls through." },
+      { icon: "\u2691", title: "Anonymous Reporting", desc: "Non-punitive hazard reporting \u2014 the foundation of just culture." },
     ]},
-    3: { label: "The Deadline Is Real", headline: "Your FSDO Won\u2019t Wait.", body: "Every Part 135 operator needs a compliant SMS by May 28, 2027. Most implementations take 6\u201312 months.", proofs: [
+    3: { label: "Real SMS. Real Price.", headline: "Real SMS for $149/mo. Not $1,500/mo.", body: "Enterprise platforms charge airline prices for features you\u2019ll never use. PreflightSMS is purpose-built for Part 135 \u2014 everything you need, nothing you don\u2019t.", proofs: [
       { icon: "\u2713", title: "Full Features During Trial", desc: "FRAT, flight following, crew management, CBT, analytics \u2014 everything." },
-      { icon: "\u2691", title: "Your Data, Your Control", desc: "Export anytime. No lock-in. Cancel with one click." },
+      { icon: "\u29D7", title: "Live in Days, Not Months", desc: "Configure your fleet and start documenting immediately." },
     ]},
   };
   const slide = slides[step];
@@ -3560,7 +3560,7 @@ function SignupFlow({ onAuth }) {
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderTop: `1px solid ${BORDER}`, background: CARD }}>
-            {[{ num: "\u00A75.1\u20135.97", label: "Part 5 Aligned" }, { num: "14-Day", label: "Free Trial" }, { num: "$0", label: "To Get Started" }].map((s, i) => (
+            {[{ num: "\u00A75.1\u20135.97", label: "Part 5 Aligned" }, { num: "90 sec", label: "FRAT from the ramp" }, { num: "$149", label: "Per Month" }].map((s, i) => (
               <div key={s.label} style={{ padding: "16px", textAlign: "center", borderRight: i < 2 ? `1px solid ${BORDER}` : "none" }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: WHITE, marginBottom: 2 }}>{s.num}</div>
                 <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.5, color: SUBTLE }}>{s.label}</div>
