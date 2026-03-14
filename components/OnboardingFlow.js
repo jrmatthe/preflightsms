@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777";
 const GREEN = "#4ADE80", CARD = "#222222", BORDER = "#2E2E2E";
 
-export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, onComplete, onSkip }) {
+export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, onComplete, onSkip, noConfetti }) {
   const [targetRect, setTargetRect] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
   const [continueEnabled, setContinueEnabled] = useState(false);
@@ -119,12 +119,12 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
 
   // ── Confetti on final step ──
   useEffect(() => {
-    if (isFinal) {
+    if (isFinal && !noConfetti) {
       setShowConfetti(true);
       const t = setTimeout(() => setShowConfetti(false), 3500);
       return () => clearTimeout(t);
     }
-  }, [isFinal]);
+  }, [isFinal, noConfetti]);
 
   // ── Visual backdrop: box-shadow creates the dark surround, pointerEvents:none ──
   const backdropStyle = targetRect ? {

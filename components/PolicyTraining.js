@@ -349,7 +349,7 @@ export default function PolicyTraining({
       {renderTopTabs()}
 
       {/* Policy stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+      <div data-tour="tour-policy-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
         <div style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{policies.length}</div>
           <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Documents</div>
