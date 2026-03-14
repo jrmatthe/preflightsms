@@ -176,18 +176,12 @@ Deno.serve(async (req) => {
         } catch { /* aircraft sync optional */ }
 
         let syncedCount = 0;
+        const releasedFfIds = new Set<string>(); // Track released flight IDs for stale cleanup
 
         for (const ff of flights) {
          try {
           const ffId = String(ff.flightId || ff.id || "");
           if (!ffId) continue;
-
-          // Only sync flights that have been released in ForeFlight Dispatch
-          // ForeFlight uses releaseStatus: "Released" | "NotReleased" at the top level
-          const releaseStatus = (ff.releaseStatus || "").toLowerCase();
-          if (releaseStatus === "notreleased" || releaseStatus === "not_released") {
-            continue;
-          }
 
           // Skip flights already linked to a FRAT
           const existingStatus = existingMap.get(ffId);
@@ -195,7 +189,7 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Fetch individual flight details for altitude/fuel data
+          // Fetch individual flight details for altitude/fuel data and release status
           let flightDetail: any = null;
           try {
             const detailRes = await fetch(`${FF_BASE}/public/api/Flights/${ffId}`, {
@@ -204,6 +198,14 @@ Deno.serve(async (req) => {
             });
             if (detailRes.ok) flightDetail = await detailRes.json();
           } catch { /* detail fetch optional */ }
+
+          // Only sync flights that have been released in ForeFlight Dispatch
+          // releaseStatus is in the detail response, not the list response
+          const releaseStatus = (flightDetail?.releaseStatus || ff.releaseStatus || "").toLowerCase();
+          if (releaseStatus === "notreleased" || releaseStatus === "not_released") {
+            continue;
+          }
+          releasedFfIds.add(ffId);
 
           // Extract flight data — ForeFlight uses nested flightData object
           const fd = ff.flightData || ff;
@@ -383,22 +385,20 @@ Deno.serve(async (req) => {
         }
 
         // Remove stale pending flights: either no longer in ForeFlight, or not released
-        const releasedFfIds = new Set(
-          flights.filter((ff: any) => {
-            const rs = (ff.releaseStatus || "").toLowerCase();
-            return rs !== "notreleased" && rs !== "not_released";
-          }).map((ff: any) => String(ff.flightId || ff.id || "")).filter(Boolean)
-        );
+        // releasedFfIds was built during the sync loop above (only flights that passed the release check)
         const stalePending = (existing || []).filter(
           (e: any) => e.status === "pending" && !releasedFfIds.has(e.foreflight_id)
         );
+        console.log(`[foreflight-sync] Released flights: ${releasedFfIds.size}, stale pending: ${stalePending.length}`);
         if (stalePending.length > 0) {
           const staleIds = stalePending.map((e: any) => e.foreflight_id);
-          await supabase
+          console.log(`[foreflight-sync] Deleting stale flights:`, staleIds);
+          const { error: delErr } = await supabase
             .from("foreflight_flights")
             .delete()
             .eq("org_id", config.org_id)
             .in("foreflight_id", staleIds);
+          if (delErr) console.log(`[foreflight-sync] Delete error:`, delErr.message);
         }
 
         totalSynced += syncedCount;

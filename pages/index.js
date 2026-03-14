@@ -4029,6 +4029,11 @@ export default function PVTAIRFrat() {
   const [savingProfileEmail, setSavingProfileEmail] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [savingProfileName, setSavingProfileName] = useState(false);
+  const [profileNewPassword, setProfileNewPassword] = useState("");
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+  const [savingProfilePassword, setSavingProfilePassword] = useState(false);
+  const [profilePasswordError, setProfilePasswordError] = useState("");
+  const [profilePasswordSuccess, setProfilePasswordSuccess] = useState(false);
   // Supabase auth state
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -6127,6 +6132,66 @@ export default function PVTAIRFrat() {
                     {savingProfileName || savingProfileEmail ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
+              </div>
+              {/* Password Change */}
+              <div style={{ ...card, padding: "24px 28px", marginTop: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 20 }}>Change Password</div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>New Password</label>
+                  <input type="password" value={profileNewPassword || ""} onChange={e => setProfileNewPassword(e.target.value)} placeholder="At least 6 characters"
+                    style={{ ...inp }} />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Confirm Password</label>
+                  <input type="password" value={profileConfirmPassword || ""} onChange={e => setProfileConfirmPassword(e.target.value)} placeholder="Re-enter new password"
+                    style={{ ...inp }} />
+                </div>
+                {profilePasswordError && <div style={{ fontSize: 11, color: RED, marginBottom: 12 }}>{profilePasswordError}</div>}
+                {profilePasswordSuccess && <div style={{ fontSize: 11, color: GREEN, marginBottom: 12 }}>Password updated successfully</div>}
+                <button disabled={!profileNewPassword || savingProfilePassword}
+                  onClick={async () => {
+                    setProfilePasswordError(""); setProfilePasswordSuccess(false);
+                    if (!profileNewPassword || profileNewPassword.length < 6) { setProfilePasswordError("Password must be at least 6 characters"); return; }
+                    if (profileNewPassword !== profileConfirmPassword) { setProfilePasswordError("Passwords don't match"); return; }
+                    setSavingProfilePassword(true);
+                    const { error: err } = await updateUserPassword(profileNewPassword);
+                    setSavingProfilePassword(false);
+                    if (err) { setProfilePasswordError(err.message); return; }
+                    setProfilePasswordSuccess(true);
+                    setProfileNewPassword(""); setProfileConfirmPassword("");
+                    setTimeout(() => setProfilePasswordSuccess(false), 5000);
+                  }}
+                  style={{ padding: "10px 24px", background: !profileNewPassword ? "transparent" : WHITE, color: !profileNewPassword ? MUTED : BLACK, border: `1px solid ${!profileNewPassword ? BORDER : WHITE}`, borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: !profileNewPassword ? "default" : "pointer" }}>
+                  {savingProfilePassword ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+              {/* Notification Preferences */}
+              <div style={{ ...card, padding: "24px 28px", marginTop: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 6 }}>Notification Preferences</div>
+                <div style={{ fontSize: 10, color: MUTED, marginBottom: 20 }}>Choose which notifications you receive. Overdue flight alerts are always on.</div>
+                {(() => {
+                  const cats = ["operations", "safety", "training", "corrective_actions", "compliance", "general"];
+                  const labels = { operations: "Operations", safety: "Safety", training: "Training", corrective_actions: "Corrective Actions", compliance: "Compliance", general: "General" };
+                  const descs = { operations: "FRATs, dispatching, integrations, and sync alerts", safety: "Safety reports, investigations, bulletins, and trend alerts", training: "Training expiry and compliance reminders", corrective_actions: "Corrective action assignments and due dates", compliance: "Audits, compliance items, and management of change", general: "Engagement, surveys, policies, ERP drills, and SPI alerts" };
+                  const prefs = profile.notification_preferences || {};
+                  return cats.map(cat => {
+                    const enabled = prefs[cat] !== false;
+                    return (
+                      <div key={cat} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px solid ${BORDER}` }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{labels[cat]}</div>
+                          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{descs[cat]}</div>
+                        </div>
+                        <button onClick={async () => {
+                          const newPrefs = { ...prefs, [cat]: !enabled };
+                          await onUpdateNotifPreferences(newPrefs);
+                        }} style={{ width: 40, height: 22, borderRadius: 11, border: "none", cursor: "pointer", background: enabled ? GREEN : BORDER, position: "relative", transition: "background 0.2s", flexShrink: 0, marginLeft: 16 }}>
+                          <div style={{ width: 16, height: 16, borderRadius: 8, background: WHITE, position: "absolute", top: 3, left: enabled ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
+                        </button>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           );
