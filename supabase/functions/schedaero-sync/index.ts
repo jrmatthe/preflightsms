@@ -143,6 +143,13 @@ Deno.serve(async (req) => {
           const tripId = String(trip.tripId || trip.trip_id || trip.id || "");
           if (!tripId) continue;
 
+          // Only sync trips that have been released in SchedAero
+          // SchedAero status values: draft, tentative, confirmed/released, cancelled
+          const tripStatus = (trip.status || trip.tripStatus || trip.legStatus || "").toLowerCase();
+          if (tripStatus && tripStatus !== "released" && tripStatus !== "confirmed" && tripStatus !== "active" && tripStatus !== "dispatched") {
+            continue;
+          }
+
           // Skip trips already linked to a FRAT
           const existingStatus = existingMap.get(tripId);
           if (existingStatus === "frat_created" || existingStatus === "completed") {

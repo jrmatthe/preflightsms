@@ -182,6 +182,13 @@ Deno.serve(async (req) => {
           const ffId = String(ff.flightId || ff.id || "");
           if (!ffId) continue;
 
+          // Only sync flights that have been released in ForeFlight Dispatch
+          // ForeFlight status values: draft, scheduled, released, completed, cancelled
+          const ffStatus = (ff.status || ff.flightStatus || ff.flightData?.status || "").toLowerCase();
+          if (ffStatus && ffStatus !== "released" && ffStatus !== "completed" && ffStatus !== "active" && ffStatus !== "enroute") {
+            continue;
+          }
+
           // Skip flights already linked to a FRAT
           const existingStatus = existingMap.get(ffId);
           if (existingStatus === "frat_created" || existingStatus === "completed") {
@@ -375,12 +382,15 @@ Deno.serve(async (req) => {
          }
         }
 
-        // Remove stale pending flights no longer in ForeFlight
-        const activeFfIds = new Set(
-          flights.map((ff: any) => String(ff.flightId || ff.id || "")).filter(Boolean)
+        // Remove stale pending flights: either no longer in ForeFlight, or no longer released
+        const releasedFfIds = new Set(
+          flights.filter((ff: any) => {
+            const s = (ff.status || ff.flightStatus || ff.flightData?.status || "").toLowerCase();
+            return !s || s === "released" || s === "completed" || s === "active" || s === "enroute";
+          }).map((ff: any) => String(ff.flightId || ff.id || "")).filter(Boolean)
         );
         const stalePending = (existing || []).filter(
-          (e: any) => e.status === "pending" && !activeFfIds.has(e.foreflight_id)
+          (e: any) => e.status === "pending" && !releasedFfIds.has(e.foreflight_id)
         );
         if (stalePending.length > 0) {
           const staleIds = stalePending.map((e: any) => e.foreflight_id);
