@@ -165,6 +165,22 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
       }} />
       {/* Visual backdrop (dark overlay with spotlight hole) — purely visual, no pointer events */}
       <div style={backdropStyle} />
+      {/* Highlight ring around the target element */}
+      {targetRect && (
+        <div style={{
+          position: "fixed",
+          top: targetRect.top - 2,
+          left: targetRect.left - 2,
+          width: targetRect.width + 4,
+          height: targetRect.height + 4,
+          borderRadius: 10,
+          border: "2px solid rgba(34, 211, 238, 0.8)",
+          boxShadow: "0 0 12px rgba(34, 211, 238, 0.4)",
+          zIndex: 10002,
+          pointerEvents: "none",
+          transition: "all 0.25s ease",
+        }} />
+      )}
 
       {/* Tooltip card */}
       <div
