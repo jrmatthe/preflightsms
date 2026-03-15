@@ -375,6 +375,10 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
       <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
         {visibleSections.map(sec => sideTab(sec))}
       </div>
+      <a href="mailto:support@preflightsms.com" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 10, color: MUTED, textDecoration: "none", borderTop: `1px solid ${BORDER}`, transition: "color 0.15s" }} onMouseEnter={e => e.currentTarget.style.color = OFF_WHITE} onMouseLeave={e => e.currentTarget.style.color = MUTED}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Support
+      </a>
       {showOnboarding && (() => {
         const flows = onboardingState?.flows || {};
         const totalSteps = Object.keys(flows).length || 1;
@@ -503,6 +507,10 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
           {isGated && <span style={{ fontSize: 9, opacity: 0.5, marginLeft: "auto" }}>{"\uD83D\uDD12"}</span>}
         </button>);
       })}
+      <a href="mailto:support@preflightsms.com" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", fontSize: 12, color: MUTED, textDecoration: "none", borderRadius: 6 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Support
+      </a>
       {userName && (<>
         <div style={{ borderTop: `1px solid ${BORDER}`, margin: "6px 0", paddingTop: 8 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px" }}>
