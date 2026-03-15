@@ -274,7 +274,7 @@ export default function InternalEvaluation({
   hasIntlCompliance, complianceFrameworks, checklistItems,
   complianceStatus, crosswalkData, onUpsertFramework,
   onDeleteFramework, onUpsertStatus, onRefreshCompliance,
-  onAiGenerateChecklist, onNavigate, part5ReqStatuses,
+  onAiGenerateChecklist, onNavigate, part5ReqStatuses, onOverridesChange,
 }) {
   const [tab, setTab] = useState("part5");
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -901,7 +901,7 @@ export default function InternalEvaluation({
           onSaveDeclaration={onSaveDeclaration} onUpdateDeclaration={onUpdateDeclaration}
           onUploadPdf={onUploadPdf}
           profile={profile} orgProfiles={orgProfiles}
-          onNavigate={onNavigate}
+          onNavigate={onNavigate} onOverridesChange={onOverridesChange}
         />
       )}
 
