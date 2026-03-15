@@ -6546,6 +6546,24 @@ export default function PVTAIRFrat() {
       {/* ── Onboarding Flow Overlay ──────────────────────── */}
       {activeFlow && ONBOARDING_FLOWS[activeFlow] && <OnboardingFlow flow={ONBOARDING_FLOWS[activeFlow]} currentStep={activeFlowStep} onAdvance={handleFlowStepAdvance} onBack={handleFlowStepBack} onComplete={handleFlowComplete} onSkip={handleFlowSkip} />}
       {activeTour && tourFlows?.[activeTour] && <OnboardingFlow flow={tourFlows[activeTour]} currentStep={activeTourStep} onAdvance={handleTourAdvance} onBack={handleTourBack} onComplete={handleTourComplete} onSkip={handleTourSkip} />}
+      {/* ── Support Link ────────────────────────────────── */}
+      {session && (
+        <a href="mailto:support@preflightsms.com" className="support-fab" style={{
+          position: "fixed", bottom: 20, right: 20, zIndex: 1000,
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "8px 14px", borderRadius: 20,
+          background: NEAR_BLACK, border: `1px solid ${BORDER}`,
+          color: MUTED, fontSize: 11, textDecoration: "none",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+          transition: "color 0.15s, border-color 0.15s",
+        }}
+          onMouseEnter={e => { e.currentTarget.style.color = OFF_WHITE; e.currentTarget.style.borderColor = OFF_WHITE; }}
+          onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.borderColor = BORDER; }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Support
+        </a>
+      )}
       {/* ── Start Fresh Confirmation Modal ─────────────── */}
       {showStartFreshConfirm && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => !startFreshLoading && setShowStartFreshConfirm(false)}>

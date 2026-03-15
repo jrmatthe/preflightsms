@@ -474,7 +474,7 @@ function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
     </div>
     <div style={{marginBottom:8,marginTop:4}}>
       <div style={{...lbl}}>Custom Status Fields (Optional)</div>
-      <div style={{fontSize:9,color:MUTED,marginBottom:6}}>Define up to 4 optional fields pilots can fill when marking arrived</div>
+      <div style={{fontSize:9,color:MUTED,marginBottom:6}}>Parking spot and fuel remaining are included by default. Add up to 4 additional fields pilots can fill when marking arrived.</div>
       {(form.status_field_defs||[]).map((fd,i)=>(
         <div key={i} style={{display:"flex",gap:6,marginBottom:4,alignItems:"center"}}>
           <input value={fd.name} onChange={e=>{const defs=[...(form.status_field_defs||[])];defs[i]={name:e.target.value};setField("status_field_defs",defs);}} placeholder="Field name" style={{...inp,flex:1}} />

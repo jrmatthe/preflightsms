@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
     params.append("metadata[interval]", interval);
     params.append("subscription_data[metadata][org_id]", orgId);
     params.append("subscription_data[metadata][plan]", plan);
+    params.append("allow_promotion_codes", "true");
 
     const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
