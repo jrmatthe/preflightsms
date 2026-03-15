@@ -30,7 +30,6 @@ const OnboardingDashboard = dynamic(() => import("../components/OnboardingDashbo
 const OnboardingFlow = dynamic(() => import("../components/OnboardingFlow"), { ssr: false });
 const TourChecklist = dynamic(() => import("../components/TourChecklist"), { ssr: false });
 const MobileLayout = dynamic(() => import("../components/mobile/MobileLayout"), { ssr: false });
-const SupportChat = dynamic(() => import("../components/SupportChat"), { ssr: false });
 import useIsMobile, { setDesktopPreference } from "../lib/useIsMobile";
 import { ONBOARDING_FLOWS, FLOW_ORDER } from "../lib/onboardingFlows";
 import { getTourFlowsForRole } from "../lib/tourFlows";
@@ -6600,10 +6599,6 @@ export default function PVTAIRFrat() {
             <div style={{ fontSize: 10, color: MUTED, marginTop: 16 }}>You can always manage your data from Admin Settings.</div>
           </div>
         </div>
-      )}
-      {/* ── AI Support Chat ──────────────────────────── */}
-      {session && profile && !isFree && !activeFlow && !activeTour && (
-        <SupportChat supabase={supabase} profile={profile} session={session} org={org} currentPage={cv} />
       )}
       <style>{`*{box-sizing:border-box}input:focus,select:focus,textarea:focus{outline:none;border-color:${WHITE} !important;box-shadow:0 0 0 2px rgba(255,255,255,0.15) !important}select option{background:${NEAR_BLACK};color:${OFF_WHITE}}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
