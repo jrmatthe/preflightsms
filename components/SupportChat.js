@@ -155,7 +155,6 @@ export default function SupportChat({ supabase, profile, session, org, currentPa
       }}>
         {messages.length === 0 && (
           <div style={{ textAlign: "center", padding: "32px 16px" }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }}>&#9992;&#65039;</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: WHITE, marginBottom: 6 }}>How can we help?</div>
             <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, marginBottom: 20 }}>
               Ask about any PreflightSMS feature, troubleshoot issues, or get help with workflows.
