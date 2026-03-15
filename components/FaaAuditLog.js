@@ -411,7 +411,8 @@ const MANUAL_LABELS = {
 };
 
 // ── Exported helper: compute Part 5 compliance % without rendering ──
-export function computePart5Compliance({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, smsManuals }) {
+export function computePart5Compliance({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, smsManuals, manualOverrides }) {
+  const overrides = manualOverrides || {};
   const dataCtx = {
     fratCount: (frats||[]).length,
     flightCount: (flights||[]).length,
@@ -434,11 +435,16 @@ export function computePart5Compliance({ frats, flights, reports, hazards, actio
   let compliant = 0;
   const reqStatuses = {};
   PART5_REQUIREMENTS.forEach(req => {
-    const manualKeys = REQ_MANUAL_MAP[req.id] || [];
-    const manualSatisfied = manualKeys.some(k => dataCtx.manualComplete(k) || dataCtx.policyCoversManual(k));
-    if (manualSatisfied) { compliant++; reqStatuses[req.id] = "compliant"; }
-    else if (req.autoCheck && req.autoCheck(dataCtx)) { compliant++; reqStatuses[req.id] = "compliant"; }
-    else { reqStatuses[req.id] = req.autoCheck ? "needs_attention" : "manual_review"; }
+    if (overrides[req.id] !== undefined) {
+      reqStatuses[req.id] = overrides[req.id];
+      if (overrides[req.id] === "compliant") compliant++;
+    } else {
+      const manualKeys = REQ_MANUAL_MAP[req.id] || [];
+      const manualSatisfied = manualKeys.some(k => dataCtx.manualComplete(k) || dataCtx.policyCoversManual(k));
+      if (manualSatisfied) { compliant++; reqStatuses[req.id] = "compliant"; }
+      else if (req.autoCheck && req.autoCheck(dataCtx)) { compliant++; reqStatuses[req.id] = "compliant"; }
+      else { reqStatuses[req.id] = req.autoCheck ? "needs_attention" : "manual_review"; }
+    }
   });
   return { compliant, total: PART5_REQUIREMENTS.length, percent: Math.round(compliant / PART5_REQUIREMENTS.length * 100), reqStatuses };
 }
@@ -447,7 +453,7 @@ export function computePart5Compliance({ frats, flights, reports, hazards, actio
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════
 
-export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals, declarations, onSaveDeclaration, onUpdateDeclaration, onUploadPdf, session, profile, orgProfiles, onNavigate }) {
+export default function FaaAuditLog({ frats, flights, reports, hazards, actions, policies, profiles, trainingRecords, org, smsManuals, declarations, onSaveDeclaration, onUpdateDeclaration, onUploadPdf, session, profile, orgProfiles, onNavigate, onOverridesChange }) {
   const [expandedSubpart, setExpandedSubpart] = useState("B");
   const [expandedReq, setExpandedReq] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -461,6 +467,7 @@ export default function FaaAuditLog({ frats, flights, reports, hazards, actions,
     setManualOverrides(prev => {
       const next = fn(prev);
       try { localStorage.setItem("audit_overrides", JSON.stringify(next)); } catch {}
+      if (onOverridesChange) onOverridesChange(next);
       return next;
     });
   };
