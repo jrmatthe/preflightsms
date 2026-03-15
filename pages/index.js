@@ -1831,6 +1831,8 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
   const [arrivedForm, setArrivedForm] = useState(null); // flight id being marked arrived
   const [parkingSpot, setParkingSpot] = useState("");
   const [fuelRemaining, setFuelRemaining] = useState("");
+  const [fuelLeft, setFuelLeft] = useState("");
+  const [fuelRight, setFuelRight] = useState("");
   const [fuelUnit, setFuelUnit] = useState("hrs");
   const [customFieldValues, setCustomFieldValues] = useState({});
   const [airportCoords, setAirportCoords] = useState({});
@@ -2115,7 +2117,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                       <br />ID: {f.id} &middot; Score: {f.score} {f.riskLevel} &middot; Filed {formatDateTime(f.timestamp)}
                       {f.arrivedAt && <span> &middot; Arrived {formatDateTime(f.arrivedAt)}</span>}
                       {f.parkingSpot && <span> &middot; Parked: {f.parkingSpot}</span>}
-                      {f.fuelRemaining && <span> &middot; Fuel remaining: {f.fuelRemaining} {f.fuelUnit || "lbs"}</span>}
+                      {f.fuelRemaining && <span> &middot; Fuel remaining: {f.fuelRemaining} {f.fuelUnit || "lbs"}{f.fuelLeft && f.fuelRight ? ` (L: ${f.fuelLeft} / R: ${f.fuelRight})` : ""}</span>}
                     </div>
                     {f.attachments && f.attachments.length > 0 && (
                       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -2129,7 +2131,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                     )}
                     {f.status === "ACTIVE" && !pending && arrivedForm !== f.id && (
                       <div data-tour="tour-flights-arrived" style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                        <button data-onboarding="ff-arrived-btn" onClick={(e) => { e.stopPropagation(); setArrivedForm(f.id); setParkingSpot(""); setFuelRemaining(""); setFuelUnit("lbs"); setCustomFieldValues({}); }}
+                        <button data-onboarding="ff-arrived-btn" onClick={(e) => { e.stopPropagation(); setArrivedForm(f.id); setParkingSpot(""); setFuelRemaining(""); setFuelLeft(""); setFuelRight(""); setFuelUnit("lbs"); setCustomFieldValues({}); }}
                           style={{ flex: 1, padding: "10px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "CANCEL"); }}
                           style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
@@ -2143,6 +2145,22 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                               onClick={e => e.stopPropagation()}
                               style={{ ...inp, fontSize: 13, padding: "8px 10px", width: "100%" }} />
                           </div>
+                          {(() => { const mac = fleetAircraft.find(a => a.registration === f.tailNumber); const isDual = mac?.dual_fuel_tanks; return isDual ? (
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, display: "block" }}>Fuel remaining (L / R)</label>
+                            <div style={{ display: "flex", gap: 0 }}>
+                              <input value={fuelLeft} onChange={e => { setFuelLeft(e.target.value); const l = parseFloat(e.target.value) || 0; const r = parseFloat(fuelRight) || 0; setFuelRemaining(l + r ? String(l + r) : ""); }} placeholder="Left" inputMode="decimal"
+                                onClick={e => e.stopPropagation()}
+                                style={{ ...inp, fontSize: 13, padding: "8px 10px", flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: "none", minWidth: 0 }} />
+                              <input value={fuelRight} onChange={e => { setFuelRight(e.target.value); const l = parseFloat(fuelLeft) || 0; const r = parseFloat(e.target.value) || 0; setFuelRemaining(l + r ? String(l + r) : ""); }} placeholder="Right" inputMode="decimal"
+                                onClick={e => e.stopPropagation()}
+                                style={{ ...inp, fontSize: 13, padding: "8px 10px", flex: 1, borderRadius: 0, borderRight: "none", minWidth: 0 }} />
+                              <button onClick={e => { e.stopPropagation(); setFuelUnit(u => u === "lbs" ? "hrs" : "lbs"); }}
+                                style={{ padding: "8px 10px", background: CARD, border: `1px solid ${BORDER}`, borderTopRightRadius: 6, borderBottomRightRadius: 6, color: WHITE, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{fuelUnit}</button>
+                            </div>
+                            {(fuelLeft || fuelRight) && <div style={{ fontSize: 9, color: MUTED, marginTop: 3 }}>Total: {((parseFloat(fuelLeft) || 0) + (parseFloat(fuelRight) || 0)) || "—"} {fuelUnit}</div>}
+                          </div>
+                          ) : (
                           <div style={{ flex: 1 }}>
                             <label style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, display: "block" }}>Fuel remaining</label>
                             <div style={{ display: "flex", gap: 0 }}>
@@ -2153,6 +2171,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                                 style={{ padding: "8px 10px", background: CARD, border: `1px solid ${BORDER}`, borderTopRightRadius: 6, borderBottomRightRadius: 6, color: WHITE, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{fuelUnit}</button>
                             </div>
                           </div>
+                          ); })()}
                         </div>
                         {(() => { const mac = fleetAircraft.find(a => a.registration === f.tailNumber); return mac?.status_field_defs?.length > 0 ? (
                           <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
@@ -2167,7 +2186,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                           </div>
                         ) : null; })()}
                         <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={(e) => { e.stopPropagation(); const extra = {}; if (parkingSpot.trim()) extra.parkingSpot = parkingSpot.trim(); if (fuelRemaining.trim()) { extra.fuelRemaining = fuelRemaining.trim(); extra.fuelUnit = fuelUnit; } if (Object.keys(customFieldValues).some(k => customFieldValues[k]?.trim())) { extra.customFieldValues = Object.fromEntries(Object.entries(customFieldValues).filter(([,v]) => v?.trim())); } onUpdateFlight(f.id, "ARRIVED", extra); setArrivedForm(null); }}
+                          <button onClick={(e) => { e.stopPropagation(); const extra = {}; if (parkingSpot.trim()) extra.parkingSpot = parkingSpot.trim(); if (fuelRemaining.trim()) { extra.fuelRemaining = fuelRemaining.trim(); extra.fuelUnit = fuelUnit; } if (fuelLeft.trim()) extra.fuelLeft = fuelLeft.trim(); if (fuelRight.trim()) extra.fuelRight = fuelRight.trim(); if (Object.keys(customFieldValues).some(k => customFieldValues[k]?.trim())) { extra.customFieldValues = Object.fromEntries(Object.entries(customFieldValues).filter(([,v]) => v?.trim())); } onUpdateFlight(f.id, "ARRIVED", extra); setArrivedForm(null); }}
                             data-onboarding="ff-confirm-arrived-btn" style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>CONFIRM ARRIVED</button>
                           <button onClick={(e) => { e.stopPropagation(); setArrivedForm(null); }}
                             style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Back</button>
@@ -4822,7 +4841,7 @@ export default function PVTAIRFrat() {
         numCrew: f.num_crew, numPax: f.num_pax, score: f.score, riskLevel: f.risk_level,
         status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED",
         approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [],
-        parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "",
+        parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelLeft: f.fuel_remaining_left || "", fuelRight: f.fuel_remaining_right || "", fuelUnit: f.fuel_unit || "",
         userId: f.user_id,
       })));
       await reconcileStaleFratApprovals(orgId);
@@ -4948,7 +4967,7 @@ export default function PVTAIRFrat() {
         status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at,
         cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status,
         fratDbId: f.frat_id, attachments: f.attachments || [],
-        parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "",
+        parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelLeft: f.fuel_remaining_left || "", fuelRight: f.fuel_remaining_right || "", fuelUnit: f.fuel_unit || "",
       }));
       setFlights(prev => {
         const demo = activeFlowRef.current === "flights" ? prev.find(f => f.id === "FRAT-DEMO") : null;
@@ -5005,7 +5024,7 @@ export default function PVTAIRFrat() {
           status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at,
           cancelled: f.status === "CANCELLED", approvedAt: f.approved_at, approvalStatus: f.approval_status,
           fratDbId: f.frat_id, attachments: f.attachments || [],
-          parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "",
+          parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelLeft: f.fuel_remaining_left || "", fuelRight: f.fuel_remaining_right || "", fuelUnit: f.fuel_unit || "",
         }));
         setFlights(prev => {
           const demo = activeFlowRef.current === "flights" ? prev.find(f => f.id === "FRAT-DEMO") : null;
@@ -5140,7 +5159,7 @@ export default function PVTAIRFrat() {
         approvedAt: wasApproved ? (f.approved_at || p.approvedAt) : f.approved_at,
         approvalStatus: wasApproved && f.approval_status === "pending" ? "approved" : f.approval_status,
         fratDbId: f.frat_id, attachments: f.attachments || [],
-        parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelUnit: f.fuel_unit || "",
+        parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelLeft: f.fuel_remaining_left || "", fuelRight: f.fuel_remaining_right || "", fuelUnit: f.fuel_unit || "",
         userId: f.user_id,
       };
     });

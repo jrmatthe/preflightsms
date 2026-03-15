@@ -67,6 +67,8 @@ function AircraftCard({ aircraft, onUpdateStatus, onUpdateMel, session, profile,
   const [editLocation, setEditLocation] = useState(aircraft.last_location || "");
   const [editParking, setEditParking] = useState(aircraft.parking_spot || "");
   const [editFuel, setEditFuel] = useState(aircraft.fuel_remaining || "");
+  const [editFuelLeft, setEditFuelLeft] = useState(aircraft.fuel_remaining_left || "");
+  const [editFuelRight, setEditFuelRight] = useState(aircraft.fuel_remaining_right || "");
   const [editFuelUnit, setEditFuelUnit] = useState(aircraft.fuel_unit || "lbs");
   const [editCustomFields, setEditCustomFields] = useState(aircraft.status_field_values || {});
   const [saving, setSaving] = useState(false);
@@ -95,6 +97,8 @@ function AircraftCard({ aircraft, onUpdateStatus, onUpdateMel, session, profile,
       parking_spot: editParking.trim(),
       fuel_remaining: editFuel.trim(),
       fuel_unit: editFuelUnit,
+      fuel_remaining_left: editFuelLeft.trim(),
+      fuel_remaining_right: editFuelRight.trim(),
     };
     const filled = Object.entries(editCustomFields).filter(([,v]) => v?.trim());
     if (filled.length > 0) update.status_field_values = Object.fromEntries(filled);
@@ -109,6 +113,8 @@ function AircraftCard({ aircraft, onUpdateStatus, onUpdateMel, session, profile,
     setEditLocation(aircraft.last_location || "");
     setEditParking(aircraft.parking_spot || "");
     setEditFuel(aircraft.fuel_remaining || "");
+    setEditFuelLeft(aircraft.fuel_remaining_left || "");
+    setEditFuelRight(aircraft.fuel_remaining_right || "");
     setEditFuelUnit(aircraft.fuel_unit || "lbs");
     setEditCustomFields(aircraft.status_field_values || {});
     setEditing(true);
@@ -230,7 +236,7 @@ function AircraftCard({ aircraft, onUpdateStatus, onUpdateMel, session, profile,
             {aircraft.fuel_remaining && (
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 22V8l4-4 4 4v14"/><path d="M15 22V13l3-2 3 2v9"/><line x1="3" y1="14" x2="11" y2="14"/></svg>
-                <span style={{ fontSize: 13, color: OFF_WHITE }}>{aircraft.fuel_remaining} {(aircraft.fuel_unit || "lbs").toUpperCase()}</span>
+                <span style={{ fontSize: 13, color: OFF_WHITE }}>{aircraft.fuel_remaining} {(aircraft.fuel_unit || "lbs").toUpperCase()}{aircraft.fuel_remaining_left && aircraft.fuel_remaining_right ? ` (L: ${aircraft.fuel_remaining_left} / R: ${aircraft.fuel_remaining_right})` : ""}</span>
               </div>
             )}
             {customDefs.map(fd => { const v = aircraft.status_field_values?.[fd.name]; return v ? (
@@ -410,7 +416,17 @@ function AircraftCard({ aircraft, onUpdateStatus, onUpdateMel, session, profile,
                   style={{ ...inputStyle, marginBottom: 10 }}
                 />
 
-                <label style={{ display: "block", fontSize: 13, color: OFF_WHITE, marginBottom: 4 }}>Fuel Remaining</label>
+                <label style={{ display: "block", fontSize: 13, color: OFF_WHITE, marginBottom: 4 }}>{aircraft.dual_fuel_tanks ? "Fuel Remaining (L / R)" : "Fuel Remaining"}</label>
+                {aircraft.dual_fuel_tanks ? (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+                    <input value={editFuelLeft} onChange={e => { setEditFuelLeft(e.target.value); const l = parseFloat(e.target.value) || 0; const r = parseFloat(editFuelRight) || 0; setEditFuel(l + r ? String(l + r) : ""); }} placeholder="Left" inputMode="decimal" style={{ ...inputStyle, flex: 1 }} />
+                    <input value={editFuelRight} onChange={e => { setEditFuelRight(e.target.value); const l = parseFloat(editFuelLeft) || 0; const r = parseFloat(e.target.value) || 0; setEditFuel(l + r ? String(l + r) : ""); }} placeholder="Right" inputMode="decimal" style={{ ...inputStyle, flex: 1 }} />
+                    <button onClick={() => setEditFuelUnit(u => u === "lbs" ? "gal" : u === "gal" ? "hrs" : "lbs")} style={{ padding: "10px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, background: `${CYAN}12`, color: CYAN, border: `1px solid ${CYAN}30`, cursor: "pointer", fontFamily: "inherit", minWidth: 50 }}>{editFuelUnit.toUpperCase()}</button>
+                  </div>
+                  {(editFuelLeft || editFuelRight) && <div style={{ fontSize: 11, color: MUTED }}>Total: {((parseFloat(editFuelLeft) || 0) + (parseFloat(editFuelRight) || 0)) || "\u2014"} {editFuelUnit.toUpperCase()}</div>}
+                </div>
+                ) : (
                 <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                   <input
                     value={editFuel}
@@ -428,6 +444,7 @@ function AircraftCard({ aircraft, onUpdateStatus, onUpdateMel, session, profile,
                     }}
                   >{editFuelUnit.toUpperCase()}</button>
                 </div>
+                )}
 
                 {customDefs.map(fd => (
                   <div key={fd.name} style={{ marginBottom: 10 }}>
@@ -479,7 +496,7 @@ function AircraftCard({ aircraft, onUpdateStatus, onUpdateMel, session, profile,
                 <div>
                   <div style={{ fontSize: 12, color: MUTED, marginBottom: 2 }}>Fuel</div>
                   <div style={{ fontSize: 14, color: aircraft.fuel_remaining ? OFF_WHITE : MUTED, fontStyle: aircraft.fuel_remaining ? "normal" : "italic" }}>
-                    {aircraft.fuel_remaining ? `${aircraft.fuel_remaining} ${(aircraft.fuel_unit || "lbs").toUpperCase()}` : "\u2014"}
+                    {aircraft.fuel_remaining ? `${aircraft.fuel_remaining} ${(aircraft.fuel_unit || "lbs").toUpperCase()}${aircraft.fuel_remaining_left && aircraft.fuel_remaining_right ? ` (L: ${aircraft.fuel_remaining_left} / R: ${aircraft.fuel_remaining_right})` : ""}` : "\u2014"}
                   </div>
                 </div>
                 {customDefs.map(fd => (

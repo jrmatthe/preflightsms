@@ -13,7 +13,7 @@ const lbl={fontSize:9,color:MUTED,textTransform:"uppercase",letterSpacing:1,marg
 
 const emptyForm = {
   type:"",registration:"",serial_number:"",year:"",max_passengers:"",
-  base_location:"",notes:"",status_field_defs:[],
+  base_location:"",notes:"",status_field_defs:[],dual_fuel_tanks:false,
 };
 
 const emptyMelForm = {
@@ -471,6 +471,13 @@ function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
     <div style={{marginBottom:8,marginTop:4}}>
       <div style={{...lbl}}>Notes</div>
       <textarea value={form.notes||""} onChange={e=>setField("notes",e.target.value)} rows={3} style={{...inp,resize:"vertical"}} />
+    </div>
+    <div style={{marginBottom:8,marginTop:4}}>
+      <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+        <input type="checkbox" checked={!!form.dual_fuel_tanks} onChange={e=>setField("dual_fuel_tanks",e.target.checked)} style={{accentColor:CYAN}} />
+        <span style={{fontSize:12,color:OFF_WHITE}}>Dual fuel tanks (left/right)</span>
+      </label>
+      <div style={{fontSize:9,color:MUTED,marginTop:3}}>Enable for twin-engine aircraft that track fuel per tank</div>
     </div>
     <div style={{marginBottom:8,marginTop:4}}>
       <div style={{...lbl}}>Custom Status Fields (Optional)</div>
