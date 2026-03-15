@@ -3489,7 +3489,15 @@ function SignupFlow({ onAuth }) {
       } else {
         setError("Account created! Check your email to confirm, then log in.");
       }
-    } catch (e) { setError(e.message); }
+    } catch (e) {
+      // Safari/iOS reports network errors as "Load failed" — give a friendlier message
+      const msg = e.message;
+      if (msg === "Load failed" || msg === "Failed to fetch" || msg === "NetworkError") {
+        setError("Network error — please check your connection and try again.");
+      } else {
+        setError(msg);
+      }
+    }
     setLoading(false);
   };
 

@@ -238,7 +238,12 @@ export default async function handler(req, res) {
     if (!org_id) return res.status(400).json({ error: 'org_id required' });
 
     const result = await deleteOrganization(sb, org_id);
-    return res.status(200).json({ success: true, deleted_users: result.deleted_users });
+    const response = { success: true, deleted_users: result.deleted_users };
+    if (result.failed_auth_deletes?.length > 0) {
+      response.warning = `${result.failed_auth_deletes.length} auth user(s) failed to delete`;
+      response.failed_auth_deletes = result.failed_auth_deletes;
+    }
+    return res.status(200).json(response);
   }
 
   // ── FETCH GROWTH DATA (aggregated growth intelligence) ──
