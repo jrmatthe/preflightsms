@@ -4164,6 +4164,7 @@ export default function PVTAIRFrat() {
     prevFleetLenRef.current = fleetAircraft.length;
     // Flights flow: store dummy flight in ref (merged at render time so data fetches can't wipe it)
     if (flowId === "flights") {
+      setFlightsMode("all"); // Force "All Flights" view so the map is visible
       activeFlowRef.current = "flights";
       demoFlightRef.current = {
         id: "FRAT-DEMO", dbId: null,
