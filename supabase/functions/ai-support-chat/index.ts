@@ -178,6 +178,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log("ai-support-chat: request received", req.method);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
@@ -264,6 +265,7 @@ Deno.serve(async (req) => {
       }),
     });
 
+    console.log("ai-support-chat: Claude API status", claudeRes.status);
     if (!claudeRes.ok) {
       const errText = await claudeRes.text();
       console.error("Claude API error:", claudeRes.status, errText);
@@ -291,7 +293,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error("Support chat error:", e);
+    console.error("Support chat error:", (e as Error).message, (e as Error).stack);
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
