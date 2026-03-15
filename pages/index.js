@@ -4491,6 +4491,8 @@ export default function PVTAIRFrat() {
   // ── Role-based tour for non-admin users ──────────────
   const [tourState, setTourState] = useState(null);
   const [activeTour, setActiveTour] = useState(null);
+  const activeTourRef = useRef(null);
+  useEffect(() => { activeTourRef.current = activeTour; }, [activeTour]);
   const [activeTourStep, setActiveTourStep] = useState(0);
 
   const tourConfig = !onboardingAdminRoles.includes(profile?.role) ? getTourFlowsForRole(profile?.role) : null;
@@ -5513,9 +5515,14 @@ export default function PVTAIRFrat() {
     if (isOnline && profile) {
       const { data: created, error } = await submitReport(profile.org_id, session.user.id, report);
       if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
-      // Capture the report ID immediately for demo cleanup during safety_report onboarding
-      if (activeFlowRef.current === "safety_report" && created?.id) {
-        demoReportRef.current = created.id;
+      // Capture the report ID for demo cleanup during onboarding/tour
+      if (created?.id) {
+        if (activeFlowRef.current === "safety_report") {
+          demoReportRef.current = created.id;
+        }
+        if (activeTourRef.current === "file_report") {
+          tourDemoReportRef.current = created.id;
+        }
       }
       const { data } = await fetchReports(profile.org_id);
       setReports(data || []);
