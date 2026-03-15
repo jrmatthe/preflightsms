@@ -30,6 +30,7 @@ const OnboardingDashboard = dynamic(() => import("../components/OnboardingDashbo
 const OnboardingFlow = dynamic(() => import("../components/OnboardingFlow"), { ssr: false });
 const TourChecklist = dynamic(() => import("../components/TourChecklist"), { ssr: false });
 const MobileLayout = dynamic(() => import("../components/mobile/MobileLayout"), { ssr: false });
+const SupportChat = dynamic(() => import("../components/SupportChat"), { ssr: false });
 import useIsMobile, { setDesktopPreference } from "../lib/useIsMobile";
 import { ONBOARDING_FLOWS, FLOW_ORDER } from "../lib/onboardingFlows";
 import { getTourFlowsForRole } from "../lib/tourFlows";
@@ -6554,25 +6555,6 @@ export default function PVTAIRFrat() {
       {/* ── Onboarding Flow Overlay ──────────────────────── */}
       {activeFlow && ONBOARDING_FLOWS[activeFlow] && <OnboardingFlow flow={ONBOARDING_FLOWS[activeFlow]} currentStep={activeFlowStep} onAdvance={handleFlowStepAdvance} onBack={handleFlowStepBack} onComplete={handleFlowComplete} onSkip={handleFlowSkip} />}
       {activeTour && tourFlows?.[activeTour] && <OnboardingFlow flow={tourFlows[activeTour]} currentStep={activeTourStep} onAdvance={handleTourAdvance} onBack={handleTourBack} onComplete={handleTourComplete} onSkip={handleTourSkip} />}
-      {/* ── Floating Action Buttons ─────────────────────── */}
-      {session && cv !== "submit" && (
-        <div className="fab-container" style={{ position: "fixed", bottom: 24, right: 24, display: "flex", flexDirection: "column", gap: 10, zIndex: 1000 }}>
-          {cv !== "reports" && (
-            <button onClick={() => { setReportPrefill({}); setCv("reports"); }} title="File a safety report"
-              style={{ width: 48, height: 48, borderRadius: "50%", border: "none", background: "rgba(74,222,128,0.15)", color: GREEN, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.4)", transition: "all 0.15s", backdropFilter: "blur(8px)" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(74,222,128,0.3)"; e.currentTarget.style.transform = "scale(1.08)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "rgba(74,222,128,0.15)"; e.currentTarget.style.transform = "scale(1)"; }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-            </button>
-          )}
-          <button onClick={() => setCv("submit")} title="New FRAT"
-            style={{ width: 56, height: 56, borderRadius: "50%", border: "none", background: WHITE, color: BLACK, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.5)", transition: "all 0.15s", fontWeight: 800, fontSize: 13 }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(0,0,0,0.6)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.5)"; }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
-        </div>
-      )}
       {/* ── Start Fresh Confirmation Modal ─────────────── */}
       {showStartFreshConfirm && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => !startFreshLoading && setShowStartFreshConfirm(false)}>
@@ -6627,6 +6609,10 @@ export default function PVTAIRFrat() {
           </div>
         </div>
       )}
+      {/* ── AI Support Chat ──────────────────────────── */}
+      {session && profile && !isFree && !activeFlow && !activeTour && (
+        <SupportChat supabase={supabase} profile={profile} session={session} org={org} currentPage={cv} />
+      )}
       <style>{`*{box-sizing:border-box}input:focus,select:focus,textarea:focus{outline:none;border-color:${WHITE} !important;box-shadow:0 0 0 2px rgba(255,255,255,0.15) !important}select option{background:${NEAR_BLACK};color:${OFF_WHITE}}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:${DARK}}::-webkit-scrollbar-thumb{background:${BORDER};border-radius:3px}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -6637,7 +6623,6 @@ export default function PVTAIRFrat() {
 button:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 a:focus-visible{outline:2px solid ${WHITE};outline-offset:2px}
 @media(max-width:768px){
-.fab-container{bottom:calc(72px + env(safe-area-inset-bottom, 8px)) !important;right:16px !important}
 .mobile-bottom-nav{display:flex !important;padding:8px 24px calc(10px + env(safe-area-inset-bottom, 0px)) 24px !important}
 .score-panel-mobile{padding-bottom:env(safe-area-inset-bottom, 6px) !important}
 .frat-grid{grid-template-columns:1fr !important}
