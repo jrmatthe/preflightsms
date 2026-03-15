@@ -264,6 +264,15 @@ Deno.serve(async (req) => {
       }),
     });
 
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text();
+      console.error("Claude API error:", claudeRes.status, errText);
+      return new Response(
+        JSON.stringify({ error: "AI service temporarily unavailable. Please try again." }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const claudeData = await claudeRes.json();
     const reply = claudeData.content?.[0]?.text || "I'm sorry, I couldn't process that. Please try again or email support@preflightsms.com.";
 

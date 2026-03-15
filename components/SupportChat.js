@@ -53,7 +53,11 @@ export default function SupportChat({ supabase, profile, session, org, currentPa
         },
       });
 
-      if (fnError) throw new Error(fnError.message || "Request failed");
+      if (fnError) {
+        // supabase-js wraps non-2xx responses — try to parse the body
+        const errBody = typeof fnError === "object" && fnError.context ? fnError.context : fnError;
+        throw new Error(errBody?.message || fnError?.message || "Request failed");
+      }
       if (data?.error) throw new Error(data.error);
 
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
