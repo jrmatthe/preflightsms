@@ -528,18 +528,41 @@ export default async function handler(req, res) {
       reqIds[req.title] = data.id;
     }
 
-    // Create records for each pilot
-    for (const pilot of [...pilots, DEMO_USERS[4]]) { // pilots + safety manager
+    // Create records — all current except 2 (one overdue, one expiring soon)
+    // Overdue: "Hazmat Awareness" for Mike Rodriguez
+    // Expiring soon: "Emergency Procedures Review" for David Park
+    const overdueReq = "Hazmat Awareness";
+    const overdueUser = "mike.rodriguez@demo.preflightsms.com";
+    const expiringReq = "Emergency Procedures Review";
+    const expiringUser = "david.park@demo.preflightsms.com";
+
+    for (const pilot of [...pilots, DEMO_USERS[0], DEMO_USERS[4]]) { // pilots + admin + safety manager
       const userId = userIds[pilot.email];
       for (const req of TRAINING_REQS) {
         if (!req.required_for.includes(pilot.role)) continue;
         const reqId = reqIds[req.title];
         if (!reqId) continue;
-        const completedAgo = randInt(30, 300);
+
+        let completedAgo, expiryDate;
         const expiryMonths = req.frequency_months || 12;
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() - completedAgo);
-        expiryDate.setMonth(expiryDate.getMonth() + expiryMonths);
+
+        if (req.title === overdueReq && pilot.email === overdueUser) {
+          // Overdue — completed 14 months ago, expired 2 months ago
+          completedAgo = 14 * 30;
+          expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() - 60);
+        } else if (req.title === expiringReq && pilot.email === expiringUser) {
+          // Expiring soon — completed 11 months ago, expires in 12 days
+          completedAgo = 11 * 30;
+          expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + 12);
+        } else {
+          // Current — completed 1-4 months ago, well within expiry
+          completedAgo = randInt(30, 120);
+          expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() - completedAgo);
+          expiryDate.setMonth(expiryDate.getMonth() + expiryMonths);
+        }
 
         await supabase.from("training_records").insert({
           org_id: orgId, user_id: userId, requirement_id: reqId,
@@ -551,7 +574,7 @@ export default async function handler(req, res) {
         });
       }
     }
-    log.push("Created training requirements and records");
+    log.push("Created training requirements and records (2 non-current)");
 
     // ── 9. Create Policies + Acknowledgments ────────────────────
     const policyIds = [];
@@ -644,7 +667,20 @@ export default async function handler(req, res) {
       drill_type: "tabletop", scheduled_date: dateFromNow(15),
       status: "scheduled",
     });
-    log.push("Created 6 ERP templates with checklists, call trees, and drills");
+    // Acknowledge all ERPs except the last one (Missing/Overdue Aircraft)
+    const plansToAck = erpPlanIds.slice(0, -1); // first 5 plans
+    for (const planId of plansToAck) {
+      for (const userId of allUserIds) {
+        await supabase.from("erp_acknowledgments").insert({
+          org_id: orgId,
+          erp_plan_id: planId,
+          user_id: userId,
+          plan_version: 1,
+          acknowledged_at: daysAgo(randInt(5, 30)),
+        });
+      }
+    }
+    log.push("Created 6 ERP templates with checklists, call trees, drills, and acknowledgments");
 
     // ── 11. Create Trend Alerts ─────────────────────────────────
     await supabase.from("trend_alerts").insert([
