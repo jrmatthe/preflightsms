@@ -148,6 +148,14 @@ export default async function handler(req, res) {
           log.push(`Warning clearing ${t}: ${error.message}`);
         }
       }
+      // Ensure org settings are correct
+      await supabase.from("organizations").update({
+        tier: "professional",
+        subscription_status: "active",
+        trial_ends_at: daysFromNow(365),
+        max_aircraft: 20,
+        fleet_status_enabled: true,
+      }).eq("id", orgId);
       log.push("Cleared existing demo data");
     } else {
       const { data: newOrg, error: orgErr } = await supabase.from("organizations").insert({
