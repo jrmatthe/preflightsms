@@ -493,57 +493,59 @@ export default async function handler(req, res) {
     }
     log.push(`Created ${policyIds.length} policies with acknowledgments`);
 
-    // ── 10. Create ERP Plans + Drills ───────────────────────────
-    const erpPlanId = uid();
-    await supabase.from("erp_plans").insert({
-      id: erpPlanId, org_id: orgId,
-      name: "Aircraft Accident / Incident Response",
-      category: "accident", description: "Primary emergency response plan for aircraft accidents and serious incidents.",
-      is_active: true, version: 2,
-      last_reviewed_at: daysAgo(45),
-      reviewed_by: adminId,
-    });
+    // ── 10. Create ERP Plans + Drills (all 6 industry templates) ─
+    const { ERP_TEMPLATES, DEFAULT_CALL_TREE } = await import("../../components/EmergencyResponsePlan");
 
-    // Checklist items
-    const checklistItems = [
-      { action: "Secure the accident site and ensure safety of all personnel", role: "Chief Pilot", time: "Immediate", critical: true },
-      { action: "Notify FAA/NTSB as required by 49 CFR 830", role: "Safety Manager", time: "Within 1 hour", critical: true },
-      { action: "Activate call tree — notify all ERP team members", role: "Admin", time: "Within 30 minutes", critical: true },
-      { action: "Coordinate with local emergency services", role: "Chief Pilot", time: "Immediate", critical: false },
-      { action: "Preserve all records, communications, and evidence", role: "Safety Manager", time: "Within 2 hours", critical: true },
-      { action: "Prepare initial statement for media inquiries", role: "Admin", time: "Within 4 hours", critical: false },
-      { action: "Conduct initial debrief with involved crew", role: "Safety Manager", time: "Within 24 hours", critical: false },
-      { action: "File preliminary report and begin investigation", role: "Safety Manager", time: "Within 48 hours", critical: false },
+    // Customized call tree with demo org contacts + standard external contacts
+    const demoCallTree = [
+      { contact_name: "NTSB", contact_role: "Aviation Safety", phone_primary: "844-373-9922", is_external: true, notes: "24-hour hotline" },
+      { contact_name: "Seattle FSDO", contact_role: "FAA Flight Standards", phone_primary: "(206) 231-4199", is_external: true, notes: "Local FSDO" },
+      { contact_name: "Local EMS", contact_role: "Emergency Services", phone_primary: "911", is_external: true },
+      { contact_name: "Cascade Insurance", contact_role: "Insurance", phone_primary: "(206) 555-0190", is_external: true },
+      { contact_name: "James Mitchell", contact_role: "Accountable Executive", phone_primary: "(206) 555-0101", email: "admin@demo.preflightsms.com", is_external: false },
+      { contact_name: "Lisa Thompson", contact_role: "Safety Manager", phone_primary: "(206) 555-0103", email: "lisa.thompson@demo.preflightsms.com", is_external: false },
+      { contact_name: "Sarah Chen", contact_role: "Chief Pilot", phone_primary: "(206) 555-0102", email: "sarah.chen@demo.preflightsms.com", is_external: false },
     ];
-    for (let i = 0; i < checklistItems.length; i++) {
-      const c = checklistItems[i];
-      await supabase.from("erp_checklist_items").insert({
-        erp_plan_id: erpPlanId, sort_order: i,
-        action_text: c.action, responsible_role: c.role,
-        time_target: c.time, is_critical: c.critical,
+
+    const erpPlanIds = [];
+    for (const tmpl of ERP_TEMPLATES) {
+      const planId = uid();
+      erpPlanIds.push(planId);
+      await supabase.from("erp_plans").insert({
+        id: planId, org_id: orgId,
+        name: tmpl.name, category: tmpl.category,
+        description: tmpl.description,
+        is_active: true, version: 1,
+        last_reviewed_at: daysAgo(45),
+        reviewed_by: adminId,
       });
+
+      // Checklist items from template
+      for (let i = 0; i < tmpl.checklist.length; i++) {
+        const c = tmpl.checklist[i];
+        await supabase.from("erp_checklist_items").insert({
+          erp_plan_id: planId, sort_order: i,
+          action_text: c.action_text, responsible_role: c.responsible_role,
+          time_target: c.time_target, is_critical: c.is_critical,
+        });
+      }
+
+      // Call tree for each plan
+      for (let i = 0; i < demoCallTree.length; i++) {
+        const c = demoCallTree[i];
+        await supabase.from("erp_call_tree").insert({
+          erp_plan_id: planId, sort_order: i,
+          contact_name: c.contact_name, contact_role: c.contact_role,
+          phone_primary: c.phone_primary, email: c.email || "",
+          is_external: c.is_external, notes: c.notes || "",
+        });
+      }
     }
 
-    // Call tree
-    const callTree = [
-      { name: "James Mitchell", role: "Accountable Executive", phone: "(206) 555-0101", email: "admin@demo.preflightsms.com", ext: false },
-      { name: "Sarah Chen", role: "Chief Pilot", phone: "(206) 555-0102", email: "sarah.chen@demo.preflightsms.com", ext: false },
-      { name: "Lisa Thompson", role: "Safety Manager", phone: "(206) 555-0103", email: "lisa.thompson@demo.preflightsms.com", ext: false },
-      { name: "Seattle FSDO", role: "FAA Flight Standards", phone: "(206) 231-4199", email: "", ext: true },
-      { name: "NTSB Response", role: "NTSB 24-hr Hotline", phone: "(844) 373-9922", email: "", ext: true },
-    ];
-    for (let i = 0; i < callTree.length; i++) {
-      const c = callTree[i];
-      await supabase.from("erp_call_tree").insert({
-        erp_plan_id: erpPlanId, sort_order: i,
-        contact_name: c.name, contact_role: c.role,
-        phone_primary: c.phone, email: c.email, is_external: c.ext,
-      });
-    }
-
-    // Drills
+    // Drills (attach to first plan — Aircraft Accident)
+    const accidentPlanId = erpPlanIds[0];
     await supabase.from("erp_drills").insert({
-      org_id: orgId, erp_plan_id: erpPlanId,
+      org_id: orgId, erp_plan_id: accidentPlanId,
       drill_type: "tabletop", scheduled_date: dateOnly(90), completed_date: dateOnly(88),
       status: "completed", participants: ["James Mitchell", "Sarah Chen", "Lisa Thompson", "Mike Rodriguez"],
       lessons_learned: "Call tree activation was slow. Updated contact order and added backup numbers.",
@@ -551,11 +553,11 @@ export default async function handler(req, res) {
       conducted_by: safetyMgrId,
     });
     await supabase.from("erp_drills").insert({
-      org_id: orgId, erp_plan_id: erpPlanId,
+      org_id: orgId, erp_plan_id: accidentPlanId,
       drill_type: "tabletop", scheduled_date: dateFromNow(15),
       status: "scheduled",
     });
-    log.push("Created ERP plan with checklist, call tree, and drills");
+    log.push("Created 6 ERP templates with checklists, call trees, and drills");
 
     // ── 11. Create Trend Alerts ─────────────────────────────────
     await supabase.from("trend_alerts").insert([
