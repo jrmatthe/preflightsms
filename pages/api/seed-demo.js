@@ -142,7 +142,7 @@ export default async function handler(req, res) {
         "erp_acknowledgments", "erp_drills", "erp_call_tree", "erp_checklist_items", "erp_plans",
         "aircraft", "spi_measurements",
         "safety_performance_targets", "safety_performance_indicators", "trend_alerts",
-        "ai_suggestions", "audits", "audit_templates", "culture_survey_results",
+        "ai_suggestions", "ai_usage_log", "audits", "audit_templates", "culture_survey_results",
         "culture_survey_responses", "culture_surveys", "management_of_change",
         "sms_manuals", "compliance_status", "declarations", "mel_audit_log",
       ];

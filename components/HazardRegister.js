@@ -13,77 +13,63 @@ const LIKELIHOOD_LABELS = ["", "Improbable", "Remote", "Occasional", "Probable",
 const SEVERITY_LABELS = ["", "Negligible", "Minor", "Major", "Hazardous", "Catastrophic"];
 
 function riskColor(score) {
-  if (score <= 4) return GREEN;
-  if (score <= 9) return YELLOW;
-  if (score <= 16) return "#F97316";
-  return RED;
+  if (score >= 15) return RED;
+  if (score >= 8) return YELLOW;
+  if (score >= 4) return "#F97316";
+  return GREEN;
 }
 
 function riskLabel(score) {
-  if (score <= 4) return "Low";
-  if (score <= 9) return "Medium";
-  if (score <= 16) return "High";
-  return "Critical";
+  if (score >= 15) return "High";
+  if (score >= 8) return "Medium";
+  if (score >= 4) return "Low";
+  return "Low";
 }
 
 const HAZARD_STATUSES = [
   { id: "identified", label: "Identified", color: CYAN },
   { id: "active", label: "Active", color: "#F97316" },
   { id: "mitigated", label: "Mitigated", color: YELLOW },
-  { id: "monitoring", label: "Monitoring", color: "#A78BFA" },
+  { id: "monitoring", label: "Monitoring", color: CYAN },
   { id: "accepted", label: "Accepted", color: GREEN },
   { id: "closed", label: "Closed", color: MUTED },
 ];
 
 function RiskMatrix({ likelihood, severity, onChange, label }) {
+  const score = likelihood && severity ? likelihood * severity : null;
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "80px repeat(5, 1fr)", gap: 2 }}>
-        {/* Header row */}
-        <div />
-        {[1,2,3,4,5].map(s => (
-          <div key={s} style={{ textAlign: "center", fontSize: 8, color: MUTED, padding: "4px 0" }}>
-            {SEVERITY_LABELS[s]}
-          </div>
-        ))}
-        {/* Matrix rows */}
-        {[5,4,3,2,1].map(l => (
-          [
-            <div key={`l${l}`} style={{ fontSize: 8, color: MUTED, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6 }}>
-              {LIKELIHOOD_LABELS[l]}
-            </div>,
-            ...[1,2,3,4,5].map(s => {
-              const score = l * s;
-              const selected = likelihood === l && severity === s;
-              return (
-                <button key={`${l}-${s}`} onClick={() => onChange(l, s)}
-                  style={{
-                    width: "100%", aspectRatio: "1", border: selected ? `2px solid ${WHITE}` : `1px solid ${BORDER}`,
-                    borderRadius: 4, cursor: "pointer", fontSize: 11, fontWeight: 700,
-                    background: `${riskColor(score)}${selected ? "88" : "22"}`,
-                    color: selected ? WHITE : `${riskColor(score)}`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                  {score}
-                </button>
-              );
-            })
-          ]
-        )).flat()}
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
+        {score && <span style={{ fontSize: 14, fontWeight: 800, color: riskColor(score) }}>{riskLabel(score)} Risk ({score})</span>}
+        {score && <span style={{ fontSize: 10, color: MUTED }}>
+          — {LIKELIHOOD_LABELS[likelihood]} likelihood, {SEVERITY_LABELS[severity]} severity
+        </span>}
       </div>
-      {likelihood && severity && (
-        <div style={{ marginTop: 6, textAlign: "center" }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: riskColor(likelihood * severity) }}>
-            {riskLabel(likelihood * severity)} Risk ({likelihood * severity})
-          </span>
-          <span style={{ fontSize: 10, color: MUTED }}> — {LIKELIHOOD_LABELS[likelihood]} likelihood, {SEVERITY_LABELS[severity]} severity</span>
-        </div>
-      )}
+      <div style={{ display: "grid", gridTemplateColumns: "auto repeat(5, 1fr)", gap: 2, fontSize: 9 }}>
+        <div />
+        {SEVERITY_LABELS.slice(1).map((s, i) => <div key={i} style={{ textAlign: "center", color: MUTED, padding: "2px 0" }}>{s}</div>)}
+        {[5, 4, 3, 2, 1].map(l => (
+          [<div key={`l${l}`} style={{ color: MUTED, paddingRight: 6, display: "flex", alignItems: "center" }}>{LIKELIHOOD_LABELS[l]}</div>,
+          ...[1, 2, 3, 4, 5].map(s => {
+            const sc = l * s;
+            const isSelected = likelihood === l && severity === s;
+            return (
+              <button key={`${l}-${s}`} onClick={() => onChange(l, s)}
+                style={{ width: "100%", height: 28, border: isSelected ? `2px solid ${WHITE}` : `1px solid ${BORDER}`, borderRadius: 3,
+                  background: `${riskColor(sc)}${isSelected ? "44" : "18"}`, color: riskColor(sc), fontWeight: 700, fontSize: 10,
+                  cursor: "pointer", fontFamily: "inherit" }}>
+                {sc}
+              </button>
+            );
+          })]
+        ))}
+      </div>
     </div>
   );
 }
 
+// ── Create Form (simplified — just initial assessment) ──────────────
 function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAssess, org }) {
   const [form, setForm] = useState({
     title: fromReport ? fromReport.title : "",
@@ -99,8 +85,6 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAss
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState(null);
-  const [aiResidualLoading, setAiResidualLoading] = useState(false);
-  const [aiResidualResult, setAiResidualResult] = useState(null);
 
   const handleSubmit = () => {
     if (!form.title.trim() || !form.initialLikelihood || !form.initialSeverity) return;
@@ -172,7 +156,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAss
         <RiskMatrix
           likelihood={form.initialLikelihood} severity={form.initialSeverity}
           onChange={(l, s) => { set("initialLikelihood", l); set("initialSeverity", s); }}
-          label="Initial Risk Assessment (before mitigations)"
+          label="Initial Risk Assessment"
         />
       </div>
 
@@ -188,7 +172,6 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAss
                 setAiResult(result);
                 if (result.initial_likelihood) set("initialLikelihood", result.initial_likelihood);
                 if (result.initial_severity) {
-                  // Need to use setForm since set only updates one key at a time and we already called it
                   setForm(f => ({ ...f, initialLikelihood: result.initial_likelihood || f.initialLikelihood, initialSeverity: result.initial_severity || f.initialSeverity }));
                 }
               }
@@ -208,78 +191,8 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAss
                 <button onClick={() => setAiResult(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>Dismiss</button>
               </div>
               {aiResult.reasoning && (
-                <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5, marginBottom: 8 }}>{aiResult.reasoning}</div>
+                <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{aiResult.reasoning}</div>
               )}
-              {aiResult.suggested_mitigations?.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 6 }}>Suggested Mitigations (click to add)</div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {aiResult.suggested_mitigations.map((m, i) => (
-                      <button key={i} onClick={() => {
-                        const current = form.mitigations.trim();
-                        const newText = current ? `${current}\n- ${m.text}` : `- ${m.text}`;
-                        set("mitigations", newText);
-                        setAiResult(prev => ({ ...prev, suggested_mitigations: prev.suggested_mitigations.filter((_, j) => j !== i) }));
-                      }}
-                        title={m.rationale}
-                        style={{ padding: "5px 10px", borderRadius: 12, background: `${CYAN}15`, border: `1px solid ${CYAN}33`, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>
-                        + {m.text}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Mitigations */}
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Mitigations / Controls (what's already been done to address this?)</label>
-        <textarea value={form.mitigations} onChange={e => set("mitigations", e.target.value)}
-          placeholder="Describe controls or actions already in place to reduce this risk"
-          rows={3} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
-      </div>
-
-      {/* Residual Risk Assessment */}
-      {form.mitigations.trim() && (
-        <div style={{ ...card, padding: "16px 18px", marginBottom: 16 }}>
-          <RiskMatrix
-            likelihood={form.residualLikelihood} severity={form.residualSeverity}
-            onChange={(l, s) => { set("residualLikelihood", l); set("residualSeverity", s); }}
-            label="Residual Risk (after mitigations)"
-          />
-        </div>
-      )}
-
-      {/* AI Suggest Residual Risk */}
-      {onAiRiskAssess && hasFeature(org, "safety_trend_alerts") && form.mitigations.trim() && (
-        <div style={{ marginBottom: 12 }}>
-          <button onClick={async () => {
-            setAiResidualLoading(true);
-            setAiResidualResult(null);
-            try {
-              const result = await onAiRiskAssess({ title: form.title, description: form.description, category: form.category, source: form.source, mitigations: form.mitigations });
-              if (result) {
-                setAiResidualResult(result);
-                if (result.residual_likelihood && result.residual_severity) {
-                  setForm(f => ({ ...f, residualLikelihood: result.residual_likelihood, residualSeverity: result.residual_severity }));
-                }
-              }
-            } catch { /* handled by parent */ }
-            setAiResidualLoading(false);
-          }} disabled={aiResidualLoading}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiResidualLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiResidualLoading ? 0.6 : 1 }}>
-            <span style={{ fontSize: 14 }}>🤖</span> {aiResidualLoading ? "Analyzing..." : "AI Suggest Residual Risk"}
-          </button>
-          {aiResidualResult?.reasoning && (
-            <div style={{ marginTop: 8, padding: "12px 14px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: CYAN }}>🤖 Residual Risk Assessment</div>
-                <button onClick={() => setAiResidualResult(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 9, cursor: "pointer", fontFamily: "inherit" }}>Dismiss</button>
-              </div>
-              <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{aiResidualResult.reasoning}</div>
             </div>
           )}
         </div>
@@ -306,15 +219,27 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAss
   );
 }
 
-function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpdateHazard, canManage, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule }) {
+// ── Hazard Card (expanded view with investigation workflow) ──────────
+function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpdateHazard, canManage, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess }) {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [llLoading, setLlLoading] = useState(false);
   const [bulletinPreview, setBulletinPreview] = useState(false);
+  const [editingMitigations, setEditingMitigations] = useState(false);
+  const [mitigationsText, setMitigationsText] = useState(hazard.mitigations || "");
+  const [editingResidual, setEditingResidual] = useState(false);
+  const [residualL, setResidualL] = useState(hazard.residual_likelihood || 0);
+  const [residualS, setResidualS] = useState(hazard.residual_severity || 0);
+  const [aiResidualLoading, setAiResidualLoading] = useState(false);
+  const [aiResidualResult, setAiResidualResult] = useState(null);
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
   const initScore = hazard.initial_risk_score || (hazard.initial_likelihood * hazard.initial_severity);
   const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
   const [expanded, setExpanded] = useState(false);
+
+  // Sync mitigations text when hazard prop changes
+  useEffect(() => { setMitigationsText(hazard.mitigations || ""); }, [hazard.mitigations]);
+  useEffect(() => { setResidualL(hazard.residual_likelihood || 0); setResidualS(hazard.residual_severity || 0); }, [hazard.residual_likelihood, hazard.residual_severity]);
 
   return (
     <div style={{ ...card, padding: "14px 18px", marginBottom: 8 }}>
@@ -346,40 +271,12 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
 
       {expanded && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+          {/* 1. Description */}
           <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.6, whiteSpace: "pre-wrap", marginBottom: 8 }}>{hazard.description}</div>
-          {hazard.mitigations && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 2 }}>Mitigations</div>
-              <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{hazard.mitigations}</div>
-            </div>
-          )}
-          {hazard.source && <div style={{ fontSize: 10, color: MUTED }}>Source: {hazard.source.replace(/_/g, " ")}</div>}
-          {hazard.review_date && <div style={{ fontSize: 10, color: MUTED }}>Next review: {hazard.review_date}</div>}
-          {onUpdateHazard && canManage && (
-            <div style={{ marginTop: 8, marginBottom: 4 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 6, letterSpacing: 1 }}>Update Status</div>
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                {HAZARD_STATUSES.map(s => (
-                  <button key={s.id} onClick={() => {
-                    if (s.id === hazard.status) return;
-                    if (s.id === "closed" && hazard.related_report_id) {
-                      if (!confirm("This will close the linked report and notify the report submitter. Continue?")) return;
-                    }
-                    onUpdateHazard(hazard.id, { status: s.id });
-                  }}
-                    style={{ padding: "4px 10px", borderRadius: 12, border: `1px solid ${s.id === hazard.status ? s.color : BORDER}`,
-                      background: s.id === hazard.status ? `${s.color}22` : "transparent",
-                      color: s.id === hazard.status ? s.color : MUTED,
-                      fontSize: 10, fontWeight: 600, cursor: s.id === hazard.status ? "default" : "pointer", fontFamily: "inherit",
-                      opacity: s.id === hazard.status ? 1 : 0.7 }}>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+
+          {/* 2. Linked Report */}
           {linkedReport && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginTop: 8, background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 8, background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
               <span style={{ fontSize: 10, color: CYAN, fontWeight: 700 }}>⚠</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>From report {linkedReport.report_code}</div>
@@ -387,24 +284,11 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               </div>
             </div>
           )}
-          {linkedActions && linkedActions.length > 0 && (
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Corrective Actions ({linkedActions.length})</div>
-              {linkedActions.map(a => {
-                const sColor = a.status === "completed" ? GREEN : a.status === "in_progress" ? YELLOW : a.status === "overdue" ? RED : CYAN;
-                return (
-                  <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", marginBottom: 4, background: `${sColor}11`, border: `1px solid ${sColor}33`, borderRadius: 6 }}>
-                    <span style={{ fontSize: 10, color: sColor, fontWeight: 700 }}>✓</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{a.action_code} — {a.title}</div>
-                    </div>
-                    <span style={{ fontSize: 9, color: sColor, background: `${sColor}22`, padding: "2px 8px", borderRadius: 8 }}>{a.status?.replace(/_/g, " ")}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {/* AI Investigation Analysis */}
+
+          {hazard.source && <div style={{ fontSize: 10, color: MUTED }}>Source: {hazard.source.replace(/_/g, " ")}</div>}
+          {hazard.review_date && <div style={{ fontSize: 10, color: MUTED, marginBottom: 8 }}>Next review: {hazard.review_date}</div>}
+
+          {/* 3. AI Investigation Analysis — first action, informs everything below */}
           {onAiInvestigate && canManage && hasFeature(org, "safety_trend_alerts") && !aiAnalysis && (
             <button onClick={async () => {
               setAiLoading(true);
@@ -414,12 +298,12 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               } catch { /* handled by parent */ }
               setAiLoading(false);
             }} disabled={aiLoading}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 8, background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1 }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginBottom: 8, background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1 }}>
               <span style={{ fontSize: 14 }}>🤖</span> {aiLoading ? "Analyzing..." : "AI Investigation Analysis"}
             </button>
           )}
           {aiAnalysis && (
-            <div style={{ marginTop: 8, padding: "14px 16px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
+            <div style={{ marginBottom: 10, padding: "14px 16px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: CYAN }}>🤖 AI Investigation Analysis</div>
                 <button onClick={() => setAiAnalysis(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>Dismiss</button>
@@ -434,9 +318,30 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
                   ))}
                 </div>
               )}
+              {aiAnalysis.suggested_mitigations?.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 6 }}>Suggested Mitigations (click to add)</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {aiAnalysis.suggested_mitigations.map((m, i) => (
+                      <button key={i} onClick={() => {
+                        const text = typeof m === "string" ? m : m.text;
+                        const current = mitigationsText.trim();
+                        const newText = current ? `${current}\n- ${text}` : `- ${text}`;
+                        setMitigationsText(newText);
+                        if (onUpdateHazard) onUpdateHazard(hazard.id, { mitigations: newText });
+                        setAiAnalysis(prev => ({ ...prev, suggested_mitigations: prev.suggested_mitigations.filter((_, j) => j !== i) }));
+                      }}
+                        title={typeof m === "string" ? m : m.rationale}
+                        style={{ padding: "5px 10px", borderRadius: 12, background: `${CYAN}15`, border: `1px solid ${CYAN}33`, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>
+                        + {typeof m === "string" ? m : m.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {aiAnalysis.recommended_actions?.length > 0 && (
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Recommended Actions</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Recommended Corrective Actions</div>
                   {aiAnalysis.recommended_actions.map((ra, i) => {
                     const pColor = ra.priority === "high" ? RED : ra.priority === "medium" ? YELLOW : GREEN;
                     return (
@@ -469,7 +374,154 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               )}
             </div>
           )}
-          {/* Lessons Learned */}
+
+          {/* 4. Mitigations — editable inline */}
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Mitigations / Controls</div>
+              {canManage && onUpdateHazard && !editingMitigations && (
+                <button onClick={() => setEditingMitigations(true)} style={{ background: "none", border: "none", color: CYAN, fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Edit</button>
+              )}
+            </div>
+            {editingMitigations ? (
+              <div>
+                <textarea value={mitigationsText} onChange={e => setMitigationsText(e.target.value)}
+                  rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", marginBottom: 6 }}
+                  placeholder="Describe controls or actions in place to reduce this risk" />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => { onUpdateHazard(hazard.id, { mitigations: mitigationsText }); setEditingMitigations(false); }}
+                    style={{ padding: "4px 12px", background: WHITE, color: BLACK, border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Save</button>
+                  <button onClick={() => { setMitigationsText(hazard.mitigations || ""); setEditingMitigations(false); }}
+                    style={{ padding: "4px 12px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                </div>
+              </div>
+            ) : hazard.mitigations ? (
+              <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{hazard.mitigations}</div>
+            ) : (
+              <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic" }}>No mitigations recorded yet{canManage ? " — run AI analysis above or click Edit" : ""}</div>
+            )}
+          </div>
+
+          {/* 5. Residual Risk — editable inline */}
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Residual Risk (after mitigations)</div>
+              {canManage && onUpdateHazard && hazard.mitigations && !editingResidual && (
+                <button onClick={() => setEditingResidual(true)} style={{ background: "none", border: "none", color: CYAN, fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                  {resScore ? "Edit" : "Set Score"}
+                </button>
+              )}
+            </div>
+            {editingResidual ? (
+              <div>
+                <div style={{ ...card, padding: "12px 14px", marginBottom: 8 }}>
+                  <RiskMatrix likelihood={residualL} severity={residualS}
+                    onChange={(l, s) => { setResidualL(l); setResidualS(s); }}
+                    label="Residual Risk" />
+                </div>
+                {/* AI Suggest Residual */}
+                {onAiRiskAssess && hasFeature(org, "safety_trend_alerts") && (
+                  <div style={{ marginBottom: 8 }}>
+                    <button onClick={async () => {
+                      setAiResidualLoading(true);
+                      setAiResidualResult(null);
+                      try {
+                        const result = await onAiRiskAssess({ title: hazard.title, description: hazard.description, category: hazard.category, source: hazard.source, mitigations: mitigationsText || hazard.mitigations });
+                        if (result) {
+                          setAiResidualResult(result);
+                          if (result.residual_likelihood && result.residual_severity) {
+                            setResidualL(result.residual_likelihood);
+                            setResidualS(result.residual_severity);
+                          }
+                        }
+                      } catch { /* handled by parent */ }
+                      setAiResidualLoading(false);
+                    }} disabled={aiResidualLoading}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 10, fontWeight: 600, cursor: aiResidualLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiResidualLoading ? 0.6 : 1 }}>
+                      <span style={{ fontSize: 12 }}>🤖</span> {aiResidualLoading ? "Analyzing..." : "AI Suggest Residual Risk"}
+                    </button>
+                    {aiResidualResult?.reasoning && (
+                      <div style={{ marginTop: 6, padding: "10px 12px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, marginBottom: 4 }}>🤖 Residual Risk Assessment</div>
+                        <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{aiResidualResult.reasoning}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => { onUpdateHazard(hazard.id, { residual_likelihood: residualL, residual_severity: residualS }); setEditingResidual(false); setAiResidualResult(null); }}
+                    style={{ padding: "4px 12px", background: WHITE, color: BLACK, border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Save</button>
+                  <button onClick={() => { setResidualL(hazard.residual_likelihood || 0); setResidualS(hazard.residual_severity || 0); setEditingResidual(false); setAiResidualResult(null); }}
+                    style={{ padding: "4px 12px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                </div>
+              </div>
+            ) : resScore ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(initScore) }}>{initScore}</span>
+                <span style={{ color: MUTED }}>{"\u2192"}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(resScore) }}>{resScore}</span>
+                <span style={{ fontSize: 10, color: MUTED }}>({riskLabel(resScore)})</span>
+              </div>
+            ) : hazard.mitigations ? (
+              <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic" }}>Not yet scored — click "Set Score" to assess residual risk</div>
+            ) : (
+              <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic" }}>Add mitigations first</div>
+            )}
+          </div>
+
+          {/* 6. Corrective Actions + Create button */}
+          <div style={{ marginBottom: 8 }}>
+            {linkedActions && linkedActions.length > 0 && (
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Corrective Actions ({linkedActions.length})</div>
+                {linkedActions.map(a => {
+                  const sColor = a.status === "completed" ? GREEN : a.status === "in_progress" ? YELLOW : a.status === "overdue" ? RED : CYAN;
+                  return (
+                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", marginBottom: 4, background: `${sColor}11`, border: `1px solid ${sColor}33`, borderRadius: 6 }}>
+                      <span style={{ fontSize: 10, color: sColor, fontWeight: 700 }}>✓</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{a.action_code} — {a.title}</div>
+                      </div>
+                      <span style={{ fontSize: 9, color: sColor, background: `${sColor}22`, padding: "2px 8px", borderRadius: 8 }}>{a.status?.replace(/_/g, " ")}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {onCreateAction && canManage && (
+              <button onClick={() => onCreateAction(hazard)}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 4, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                <span style={{ fontSize: 14 }}>✓</span> Create Corrective Action
+              </button>
+            )}
+          </div>
+
+          {/* 7. Status Update */}
+          {onUpdateHazard && canManage && (
+            <div style={{ marginTop: 4, marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 6, letterSpacing: 1 }}>Update Status</div>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                {HAZARD_STATUSES.map(s => (
+                  <button key={s.id} onClick={() => {
+                    if (s.id === hazard.status) return;
+                    if (s.id === "closed" && hazard.related_report_id) {
+                      if (!confirm("This will close the linked report and notify the report submitter. Continue?")) return;
+                    }
+                    onUpdateHazard(hazard.id, { status: s.id });
+                  }}
+                    style={{ padding: "4px 10px", borderRadius: 12, border: `1px solid ${s.id === hazard.status ? s.color : BORDER}`,
+                      background: s.id === hazard.status ? `${s.color}22` : "transparent",
+                      color: s.id === hazard.status ? s.color : MUTED,
+                      fontSize: 10, fontWeight: 600, cursor: s.id === hazard.status ? "default" : "pointer", fontFamily: "inherit",
+                      opacity: s.id === hazard.status ? 1 : 0.7 }}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 8. Lessons Learned (closed/accepted only) */}
           {(hazard.status === "closed" || hazard.status === "accepted") && onGenerateLessonsLearned && canManage && hasFeature(org, "safety_trend_alerts") && (!hazard.lessons_learned || !hazard.lessons_learned.summary) && (
             <button onClick={async () => {
               setLlLoading(true);
@@ -573,12 +625,6 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               })()}
             </div>
           )}
-          {onCreateAction && canManage && (
-            <button onClick={() => onCreateAction(hazard)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 8, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-              <span style={{ fontSize: 14 }}>✓</span> Create Corrective Action
-            </button>
-          )}
         </div>
       )}
     </div>
@@ -586,161 +632,148 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
 }
 
 export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess }) {
-  const [view, setView] = useState(fromReport ? "new" : "list");
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(!!fromReport);
   const [sortBy, setSortBy] = useState("newest");
-  const [showCount, setShowCount] = useState(25);
+  const [searchQ, setSearchQ] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
-  useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
-
-  // If fromReport changes (user clicked Create Hazard from a report), switch to new form
-  const [lastFromReport, setLastFromReport] = useState(fromReport?.id);
-  if (fromReport?.id && fromReport.id !== lastFromReport) {
-    setLastFromReport(fromReport.id);
-    setView("new");
-  }
-
-  const statusCounts = useMemo(() => {
-    const c = { all: 0 };
-    HAZARD_STATUSES.forEach(s => { c[s.id] = 0; });
-    hazards.forEach(h => {
-      if (c[h.status] !== undefined) c[h.status]++;
-      if (h.status !== "closed") c.all++;
-    });
-    return c;
-  }, [hazards]);
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    let list = hazards.filter(h => {
-      if (filter === "all" && h.status === "closed") return false;
-      if (filter !== "all" && h.status !== filter) return false;
-      if (q) {
-        const hay = `${h.title} ${h.description} ${h.hazard_code} ${h.category} ${h.responsible_person || ""} ${h.source || ""}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-    list.sort((a, b) => {
-      if (sortBy === "oldest") return new Date(a.created_at) - new Date(b.created_at);
-      if (sortBy === "risk_high") return ((b.initial_risk_score || b.initial_likelihood * b.initial_severity) - (a.initial_risk_score || a.initial_likelihood * a.initial_severity));
-      if (sortBy === "risk_low") return ((a.initial_risk_score || a.initial_likelihood * a.initial_severity) - (b.initial_risk_score || b.initial_likelihood * b.initial_severity));
-      return new Date(b.created_at) - new Date(a.created_at);
-    });
-    return list;
-  }, [hazards, filter, search, sortBy]);
-
-  const riskSummary = useMemo(() => {
-    const s = { critical: 0, high: 0, medium: 0, low: 0 };
-    hazards.filter(h => h.status !== "closed").forEach(h => {
-      const score = h.initial_risk_score || (h.initial_likelihood * h.initial_severity);
-      if (score > 16) s.critical++;
-      else if (score > 9) s.high++;
-      else if (score > 4) s.medium++;
-      else s.low++;
-    });
-    return s;
-  }, [hazards]);
+  useEffect(() => { if (fromReport) setShowForm(true); }, [fromReport]);
 
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
 
-  // Build linked actions lookup: hazard id -> array of actions
+  const linkedReports = useMemo(() => {
+    const map = {};
+    (reports || []).forEach(r => { map[r.id] = r; });
+    return map;
+  }, [reports]);
+
   const linkedActionsMap = useMemo(() => {
     const map = {};
-    if (actions) actions.forEach(a => { if (a.hazard_id) { if (!map[a.hazard_id]) map[a.hazard_id] = []; map[a.hazard_id].push(a); } });
+    (actions || []).forEach(a => {
+      if (a.hazard_id) {
+        if (!map[a.hazard_id]) map[a.hazard_id] = [];
+        map[a.hazard_id].push(a);
+      }
+    });
     return map;
   }, [actions]);
 
-  if (view === "new") {
-    return <HazardForm existingCount={hazards.length} fromReport={fromReport}
-      onSubmit={(h) => { onCreateHazard(h); setView("list"); if (onClearFromReport) onClearFromReport(); }}
-      onCancel={() => { setView("list"); if (onClearFromReport) onClearFromReport(); }}
-      onAiRiskAssess={onAiRiskAssess} org={org} />;
+  const filteredHazards = useMemo(() => {
+    let list = [...(hazards || [])];
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      list = list.filter(h => h.title.toLowerCase().includes(q) || h.hazard_code?.toLowerCase().includes(q) || h.category?.toLowerCase().includes(q));
+    }
+    if (filterStatus !== "all") list = list.filter(h => h.status === filterStatus);
+    if (sortBy === "newest") list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    else if (sortBy === "risk_high") list.sort((a, b) => (b.initial_likelihood * b.initial_severity) - (a.initial_likelihood * a.initial_severity));
+    else if (sortBy === "risk_low") list.sort((a, b) => (a.initial_likelihood * a.initial_severity) - (b.initial_likelihood * b.initial_severity));
+    return list;
+  }, [hazards, searchQ, filterStatus, sortBy]);
+
+  const statusCounts = useMemo(() => {
+    const counts = { all: 0 };
+    HAZARD_STATUSES.forEach(s => { counts[s.id] = 0; });
+    (hazards || []).forEach(h => {
+      counts.all++;
+      if (counts[h.status] !== undefined) counts[h.status]++;
+    });
+    return counts;
+  }, [hazards]);
+
+  // Risk summary
+  const riskSummary = useMemo(() => {
+    const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+    (hazards || []).filter(h => h.status !== "closed").forEach(h => {
+      const score = h.initial_likelihood * h.initial_severity;
+      if (score >= 20) counts.critical++;
+      else if (score >= 15) counts.high++;
+      else if (score >= 8) counts.medium++;
+      else counts.low++;
+    });
+    return counts;
+  }, [hazards]);
+
+  if (showForm) {
+    return <HazardForm
+      onSubmit={(data) => { onCreateHazard(data); setShowForm(false); if (fromReport) onClearFromReport?.(); }}
+      onCancel={() => { setShowForm(false); if (fromReport) onClearFromReport?.(); }}
+      existingCount={hazards?.length || 0}
+      fromReport={fromReport}
+      onAiRiskAssess={onAiRiskAssess}
+      org={org}
+    />;
   }
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Investigations</div>
-          <div style={{ fontSize: 11, color: MUTED }}>14 CFR §5.53 — Safety investigation and risk analysis</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Investigations & Hazard Register</div>
+          <div style={{ fontSize: 11, color: MUTED }}>§5.53 — Hazard identification, risk assessment, and mitigation</div>
         </div>
-        <button data-onboarding="inv-new-btn" onClick={() => setView("new")}
-          style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-          + New Investigation
-        </button>
+        {canManage && (
+          <button onClick={() => setShowForm(true)}
+            style={{ padding: "8px 18px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            + New Investigation
+          </button>
+        )}
       </div>
 
-      {/* Risk summary */}
-      <div data-onboarding="inv-stats" data-tour="tour-hazards-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
+      {/* Risk Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="report-grid">
         {[
-          { label: "Critical", value: riskSummary.critical, dot: RED },
-          { label: "High", value: riskSummary.high, dot: "#F97316" },
-          { label: "Medium", value: riskSummary.medium, dot: YELLOW },
-          { label: "Low", value: riskSummary.low, dot: GREEN },
-        ].map(s => (
-          <div key={s.label} style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>{s.value}</div>
-            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, display: "inline-block" }} />
-              {s.label} Risk
+          { label: "CRITICAL RISK", count: riskSummary.critical, color: RED },
+          { label: "HIGH RISK", count: riskSummary.high, color: "#F97316" },
+          { label: "MEDIUM RISK", count: riskSummary.medium, color: YELLOW },
+          { label: "LOW RISK", count: riskSummary.low, color: GREEN },
+        ].map(r => (
+          <div key={r.label} style={{ ...card, padding: "12px 14px", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: r.color, fontFamily: "Georgia,serif" }}>{r.count}</div>
+            <div style={{ fontSize: 9, color: MUTED, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <span style={{ width: 6, height: 6, borderRadius: 3, background: r.color, display: "inline-block" }} />{r.label}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Search & Sort */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search investigations..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
+      {/* Search + Sort */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search investigations..." style={{ ...inp, maxWidth: 250, fontSize: 11, padding: "6px 10px" }} />
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, maxWidth: 140, fontSize: 11, padding: "6px 10px" }}>
           <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-          <option value="risk_high">Risk: High → Low</option>
-          <option value="risk_low">Risk: Low → High</option>
+          <option value="risk_high">Risk: high → low</option>
+          <option value="risk_low">Risk: low → high</option>
         </select>
       </div>
-      <div data-onboarding="inv-filters" style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        {["all", ...HAZARD_STATUSES.map(s => s.id)].map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${filter === f ? WHITE : BORDER}`,
-              background: filter === f ? WHITE : CARD, color: filter === f ? BLACK : MUTED,
-              fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-            {f === "all" ? `All (${statusCounts.all})` : `${HAZARD_STATUSES.find(s => s.id === f)?.label} (${statusCounts[f] || 0})`}
+
+      {/* Status Filter */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 14, flexWrap: "wrap" }}>
+        <button onClick={() => setFilterStatus("all")}
+          style={{ padding: "4px 12px", borderRadius: 12, border: `1px solid ${filterStatus === "all" ? WHITE : BORDER}`, background: filterStatus === "all" ? `${WHITE}15` : "transparent", color: filterStatus === "all" ? WHITE : MUTED, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+          All ({statusCounts.all})
+        </button>
+        {HAZARD_STATUSES.map(s => (
+          <button key={s.id} onClick={() => setFilterStatus(s.id)}
+            style={{ padding: "4px 12px", borderRadius: 12, border: `1px solid ${filterStatus === s.id ? s.color : BORDER}`, background: filterStatus === s.id ? `${s.color}22` : "transparent", color: filterStatus === s.id ? s.color : MUTED, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            {s.label} ({statusCounts[s.id] || 0})
           </button>
         ))}
       </div>
 
-      <div data-onboarding="inv-list">
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px 20px", color: MUTED }}>
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ marginBottom: 16, opacity: 0.5 }}>
-            <path d="M24 6L43 40H5L24 6z" stroke={MUTED} strokeWidth="2" strokeLinejoin="round" fill="none" />
-            <line x1="24" y1="18" x2="24" y2="30" stroke={MUTED} strokeWidth="2.5" strokeLinecap="round" />
-            <circle cx="24" cy="35" r="1.5" fill={MUTED} />
-          </svg>
-          <div style={{ fontSize: 15, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>No investigations yet</div>
-          <div style={{ fontSize: 12, lineHeight: 1.6, maxWidth: 420, margin: "0 auto", marginBottom: 20 }}>
-            Investigations are opened from escalated safety reports to assess risk and determine root causes. Use the 5x5 risk matrix to evaluate likelihood and severity.
-          </div>
-          <button onClick={() => setView("new")}
-            style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-            Start an Investigation
-          </button>
+      {/* Hazard List */}
+      {filteredHazards.length === 0 ? (
+        <div style={{ ...card, padding: 30, textAlign: "center" }}>
+          <div style={{ fontSize: 13, color: MUTED }}>No investigations found</div>
+          {canManage && <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>Click "+ New Investigation" to create one</div>}
         </div>
-      ) : (<>
-        {filtered.slice(0, showCount).map(h => {
-          const lr = h.related_report_id && reports ? reports.find(r => r.id === h.related_report_id) : null;
-          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} onUpdateHazard={onUpdateHazard} canManage={canManage} org={org} onAiInvestigate={onAiInvestigate} onGenerateLessonsLearned={onGenerateLessonsLearned} onPublishBulletin={onPublishBulletin} onCreateTrainingModule={onCreateTrainingModule} />;
-        })}
-        {filtered.length > showCount && (
-          <button onClick={() => setShowCount(c => c + 25)}
-            style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
-            Showing {showCount} of {filtered.length} — Show 25 more
-          </button>
-        )}
-      </>)}
-      </div>
+      ) : (
+        filteredHazards.map(h => {
+          const lr = h.related_report_id ? linkedReports[h.related_report_id] : null;
+          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} onUpdateHazard={onUpdateHazard} canManage={canManage} org={org} onAiInvestigate={onAiInvestigate} onGenerateLessonsLearned={onGenerateLessonsLearned} onPublishBulletin={onPublishBulletin} onCreateTrainingModule={onCreateTrainingModule} onAiRiskAssess={onAiRiskAssess} />;
+        })
+      )}
     </div>
   );
 }
