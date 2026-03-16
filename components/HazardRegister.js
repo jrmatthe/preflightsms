@@ -219,6 +219,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiRiskAss
                         const current = form.mitigations.trim();
                         const newText = current ? `${current}\n- ${m.text}` : `- ${m.text}`;
                         set("mitigations", newText);
+                        setAiResult(prev => ({ ...prev, suggested_mitigations: prev.suggested_mitigations.filter((_, j) => j !== i) }));
                       }}
                         title={m.rationale}
                         style={{ padding: "5px 10px", borderRadius: 12, background: `${CYAN}15`, border: `1px solid ${CYAN}33`, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>
