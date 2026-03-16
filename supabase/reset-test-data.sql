@@ -57,10 +57,6 @@ TRUNCATE TABLE erp_call_tree CASCADE;
 TRUNCATE TABLE erp_checklist_items CASCADE;
 TRUNCATE TABLE erp_plans CASCADE;
 
--- ── Engagement ──
-TRUNCATE TABLE pilot_engagement CASCADE;
-TRUNCATE TABLE safety_recognitions CASCADE;
-
 -- ── Fatigue ──
 TRUNCATE TABLE fatigue_assessments CASCADE;
 

@@ -138,10 +138,6 @@ export default async function handler(req, res) {
     await supabase.from("training_requirements").delete().eq("org_id", orgId);
     await supabase.from("sms_manuals").delete().eq("org_id", orgId);
 
-    // Engagement (user-scoped)
-    await supabase.from("pilot_engagement").delete().eq("org_id", orgId);
-    await supabase.from("safety_recognitions").delete().eq("org_id", orgId);
-
     // AI & analytics
     await supabase.from("trend_alerts").delete().eq("org_id", orgId);
     await supabase.from("ai_suggestions").delete().eq("org_id", orgId);

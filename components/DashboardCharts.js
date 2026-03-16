@@ -1,4 +1,4 @@
-import { useMemo, useState, Fragment } from "react";
+import { useMemo, useState, Fragment, useEffect, useCallback } from "react";
 import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpiration, CATEGORY_LIMITS, getDaysOpen } from "../lib/melHelpers";
 import { createMelAuditEntry, fetchMelAuditLog, createNotification } from "../lib/supabase";
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis } from "recharts";
@@ -123,12 +123,52 @@ function SectionTitle({ children }) {
   return <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12, marginTop: 20 }}>{children}</div>;
 }
 
-function ChartCard({ title, children, height }) {
+function ExpandOverlay({ title, onClose, children }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [onClose]);
   return (
-    <div style={{ ...card, padding: 18 }}>
-      <h3 style={{ margin: "0 0 12px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>{title}</h3>
-      {children}
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div onClick={e => e.stopPropagation()} style={{ ...card, width: "92vw", maxWidth: 1100, maxHeight: "88vh", overflow: "auto", padding: "28px 32px", position: "relative" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, color: WHITE, fontFamily: "Georgia,serif", fontSize: 18 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 18, cursor: "pointer", padding: "4px 10px", lineHeight: 1, transition: "color 0.15s, border-color 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.color = WHITE; e.currentTarget.style.borderColor = "#555"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.borderColor = BORDER; }}
+          >&times;</button>
+        </div>
+        {children}
+      </div>
     </div>
+  );
+}
+
+function ChartCard({ title, children, renderContent }) {
+  const [expanded, setExpanded] = useState(false);
+  const [hoverExpand, setHoverExpand] = useState(false);
+  return (
+    <>
+      <div style={{ ...card, padding: 18, position: "relative" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h3 style={{ margin: 0, color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>{title}</h3>
+          <button onClick={() => setExpanded(true)}
+            onMouseEnter={() => setHoverExpand(true)} onMouseLeave={() => setHoverExpand(false)}
+            style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, color: hoverExpand ? OFF_WHITE : MUTED, transition: "color 0.15s" }}
+            title="Expand">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          </button>
+        </div>
+        {renderContent ? renderContent(false) : children}
+      </div>
+      {expanded && (
+        <ExpandOverlay title={title} onClose={() => setExpanded(false)}>
+          {renderContent ? renderContent(true) : children}
+        </ExpandOverlay>
+      )}
+    </>
   );
 }
 
@@ -232,34 +272,34 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
 
       {/* Weekly trend */}
       {(!s || s === "trends") && (
-      <ChartCard title="12-Week Activity Trend">
-        <ResponsiveContainer width="100%" height={200}>
+      <ChartCard title="12-Week Activity Trend" renderContent={(exp) => (
+        <ResponsiveContainer width="100%" height={exp ? 420 : 200}>
           <AreaChart data={stats.weeklyData}>
             <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-            <XAxis dataKey="week" tick={{ fontSize: 9, fill: MUTED }} />
-            <YAxis tick={{ fontSize: 9, fill: MUTED }} />
+            <XAxis dataKey="week" tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
+            <YAxis tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
             <Tooltip contentStyle={ttStyle} />
             <Area type="monotone" dataKey="frats" stackId="a" stroke={CYAN} fill={CYAN} fillOpacity={0.15} name="FRATs" />
             <Area type="monotone" dataKey="reports" stackId="b" stroke={AMBER} fill={AMBER} fillOpacity={0.15} name="Reports" />
           </AreaChart>
         </ResponsiveContainer>
-      </ChartCard>
+      )} />
       )}
 
       {/* Bottom grid */}
       {(!s || s === "open_items") && (
       <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: s ? 0 : 16 }}>
-        <ChartCard title="Weekly Average Risk Score">
-          <ResponsiveContainer width="100%" height={160}>
+        <ChartCard title="Weekly Average Risk Score" renderContent={(exp) => (
+          <ResponsiveContainer width="100%" height={exp ? 400 : 160}>
             <LineChart data={stats.weeklyData}>
               <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-              <XAxis dataKey="week" tick={{ fontSize: 9, fill: MUTED }} />
-              <YAxis tick={{ fontSize: 9, fill: MUTED }} domain={[0, "auto"]} />
+              <XAxis dataKey="week" tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
+              <YAxis tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} domain={[0, "auto"]} />
               <Tooltip contentStyle={ttStyle} />
               <Line type="monotone" dataKey="avgScore" stroke={WHITE} strokeWidth={2} dot={{ r: 3, fill: WHITE }} name="Avg Score" />
             </LineChart>
           </ResponsiveContainer>
-        </ChartCard>
+        )} />
         <div style={{ ...card, padding: 18 }}>
           <h3 style={{ margin: "0 0 14px", color: WHITE, fontFamily: "Georgia,serif", fontSize: 14 }}>Open Items by Type</h3>
           {[
@@ -714,39 +754,41 @@ function FRATAnalytics({ records, section }) {
         <StatCard label="Max Score" value={stats.max} color={getRiskColor(stats.max)} />
         <StatCard label="High/Critical" value={stats.lc.HIGH + stats.lc.CRITICAL} color={stats.lc.HIGH + stats.lc.CRITICAL > 0 ? RED : GREEN} sub={`${Math.round(((stats.lc.HIGH + stats.lc.CRITICAL) / stats.total) * 100)}% of total`} />
       </div>
-      <ChartCard title="Risk Score Trend">
-        <ResponsiveContainer width="100%" height={190}>
+      <ChartCard title="Risk Score Trend" renderContent={(exp) => (
+        <ResponsiveContainer width="100%" height={exp ? 400 : 190}>
           <AreaChart data={stats.trendData}>
             <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-            <XAxis dataKey="date" tick={{ fontSize: 9, fill: MUTED }} />
-            <YAxis tick={{ fontSize: 9, fill: MUTED }} />
+            <XAxis dataKey="date" tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
+            <YAxis tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
             <Tooltip contentStyle={ttStyle} />
             <Area type="monotone" dataKey="avg" stroke={WHITE} fill={WHITE} fillOpacity={0.08} strokeWidth={2} name="Avg" />
             <Area type="monotone" dataKey="max" stroke={RED} fill={RED} fillOpacity={0.06} strokeWidth={1} strokeDasharray="4 4" name="Max" />
           </AreaChart>
         </ResponsiveContainer>
-      </ChartCard>
+      )} />
       </>)}
 
       {/* Distribution: risk distribution pie + top factors */}
       {(!sec || sec === "distribution") && (<>
       <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <ChartCard title="Risk Distribution">
-          <ResponsiveContainer width="100%" height={140}>
-            <PieChart><Pie data={stats.pieData} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
+        <ChartCard title="Risk Distribution" renderContent={(exp) => (
+          <>
+          <ResponsiveContainer width="100%" height={exp ? 300 : 140}>
+            <PieChart><Pie data={stats.pieData} dataKey="value" cx="50%" cy="50%" outerRadius={exp ? 110 : 52} innerRadius={exp ? 65 : 30}>
               {stats.pieData.map((d, i) => <Cell key={i} fill={d.color} />)}</Pie>
               <Tooltip contentStyle={ttStyle} />
             </PieChart>
           </ResponsiveContainer>
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: exp ? 14 : 8, flexWrap: "wrap" }}>
             {stats.pieData.map(d => (
-              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9 }}>
+              <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: exp ? 12 : 9 }}>
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: d.color }} />
                 <span style={{ color: MUTED }}>{d.name}: {d.value}</span>
               </div>
             ))}
           </div>
-        </ChartCard>
+          </>
+        )} />
         <ChartCard title="Top Risk Factors">
           {stats.topFactors.map((f, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
@@ -766,41 +808,41 @@ function FRATAnalytics({ records, section }) {
       {/* Breakdown: category bars + aircraft bars + day-of-week */}
       {(!sec || sec === "breakdown") && (<>
       <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <ChartCard title="Risk by Category">
-          <ResponsiveContainer width="100%" height={stats.catBreakdown.length * 32 + 10}>
+        <ChartCard title="Risk by Category" renderContent={(exp) => (
+          <ResponsiveContainer width="100%" height={exp ? Math.max(stats.catBreakdown.length * 48, 300) : stats.catBreakdown.length * 32 + 10}>
             <BarChart data={stats.catBreakdown} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke={BORDER} horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 9, fill: MUTED }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: OFF_WHITE }} width={80} />
+              <XAxis type="number" tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: exp ? 12 : 10, fill: OFF_WHITE }} width={exp ? 120 : 80} />
               <Tooltip contentStyle={ttStyle} />
               <Bar dataKey="count" fill={CYAN} radius={[0, 3, 3, 0]} name="Factor Hits" />
             </BarChart>
           </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard title="By Aircraft">
-          <ResponsiveContainer width="100%" height={170}>
+        )} />
+        <ChartCard title="By Aircraft" renderContent={(exp) => (
+          <ResponsiveContainer width="100%" height={exp ? 380 : 170}>
             <BarChart data={stats.aircraftData}>
               <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: MUTED }} />
-              <YAxis tick={{ fontSize: 9, fill: MUTED }} />
+              <XAxis dataKey="name" tick={{ fontSize: exp ? 12 : 10, fill: MUTED }} />
+              <YAxis tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
               <Tooltip contentStyle={ttStyle} />
               <Bar dataKey="flights" fill={WHITE} radius={[3, 3, 0, 0]} name="Flights" />
               <Bar dataKey="avgScore" fill={SUBTLE} radius={[3, 3, 0, 0]} name="Avg Score" />
             </BarChart>
           </ResponsiveContainer>
-        </ChartCard>
+        )} />
       </div>
-      <ChartCard title="By Day of Week">
-        <ResponsiveContainer width="100%" height={170}>
+      <ChartCard title="By Day of Week" renderContent={(exp) => (
+        <ResponsiveContainer width="100%" height={exp ? 380 : 170}>
           <BarChart data={stats.dowData}>
             <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-            <XAxis dataKey="day" tick={{ fontSize: 10, fill: MUTED }} />
-            <YAxis tick={{ fontSize: 9, fill: MUTED }} />
+            <XAxis dataKey="day" tick={{ fontSize: exp ? 12 : 10, fill: MUTED }} />
+            <YAxis tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
             <Tooltip contentStyle={ttStyle} />
             <Bar dataKey="count" fill={CYAN} radius={[3, 3, 0, 0]} name="Flights" />
           </BarChart>
         </ResponsiveContainer>
-      </ChartCard>
+      )} />
       </>)}
 
       {/* Pilots: pilot table + fatigue analytics */}
@@ -846,51 +888,55 @@ function FRATAnalytics({ records, section }) {
 
           <div className="chart-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             {/* Fatigue Risk Distribution */}
-            <ChartCard title="Fatigue Risk Distribution">
-              <ResponsiveContainer width="100%" height={150}>
-                <PieChart><Pie data={stats.fatigueDist} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
+            <ChartCard title="Fatigue Risk Distribution" renderContent={(exp) => (
+              <>
+              <ResponsiveContainer width="100%" height={exp ? 300 : 150}>
+                <PieChart><Pie data={stats.fatigueDist} dataKey="value" cx="50%" cy="50%" outerRadius={exp ? 110 : 52} innerRadius={exp ? 65 : 30}>
                   {stats.fatigueDist.map((d, i) => <Cell key={i} fill={d.color} />)}</Pie>
                   <Tooltip contentStyle={ttStyle} />
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", justifyContent: "center", gap: exp ? 14 : 8, flexWrap: "wrap" }}>
                 {stats.fatigueDist.map(d => (
-                  <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9 }}>
+                  <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: exp ? 12 : 9 }}>
                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: d.color }} />
                     <span style={{ color: MUTED }}>{d.name}: {d.value}</span>
                   </div>
                 ))}
               </div>
-            </ChartCard>
+              </>
+            )} />
 
             {/* Average Fatigue Score Trend */}
-            <ChartCard title="Average Fatigue Score Trend">
-              <ResponsiveContainer width="100%" height={170}>
+            <ChartCard title="Average Fatigue Score Trend" renderContent={(exp) => (
+              <ResponsiveContainer width="100%" height={exp ? 380 : 170}>
                 <LineChart data={stats.fatigueTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: MUTED }} />
-                  <YAxis tick={{ fontSize: 9, fill: MUTED }} domain={[0, 100]} />
+                  <XAxis dataKey="date" tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
+                  <YAxis tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} domain={[0, 100]} />
                   <Tooltip contentStyle={ttStyle} />
                   <Line type="monotone" dataKey="avg" stroke={AMBER} strokeWidth={2} dot={{ fill: AMBER, r: 3 }} name="Avg Fatigue" />
                 </LineChart>
               </ResponsiveContainer>
-            </ChartCard>
+            )} />
           </div>
 
           {/* Fatigue vs Overall Risk Correlation */}
-          <ChartCard title="Fatigue vs. Overall FRAT Score">
-            <div style={{ fontSize: 10, color: MUTED, marginBottom: 8 }}>Each dot represents a FRAT submission with fatigue data. Higher fatigue scores trending with higher FRAT scores suggests systemic fatigue risk.</div>
-            <ResponsiveContainer width="100%" height={200}>
+          <ChartCard title="Fatigue vs. Overall FRAT Score" renderContent={(exp) => (
+            <>
+            <div style={{ fontSize: exp ? 12 : 10, color: MUTED, marginBottom: 8 }}>Each dot represents a FRAT submission with fatigue data. Higher fatigue scores trending with higher FRAT scores suggests systemic fatigue risk.</div>
+            <ResponsiveContainer width="100%" height={exp ? 420 : 200}>
               <ScatterChart>
                 <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-                <XAxis type="number" dataKey="fatigueScore" name="Fatigue Score" tick={{ fontSize: 9, fill: MUTED }} domain={[0, 100]} label={{ value: "Fatigue Score", position: "insideBottom", offset: -2, fontSize: 9, fill: MUTED }} />
-                <YAxis type="number" dataKey="fratScore" name="FRAT Score" tick={{ fontSize: 9, fill: MUTED }} label={{ value: "FRAT Score", angle: -90, position: "insideLeft", fontSize: 9, fill: MUTED }} />
-                <ZAxis range={[30, 30]} />
+                <XAxis type="number" dataKey="fatigueScore" name="Fatigue Score" tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} domain={[0, 100]} label={{ value: "Fatigue Score", position: "insideBottom", offset: -2, fontSize: exp ? 12 : 9, fill: MUTED }} />
+                <YAxis type="number" dataKey="fratScore" name="FRAT Score" tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} label={{ value: "FRAT Score", angle: -90, position: "insideLeft", fontSize: exp ? 12 : 9, fill: MUTED }} />
+                <ZAxis range={[exp ? 60 : 30, exp ? 60 : 30]} />
                 <Tooltip contentStyle={ttStyle} formatter={(val, name) => [val, name === "fatigueScore" ? "Fatigue" : "FRAT Score"]} />
                 <Scatter data={stats.fatigueCorrelation} fill={CYAN} fillOpacity={0.7} />
               </ScatterChart>
             </ResponsiveContainer>
-          </ChartCard>
+            </>
+          )} />
         </>
       )}
       </>)}
@@ -969,63 +1015,67 @@ function SafetyMetrics({ reports, hazards, actions, section }) {
         <StatCard label="Corrective Actions" value={stats.totalActions} sub={stats.overdueActions.length > 0 ? `${stats.overdueActions.length} overdue` : "None overdue"} color={stats.overdueActions.length > 0 ? RED : WHITE} />
         <StatCard label="Avg Closure Time" value={stats.avgClosureTime ? `${stats.avgClosureTime}d` : "—"} sub="For completed actions" />
       </div>
-      <ChartCard title="Reports by Status">
+      <ChartCard title="Reports by Status" renderContent={(exp) => (
+        <>
         {stats.reportStatusData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={150}>
-            <PieChart><Pie data={stats.reportStatusData} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
+          <ResponsiveContainer width="100%" height={exp ? 300 : 150}>
+            <PieChart><Pie data={stats.reportStatusData} dataKey="value" cx="50%" cy="50%" outerRadius={exp ? 110 : 52} innerRadius={exp ? 65 : 30}>
               {stats.reportStatusData.map((d, i) => <Cell key={i} fill={d.color} />)}</Pie>
               <Tooltip contentStyle={ttStyle} />
             </PieChart>
           </ResponsiveContainer>
         ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No reports yet</div>}
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: exp ? 14 : 8, flexWrap: "wrap" }}>
           {stats.reportStatusData.map(d => (
-            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9 }}>
+            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: exp ? 12 : 9 }}>
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: d.color }} />
               <span style={{ color: MUTED }}>{d.name}: {d.value}</span>
             </div>
           ))}
         </div>
-      </ChartCard>
+        </>
+      )} />
       </>)}
 
       {/* Investigations: investigations by risk pie */}
       {(!sec || sec === "investigations") && (
-      <ChartCard title="Investigations by Risk Level">
+      <ChartCard title="Investigations by Risk Level" renderContent={(exp) => (
+        <>
         {stats.hazardRiskData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={150}>
-            <PieChart><Pie data={stats.hazardRiskData} dataKey="value" cx="50%" cy="50%" outerRadius={52} innerRadius={30}>
+          <ResponsiveContainer width="100%" height={exp ? 300 : 150}>
+            <PieChart><Pie data={stats.hazardRiskData} dataKey="value" cx="50%" cy="50%" outerRadius={exp ? 110 : 52} innerRadius={exp ? 65 : 30}>
               {stats.hazardRiskData.map((d, i) => <Cell key={i} fill={d.color} />)}</Pie>
               <Tooltip contentStyle={ttStyle} />
             </PieChart>
           </ResponsiveContainer>
         ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No hazards yet</div>}
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: exp ? 14 : 8, flexWrap: "wrap" }}>
           {stats.hazardRiskData.map(d => (
-            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9 }}>
+            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: exp ? 12 : 9 }}>
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: d.color }} />
               <span style={{ color: MUTED }}>{d.name}: {d.value}</span>
             </div>
           ))}
         </div>
-      </ChartCard>
+        </>
+      )} />
       )}
 
       {/* Categories: report categories bar chart */}
       {(!sec || sec === "categories") && (
-      <ChartCard title="Report Categories">
-        {stats.reportCatData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={stats.reportCatData.length * 32 + 10}>
+      <ChartCard title="Report Categories" renderContent={(exp) => (
+        stats.reportCatData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={exp ? Math.max(stats.reportCatData.length * 48, 300) : stats.reportCatData.length * 32 + 10}>
             <BarChart data={stats.reportCatData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke={BORDER} horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 9, fill: MUTED }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: OFF_WHITE }} width={100} />
+              <XAxis type="number" tick={{ fontSize: exp ? 11 : 9, fill: MUTED }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: exp ? 12 : 10, fill: OFF_WHITE }} width={exp ? 140 : 100} />
               <Tooltip contentStyle={ttStyle} />
               <Bar dataKey="count" fill={CYAN} radius={[0, 3, 3, 0]} name="Reports" />
             </BarChart>
           </ResponsiveContainer>
-        ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No reports yet</div>}
-      </ChartCard>
+        ) : <div style={{ color: MUTED, textAlign: "center", padding: 40, fontSize: 12 }}>No reports yet</div>
+      )} />
       )}
 
       {/* Actions: overdue actions list */}
