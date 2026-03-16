@@ -132,15 +132,19 @@ export default async function handler(req, res) {
 
       // Clear all existing data
       const tables = [
+        // Delete in FK-safe order: children before parents
+        "foreflight_flights", "foreflight_config",  // FK → frat_submissions, flights
+        "schedaero_trips", "schedaero_config",       // FK → frat_submissions, flights
+        "fatigue_assessments",                       // FK → frat_submissions
         "notifications", "notification_reads", "policy_acknowledgments", "training_records",
         "training_requirements", "corrective_actions", "hazard_register", "safety_reports",
-        "flights", "frat_submissions", "policy_documents", "erp_drills", "erp_call_tree",
-        "erp_checklist_items", "erp_plans", "aircraft", "spi_measurements",
+        "flights", "frat_submissions", "policy_documents",
+        "erp_acknowledgments", "erp_drills", "erp_call_tree", "erp_checklist_items", "erp_plans",
+        "aircraft", "spi_measurements",
         "safety_performance_targets", "safety_performance_indicators", "trend_alerts",
         "ai_suggestions", "audits", "audit_templates", "culture_survey_results",
         "culture_survey_responses", "culture_surveys", "management_of_change",
-        "sms_manuals", "compliance_status", "declarations", "fatigue_assessments",
-        "mel_audit_log", "erp_acknowledgments", "foreflight_flights", "foreflight_config",
+        "sms_manuals", "compliance_status", "declarations", "mel_audit_log",
       ];
       for (const t of tables) {
         const { error } = await supabase.from(t).delete().eq("org_id", orgId);
