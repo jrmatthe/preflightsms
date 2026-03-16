@@ -454,7 +454,22 @@ export default async function handler(req, res) {
     const hazardIds = [];
     const hazardTemplates = [
       { title: "Bird strike risk at KBFI", desc: "Multiple bird strike incidents reported at KBFI in the last 90 days. Pattern suggests seasonal migration path crosses approach corridors.", cat: "wildlife", status: "active", il: 3, is: 3, rl: 2, rs: 3 },
-      { title: "Fuel contamination procedures gap", desc: "Review found fuel sampling procedures not consistently followed across all pilots. Training gap identified.", cat: "maintenance", status: "mitigated", il: 2, is: 4, rl: 1, rs: 4 },
+      { title: "Fuel contamination procedures gap", desc: "Review found fuel sampling procedures not consistently followed across all pilots. Training gap identified.", cat: "maintenance", status: "accepted", il: 2, is: 4, rl: 1, rs: 4,
+        ll: {
+          summary: "Investigation revealed that fuel sampling procedures were not being consistently performed across all pilots, particularly during high-tempo operations and early morning departures. The root cause was a combination of inadequate initial training on contamination risks and the absence of a standardized checklist step requiring documented fuel sampling before each flight.\n\nThe corrective actions implemented include a revised fuel sampling SOP with mandatory photo documentation, integration of a fuel sample verification step into the FRAT preflight checklist, and a company-wide training session on fuel contamination identification. Since implementation, compliance has reached 100% across all pilots.",
+          takeaways: [
+            "Fuel contamination can occur at any fuel source — visual inspection before every flight is non-negotiable",
+            "Procedures that rely solely on pilot memory without checklist integration have significantly lower compliance rates",
+            "Photo documentation of fuel samples creates accountability and provides evidence for quality assurance audits"
+          ],
+          training_topics: ["Fuel Contamination Identification", "Fuel Sampling SOP", "Preflight Procedures"],
+          prevention_tips: [
+            "Always sample fuel from each sump point, not just the main drain — contamination can settle in different locations",
+            "Use a clear container and check for water, particulates, and correct fuel color under adequate lighting",
+            "If contamination is found, do NOT fly — ground the aircraft and notify maintenance immediately"
+          ]
+        }
+      },
       { title: "Runway incursion risk at towered fields", desc: "Two near-miss ground incursion events in 60 days at KSEA. Contributing factor: complex taxi instructions during peak traffic.", cat: "ground_ops", status: "active", il: 3, is: 4, rl: 2, rs: 4 },
       { title: "Pilot fatigue — early morning flights", desc: "Pattern of elevated fatigue scores on flights departing before 0700 local. Three self-reports of fatigue-related errors.", cat: "fatigue", status: "monitoring", il: 3, is: 3, rl: 2, rs: 2 },
       { title: "Engine maintenance tracking gap", desc: "Discrepancy found between maintenance logs and actual engine hours on N200KA. 12 hours unaccounted for.", cat: "maintenance", status: "active", il: 2, is: 3, rl: 1, rs: 3 },
@@ -471,7 +486,8 @@ export default async function handler(req, res) {
         title: h.title, description: h.desc, category: h.cat, status: h.status,
         initial_likelihood: h.il, initial_severity: h.is,
         residual_likelihood: h.rl, residual_severity: h.rs,
-        mitigations: h.status === "mitigated" ? "Updated SOPs and conducted refresher training for all pilots." : "",
+        mitigations: h.status === "mitigated" || h.status === "accepted" ? "Updated SOPs and conducted refresher training for all pilots." : "",
+        lessons_learned: h.ll || null,
         related_report_id: reportIds[i] || null,
         review_date: dateFromNow(randInt(15, 90)),
         responsible_person: pick(["Sarah Chen", "Lisa Thompson", "James Mitchell"]),

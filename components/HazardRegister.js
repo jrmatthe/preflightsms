@@ -310,6 +310,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [llLoading, setLlLoading] = useState(false);
+  const [bulletinPreview, setBulletinPreview] = useState(false);
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
   const initScore = hazard.initial_risk_score || (hazard.initial_likelihood * hazard.initial_severity);
   const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
@@ -469,7 +470,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
             </div>
           )}
           {/* Lessons Learned */}
-          {(hazard.status === "closed" || hazard.status === "accepted") && onGenerateLessonsLearned && canManage && hasFeature(org, "safety_trend_alerts") && !hazard.lessons_learned && (
+          {(hazard.status === "closed" || hazard.status === "accepted") && onGenerateLessonsLearned && canManage && hasFeature(org, "safety_trend_alerts") && (!hazard.lessons_learned || !hazard.lessons_learned.summary) && (
             <button onClick={async () => {
               setLlLoading(true);
               try { await onGenerateLessonsLearned(hazard.id); } catch { /* handled by parent */ }
@@ -479,7 +480,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               <span style={{ fontSize: 14 }}>🤖</span> {llLoading ? "Generating..." : "Generate Lessons Learned"}
             </button>
           )}
-          {hazard.lessons_learned && (
+          {hazard.lessons_learned && hazard.lessons_learned.summary && (
             <div style={{ marginTop: 8, padding: "14px 16px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: CYAN, marginBottom: 10 }}>Lessons Learned</div>
               {hazard.lessons_learned.summary && (
@@ -513,7 +514,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               )}
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 {onPublishBulletin && (
-                  <button onClick={() => onPublishBulletin(hazard)}
+                  <button onClick={() => setBulletinPreview(true)}
                     style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "transparent", border: `1px solid ${YELLOW}44`, borderRadius: 4, color: YELLOW, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                     Publish as Safety Bulletin
                   </button>
@@ -525,6 +526,51 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
                   </button>
                 )}
               </div>
+              {/* Bulletin Preview Modal */}
+              {bulletinPreview && onPublishBulletin && (() => {
+                const ll = hazard.lessons_learned;
+                const bulletinTitle = `Safety Bulletin: ${hazard.title}`;
+                const bulletinBody = ll.summary || `Lessons learned from investigation ${hazard.hazard_code}`;
+                return (
+                  <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}
+                    onClick={() => setBulletinPreview(false)}>
+                    <div onClick={e => e.stopPropagation()} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 28, width: "90vw", maxWidth: 600, maxHeight: "80vh", overflowY: "auto" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: YELLOW, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Safety Bulletin Preview</div>
+                      <div style={{ fontSize: 9, color: MUTED, marginBottom: 16 }}>This will be sent as a notification to all organization members.</div>
+                      <div style={{ padding: "16px 18px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 16 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 10 }}>{bulletinTitle}</div>
+                        <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.6, whiteSpace: "pre-wrap", marginBottom: ll.takeaways?.length ? 12 : 0 }}>{bulletinBody}</div>
+                        {ll.takeaways?.length > 0 && (
+                          <div style={{ marginTop: 8 }}>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Key Takeaways</div>
+                            {ll.takeaways.map((t, i) => (
+                              <div key={i} style={{ fontSize: 11, color: OFF_WHITE, padding: "4px 0 4px 8px", borderLeft: `2px solid ${CYAN}44`, marginBottom: 4 }}>{t}</div>
+                            ))}
+                          </div>
+                        )}
+                        {ll.prevention_tips?.length > 0 && (
+                          <div style={{ marginTop: 8 }}>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Prevention Tips</div>
+                            {ll.prevention_tips.map((t, i) => (
+                              <div key={i} style={{ fontSize: 11, color: OFF_WHITE, padding: "4px 0 4px 8px", borderLeft: `2px solid ${GREEN}44`, marginBottom: 4 }}>{t}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                        <button onClick={() => setBulletinPreview(false)}
+                          style={{ padding: "8px 16px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                          Cancel
+                        </button>
+                        <button onClick={() => { onPublishBulletin(hazard); setBulletinPreview(false); }}
+                          style={{ padding: "8px 16px", background: YELLOW, border: "none", borderRadius: 6, color: BLACK, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                          Publish to All Members
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
           {onCreateAction && canManage && (
