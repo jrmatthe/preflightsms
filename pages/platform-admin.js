@@ -499,6 +499,18 @@ function OrgsView({ orgs, selectedOrg, selectOrg, search, setSearch, orgUsers, o
 function OrgDetail({ org, orgUsers, orgStats, orgLoading, editStatus, editFlags, editMaxAircraft, setEditFlags, setEditStatus, setEditMaxAircraft, saveChanges, saving, onDeleteOrg, isDirty }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [orgDetails, setOrgDetails] = useState(null);
+  const [seeding, setSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState(null);
+  const isDemo = org.slug === "cascade-charter-demo";
+  const refreshDemo = async () => {
+    setSeeding(true); setSeedResult(null);
+    try {
+      const data = await api({ action: "seed_demo" });
+      if (data.success) setSeedResult({ ok: true, msg: `Refreshed — ${data.log?.length || 0} steps completed` });
+      else setSeedResult({ ok: false, msg: data.error || "Failed" });
+    } catch (e) { setSeedResult({ ok: false, msg: e.message }); }
+    setSeeding(false);
+  };
   useEffect(() => {
     if (!org?.id) return;
     api({ action: "fetch_org_details", org_id: org.id }).then(res => {
@@ -515,9 +527,19 @@ function OrgDetail({ org, orgUsers, orgStats, orgLoading, editStatus, editFlags,
             <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{org.slug} · Created {new Date(org.created_at).toLocaleDateString()}</div>
           </div>
         </div>
-        <button onClick={saveChanges} disabled={saving || !isDirty} style={{ padding: "8px 24px", background: isDirty ? GREEN : SUBTLE, color: isDirty ? BLACK : MUTED, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: isDirty ? "pointer" : "default", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : isDirty ? "Save Changes" : "No Changes"}</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {isDemo && (
+            <button onClick={refreshDemo} disabled={seeding} style={{ padding: "8px 18px", background: seeding ? SUBTLE : CYAN, color: seeding ? MUTED : BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: seeding ? "wait" : "pointer", opacity: seeding ? 0.6 : 1 }}>{seeding ? "Seeding..." : "Refresh Demo Data"}</button>
+          )}
+          <button onClick={saveChanges} disabled={saving || !isDirty} style={{ padding: "8px 24px", background: isDirty ? GREEN : SUBTLE, color: isDirty ? BLACK : MUTED, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: isDirty ? "pointer" : "default", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : isDirty ? "Save Changes" : "No Changes"}</button>
+        </div>
       </div>
 
+      {seedResult && (
+        <div style={{ padding: "10px 14px", borderRadius: 6, marginBottom: 12, fontSize: 12, fontWeight: 600, background: seedResult.ok ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${seedResult.ok ? "rgba(74,222,128,0.3)" : "rgba(239,68,68,0.3)"}`, color: seedResult.ok ? GREEN : RED }}>
+          {seedResult.msg}
+        </div>
+      )}
       <div className="pa-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 20, opacity: orgLoading ? 0.4 : 1, transition: "opacity 0.2s" }}>
         {[["FRATs", orgStats.frats], ["Flights", orgStats.flights], ["Reports", orgStats.reports], ["Hazards", orgStats.hazards], ["Actions", orgStats.actions]].map(([l, v]) => (
           <div key={l} style={{ ...card, padding: "12px 14px", textAlign: "center" }}>

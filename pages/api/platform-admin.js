@@ -364,5 +364,25 @@ export default async function handler(req, res) {
     });
   }
 
+  // ── SEED DEMO ORG ──
+  if (action === 'seed_demo') {
+    const claims = verifyToken(token);
+    if (!claims) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+      const { default: seedHandler } = await import('./seed-demo');
+      const fakeReq = { method: 'POST', headers: { authorization: `Bearer ${supabaseServiceKey}` }, body: {}, json: () => ({}) };
+      let statusCode = 200, responseData = {};
+      const fakeRes = {
+        status(code) { statusCode = code; return this; },
+        json(data) { responseData = data; return this; },
+      };
+      await seedHandler(fakeReq, fakeRes);
+      return res.status(statusCode).json(responseData);
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
   return res.status(400).json({ error: 'Unknown action' });
 }
