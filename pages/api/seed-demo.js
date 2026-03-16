@@ -362,12 +362,13 @@ export default async function handler(req, res) {
 
     // Pending flights (today + tomorrow) — these show on home page "My Flights Today"
     const now = new Date();
+    const adminUser = DEMO_USERS[0]; // James Mitchell — admin account used for demos
     const pendingFfFlights = [
-      { ...ffRoutes[0], pilot: pilots[0], hoursFromNow: 2, notes: "Client pickup — 3 passengers to Portland meeting" },
+      { ...ffRoutes[0], pilot: adminUser, hoursFromNow: 2, notes: "Client pickup — 6 passengers to Portland meeting" },
+      { ...ffRoutes[2], pilot: adminUser, hoursFromNow: 5, notes: "Charter to Boise — 5 pax corporate group" },
       { ...ffRoutes[1], pilot: pilots[1], hoursFromNow: 4, notes: "Charter to Spokane — return same day" },
-      { ...ffRoutes[4], pilot: pilots[2], hoursFromNow: 6, notes: "Scenic flight booking" },
-      { ...ffRoutes[2], pilot: pilots[0], hoursFromNow: 26, notes: "Overnight charter to Boise — hotel arranged" },
-      { ...ffRoutes[5], pilot: pilots[1], hoursFromNow: 28, notes: "Repositioning flight" },
+      { ...ffRoutes[4], pilot: adminUser, hoursFromNow: 26, notes: "Yakima medevac positioning flight" },
+      { ...ffRoutes[5], pilot: pilots[0], hoursFromNow: 28, notes: "Repositioning flight" },
     ];
 
     for (const pf of pendingFfFlights) {
