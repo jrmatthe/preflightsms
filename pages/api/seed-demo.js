@@ -45,10 +45,10 @@ const DEMO_USERS = [
 ];
 
 const AIRCRAFT = [
-  { type: "CESSNA 172S", registration: "N172SP", serial_number: "172S10432", year: 2018, max_passengers: 3, base_location: "KSEA", dual_fuel_tanks: false },
-  { type: "PIPER PA-28", registration: "N28DV", serial_number: "28-7916142", year: 2016, max_passengers: 3, base_location: "KSEA", dual_fuel_tanks: false },
-  { type: "CESSNA 310R", registration: "N310AB", serial_number: "310R1842", year: 2015, max_passengers: 5, base_location: "KSEA", dual_fuel_tanks: true },
-  { type: "CESSNA 206H", registration: "N206CD", serial_number: "20608342", year: 2020, max_passengers: 5, base_location: "KBFI", dual_fuel_tanks: false },
+  { type: "PILATUS PC-12/47E", registration: "N512PC", serial_number: "PC12-1847", year: 2021, max_passengers: 9, base_location: "KSEA", dual_fuel_tanks: false },
+  { type: "CESSNA CITATION CJ3+", registration: "N525CJ", serial_number: "525B-0742", year: 2019, max_passengers: 7, base_location: "KSEA", dual_fuel_tanks: true },
+  { type: "BEECHCRAFT KING AIR 200", registration: "N200KA", serial_number: "BB-1635", year: 2017, max_passengers: 7, base_location: "KSEA", dual_fuel_tanks: true },
+  { type: "PILATUS PC-12/47E", registration: "N947PC", serial_number: "PC12-2103", year: 2023, max_passengers: 9, base_location: "KBFI", dual_fuel_tanks: false },
 ];
 
 const ROUTES = [
@@ -88,8 +88,8 @@ const TRAINING_REQS = [
   { title: "CRM / Human Factors", category: "crew_resource", frequency_months: 12, required_for: ["pilot", "chief_pilot"] },
   { title: "Emergency Procedures Review", category: "emergency", frequency_months: 12, required_for: ["pilot", "chief_pilot"] },
   { title: "Hazmat Awareness", category: "hazmat", frequency_months: 24, required_for: ["pilot", "chief_pilot"] },
-  { title: "Aircraft-Specific Checkout — C172", category: "aircraft_specific", frequency_months: 12, required_for: ["pilot"] },
-  { title: "Aircraft-Specific Checkout — C310", category: "aircraft_specific", frequency_months: 12, required_for: ["pilot"] },
+  { title: "Aircraft-Specific Checkout — PC-12", category: "aircraft_specific", frequency_months: 12, required_for: ["pilot"] },
+  { title: "Aircraft-Specific Checkout — CJ3+", category: "aircraft_specific", frequency_months: 12, required_for: ["pilot"] },
   { title: "Security Awareness Training", category: "security", frequency_months: 12, required_for: ["pilot", "safety_manager", "chief_pilot", "admin"] },
 ];
 
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
         "ai_suggestions", "audits", "audit_templates", "culture_survey_results",
         "culture_survey_responses", "culture_surveys", "management_of_change",
         "sms_manuals", "compliance_status", "declarations", "fatigue_assessments",
-        "mel_audit_log", "erp_acknowledgments",
+        "mel_audit_log", "erp_acknowledgments", "foreflight_flights", "foreflight_config",
       ];
       for (const t of tables) {
         const { error } = await supabase.from(t).delete().eq("org_id", orgId);
@@ -230,43 +230,44 @@ export default async function handler(req, res) {
       log.push(`Created aircraft: ${ac.registration}`);
     }
 
-    // Add MEL items to one aircraft
+    // Add MEL items to the King Air
     const melItems = [
       {
-        id: uid(), description: "Autopilot inoperative", mel_reference: "MEL 22-10",
-        category: "C", status: "open", notes: "Autopilot disconnects intermittently. Manual flight only.",
+        id: uid(), description: "Autopilot yaw damper inoperative", mel_reference: "MEL 22-10",
+        category: "C", status: "open", notes: "Yaw damper STC'd — manual rudder coordination required. Flight in known icing prohibited.",
         deferred_date: dateOnly(18), expiration_date: dateFromNow(72),
         deferred_by: pilotIds[0], deferred_by_name: pilots[0].name,
       },
       {
-        id: uid(), description: "Landing light (left) inoperative", mel_reference: "MEL 33-40",
-        category: "C", status: "open", notes: "Day VFR operations only until repaired.",
+        id: uid(), description: "Left landing light inoperative", mel_reference: "MEL 33-40",
+        category: "C", status: "open", notes: "Right landing light and taxi light operational. Day operations preferred.",
         deferred_date: dateOnly(5), expiration_date: dateFromNow(85),
         deferred_by: pilotIds[1], deferred_by_name: pilots[1].name,
       },
       {
         id: uid(), description: "Pitot heat replaced", mel_reference: "MEL 34-10",
-        category: "B", status: "closed", notes: "New pitot heater element installed.",
+        category: "B", status: "closed", notes: "New pitot heater element installed and tested.",
         deferred_date: dateOnly(60), expiration_date: dateOnly(27),
         closed_date: dateOnly(45), rectified_by: adminId, rectified_by_name: "Lisa Thompson",
-        work_performed: "Replaced pitot heater element P/N 50-384007-1. Tested and operational.",
+        work_performed: "Replaced pitot heater element P/N 101-384007-3. Ground and flight tested. Operational.",
       },
     ];
     await supabase.from("aircraft").update({
       mel_items: melItems,
       last_location: "KSEA",
-      parking_spot: "Ramp C4",
-      fuel_remaining: "42",
-      fuel_unit: "gal",
+      parking_spot: "Hangar 4",
+      fuel_remaining: "280",
+      fuel_unit: "lbs",
       status_updated_at: daysAgo(1),
-    }).eq("id", aircraftIds["N310AB"]);
+    }).eq("id", aircraftIds["N200KA"]);
 
     // Update other aircraft with status
-    await supabase.from("aircraft").update({ last_location: "KBOI", parking_spot: "A7", fuel_remaining: "38", fuel_unit: "gal", status_updated_at: daysAgo(2) }).eq("id", aircraftIds["N172SP"]);
-    await supabase.from("aircraft").update({ last_location: "KSEA", parking_spot: "B2", fuel_remaining: "3.2", fuel_unit: "hrs", status_updated_at: daysAgo(0) }).eq("id", aircraftIds["N28DV"]);
-    await supabase.from("aircraft").update({ last_location: "KGEG", parking_spot: "FBO Main", fuel_remaining: "56", fuel_unit: "gal", status_updated_at: daysAgo(3) }).eq("id", aircraftIds["N206CD"]);
-    // Set dual tank fuel for the 310
-    await supabase.from("aircraft").update({ fuel_remaining_left: "21", fuel_remaining_right: "21" }).eq("id", aircraftIds["N310AB"]);
+    await supabase.from("aircraft").update({ last_location: "KBOI", parking_spot: "FBO Ramp", fuel_remaining: "1820", fuel_unit: "lbs", status_updated_at: daysAgo(2) }).eq("id", aircraftIds["N512PC"]);
+    await supabase.from("aircraft").update({ last_location: "KSEA", parking_spot: "Hangar 2", fuel_remaining: "2400", fuel_unit: "lbs", status_updated_at: daysAgo(0) }).eq("id", aircraftIds["N525CJ"]);
+    await supabase.from("aircraft").update({ last_location: "KGEG", parking_spot: "Atlantic FBO", fuel_remaining: "1650", fuel_unit: "lbs", status_updated_at: daysAgo(3) }).eq("id", aircraftIds["N947PC"]);
+    // Set dual tank fuel for the Citation and King Air
+    await supabase.from("aircraft").update({ fuel_remaining_left: "1200", fuel_remaining_right: "1200" }).eq("id", aircraftIds["N525CJ"]);
+    await supabase.from("aircraft").update({ fuel_remaining_left: "140", fuel_remaining_right: "140" }).eq("id", aircraftIds["N200KA"]);
 
     log.push("Created 4 aircraft with MEL items and status");
 
@@ -334,6 +335,91 @@ export default async function handler(req, res) {
     }
     log.push(`Created ${fratIds.length} FRATs and flights`);
 
+    // ── 4b. ForeFlight Dispatch Integration ──────────────────────
+    // Create foreflight config (looks like a connected ForeFlight Dispatch account)
+    await supabase.from("foreflight_config").insert({
+      org_id: orgId,
+      api_key: "ff_demo_cascade_api_key",
+      api_secret: "ff_demo_cascade_secret",
+      enabled: true,
+      sync_interval_minutes: 5,
+      auto_create_frats: false,
+      notify_pilots_on_sync: true,
+      push_frat_enabled: true,
+      last_synced_at: daysAgo(0),
+      last_sync_error: null,
+    });
+
+    // Create ForeFlight flights — mix of pending (upcoming) and already-linked-to-FRATs
+    const ffRoutes = [
+      { dep: "KSEA", dest: "KPDX", type: "PILATUS PC-12/47E", tail: "N512PC", pax: 6, fuel: 1850, alt: "FL210", route: "SEA V23 BTG PDX", ete: 35 },
+      { dep: "KBFI", dest: "KGEG", type: "PILATUS PC-12/47E", tail: "N947PC", pax: 7, fuel: 2100, alt: "FL250", route: "BFI V2 ELN GEG", ete: 65 },
+      { dep: "KSEA", dest: "KBOI", type: "CESSNA CITATION CJ3+", tail: "N525CJ", pax: 5, fuel: 3200, alt: "FL370", route: "SEA J1 BOI", ete: 55 },
+      { dep: "KPDX", dest: "KSEA", type: "BEECHCRAFT KING AIR 200", tail: "N200KA", pax: 4, fuel: 2800, alt: "FL230", route: "PDX V23 SEA", ete: 30 },
+      { dep: "KSEA", dest: "KYKM", type: "PILATUS PC-12/47E", tail: "N512PC", pax: 3, fuel: 1400, alt: "FL190", route: "SEA V287 YKM", ete: 40 },
+      { dep: "KGEG", dest: "KBFI", type: "CESSNA CITATION CJ3+", tail: "N525CJ", pax: 6, fuel: 2900, alt: "FL350", route: "GEG J12 ELN BFI", ete: 50 },
+    ];
+
+    // Pending flights (today + tomorrow) — these show on home page "My Flights Today"
+    const now = new Date();
+    const pendingFfFlights = [
+      { ...ffRoutes[0], pilot: pilots[0], hoursFromNow: 2, notes: "Client pickup — 3 passengers to Portland meeting" },
+      { ...ffRoutes[1], pilot: pilots[1], hoursFromNow: 4, notes: "Charter to Spokane — return same day" },
+      { ...ffRoutes[4], pilot: pilots[2], hoursFromNow: 6, notes: "Scenic flight booking" },
+      { ...ffRoutes[2], pilot: pilots[0], hoursFromNow: 26, notes: "Overnight charter to Boise — hotel arranged" },
+      { ...ffRoutes[5], pilot: pilots[1], hoursFromNow: 28, notes: "Repositioning flight" },
+    ];
+
+    for (const pf of pendingFfFlights) {
+      const etd = new Date(now.getTime() + pf.hoursFromNow * 60 * 60 * 1000);
+      const eta = new Date(etd.getTime() + pf.ete * 60 * 1000);
+      await supabase.from("foreflight_flights").insert({
+        id: uid(), org_id: orgId,
+        foreflight_id: `FF-${uid().slice(0, 8).toUpperCase()}`,
+        departure_icao: pf.dep, destination_icao: pf.dest,
+        tail_number: pf.tail, aircraft_type: pf.type,
+        pilot_name: pf.pilot.name, pilot_email: pf.pilot.email,
+        etd: etd.toISOString(), eta: eta.toISOString(),
+        status: "pending", frat_id: null, flight_id: null,
+        frat_push_status: "none",
+        matched_pilot_id: userIds[pf.pilot.email],
+        passenger_count: pf.pax, crew_count: 1,
+        fuel_lbs: pf.fuel, cruise_alt: pf.alt,
+        route: pf.route, ete_minutes: pf.ete,
+        dispatcher_notes: pf.notes,
+        raw_data: { releaseStatus: "released", flightType: "charter" },
+      });
+    }
+
+    // Already-completed flights linked to recent FRATs (shows ForeFlight integration history)
+    const recentFratIndices = fratIds.length > 8 ? [0, 1, 2, 3, 4, 5, 6, 7] : [];
+    for (let i = 0; i < Math.min(recentFratIndices.length, ffRoutes.length); i++) {
+      const idx = recentFratIndices[i];
+      const r = ffRoutes[i % ffRoutes.length];
+      const dAgo = randInt(1, 14);
+      const etd = new Date(now.getTime() - dAgo * 24 * 60 * 60 * 1000 + randInt(6, 18) * 60 * 60 * 1000);
+      const eta = new Date(etd.getTime() + r.ete * 60 * 1000);
+      const pilotForFlight = pick(pilots);
+      await supabase.from("foreflight_flights").insert({
+        id: uid(), org_id: orgId,
+        foreflight_id: `FF-${uid().slice(0, 8).toUpperCase()}`,
+        departure_icao: r.dep, destination_icao: r.dest,
+        tail_number: r.tail, aircraft_type: r.type,
+        pilot_name: pilotForFlight.name, pilot_email: pilotForFlight.email,
+        etd: etd.toISOString(), eta: eta.toISOString(),
+        status: "frat_created",
+        frat_id: fratIds[idx], flight_id: flightIds[idx],
+        frat_push_status: "pushed",
+        matched_pilot_id: userIds[pilotForFlight.email],
+        passenger_count: r.pax, crew_count: 1,
+        fuel_lbs: r.fuel, cruise_alt: r.alt,
+        route: r.route, ete_minutes: r.ete,
+        dispatcher_notes: "Dispatch released",
+        raw_data: { releaseStatus: "released", flightType: "charter" },
+      });
+    }
+    log.push("Created ForeFlight config and dispatch flights (5 pending, 8 linked)");
+
     // ── 5. Create Safety Reports ────────────────────────────────
     const reportIds = [];
     for (let i = 0; i < REPORT_TEMPLATES.length; i++) {
@@ -370,7 +456,7 @@ export default async function handler(req, res) {
       { title: "Fuel contamination procedures gap", desc: "Review found fuel sampling procedures not consistently followed across all pilots. Training gap identified.", cat: "maintenance", status: "mitigated", il: 2, is: 4, rl: 1, rs: 4 },
       { title: "Runway incursion risk at towered fields", desc: "Two near-miss ground incursion events in 60 days at KSEA. Contributing factor: complex taxi instructions during peak traffic.", cat: "ground_ops", status: "active", il: 3, is: 4, rl: 2, rs: 4 },
       { title: "Pilot fatigue — early morning flights", desc: "Pattern of elevated fatigue scores on flights departing before 0700 local. Three self-reports of fatigue-related errors.", cat: "fatigue", status: "monitoring", il: 3, is: 3, rl: 2, rs: 2 },
-      { title: "Engine maintenance tracking gap", desc: "Discrepancy found between maintenance logs and actual engine hours on N172SP. 12 hours unaccounted for.", cat: "maintenance", status: "active", il: 2, is: 3, rl: 1, rs: 3 },
+      { title: "Engine maintenance tracking gap", desc: "Discrepancy found between maintenance logs and actual engine hours on N200KA. 12 hours unaccounted for.", cat: "maintenance", status: "active", il: 2, is: 3, rl: 1, rs: 3 },
       { title: "ATC communication congestion", desc: "Repeated frequency congestion events on Seattle Approach. Risk of missed clearances during high workload periods.", cat: "communication", status: "identified", il: 2, is: 3, rl: 2, rs: 2 },
     ];
 
