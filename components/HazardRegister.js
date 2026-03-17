@@ -301,7 +301,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCre
         if (["mitigated", "monitoring", "closed"].includes(s)) return "skipped";
         return "upcoming";
       case "residual":
-        if (s === "unacceptable" && hazard.mitigations) return "active";
+        if (s === "unacceptable" && (hazard.mitigations || (linkedActions && linkedActions.length > 0))) return "active";
         if (["acceptable"].includes(s)) return "skipped";
         if (resScore) return "completed";
         if (["mitigated", "monitoring", "closed"].includes(s)) return "completed";
@@ -706,13 +706,6 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCre
                 ))}
               </div>
 
-              {/* Proceed to residual risk */}
-              {(mitigationsText.trim() || (linkedActions && linkedActions.length > 0)) && canManage && onUpdateHazard && hazard.status === "unacceptable" && (
-                <div style={{ padding: "10px 14px", marginTop: 4, background: `${GREEN}08`, border: `1px solid ${GREEN}33`, borderRadius: 6, textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: MUTED, marginBottom: 4 }}>Mitigations documented — proceed when ready</div>
-                  <span style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>↓ Step 5: Residual Risk Assessment is available below</span>
-                </div>
-              )}
             </div>
           </WorkflowStep>
 
