@@ -5,7 +5,7 @@
 //   - moc_hazards: MOC hazard identification + mitigation
 //   - policy_draft: Policy document content
 //
-// Deploy: supabase functions deploy ai-draft-assist
+// Deploy: supabase functions deploy ai-draft-assist --no-verify-jwt
 // Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
