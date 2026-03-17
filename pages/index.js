@@ -5649,16 +5649,14 @@ export default function PVTAIRFrat() {
     if (!isOnline || !profile) return;
     const actionCode = `CA-${String((actions || []).length + 1).padStart(3, "0")}`;
     const payload = {
-      action_code: actionCode,
+      actionCode,
       title: action.title,
       description: action.description || "",
       priority: action.priority || "medium",
-      status: "open",
-      due_date: action.dueDate || null,
-      assigned_to: action.assignedTo || null,
-      hazard_id: action.hazardId || null,
-      report_id: action.reportId || null,
-      created_by: session.user.id,
+      dueDate: action.dueDate || null,
+      assignedTo: action.assignedTo || null,
+      hazardId: action.hazardId || null,
+      reportId: action.reportId || null,
     };
     const { error } = await createAction(profile.org_id, payload);
     if (error) { setToast({ message: `Error: ${error.message}`, level: DEFAULT_RISK_LEVELS.CRITICAL }); setTimeout(() => setToast(null), 4000); return; }
