@@ -267,10 +267,12 @@ ${hazardSummary || "None"}
 RECENT REPORTS (for pattern recognition):
 ${reportSummary || "None"}
 
-Identify the underlying hazard. Provide a concise hazard title (focused on the systemic risk, not the event), a description explaining why this is a systemic concern, and a suggested category.
+Identify the underlying hazard. The title MUST be succinct — 3 to 8 words maximum, like a label you'd see in a risk register (e.g. "Fatigue-Related Checklist Non-Compliance", "Seasonal Bird Strike Exposure at KBFI", "Hydraulic System Age-Related Failures"). Do NOT write a full sentence as the title.
+
+Provide a description explaining why this is a systemic concern, and a suggested category.
 
 Respond ONLY with a JSON object:
-{"title": "Hazard title (systemic risk, not the event)", "description": "2-3 sentences explaining the underlying hazard, why it's systemic, and what could happen if unaddressed", "category": "category_name", "reasoning": "Brief explanation of how you identified the underlying hazard from the report"}`;
+{"title": "Short hazard label (3-8 words max)", "description": "2-3 sentences explaining the underlying hazard, why it's systemic, and what could happen if unaddressed", "category": "category_name", "reasoning": "Brief explanation of how you identified the underlying hazard from the report"}`;
       maxTokens = 1024;
     }
 
