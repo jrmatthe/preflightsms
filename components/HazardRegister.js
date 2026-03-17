@@ -190,15 +190,16 @@ function getStepStatus(hazard, step, initScore, resScore, linkedActions) {
       if (["acceptable", "unacceptable", "mitigated", "monitoring", "closed"].includes(s)) return "completed";
       return "upcoming";
     case "analysis":
-      if (s === "unacceptable") return "active";
+      if (s === "unacceptable" && (!linkedActions || linkedActions.length === 0) && !hazard.mitigations) return "active";
+      if (s === "unacceptable" && (linkedActions?.length > 0 || hazard.mitigations)) return "completed";
       if (["acceptable"].includes(s)) return "skipped";
-      if (["mitigated", "monitoring", "closed"].includes(s) && (hazard.mitigations || (linkedActions && linkedActions.length > 0))) return "completed";
+      if (["mitigated", "monitoring", "closed"].includes(s) && (hazard.mitigations || linkedActions?.length > 0)) return "completed";
       if (["mitigated", "monitoring", "closed"].includes(s)) return "skipped";
       return "upcoming";
     case "residual":
-      if (s === "unacceptable" && (linkedActions && linkedActions.length > 0)) return "active";
       if (["acceptable"].includes(s)) return "skipped";
       if (resScore) return "completed";
+      if (s === "unacceptable" && (linkedActions?.length > 0 || hazard.mitigations)) return "active";
       if (["mitigated", "monitoring", "closed"].includes(s)) return "completed";
       return "upcoming";
     case "monitoring":

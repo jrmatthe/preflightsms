@@ -502,17 +502,20 @@ export default async function handler(req, res) {
     log.push(`Created ${hazardIds.length} hazards`);
 
     // ── 7. Create Corrective Actions ────────────────────────────
+    // hazardIds index mapping:
+    //   0 = Fuel contamination, 1 = Icing conditions, 2 = Runway incursion,
+    //   3 = Pilot fatigue, 4 = Engine maintenance, 5 = ATC communication
     const actionTemplates = [
-      { title: "Update fuel sampling SOP", desc: "Revise fuel sampling procedures to include mandatory documentation.", priority: "high", status: "completed", dDue: -10 },
-      { title: "Bird strike awareness briefing", desc: "Conduct seasonal bird strike awareness briefing for all pilots.", priority: "medium", status: "completed", dDue: -20 },
-      { title: "Install bird deterrent devices at KBFI", desc: "Coordinate with airport authority to evaluate bird deterrent options.", priority: "medium", status: "in_progress", dDue: 14 },
-      { title: "CRM refresher training", desc: "Schedule CRM refresher focusing on communication under high workload.", priority: "high", status: "in_progress", dDue: 21 },
-      { title: "Review taxi procedures SOP", desc: "Update taxi procedures to include readback requirements for complex clearances.", priority: "high", status: "completed", dDue: -5 },
-      { title: "Implement fatigue reporting tool", desc: "Deploy fatigue self-assessment in FRAT submission flow.", priority: "medium", status: "completed", dDue: -30 },
-      { title: "Engine hour tracking audit", desc: "Reconcile all aircraft engine hours with maintenance logs.", priority: "critical", status: "in_progress", dDue: 7 },
-      { title: "Establish approach frequency backup procedures", desc: "Develop backup communication procedure for high congestion periods.", priority: "medium", status: "open", dDue: 30 },
-      { title: "Quarterly safety stand-down", desc: "Schedule next quarterly all-hands safety review meeting.", priority: "low", status: "open", dDue: 45 },
-      { title: "Update emergency procedures manual", desc: "Revise emergency procedures to include diversion decision matrix.", priority: "high", status: "in_progress", dDue: -3 },
+      { title: "Update fuel sampling SOP", desc: "Revise fuel sampling procedures to include mandatory documentation.", priority: "high", status: "completed", dDue: -10, hIdx: 0 },
+      { title: "Install fuel quality testing kit", desc: "Procure and deploy portable fuel quality testers for each aircraft.", priority: "medium", status: "in_progress", dDue: 14, hIdx: 0 },
+      { title: "Winter ops icing checklist update", desc: "Revise winter operations checklist to include enhanced icing risk assessment.", priority: "high", status: "completed", dDue: -20, hIdx: 1 },
+      { title: "De-icing equipment inspection", desc: "Inspect and certify all de-icing equipment before winter season.", priority: "medium", status: "in_progress", dDue: 21, hIdx: 1 },
+      { title: "Review taxi procedures SOP", desc: "Update taxi procedures to include readback requirements for complex clearances at towered fields.", priority: "high", status: "completed", dDue: -5, hIdx: 2 },
+      { title: "Ground incursion awareness training", desc: "Conduct ground incursion prevention training for all pilots operating at KSEA.", priority: "high", status: "in_progress", dDue: 14, hIdx: 2 },
+      { title: "Implement fatigue reporting tool", desc: "Deploy fatigue self-assessment in FRAT submission flow.", priority: "medium", status: "completed", dDue: -30, hIdx: 3 },
+      { title: "Early morning duty schedule review", desc: "Review and adjust scheduling for flights departing before 0700 to ensure adequate crew rest.", priority: "high", status: "in_progress", dDue: 21, hIdx: 3 },
+      { title: "Engine hour tracking audit", desc: "Reconcile all aircraft engine hours with maintenance logs.", priority: "critical", status: "in_progress", dDue: 7, hIdx: 4 },
+      { title: "Establish approach frequency backup procedures", desc: "Develop backup communication procedure for high congestion periods on Seattle Approach.", priority: "medium", status: "open", dDue: 30, hIdx: 5 },
     ];
 
     for (let i = 0; i < actionTemplates.length; i++) {
@@ -522,8 +525,8 @@ export default async function handler(req, res) {
         org_id: orgId,
         action_code: `CA-${String(400 + i).padStart(4, "0")}`,
         title: a.title, description: a.desc,
-        hazard_id: hazardIds[i % hazardIds.length] || null,
-        report_id: reportIds[i % reportIds.length] || null,
+        hazard_id: hazardIds[a.hIdx] || null,
+        report_id: reportIds[a.hIdx] || null,
         assigned_to: pick([safetyMgrId, ...pilotIds]),
         assigned_to_name: pick(["Sarah Chen", "Lisa Thompson", "Mike Rodriguez"]),
         due_date: dateFromNow(a.dDue),
