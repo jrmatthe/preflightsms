@@ -247,13 +247,18 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
 }
 
 // ── Hazard Card (guided workflow) ──────────────────────────────
-function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpdateHazard, canManage, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess }) {
-  const [aiAnalysis, setAiAnalysis] = useState(null);
+function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCreateActionInline, onUpdateActionStatus, onUpdateHazard, canManage, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess, orgProfiles }) {
+  const [aiAnalysis, setAiAnalysis] = useState(hazard.ai_analysis || null);
+  const [aiAnalysisCollapsed, setAiAnalysisCollapsed] = useState(!!hazard.ai_analysis);
   const [aiLoading, setAiLoading] = useState(false);
   const [llLoading, setLlLoading] = useState(false);
   const [bulletinPreview, setBulletinPreview] = useState(false);
   const [editingMitigations, setEditingMitigations] = useState(false);
   const [mitigationsText, setMitigationsText] = useState(hazard.mitigations || "");
+  const [mitigationSaved, setMitigationSaved] = useState(false);
+  const [showInlineActionForm, setShowInlineActionForm] = useState(false);
+  const [inlineActionForm, setInlineActionForm] = useState({ title: "", description: "", priority: "medium", dueDate: "", assignedTo: "" });
+  const [actionSaving, setActionSaving] = useState(false);
   const [initialL, setInitialL] = useState(hazard.initial_likelihood || 0);
   const [initialS, setInitialS] = useState(hazard.initial_severity || 0);
   const [residualL, setResidualL] = useState(hazard.residual_likelihood || 0);
@@ -480,7 +485,11 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
                   setAiLoading(true);
                   try {
                     const result = await onAiInvestigate(hazard.id);
-                    if (result) setAiAnalysis(result);
+                    if (result) {
+                      setAiAnalysis(result);
+                      setAiAnalysisCollapsed(false);
+                      if (onUpdateHazard) onUpdateHazard(hazard.id, { ai_analysis: result });
+                    }
                   } catch { /* handled by parent */ }
                   setAiLoading(false);
                 }} disabled={aiLoading}
@@ -490,10 +499,16 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
               )}
               {aiAnalysis && (
                 <div style={{ marginBottom: 10, padding: "14px 16px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: CYAN }}>🤖 AI Investigation Analysis</div>
-                    <button onClick={() => setAiAnalysis(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>Dismiss</button>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: aiAnalysisCollapsed ? 0 : 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: CYAN, cursor: "pointer" }} onClick={() => setAiAnalysisCollapsed(!aiAnalysisCollapsed)}>
+                      🤖 AI Investigation Analysis <span style={{ fontSize: 9, color: MUTED, marginLeft: 4 }}>{aiAnalysisCollapsed ? "▸ Show" : "▾"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {!aiAnalysisCollapsed && <button onClick={() => setAiAnalysisCollapsed(true)} style={{ background: "none", border: "none", color: MUTED, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>Collapse</button>}
+                      <button onClick={() => { setAiAnalysis(null); if (onUpdateHazard) onUpdateHazard(hazard.id, { ai_analysis: null }); }} style={{ background: "none", border: "none", color: MUTED, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>Clear</button>
+                    </div>
                   </div>
+                  {!aiAnalysisCollapsed && <>
                   {aiAnalysis.root_causes?.length > 0 && (
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Root Causes</div>
@@ -515,7 +530,11 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
                             const newText = current ? `${current}\n- ${text}` : `- ${text}`;
                             setMitigationsText(newText);
                             if (onUpdateHazard) onUpdateHazard(hazard.id, { mitigations: newText });
-                            setAiAnalysis(prev => ({ ...prev, suggested_mitigations: prev.suggested_mitigations.filter((_, j) => j !== i) }));
+                            setAiAnalysis(prev => {
+                              const updated = { ...prev, suggested_mitigations: prev.suggested_mitigations.filter((_, j) => j !== i) };
+                              if (onUpdateHazard) onUpdateHazard(hazard.id, { ai_analysis: updated });
+                              return updated;
+                            });
                           }}
                             title={typeof m === "string" ? m : m.rationale}
                             style={{ padding: "5px 10px", borderRadius: 12, background: `${CYAN}15`, border: `1px solid ${CYAN}33`, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>
@@ -537,9 +556,20 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
                               <div style={{ fontSize: 10, color: MUTED }}>{ra.description}</div>
                             </div>
                             <span style={{ fontSize: 9, color: pColor, background: `${pColor}22`, padding: "2px 8px", borderRadius: 8, whiteSpace: "nowrap" }}>{ra.priority}</span>
-                            {onCreateAction && (
-                              <button onClick={() => onCreateAction({ ...hazard, _prefill: { title: ra.title, description: ra.description, priority: ra.priority } })}
-                                style={{ background: "none", border: `1px solid ${GREEN}44`, borderRadius: 4, color: GREEN, fontSize: 9, fontWeight: 600, padding: "2px 8px", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
+                            {onCreateActionInline && (
+                              <button onClick={async () => {
+                                setActionSaving(true);
+                                try {
+                                  await onCreateActionInline({ title: ra.title, description: ra.description, priority: ra.priority, hazardId: hazard.id, reportId: hazard.related_report_id || null });
+                                  setAiAnalysis(prev => {
+                                    const updated = { ...prev, recommended_actions: prev.recommended_actions.filter((_, j) => j !== i) };
+                                    if (onUpdateHazard) onUpdateHazard(hazard.id, { ai_analysis: updated });
+                                    return updated;
+                                  });
+                                } catch { /* parent handles toast */ }
+                                setActionSaving(false);
+                              }} disabled={actionSaving}
+                                style={{ background: "none", border: `1px solid ${GREEN}44`, borderRadius: 4, color: GREEN, fontSize: 9, fontWeight: 600, padding: "2px 8px", cursor: actionSaving ? "wait" : "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
                                 Accept
                               </button>
                             )}
@@ -558,20 +588,27 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
                       ))}
                     </div>
                   )}
+                  </>}
                 </div>
               )}
 
-              {/* Mitigations textarea */}
+              {/* Mitigations textarea — auto-saves on blur */}
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Mitigations / Controls</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Mitigations / Controls</div>
+                  {mitigationSaved && <span style={{ fontSize: 9, color: GREEN, fontWeight: 600 }}>Saved ✓</span>}
+                </div>
                 {canManage && onUpdateHazard ? (
-                  <div>
-                    <textarea value={mitigationsText} onChange={e => setMitigationsText(e.target.value)}
-                      rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", marginBottom: 6 }}
-                      placeholder="Describe controls or actions in place to reduce this risk" />
-                    <button onClick={() => { onUpdateHazard(hazard.id, { mitigations: mitigationsText }); }}
-                      style={{ padding: "4px 12px", background: WHITE, color: BLACK, border: "none", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>Save Mitigations</button>
-                  </div>
+                  <textarea value={mitigationsText} onChange={e => setMitigationsText(e.target.value)}
+                    onBlur={() => {
+                      if (mitigationsText !== (hazard.mitigations || "")) {
+                        onUpdateHazard(hazard.id, { mitigations: mitigationsText });
+                        setMitigationSaved(true);
+                        setTimeout(() => setMitigationSaved(false), 2000);
+                      }
+                    }}
+                    rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", marginBottom: 6 }}
+                    placeholder="Describe controls or actions in place to reduce this risk" />
                 ) : hazard.mitigations ? (
                   <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{hazard.mitigations}</div>
                 ) : (
@@ -579,7 +616,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
                 )}
               </div>
 
-              {/* Corrective Actions */}
+              {/* Corrective Actions — inline management */}
               <div style={{ marginBottom: 8 }}>
                 {linkedActions && linkedActions.length > 0 && (
                   <div>
@@ -591,20 +628,91 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
                           <span style={{ fontSize: 10, color: sColor, fontWeight: 700 }}>✓</span>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{a.action_code} — {a.title}</div>
+                            {a.assigned_to_name && <div style={{ fontSize: 9, color: MUTED }}>{a.assigned_to_name}{a.due_date ? ` · Due ${a.due_date}` : ""}</div>}
                           </div>
-                          <span style={{ fontSize: 9, color: sColor, background: `${sColor}22`, padding: "2px 8px", borderRadius: 8 }}>{a.status?.replace(/_/g, " ")}</span>
+                          {onUpdateActionStatus && canManage ? (
+                            <button onClick={(e) => {
+                              e.stopPropagation();
+                              const cycle = { open: "in_progress", in_progress: "completed", completed: "open" };
+                              onUpdateActionStatus(a.id, cycle[a.status] || "in_progress");
+                            }}
+                              title={`Click to change status (${a.status?.replace(/_/g, " ")} → ${({ open: "in progress", in_progress: "completed", completed: "open" })[a.status] || "in progress"})`}
+                              style={{ fontSize: 9, color: sColor, background: `${sColor}22`, padding: "2px 8px", borderRadius: 8, border: `1px solid ${sColor}44`, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap" }}>
+                              {a.status?.replace(/_/g, " ")}
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: 9, color: sColor, background: `${sColor}22`, padding: "2px 8px", borderRadius: 8 }}>{a.status?.replace(/_/g, " ")}</span>
+                          )}
                         </div>
                       );
                     })}
                   </div>
                 )}
-                {onCreateAction && canManage && (
-                  <button onClick={() => onCreateAction(hazard)}
+                {canManage && (showInlineActionForm ? (
+                  <div style={{ ...card, padding: 12, marginTop: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: WHITE, marginBottom: 8 }}>New Corrective Action</div>
+                    <input value={inlineActionForm.title} onChange={e => setInlineActionForm(f => ({ ...f, title: e.target.value }))}
+                      placeholder="Action title" style={{ ...inp, marginBottom: 6 }} />
+                    <textarea value={inlineActionForm.description} onChange={e => setInlineActionForm(f => ({ ...f, description: e.target.value }))}
+                      placeholder="Description (optional)" rows={2} style={{ ...inp, resize: "vertical", fontFamily: "inherit", marginBottom: 6 }} />
+                    <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                      <select value={inlineActionForm.priority} onChange={e => setInlineActionForm(f => ({ ...f, priority: e.target.value }))}
+                        style={{ ...inp, flex: "1 1 100px" }}>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                      </select>
+                      <input type="date" value={inlineActionForm.dueDate} onChange={e => setInlineActionForm(f => ({ ...f, dueDate: e.target.value }))}
+                        style={{ ...inp, flex: "1 1 120px" }} />
+                      {orgProfiles && orgProfiles.length > 0 && (
+                        <select value={inlineActionForm.assignedTo} onChange={e => setInlineActionForm(f => ({ ...f, assignedTo: e.target.value }))}
+                          style={{ ...inp, flex: "1 1 120px" }}>
+                          <option value="">Unassigned</option>
+                          {orgProfiles.map(p => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}
+                        </select>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={async () => {
+                        if (!inlineActionForm.title.trim() || !onCreateActionInline) return;
+                        setActionSaving(true);
+                        try {
+                          await onCreateActionInline({
+                            title: inlineActionForm.title, description: inlineActionForm.description,
+                            priority: inlineActionForm.priority, dueDate: inlineActionForm.dueDate || null,
+                            assignedTo: inlineActionForm.assignedTo || null,
+                            hazardId: hazard.id, reportId: hazard.related_report_id || null,
+                          });
+                          setInlineActionForm({ title: "", description: "", priority: "medium", dueDate: "", assignedTo: "" });
+                          setShowInlineActionForm(false);
+                        } catch { /* parent handles */ }
+                        setActionSaving(false);
+                      }} disabled={!inlineActionForm.title.trim() || actionSaving}
+                        style={{ padding: "6px 14px", background: GREEN, color: BLACK, border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: (!inlineActionForm.title.trim() || actionSaving) ? 0.5 : 1 }}>
+                        {actionSaving ? "Creating..." : "Create"}
+                      </button>
+                      <button onClick={() => { setShowInlineActionForm(false); setInlineActionForm({ title: "", description: "", priority: "medium", dueDate: "", assignedTo: "" }); }}
+                        style={{ padding: "6px 14px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowInlineActionForm(true)}
                     style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 4, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                     <span style={{ fontSize: 14 }}>✓</span> Create Corrective Action
                   </button>
-                )}
+                ))}
               </div>
+
+              {/* Proceed to residual risk */}
+              {(mitigationsText.trim() || (linkedActions && linkedActions.length > 0)) && canManage && onUpdateHazard && hazard.status === "unacceptable" && (
+                <div style={{ padding: "10px 14px", marginTop: 4, background: `${GREEN}08`, border: `1px solid ${GREEN}33`, borderRadius: 6, textAlign: "center" }}>
+                  <div style={{ fontSize: 10, color: MUTED, marginBottom: 4 }}>Mitigations documented — proceed when ready</div>
+                  <span style={{ fontSize: 11, color: GREEN, fontWeight: 600 }}>↓ Step 5: Residual Risk Assessment is available below</span>
+                </div>
+              )}
             </div>
           </WorkflowStep>
 
@@ -841,7 +949,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
   );
 }
 
-export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess, onAiIdentifyHazard }) {
+export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, onCreateActionInline, onUpdateActionStatus, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess, onAiIdentifyHazard, orgProfiles }) {
   const [showForm, setShowForm] = useState(!!fromReport);
   const [sortBy, setSortBy] = useState("newest");
   const [searchQ, setSearchQ] = useState("");
@@ -989,7 +1097,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
       ) : (
         filteredHazards.map(h => {
           const lr = h.related_report_id ? linkedReports[h.related_report_id] : null;
-          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} onUpdateHazard={onUpdateHazard} canManage={canManage} org={org} onAiInvestigate={onAiInvestigate} onGenerateLessonsLearned={onGenerateLessonsLearned} onPublishBulletin={onPublishBulletin} onCreateTrainingModule={onCreateTrainingModule} onAiRiskAssess={onAiRiskAssess} />;
+          return <HazardCard key={h.id} hazard={h} linkedReport={lr} linkedActions={linkedActionsMap[h.id]} onCreateAction={onCreateAction} onCreateActionInline={onCreateActionInline} onUpdateActionStatus={onUpdateActionStatus} onUpdateHazard={onUpdateHazard} canManage={canManage} org={org} onAiInvestigate={onAiInvestigate} onGenerateLessonsLearned={onGenerateLessonsLearned} onPublishBulletin={onPublishBulletin} onCreateTrainingModule={onCreateTrainingModule} onAiRiskAssess={onAiRiskAssess} orgProfiles={orgProfiles} />;
         })
       )}
     </div>
