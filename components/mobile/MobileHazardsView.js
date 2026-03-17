@@ -16,10 +16,11 @@ const cardStyle = { background: CARD, borderRadius: 12, border: `1px solid ${BOR
 
 const HAZARD_STATUSES = {
   identified: { label: "Identified", color: CYAN },
-  active: { label: "Active", color: "#F97316" },
+  assessed: { label: "Assessed", color: "#A78BFA" },
+  acceptable: { label: "Acceptable", color: GREEN },
+  unacceptable: { label: "Unacceptable", color: RED },
   mitigated: { label: "Mitigated", color: YELLOW },
-  monitoring: { label: "Monitoring", color: "#A78BFA" },
-  accepted: { label: "Accepted", color: GREEN },
+  monitoring: { label: "Monitoring", color: CYAN },
   closed: { label: "Closed", color: MUTED },
 };
 
@@ -31,6 +32,7 @@ const CATEGORIES = {
 };
 
 function riskColor(score) {
+  if (!score) return MUTED;
   if (score <= 4) return GREEN;
   if (score <= 9) return YELLOW;
   if (score <= 16) return AMBER;
@@ -38,6 +40,7 @@ function riskColor(score) {
 }
 
 function riskLabel(score) {
+  if (!score) return "--";
   if (score <= 4) return "Low";
   if (score <= 9) return "Medium";
   if (score <= 16) return "High";
@@ -83,8 +86,8 @@ function EmptyState() {
 function HazardCard({ hazard, actions }) {
   const [expanded, setExpanded] = useState(false);
   const status = HAZARD_STATUSES[hazard.status] || HAZARD_STATUSES.identified;
-  const initialScore = (hazard.initial_likelihood || 0) * (hazard.initial_severity || 0);
-  const residualScore = (hazard.residual_likelihood || 0) * (hazard.residual_severity || 0);
+  const initialScore = (hazard.initial_likelihood && hazard.initial_severity) ? hazard.initial_likelihood * hazard.initial_severity : null;
+  const residualScore = (hazard.residual_likelihood && hazard.residual_severity) ? hazard.residual_likelihood * hazard.residual_severity : null;
   const displayScore = residualScore || initialScore;
   const scoreColor = riskColor(displayScore);
   const linkedActions = (actions || []).filter(a => a.hazard_id === hazard.id);
@@ -93,7 +96,7 @@ function HazardCard({ hazard, actions }) {
     <button
       onClick={() => setExpanded(!expanded)}
       aria-expanded={expanded}
-      aria-label={`${hazard.title}, risk score ${displayScore}, ${riskLabel(displayScore)}, ${status.label}`}
+      aria-label={`${hazard.title}, ${displayScore ? `risk score ${displayScore}, ${riskLabel(displayScore)}` : "not yet scored"}, ${status.label}`}
       style={{
         ...cardStyle, padding: 0, width: "100%", textAlign: "left", cursor: "pointer",
         fontFamily: "inherit", display: "block", marginBottom: 10, overflow: "hidden",
@@ -103,9 +106,9 @@ function HazardCard({ hazard, actions }) {
         {/* Risk score sidebar */}
         <div style={{
           width: 52, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          background: `${scoreColor}12`, borderRight: `1px solid ${scoreColor}30`, flexShrink: 0,
+          background: displayScore ? `${scoreColor}12` : `${MUTED}08`, borderRight: `1px solid ${displayScore ? `${scoreColor}30` : `${MUTED}20`}`, flexShrink: 0,
         }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor }}>{displayScore}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor }}>{displayScore || "--"}</div>
           <div style={{ fontSize: 10, color: scoreColor, fontWeight: 600, textTransform: "uppercase" }}>{riskLabel(displayScore)}</div>
         </div>
 
@@ -141,25 +144,33 @@ function HazardCard({ hazard, actions }) {
           )}
 
           {/* Risk scores */}
-          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <div style={{ ...cardStyle, flex: 1, padding: 10, textAlign: "center", background: BLACK }}>
-              <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", marginBottom: 2 }}>Initial Risk</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: riskColor(initialScore) }}>{initialScore || "\u2014"}</div>
-              {initialScore > 0 && <div style={{ fontSize: 14, color: MUTED }}>L{hazard.initial_likelihood} \u00D7 S{hazard.initial_severity}</div>}
+          {initialScore && (
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <div style={{ ...cardStyle, flex: 1, padding: 10, textAlign: "center", background: BLACK }}>
+                <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", marginBottom: 2 }}>Initial Risk</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: riskColor(initialScore) }}>{initialScore}</div>
+                <div style={{ fontSize: 14, color: MUTED }}>L{hazard.initial_likelihood} × S{hazard.initial_severity}</div>
+              </div>
+              {residualScore > 0 && (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", color: MUTED }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </div>
+                  <div style={{ ...cardStyle, flex: 1, padding: 10, textAlign: "center", background: BLACK }}>
+                    <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", marginBottom: 2 }}>Residual Risk</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: riskColor(residualScore) }}>{residualScore}</div>
+                    <div style={{ fontSize: 14, color: MUTED }}>L{hazard.residual_likelihood} × S{hazard.residual_severity}</div>
+                  </div>
+                </>
+              )}
             </div>
-            {residualScore > 0 && (
-              <>
-                <div style={{ display: "flex", alignItems: "center", color: MUTED }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </div>
-                <div style={{ ...cardStyle, flex: 1, padding: 10, textAlign: "center", background: BLACK }}>
-                  <div style={{ fontSize: 14, color: MUTED, textTransform: "uppercase", marginBottom: 2 }}>Residual Risk</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: riskColor(residualScore) }}>{residualScore}</div>
-                  <div style={{ fontSize: 14, color: MUTED }}>L{hazard.residual_likelihood} \u00D7 S{hazard.residual_severity}</div>
-                </div>
-              </>
-            )}
-          </div>
+          )}
+
+          {!initialScore && (
+            <div style={{ marginTop: 14, padding: "10px 12px", background: `${MUTED}08`, borderRadius: 8, border: `1px solid ${MUTED}20` }}>
+              <div style={{ fontSize: 14, color: MUTED, fontStyle: "italic" }}>Risk assessment pending — score from desktop app</div>
+            </div>
+          )}
 
           {hazard.mitigations && (
             <div style={{ marginTop: 12 }}>
@@ -204,14 +215,14 @@ export default function MobileHazardsView({ hazards, actions }) {
   const filteredHazards = useMemo(() => {
     const h = hazards || [];
     if (filter === "all") return h.filter(x => x.status !== "closed");
-    if (filter === "active") return h.filter(x => x.status === "identified" || x.status === "active");
-    if (filter === "monitoring") return h.filter(x => x.status === "monitoring" || x.status === "mitigated");
+    if (filter === "action") return h.filter(x => x.status === "identified" || x.status === "assessed" || x.status === "unacceptable");
+    if (filter === "monitoring") return h.filter(x => x.status === "acceptable" || x.status === "mitigated" || x.status === "monitoring");
     return h;
   }, [hazards, filter]);
 
   const filters = [
     { id: "all", label: "All Open" },
-    { id: "active", label: "Active" },
+    { id: "action", label: "Needs Action" },
     { id: "monitoring", label: "Monitoring" },
   ];
 

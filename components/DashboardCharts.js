@@ -198,8 +198,8 @@ function OverviewDashboard({ records, flights, reports, hazards, actions, erpPla
     const r30Reports = reports.filter(r => new Date(r.created_at || r.timestamp) > d30).length;
 
     // Hazard stats
-    const openHazards = hazards.filter(h => h.status === "open" || h.status === "mitigating").length;
-    const criticalHazards = hazards.filter(h => h.risk_score >= 15).length;
+    const openHazards = hazards.filter(h => h.status !== "closed").length;
+    const criticalHazards = hazards.filter(h => (h.initial_likelihood && h.initial_severity ? h.initial_likelihood * h.initial_severity : 0) >= 15).length;
 
     // Action stats
     const openActions = actions.filter(a => a.status !== "completed" && a.status !== "closed").length;

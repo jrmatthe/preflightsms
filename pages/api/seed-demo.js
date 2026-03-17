@@ -457,8 +457,8 @@ export default async function handler(req, res) {
     // ── 6. Create Hazards / Investigations ──────────────────────
     const hazardIds = [];
     const hazardTemplates = [
-      { title: "Bird strike risk at KBFI", desc: "Multiple bird strike incidents reported at KBFI in the last 90 days. Pattern suggests seasonal migration path crosses approach corridors.", cat: "wildlife", status: "active", il: 3, is: 3, rl: 2, rs: 3 },
-      { title: "Fuel contamination procedures gap", desc: "Review found fuel sampling procedures not consistently followed across all pilots. Training gap identified.", cat: "maintenance", status: "accepted", il: 2, is: 4, rl: 1, rs: 4,
+      { title: "Bird strike risk at KBFI", desc: "Multiple bird strike incidents reported at KBFI in the last 90 days. Pattern suggests seasonal migration path crosses approach corridors.", cat: "wildlife", status: "unacceptable", il: 3, is: 3, rl: null, rs: null },
+      { title: "Fuel contamination procedures gap", desc: "Review found fuel sampling procedures not consistently followed across all pilots. Training gap identified.", cat: "maintenance", status: "acceptable", il: 2, is: 4, rl: null, rs: null,
         ll: {
           summary: "Investigation revealed that fuel sampling procedures were not being consistently performed across all pilots, particularly during high-tempo operations and early morning departures. The root cause was a combination of inadequate initial training on contamination risks and the absence of a standardized checklist step requiring documented fuel sampling before each flight.\n\nThe corrective actions implemented include a revised fuel sampling SOP with mandatory photo documentation, integration of a fuel sample verification step into the FRAT preflight checklist, and a company-wide training session on fuel contamination identification. Since implementation, compliance has reached 100% across all pilots.",
           takeaways: [
@@ -474,10 +474,10 @@ export default async function handler(req, res) {
           ]
         }
       },
-      { title: "Runway incursion risk at towered fields", desc: "Two near-miss ground incursion events in 60 days at KSEA. Contributing factor: complex taxi instructions during peak traffic.", cat: "ground_ops", status: "active", il: 3, is: 4, rl: 2, rs: 4 },
+      { title: "Runway incursion risk at towered fields", desc: "Two near-miss ground incursion events in 60 days at KSEA. Contributing factor: complex taxi instructions during peak traffic.", cat: "ground_ops", status: "unacceptable", il: 3, is: 4, rl: null, rs: null },
       { title: "Pilot fatigue — early morning flights", desc: "Pattern of elevated fatigue scores on flights departing before 0700 local. Three self-reports of fatigue-related errors.", cat: "fatigue", status: "monitoring", il: 3, is: 3, rl: 2, rs: 2 },
-      { title: "Engine maintenance tracking gap", desc: "Discrepancy found between maintenance logs and actual engine hours on N200KA. 12 hours unaccounted for.", cat: "maintenance", status: "active", il: 2, is: 3, rl: 1, rs: 3 },
-      { title: "ATC communication congestion", desc: "Repeated frequency congestion events on Seattle Approach. Risk of missed clearances during high workload periods.", cat: "communication", status: "identified", il: 2, is: 3, rl: 2, rs: 2 },
+      { title: "Engine maintenance tracking gap", desc: "Discrepancy found between maintenance logs and actual engine hours on N200KA. 12 hours unaccounted for.", cat: "maintenance", status: "assessed", il: 2, is: 3, rl: null, rs: null },
+      { title: "ATC communication congestion", desc: "Repeated frequency congestion events on Seattle Approach. Risk of missed clearances during high workload periods.", cat: "communication", status: "identified", il: null, is: null, rl: null, rs: null },
     ];
 
     for (let i = 0; i < hazardTemplates.length; i++) {
@@ -488,9 +488,9 @@ export default async function handler(req, res) {
         id: hazardId, org_id: orgId, created_by: safetyMgrId,
         hazard_code: `HAZ-${String(300 + i).padStart(4, "0")}`,
         title: h.title, description: h.desc, category: h.cat, status: h.status,
-        initial_likelihood: h.il, initial_severity: h.is,
-        residual_likelihood: h.rl, residual_severity: h.rs,
-        mitigations: h.status === "mitigated" || h.status === "accepted" ? "Updated SOPs and conducted refresher training for all pilots." : "",
+        initial_likelihood: h.il || null, initial_severity: h.is || null,
+        residual_likelihood: h.rl || null, residual_severity: h.rs || null,
+        mitigations: h.status === "mitigated" || h.status === "monitoring" ? "Updated SOPs and conducted refresher training for all pilots." : "",
         lessons_learned: h.ll || null,
         related_report_id: reportIds[i] || null,
         review_date: dateFromNow(randInt(15, 90)),
