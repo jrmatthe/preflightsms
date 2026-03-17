@@ -3,7 +3,7 @@
 // AI Safety Search — converts natural language queries into structured
 // safety report filters. Uses Claude API.
 //
-// Deploy: supabase functions deploy ai-safety-search
+// Deploy: supabase functions deploy ai-safety-search --no-verify-jwt
 // Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

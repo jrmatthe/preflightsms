@@ -3,7 +3,7 @@
 // AI FRAT Risk Suggestions — suggests risk factors based on flight context
 // and historical FRAT data. Uses Claude API.
 //
-// Deploy: supabase functions deploy ai-frat-suggestions
+// Deploy: supabase functions deploy ai-frat-suggestions --no-verify-jwt
 // Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

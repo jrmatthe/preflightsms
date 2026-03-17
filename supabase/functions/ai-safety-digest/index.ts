@@ -3,7 +3,7 @@
 // AI Weekly Safety Digest — generates and emails a weekly AI-powered
 // safety digest to admins/safety managers of Professional/Enterprise orgs.
 //
-// Deploy: supabase functions deploy ai-safety-digest
+// Deploy: supabase functions deploy ai-safety-digest --no-verify-jwt
 // Secrets: supabase secrets set ANTHROPIC_API_KEY=sk-ant-... RESEND_API_KEY=re_... FROM_EMAIL=noreply@preflightsms.com
 //
 // CRON SETUP (Monday 8am UTC):

@@ -3,7 +3,7 @@
 // AI Auto-Categorize Safety Reports — suggests category, severity, flight phase,
 // and triage summary for a new safety report based on title + description.
 //
-// Deploy: supabase functions deploy ai-categorize-report
+// Deploy: supabase functions deploy ai-categorize-report --no-verify-jwt
 // Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

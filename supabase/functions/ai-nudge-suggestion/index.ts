@@ -3,7 +3,7 @@
 // AI Post-Flight Nudge Suggestion — generates a contextual safety prompt
 // based on actual flight data to encourage relevant safety reports.
 //
-// Deploy: supabase functions deploy ai-nudge-suggestion
+// Deploy: supabase functions deploy ai-nudge-suggestion --no-verify-jwt
 // Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

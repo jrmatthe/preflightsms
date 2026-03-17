@@ -3,7 +3,7 @@
 // AI Lessons Learned Generator — analyzes completed hazard investigations
 // and produces lessons learned summaries, key takeaways, and training topics.
 //
-// Deploy: supabase functions deploy ai-lessons-learned
+// Deploy: supabase functions deploy ai-lessons-learned --no-verify-jwt
 // Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
