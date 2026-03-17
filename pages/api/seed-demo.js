@@ -133,10 +133,11 @@ export default async function handler(req, res) {
       // Clear all existing data
       const tables = [
         // Delete in FK-safe order: children before parents
-        "foreflight_flights", "foreflight_config",  // FK → frat_submissions, flights
+        "nudge_responses",                           // FK → flights (no cascade)
+        "foreflight_flights", "foreflight_config",   // FK → frat_submissions, flights
         "schedaero_trips", "schedaero_config",       // FK → frat_submissions, flights
         "fatigue_assessments",                       // FK → frat_submissions
-        "notifications", "notification_reads", "policy_acknowledgments", "training_records",
+        "notifications", "policy_acknowledgments", "training_records",
         "training_requirements", "corrective_actions", "hazard_register", "safety_reports",
         "flights", "frat_submissions", "policy_documents",
         "erp_acknowledgments", "erp_drills", "erp_call_tree", "erp_checklist_items", "erp_plans",
