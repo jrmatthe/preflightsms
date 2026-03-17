@@ -254,8 +254,6 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCre
   const [llLoading, setLlLoading] = useState(false);
   const [bulletinPreview, setBulletinPreview] = useState(false);
   const [editingMitigations, setEditingMitigations] = useState(false);
-  const [mitigationsText, setMitigationsText] = useState(hazard.mitigations || "");
-  const [mitigationSaved, setMitigationSaved] = useState(false);
   const [showInlineActionForm, setShowInlineActionForm] = useState(false);
   const [inlineActionForm, setInlineActionForm] = useState({ title: "", description: "", priority: "medium", dueDate: "", assignedTo: "" });
   const [actionSaving, setActionSaving] = useState(false);
@@ -273,7 +271,6 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCre
   const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => { setMitigationsText(hazard.mitigations || ""); }, [hazard.mitigations]);
   useEffect(() => { setResidualL(hazard.residual_likelihood || 0); setResidualS(hazard.residual_severity || 0); }, [hazard.residual_likelihood, hazard.residual_severity]);
   useEffect(() => { setInitialL(hazard.initial_likelihood || 0); setInitialS(hazard.initial_severity || 0); }, [hazard.initial_likelihood, hazard.initial_severity]);
   useEffect(() => { setReviewDate(hazard.review_date || ""); }, [hazard.review_date]);
@@ -297,11 +294,11 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCre
       case "analysis":
         if (s === "unacceptable") return "active";
         if (["acceptable"].includes(s)) return "skipped";
-        if (["mitigated", "monitoring", "closed"].includes(s) && hazard.mitigations) return "completed";
+        if (["mitigated", "monitoring", "closed"].includes(s) && (hazard.mitigations || (linkedActions && linkedActions.length > 0))) return "completed";
         if (["mitigated", "monitoring", "closed"].includes(s)) return "skipped";
         return "upcoming";
       case "residual":
-        if (s === "unacceptable" && (hazard.mitigations || (linkedActions && linkedActions.length > 0))) return "active";
+        if (s === "unacceptable" && (linkedActions && linkedActions.length > 0)) return "active";
         if (["acceptable"].includes(s)) return "skipped";
         if (resScore) return "completed";
         if (["mitigated", "monitoring", "closed"].includes(s)) return "completed";
@@ -521,26 +518,30 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCre
                   )}
                   {aiAnalysis.suggested_mitigations?.length > 0 && (
                     <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 6 }}>Suggested Mitigations (click to add)</div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 6 }}>Suggested Mitigations (click to create action)</div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {aiAnalysis.suggested_mitigations.map((m, i) => (
-                          <button key={i} onClick={() => {
-                            const text = typeof m === "string" ? m : m.text;
-                            const current = mitigationsText.trim();
-                            const newText = current ? `${current}\n- ${text}` : `- ${text}`;
-                            setMitigationsText(newText);
-                            if (onUpdateHazard) onUpdateHazard(hazard.id, { mitigations: newText });
-                            setAiAnalysis(prev => {
-                              const updated = { ...prev, suggested_mitigations: prev.suggested_mitigations.filter((_, j) => j !== i) };
-                              if (onUpdateHazard) onUpdateHazard(hazard.id, { ai_analysis: updated });
-                              return updated;
-                            });
-                          }}
-                            title={typeof m === "string" ? m : m.rationale}
-                            style={{ padding: "5px 10px", borderRadius: 12, background: `${CYAN}15`, border: `1px solid ${CYAN}33`, color: CYAN, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>
-                            + {typeof m === "string" ? m : m.text}
-                          </button>
-                        ))}
+                        {aiAnalysis.suggested_mitigations.map((m, i) => {
+                          const text = typeof m === "string" ? m : m.text;
+                          return (
+                            <button key={i} onClick={async () => {
+                              if (!onCreateActionInline) return;
+                              setActionSaving(true);
+                              try {
+                                await onCreateActionInline({ title: text, description: typeof m === "string" ? "" : (m.rationale || ""), priority: "medium", hazardId: hazard.id, reportId: hazard.related_report_id || null });
+                                setAiAnalysis(prev => {
+                                  const updated = { ...prev, suggested_mitigations: prev.suggested_mitigations.filter((_, j) => j !== i) };
+                                  if (onUpdateHazard) onUpdateHazard(hazard.id, { ai_analysis: updated });
+                                  return updated;
+                                });
+                              } catch { /* parent handles */ }
+                              setActionSaving(false);
+                            }} disabled={actionSaving}
+                              title={typeof m === "string" ? m : m.rationale}
+                              style={{ padding: "5px 10px", borderRadius: 12, background: `${CYAN}15`, border: `1px solid ${CYAN}33`, color: CYAN, fontSize: 10, fontWeight: 600, cursor: actionSaving ? "wait" : "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>
+                              + {text}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -591,30 +592,6 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCre
                   </>}
                 </div>
               )}
-
-              {/* Mitigations textarea — auto-saves on blur */}
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase" }}>Mitigations / Controls</div>
-                  {mitigationSaved && <span style={{ fontSize: 9, color: GREEN, fontWeight: 600 }}>Saved ✓</span>}
-                </div>
-                {canManage && onUpdateHazard ? (
-                  <textarea value={mitigationsText} onChange={e => setMitigationsText(e.target.value)}
-                    onBlur={() => {
-                      if (mitigationsText !== (hazard.mitigations || "")) {
-                        onUpdateHazard(hazard.id, { mitigations: mitigationsText });
-                        setMitigationSaved(true);
-                        setTimeout(() => setMitigationSaved(false), 2000);
-                      }
-                    }}
-                    rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", marginBottom: 6 }}
-                    placeholder="Describe controls or actions in place to reduce this risk" />
-                ) : hazard.mitigations ? (
-                  <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{hazard.mitigations}</div>
-                ) : (
-                  <div style={{ fontSize: 11, color: MUTED, fontStyle: "italic" }}>No mitigations recorded yet</div>
-                )}
-              </div>
 
               {/* Corrective Actions — inline management */}
               <div style={{ marginBottom: 8 }}>
@@ -710,13 +687,9 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCre
           </WorkflowStep>
 
           {/* Show completed analysis inline */}
-          {getStepStatus("analysis") === "completed" && hazard.mitigations && (
+          {getStepStatus("analysis") === "completed" && linkedActions && linkedActions.length > 0 && (
             <div style={{ marginLeft: 36, paddingLeft: 14, borderLeft: `2px solid ${GREEN}44`, marginBottom: 12, marginTop: -4 }}>
-              <div style={{ fontSize: 10, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Mitigations Applied</div>
-              <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{hazard.mitigations}</div>
-              {linkedActions && linkedActions.length > 0 && (
-                <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>{linkedActions.length} corrective action{linkedActions.length !== 1 ? "s" : ""} linked</div>
-              )}
+              <div style={{ fontSize: 10, color: MUTED }}>{linkedActions.length} corrective action{linkedActions.length !== 1 ? "s" : ""} linked</div>
             </div>
           )}
 
@@ -736,7 +709,8 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onCre
                       setAiResidualLoading(true);
                       setAiResidualResult(null);
                       try {
-                        const result = await onAiRiskAssess({ title: hazard.title, description: hazard.description, category: hazard.category, source: hazard.source, mitigations: mitigationsText || hazard.mitigations });
+                        const actionSummary = (linkedActions || []).map(a => a.title).join("; ");
+                        const result = await onAiRiskAssess({ title: hazard.title, description: hazard.description, category: hazard.category, source: hazard.source, mitigations: actionSummary || hazard.mitigations });
                         if (result) {
                           setAiResidualResult(result);
                           if (result.residual_likelihood && result.residual_severity) {
