@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!["audit_checklist", "moc_hazards", "policy_draft"].includes(mode)) {
-      return new Response(JSON.stringify({ error: "Invalid mode. Use: audit_checklist, moc_hazards, policy_draft" }), {
+    if (!["audit_checklist", "moc_hazards", "policy_draft", "identify_hazard"].includes(mode)) {
+      return new Response(JSON.stringify({ error: "Invalid mode. Use: audit_checklist, moc_hazards, policy_draft, identify_hazard" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -221,6 +221,53 @@ Draft a professional policy document with a description and markdown-formatted c
 Respond ONLY with a JSON object:
 {"title": "${policyTitle || "Untitled Policy"}", "description": "Brief policy description", "content": "Full markdown policy content", "category": "${policyCategory || "general"}"}`;
       maxTokens = 2048;
+
+    } else if (mode === "identify_hazard") {
+      const { reportTitle, reportDescription, reportCategory, reportSeverity } = body;
+
+      // Fetch existing hazards for context
+      const { data: hazards } = await supabase
+        .from("hazard_register")
+        .select("title, category, status")
+        .eq("org_id", orgId)
+        .order("created_at", { ascending: false })
+        .limit(15);
+
+      // Fetch recent reports for pattern recognition
+      const { data: reports } = await supabase
+        .from("safety_reports")
+        .select("title, category, severity")
+        .eq("org_id", orgId)
+        .order("created_at", { ascending: false })
+        .limit(15);
+
+      const hazardSummary = (hazards || []).map(h => `- ${h.title} (${h.category}) [${h.status}]`).join("\n");
+      const reportSummary = (reports || []).map(r => `- ${r.title} [${r.category}/${r.severity}]`).join("\n");
+
+      prompt = `You are a safety risk analyst for a Part 135 flight operation (${orgData?.name || "operator"}). A safety report has been filed describing a specific event. Your job is to identify the UNDERLYING HAZARD — the systemic risk, procedural gap, or recurring threat — that this event reveals.
+
+IMPORTANT: A safety report describes what HAPPENED (an event). A hazard describes the underlying RISK or SYSTEMIC ISSUE that could cause similar events repeatedly. For example:
+- Report: "Bird strike on final approach to KBFI" → Hazard: "Seasonal bird migration risk on KBFI approach corridors"
+- Report: "Pilot skipped checklist items due to fatigue" → Hazard: "Fatigue-related procedural compliance degradation on early departures"
+- Report: "Hydraulic fluid leak found during preflight" → Hazard: "Aging hydraulic system reliability on fleet nose gear assemblies"
+
+SAFETY REPORT:
+- Title: ${reportTitle || "Untitled"}
+- Description: ${reportDescription || "No description"}
+- Category: ${reportCategory || "other"}
+- Severity: ${reportSeverity || "unknown"}
+
+EXISTING HAZARDS (avoid duplicates):
+${hazardSummary || "None"}
+
+RECENT REPORTS (for pattern recognition):
+${reportSummary || "None"}
+
+Identify the underlying hazard. Provide a concise hazard title (focused on the systemic risk, not the event), a description explaining why this is a systemic concern, and a suggested category.
+
+Respond ONLY with a JSON object:
+{"title": "Hazard title (systemic risk, not the event)", "description": "2-3 sentences explaining the underlying hazard, why it's systemic, and what could happen if unaddressed", "category": "category_name", "reasoning": "Brief explanation of how you identified the underlying hazard from the report"}`;
+      maxTokens = 1024;
     }
 
     // Call Claude API

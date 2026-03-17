@@ -126,16 +126,18 @@ function WorkflowStep({ number, label, status, children }) {
 }
 
 // ── Create Form (simplified — identification only) ──────────────
-function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
+function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentifyHazard }) {
   const [form, setForm] = useState({
-    title: fromReport ? fromReport.title : "",
-    description: fromReport ? `Source report: ${fromReport.report_code}\n\n${fromReport.description}` : "",
+    title: "",
+    description: fromReport ? `Source report ${fromReport.report_code}: ${fromReport.title}\n\n${fromReport.description}` : "",
     source: fromReport ? "safety_report" : "",
     category: fromReport ? fromReport.category : "other",
     responsiblePerson: "",
     relatedReportId: fromReport?.id || null,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
 
   const handleSubmit = () => {
     if (!form.title.trim() || !form.description.trim()) return;
@@ -153,18 +155,52 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport }) {
       </div>
 
       {fromReport && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", marginBottom: 16, background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
-          <span style={{ color: CYAN, fontSize: 12 }}>⚠</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Creating from report {fromReport.report_code}</div>
-            <div style={{ fontSize: 10, color: MUTED }}>{fromReport.title}</div>
+        <div style={{ padding: "12px 14px", marginBottom: 16, background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: onAiIdentifyHazard ? 10 : 0 }}>
+            <span style={{ color: CYAN, fontSize: 12 }}>⚠</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Creating from report {fromReport.report_code}</div>
+              <div style={{ fontSize: 10, color: MUTED }}>{fromReport.title}</div>
+            </div>
           </div>
+          {onAiIdentifyHazard && (
+            <div>
+              <button onClick={async () => {
+                setAiLoading(true);
+                setAiResult(null);
+                try {
+                  const result = await onAiIdentifyHazard({
+                    reportTitle: fromReport.title,
+                    reportDescription: fromReport.description,
+                    reportCategory: fromReport.category,
+                    reportSeverity: fromReport.severity,
+                  });
+                  if (result) {
+                    setAiResult(result);
+                    if (result.title) set("title", result.title);
+                    if (result.description) set("description", `Source report ${fromReport.report_code}: ${fromReport.title}\n\n${result.description}`);
+                    if (result.category) set("category", result.category);
+                  }
+                } catch { /* handled by parent */ }
+                setAiLoading(false);
+              }} disabled={aiLoading}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1, width: "100%" }}>
+                <span style={{ fontSize: 14 }}>🤖</span> {aiLoading ? "Identifying underlying hazard..." : "AI Identify Underlying Hazard"}
+              </button>
+              {aiResult?.reasoning && (
+                <div style={{ marginTop: 8, padding: "10px 12px", background: `${CYAN}12`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, marginBottom: 4 }}>🤖 AI Analysis</div>
+                  <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{aiResult.reasoning}</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Investigation Title *</label>
-        <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Icing conditions on KSFF-KBOI route during winter" style={inp} />
+        <input value={form.title} onChange={e => set("title", e.target.value)} placeholder={fromReport ? "e.g. Inadequate VFR traffic separation in practice areas" : "e.g. Icing conditions on KSFF-KBOI route during winter"} style={inp} />
       </div>
 
       <div style={{ marginBottom: 12 }}>
@@ -805,7 +841,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
   );
 }
 
-export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess }) {
+export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess, onAiIdentifyHazard }) {
   const [showForm, setShowForm] = useState(!!fromReport);
   const [sortBy, setSortBy] = useState("newest");
   const [searchQ, setSearchQ] = useState("");
@@ -883,6 +919,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
       onCancel={() => { setShowForm(false); if (fromReport) onClearFromReport?.(); }}
       existingCount={hazards?.length || 0}
       fromReport={fromReport}
+      onAiIdentifyHazard={onAiIdentifyHazard}
     />;
   }
 
