@@ -351,7 +351,7 @@ function HazardCard({ hazard, linkedReport, linkedActions, onCreateAction, onUpd
       </div>
 
       {expanded && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+        <div onClick={e => e.stopPropagation()} style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
 
           {/* ── Step 1: Identification (always completed) ── */}
           <WorkflowStep number={1} label="Identification" status="completed">

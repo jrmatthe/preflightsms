@@ -5,6 +5,10 @@
 ALTER TABLE hazard_register ALTER COLUMN initial_likelihood DROP NOT NULL;
 ALTER TABLE hazard_register ALTER COLUMN initial_severity DROP NOT NULL;
 
--- Update CHECK constraints to allow NULL values
--- (PostgreSQL CHECK constraints already pass for NULL, so we only need to drop NOT NULL)
--- The existing CHECK (initial_likelihood between 1 and 5) naturally allows NULL.
+-- Update status CHECK constraint to new workflow statuses
+ALTER TABLE hazard_register DROP CONSTRAINT IF EXISTS hazard_register_status_check;
+ALTER TABLE hazard_register ADD CONSTRAINT hazard_register_status_check
+  CHECK (status IN ('identified', 'assessed', 'acceptable', 'unacceptable', 'mitigated', 'monitoring', 'closed'));
+
+-- Update default status
+ALTER TABLE hazard_register ALTER COLUMN status SET DEFAULT 'identified';
