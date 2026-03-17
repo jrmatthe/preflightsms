@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { orgId, mode } = body;
+    console.log("ai-draft-assist invoked", { mode, orgId: orgId?.slice(0, 8) });
 
     if (!orgId || !mode) {
       return new Response(JSON.stringify({ error: "orgId and mode required" }), {
