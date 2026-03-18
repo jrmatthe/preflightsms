@@ -33,9 +33,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse auth token
     const authHeader = req.headers.get("Authorization");
