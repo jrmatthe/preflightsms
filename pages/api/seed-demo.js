@@ -370,10 +370,9 @@ export default async function handler(req, res) {
     const now = new Date();
     const adminUser = DEMO_USERS[0]; // James Mitchell — admin account used for demos
     const pendingFfFlights = [
-      { ...ffRoutes[0], pilot: adminUser, hoursFromNow: 2, notes: "Client pickup — 6 passengers to Portland meeting" },
+      { ...ffRoutes[3], pilot: adminUser, hoursFromNow: 2, notes: "King Air charter — 4 pax to Seattle" },
       { ...ffRoutes[2], pilot: adminUser, hoursFromNow: 5, notes: "Charter to Boise — 5 pax corporate group" },
       { ...ffRoutes[1], pilot: pilots[1], hoursFromNow: 4, notes: "Charter to Spokane — return same day" },
-      { ...ffRoutes[4], pilot: adminUser, hoursFromNow: 8, notes: "Yakima medevac positioning flight" },
       { ...ffRoutes[5], pilot: pilots[0], hoursFromNow: 28, notes: "Repositioning flight" },
     ];
 
@@ -425,7 +424,7 @@ export default async function handler(req, res) {
         raw_data: { releaseStatus: "released", flightType: "charter" },
       });
     }
-    log.push("Created ForeFlight config and dispatch flights (5 pending, 8 linked)");
+    log.push("Created ForeFlight config and dispatch flights (4 pending, 8 linked)");
 
     // ── 5. Create Safety Reports ────────────────────────────────
     const reportIds = [];
