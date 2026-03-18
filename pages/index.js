@@ -1754,7 +1754,7 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
                   )}
                   {!isPending && (
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button data-tour="tour-my-arrived" onClick={() => openArrivedModal(f)} style={{
+                      <button data-tour="tour-my-arrived" onClick={(e) => { e.stopPropagation(); e.preventDefault(); openArrivedModal(f); }} style={{
                         padding: "6px 14px", background: "rgba(34,211,238,0.08)", border: `1px solid rgba(34,211,238,0.25)`,
                         borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 700, cursor: "pointer",
                       }}>Mark Arrived</button>
