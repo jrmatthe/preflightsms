@@ -74,7 +74,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    const today = new Date().toISOString().split("T")[0];
     const prompt = `You are a search assistant for an aviation safety management system. Convert the following natural language query into structured filters for searching safety reports.
+
+TODAY'S DATE: ${today}
 
 USER QUERY: "${query}"
 

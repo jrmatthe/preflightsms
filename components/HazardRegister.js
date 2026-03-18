@@ -280,6 +280,8 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
   const [aiResidualResult, setAiResidualResult] = useState(null);
   const [reviewDate, setReviewDate] = useState(hazard.review_date || "");
   const [activeStepModal, setActiveStepModal] = useState(null);
+  const [llEditing, setLlEditing] = useState(false);
+  const [llDraft, setLlDraft] = useState(null);
 
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
   const initScore = hazard.initial_risk_score || (hazard.initial_likelihood && hazard.initial_severity ? hazard.initial_likelihood * hazard.initial_severity : null);
@@ -850,54 +852,135 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                 <span style={{ fontSize: 14 }}>{"\uD83E\uDD16"}</span> {llLoading ? "Generating..." : "Generate Lessons Learned"}
               </button>
             )}
-            {hazard.lessons_learned && hazard.lessons_learned.summary && (
+            {hazard.lessons_learned && hazard.lessons_learned.summary && (() => {
+              const ll = llEditing ? llDraft : hazard.lessons_learned;
+              return (
               <div style={{ padding: "14px 16px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: CYAN, marginBottom: 10 }}>Lessons Learned</div>
-                {hazard.lessons_learned.summary && (
-                  <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.6, marginBottom: 10, whiteSpace: "pre-wrap" }}>{hazard.lessons_learned.summary}</div>
-                )}
-                {hazard.lessons_learned.takeaways?.length > 0 && (
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Key Takeaways</div>
-                    {hazard.lessons_learned.takeaways.map((t, i) => (
-                      <div key={i} style={{ fontSize: 11, color: OFF_WHITE, padding: "4px 0", paddingLeft: 8, borderLeft: `2px solid ${CYAN}44`, marginBottom: 4 }}>{t}</div>
-                    ))}
-                  </div>
-                )}
-                {hazard.lessons_learned.training_topics?.length > 0 && (
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Training Topics</div>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                      {hazard.lessons_learned.training_topics.map((t, i) => (
-                        <span key={i} style={{ fontSize: 9, padding: "3px 10px", borderRadius: 8, background: `${CYAN}15`, color: CYAN, fontWeight: 600 }}>{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {hazard.lessons_learned.prevention_tips?.length > 0 && (
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Prevention Tips</div>
-                    {hazard.lessons_learned.prevention_tips.map((t, i) => (
-                      <div key={i} style={{ fontSize: 11, color: OFF_WHITE, padding: "4px 0", paddingLeft: 8, borderLeft: `2px solid ${GREEN}44`, marginBottom: 4 }}>{t}</div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  {onPublishBulletin && (
-                    <button onClick={() => setBulletinPreview(true)}
-                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "transparent", border: `1px solid ${YELLOW}44`, borderRadius: 4, color: YELLOW, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                      Publish as Safety Bulletin
-                    </button>
-                  )}
-                  {onCreateTrainingModule && (
-                    <button onClick={() => onCreateTrainingModule(hazard)}
-                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "transparent", border: `1px solid ${GREEN}44`, borderRadius: 4, color: GREEN, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                      Create Training Module
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: CYAN }}>Lessons Learned</div>
+                  {canManage && !llEditing && (
+                    <button onClick={() => { setLlDraft({ ...hazard.lessons_learned }); setLlEditing(true); }}
+                      style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, color: MUTED, fontSize: 9, fontWeight: 600, padding: "3px 10px", cursor: "pointer", fontFamily: "inherit" }}>
+                      Edit
                     </button>
                   )}
                 </div>
+                {/* Summary */}
+                {llEditing ? (
+                  <textarea value={llDraft.summary || ""} onChange={e => setLlDraft(d => ({ ...d, summary: e.target.value }))}
+                    rows={5} style={{ ...inp, resize: "vertical", fontFamily: "inherit", marginBottom: 10, fontSize: 12, lineHeight: 1.6 }} />
+                ) : (
+                  <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.6, marginBottom: 10, whiteSpace: "pre-wrap" }}>{ll.summary}</div>
+                )}
+                {/* Takeaways */}
+                {(ll.takeaways?.length > 0 || llEditing) && (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Key Takeaways</div>
+                    {llEditing ? (
+                      <div>
+                        {(llDraft.takeaways || []).map((t, i) => (
+                          <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                            <input value={t} onChange={e => { const arr = [...llDraft.takeaways]; arr[i] = e.target.value; setLlDraft(d => ({ ...d, takeaways: arr })); }}
+                              style={{ ...inp, fontSize: 11, padding: "6px 10px" }} />
+                            <button onClick={() => setLlDraft(d => ({ ...d, takeaways: d.takeaways.filter((_, j) => j !== i) }))}
+                              style={{ background: "none", border: "none", color: RED, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>{"\u00D7"}</button>
+                          </div>
+                        ))}
+                        <button onClick={() => setLlDraft(d => ({ ...d, takeaways: [...(d.takeaways || []), ""] }))}
+                          style={{ background: "none", border: `1px dashed ${BORDER}`, borderRadius: 4, color: MUTED, fontSize: 10, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit", marginTop: 2 }}>+ Add takeaway</button>
+                      </div>
+                    ) : (
+                      ll.takeaways.map((t, i) => (
+                        <div key={i} style={{ fontSize: 11, color: OFF_WHITE, padding: "4px 0", paddingLeft: 8, borderLeft: `2px solid ${CYAN}44`, marginBottom: 4 }}>{t}</div>
+                      ))
+                    )}
+                  </div>
+                )}
+                {/* Training Topics */}
+                {(ll.training_topics?.length > 0 || llEditing) && (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Training Topics</div>
+                    {llEditing ? (
+                      <div>
+                        {(llDraft.training_topics || []).map((t, i) => (
+                          <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                            <input value={t} onChange={e => { const arr = [...llDraft.training_topics]; arr[i] = e.target.value; setLlDraft(d => ({ ...d, training_topics: arr })); }}
+                              style={{ ...inp, fontSize: 11, padding: "6px 10px" }} />
+                            <button onClick={() => setLlDraft(d => ({ ...d, training_topics: d.training_topics.filter((_, j) => j !== i) }))}
+                              style={{ background: "none", border: "none", color: RED, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>{"\u00D7"}</button>
+                          </div>
+                        ))}
+                        <button onClick={() => setLlDraft(d => ({ ...d, training_topics: [...(d.training_topics || []), ""] }))}
+                          style={{ background: "none", border: `1px dashed ${BORDER}`, borderRadius: 4, color: MUTED, fontSize: 10, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit", marginTop: 2 }}>+ Add topic</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {ll.training_topics.map((t, i) => (
+                          <span key={i} style={{ fontSize: 9, padding: "3px 10px", borderRadius: 8, background: `${CYAN}15`, color: CYAN, fontWeight: 600 }}>{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Prevention Tips */}
+                {(ll.prevention_tips?.length > 0 || llEditing) && (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Prevention Tips</div>
+                    {llEditing ? (
+                      <div>
+                        {(llDraft.prevention_tips || []).map((t, i) => (
+                          <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                            <input value={t} onChange={e => { const arr = [...llDraft.prevention_tips]; arr[i] = e.target.value; setLlDraft(d => ({ ...d, prevention_tips: arr })); }}
+                              style={{ ...inp, fontSize: 11, padding: "6px 10px" }} />
+                            <button onClick={() => setLlDraft(d => ({ ...d, prevention_tips: d.prevention_tips.filter((_, j) => j !== i) }))}
+                              style={{ background: "none", border: "none", color: RED, fontSize: 14, cursor: "pointer", flexShrink: 0 }}>{"\u00D7"}</button>
+                          </div>
+                        ))}
+                        <button onClick={() => setLlDraft(d => ({ ...d, prevention_tips: [...(d.prevention_tips || []), ""] }))}
+                          style={{ background: "none", border: `1px dashed ${BORDER}`, borderRadius: 4, color: MUTED, fontSize: 10, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit", marginTop: 2 }}>+ Add tip</button>
+                      </div>
+                    ) : (
+                      ll.prevention_tips.map((t, i) => (
+                        <div key={i} style={{ fontSize: 11, color: OFF_WHITE, padding: "4px 0", paddingLeft: 8, borderLeft: `2px solid ${GREEN}44`, marginBottom: 4 }}>{t}</div>
+                      ))
+                    )}
+                  </div>
+                )}
+                {/* Action buttons */}
+                {llEditing ? (
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <button onClick={() => {
+                      const cleaned = { ...llDraft, takeaways: (llDraft.takeaways || []).filter(t => t.trim()), training_topics: (llDraft.training_topics || []).filter(t => t.trim()), prevention_tips: (llDraft.prevention_tips || []).filter(t => t.trim()) };
+                      onUpdateHazard(hazard.id, { lessons_learned: cleaned });
+                      setLlEditing(false); setLlDraft(null);
+                    }}
+                      style={{ padding: "6px 14px", background: GREEN, color: BLACK, border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      Save Changes
+                    </button>
+                    <button onClick={() => { setLlEditing(false); setLlDraft(null); }}
+                      style={{ padding: "6px 14px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    {onPublishBulletin && (
+                      <button onClick={() => setBulletinPreview(true)}
+                        style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "transparent", border: `1px solid ${YELLOW}44`, borderRadius: 4, color: YELLOW, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                        Publish as Safety Bulletin
+                      </button>
+                    )}
+                    {onCreateTrainingModule && (
+                      <button onClick={() => onCreateTrainingModule(hazard)}
+                        style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "transparent", border: `1px solid ${GREEN}44`, borderRadius: 4, color: GREEN, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                        Create Training Module
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+              );
+            })()}
             {/* Bulletin Preview Modal */}
             {bulletinPreview && onPublishBulletin && (() => {
               const ll = hazard.lessons_learned;
