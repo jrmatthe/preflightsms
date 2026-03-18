@@ -177,9 +177,10 @@ Respond ONLY with a JSON object:
     if (!claudeRes.ok) {
       const errBody = await claudeRes.text();
       console.error("Claude API error:", claudeRes.status, errBody);
+      // Return 200 with debug info so client can surface it
       return new Response(
-        JSON.stringify({ error: `Claude API returned ${claudeRes.status}` }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ lessonsLearned: null, debug: { status: claudeRes.status, body: errBody.substring(0, 500) } }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -199,9 +200,10 @@ Respond ONLY with a JSON object:
 
     if (!lessonsLearned.summary) {
       console.error("No summary in parsed response. Raw text:", responseText);
+      // Return 200 with debug info
       return new Response(
-        JSON.stringify({ error: "Failed to generate lessons learned", raw: responseText.substring(0, 500) }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ lessonsLearned: null, debug: { parseError: true, raw: responseText.substring(0, 500) } }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
