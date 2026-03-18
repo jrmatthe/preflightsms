@@ -146,14 +146,15 @@ ${(similarHazards || []).map(h => `- ${h.hazard_code}: ${h.title} (${h.status}) 
 RECENT CORRECTIVE ACTIONS IN ORG:
 ${(recentActions || []).map(a => `- ${a.title} (${a.priority}, ${a.status})`).join("\n") || "None found."}
 
-Provide your analysis as JSON with this exact structure:
+Respond ONLY with a JSON object (no markdown, no commentary):
 {
-  "root_causes": [{"cause": "description", "confidence": 0.0-1.0}],
-  "recommended_actions": [{"title": "short title", "description": "detailed description", "priority": "high|medium|low"}],
-  "similar_patterns": [{"hazard_code": "code", "title": "title", "similarity": "brief description of similarity"}]
+  "root_causes": [{"cause": "description of root cause", "confidence": 0.8}],
+  "suggested_mitigations": [{"text": "short mitigation title", "rationale": "why this mitigation helps"}],
+  "recommended_actions": [{"title": "short action title", "description": "detailed description", "priority": "high|medium|low"}],
+  "similar_patterns": [{"hazard_code": "HAZ-XXX", "title": "hazard title", "similarity": "brief description of similarity"}]
 }
 
-Provide 2-4 root causes, 2-4 recommended actions, and note any similar patterns from the data above.`;
+Provide 2-4 root causes with confidence scores (0.0-1.0), 2-4 suggested mitigations, 2-4 recommended corrective actions, and note any similar patterns from the data above. If no similar patterns exist, use an empty array.`;
 
     console.log("ai-investigation-assist: calling Claude API");
     // Call Claude API
@@ -166,7 +167,7 @@ Provide 2-4 root causes, 2-4 recommended actions, and note any similar patterns 
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 1500,
+        max_tokens: 2048,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -188,7 +189,7 @@ Provide 2-4 root causes, 2-4 recommended actions, and note any similar patterns 
     responseText = responseText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
 
     // Parse analysis from response
-    let analysis = { root_causes: [], recommended_actions: [], similar_patterns: [] };
+    let analysis = { root_causes: [], suggested_mitigations: [], recommended_actions: [], similar_patterns: [] };
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
