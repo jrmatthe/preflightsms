@@ -1737,7 +1737,7 @@ export default function CbtModules({
           ))}
         </div>
 
-        {(trainingRequirements || []).length === 0 && isAdmin && onInitTraining && (
+        {(courses || []).length === 0 && isAdmin && onInitTraining && (
           <div style={{ maxWidth: 600, margin: "0 auto 20px", textAlign: "center" }}>
             <div style={{ ...card, padding: 40 }}>
               <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.6 }}>🎓</div>
