@@ -260,9 +260,9 @@ const NAV_SECTIONS = [
   { id: "operations", label: "Operations", icon: "fleet", cvs: ["submit", "flights", "fleet"] },
   { id: "safety", label: "Safety", icon: "reports", cvs: ["reports", "asap", "erp"] },
   { id: "investigations", label: "Investigations", icon: "hazards", cvs: ["hazards", "actions", "moc"] },
-  { id: "compliance", label: "Compliance", icon: "audits", cvs: ["audits"] },
   { id: "training", label: "Training", icon: "cbt", cvs: ["cbt"] },
   { id: "documents", label: "Documents", icon: "manuals", cvs: ["policy"] },
+  { id: "compliance", label: "Compliance", icon: "audits", cvs: ["audits"] },
   { id: "analytics", label: "Analytics", icon: "dashboard", cvs: ["dashboard"] },
   { id: "admin", label: "Admin", icon: "admin", cvs: ["admin"] },
 ];

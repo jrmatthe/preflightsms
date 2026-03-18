@@ -601,32 +601,8 @@ export default async function handler(req, res) {
     }
     log.push("Created training requirements and records (2 non-current)");
 
-    // ── 9. Create Policies + Acknowledgments ────────────────────
-    const policyIds = [];
-    for (const p of POLICIES) {
-      const dAgo = randInt(60, 200);
-      const { data, error } = await supabase.from("policy_documents").insert({
-        org_id: orgId, uploaded_by: adminId,
-        title: p.title, description: p.desc, category: p.category,
-        version: p.version, status: "active",
-        effective_date: dateOnly(dAgo),
-        review_date: dateFromNow(randInt(30, 180)),
-        created_at: daysAgo(dAgo),
-      }).select().single();
-      if (error) { errors.push(`Policy ${p.title}: ${error.message}`); continue; }
-      policyIds.push(data.id);
-
-      // Create acknowledgments for most users
-      for (const uid of allUserIds) {
-        if (Math.random() < 0.85) {
-          await supabase.from("policy_acknowledgments").insert({
-            org_id: orgId, policy_id: data.id, user_id: uid,
-            acknowledged_at: daysAgo(dAgo - randInt(1, 30)),
-          });
-        }
-      }
-    }
-    log.push(`Created ${policyIds.length} policies with acknowledgments`);
+    // ── 9. Policies — skipped so user can demo template loading ──
+    log.push("Policies skipped (populate via templates during demo)");
 
     // ── 10. Create ERP Plans + Drills (all 6 industry templates) ─
     const { ERP_TEMPLATES, DEFAULT_CALL_TREE } = await import("../../components/EmergencyResponsePlan");

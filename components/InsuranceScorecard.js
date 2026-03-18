@@ -354,83 +354,149 @@ export default function InsuranceScorecard({
         } catch { /* skip */ }
       }
 
-      // Header
-      doc.setFontSize(18);
+      // Color helpers
+      const parseHex = (hex) => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+      const NAVY = [15, 23, 42];
+      const SLATE = [71, 85, 105];
+      const LIGHT_GRAY = [241, 245, 249];
+      const WHITE_RGB = [255, 255, 255];
+      const tableW = W - margin * 2;
+
+      // Header bar
+      doc.setFillColor(...NAVY);
+      doc.rect(0, y - 10, W, 70, "F");
+      doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
-      doc.text(type === "scorecard" ? "SMS Maturity Scorecard" : "Safety Management System — Full Report", W / 2, y, { align: "center" });
-      y += 18;
+      doc.setTextColor(...WHITE_RGB);
+      doc.text(type === "scorecard" ? "SMS Maturity Scorecard" : "Safety Management System — Full Report", W / 2, y + 10, { align: "center" });
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
-      doc.text(org?.name || "Organization", W / 2, y, { align: "center" });
-      y += 14;
-      if (org?.certificate_number) {
-        doc.text(`Certificate: ${org.certificate_number}`, W / 2, y, { align: "center" });
-        y += 14;
-      }
-      doc.text(`Report Period: ${periodStartDate} to ${periodEndDate}`, W / 2, y, { align: "center" });
-      y += 28;
-
-      // Overall Score
-      const scoreColor = getScoreColor(currentResult.overallScore);
-      const hexR = parseInt(scoreColor.slice(1, 3), 16);
-      const hexG = parseInt(scoreColor.slice(3, 5), 16);
-      const hexB = parseInt(scoreColor.slice(5, 7), 16);
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Overall SMS Maturity Score", margin, y);
-      y += 20;
-      doc.setFontSize(32);
-      doc.setTextColor(hexR, hexG, hexB);
-      doc.text(`${Math.round(currentResult.overallScore)}`, margin, y);
-      doc.setFontSize(14);
-      doc.text(` / 100  —  ${getScoreLabel(currentResult.overallScore)}`, margin + 50, y);
+      doc.text(org?.name || "Organization", W / 2, y + 28, { align: "center" });
+      const subLine = [org?.certificate_number ? `Certificate: ${org.certificate_number}` : null, `Report Period: ${periodStartDate} to ${periodEndDate}`].filter(Boolean).join("  |  ");
+      doc.setFontSize(9);
+      doc.text(subLine, W / 2, y + 42, { align: "center" });
       doc.setTextColor(0, 0, 0);
-      y += 30;
+      y += 80;
+
+      // Overall Score box
+      const scoreColor = getScoreColor(currentResult.overallScore);
+      const [sR, sG, sB] = parseHex(scoreColor);
+      const scoreVal = Math.round(currentResult.overallScore);
+      const scoreLabel = getScoreLabel(currentResult.overallScore);
+      const boxW = 180;
+      const boxH = 80;
+      const boxX = margin;
+      doc.setFillColor(sR, sG, sB);
+      doc.roundedRect(boxX, y, boxW, boxH, 6, 6, "F");
+      doc.setTextColor(...WHITE_RGB);
+      doc.setFontSize(36);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${scoreVal}`, boxX + boxW / 2, y + 38, { align: "center" });
+      doc.setFontSize(10);
+      doc.text(`/ 100`, boxX + boxW / 2, y + 52, { align: "center" });
+      doc.setFontSize(12);
+      doc.text(scoreLabel, boxX + boxW / 2, y + 70, { align: "center" });
+      doc.setTextColor(0, 0, 0);
+
+      // Score context text
+      const ctxX = boxX + boxW + 20;
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text("Overall SMS Maturity", ctxX, y + 20);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...SLATE);
+      const ctxLines = doc.splitTextToSize(`This score reflects the overall health and maturity of ${org?.name || "the organization"}'s Safety Management System based on ${currentResult.metrics.length} weighted performance indicators.`, W - margin - ctxX);
+      doc.text(ctxLines, ctxX, y + 34);
+      doc.setTextColor(0, 0, 0);
+      y += boxH + 24;
 
       // Metrics table
-      doc.setFontSize(12);
+      doc.setFontSize(13);
       doc.setFont("helvetica", "bold");
-      doc.text("Metric Breakdown", margin, y);
+      doc.text("Performance Metrics", margin, y);
       y += 16;
-      doc.setFontSize(9);
+
+      // Table header
+      const colX = [margin, margin + 200, margin + 310, margin + 370, margin + 430];
+      doc.setFillColor(...NAVY);
+      doc.rect(margin, y - 10, tableW, 18, "F");
+      doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.text("Metric", margin, y);
-      doc.text("Value", margin + 220, y);
-      doc.text("Score", margin + 340, y);
-      doc.text("Weight", margin + 400, y);
-      doc.text("Trend", margin + 460, y);
-      y += 4;
-      doc.setDrawColor(180);
-      doc.line(margin, y, W - margin, y);
-      y += 12;
+      doc.setTextColor(...WHITE_RGB);
+      doc.text("METRIC", colX[0] + 6, y + 2);
+      doc.text("VALUE", colX[1] + 6, y + 2);
+      doc.text("SCORE", colX[2] + 6, y + 2);
+      doc.text("WEIGHT", colX[3] + 6, y + 2);
+      doc.text("TREND", colX[4] + 6, y + 2);
+      doc.setTextColor(0, 0, 0);
+      y += 14;
 
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
       currentResult.metrics.forEach((m, i) => {
-        checkPage(16);
+        checkPage(18);
         const prevMetric = prevResult.metrics[i];
         const trend = m.score != null && prevMetric?.score != null
-          ? (m.score > prevMetric.score + 5 ? "Up" : m.score < prevMetric.score - 5 ? "Down" : "Stable")
+          ? (m.score > prevMetric.score + 5 ? "Improving" : m.score < prevMetric.score - 5 ? "Declining" : "Stable")
           : "—";
-        doc.text(m.name, margin, y);
-        doc.text(m.value, margin + 220, y);
-        doc.text(m.score != null ? `${Math.round(m.score)}` : "N/A", margin + 340, y);
-        doc.text(m.score != null ? `${Math.round(m.adjustedWeight)}%` : "—", margin + 400, y);
-        doc.text(trend === "Up" ? "Improving" : trend === "Down" ? "Declining" : trend, margin + 460, y);
-        y += 14;
+        // Alternating row background
+        if (i % 2 === 0) {
+          doc.setFillColor(...LIGHT_GRAY);
+          doc.rect(margin, y - 10, tableW, 16, "F");
+        }
+        // Score color indicator
+        if (m.score != null) {
+          const [mR, mG, mB] = parseHex(getScoreColor(m.score));
+          doc.setFillColor(mR, mG, mB);
+          doc.circle(colX[2] + 2, y - 3, 3, "F");
+        }
+        doc.setTextColor(0, 0, 0);
+        doc.text(m.name, colX[0] + 6, y);
+        doc.setTextColor(...SLATE);
+        doc.text(m.value, colX[1] + 6, y);
+        doc.text(m.score != null ? `${Math.round(m.score)}` : "N/A", colX[2] + 10, y);
+        doc.text(m.score != null ? `${Math.round(m.adjustedWeight)}%` : "—", colX[3] + 6, y);
+        doc.text(trend, colX[4] + 6, y);
+        doc.setTextColor(0, 0, 0);
+        y += 16;
       });
+      // Table bottom border
+      doc.setDrawColor(200);
+      doc.line(margin, y - 6, W - margin, y - 6);
 
-      y += 10;
+      y += 14;
+
+      // Section helper
+      const sectionHeader = (title) => {
+        checkPage(40);
+        doc.setFillColor(...LIGHT_GRAY);
+        doc.rect(margin, y - 10, tableW, 20, "F");
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...NAVY);
+        doc.text(title, margin + 8, y + 3);
+        doc.setTextColor(0, 0, 0);
+        y += 18;
+      };
+
+      const statBox = (label, value, x, w) => {
+        doc.setFillColor(...LIGHT_GRAY);
+        doc.roundedRect(x, y, w, 36, 4, 4, "F");
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...NAVY);
+        doc.text(`${value}`, x + w / 2, y + 16, { align: "center" });
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...SLATE);
+        doc.text(label, x + w / 2, y + 28, { align: "center" });
+        doc.setTextColor(0, 0, 0);
+      };
 
       if (type === "full_report") {
         // FRAT Analytics
-        checkPage(80);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("FRAT Analytics", margin, y);
-        y += 16;
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-
+        sectionHeader("FRAT Analytics");
         const fratsInPeriod = (records || []).filter(r => {
           const d = new Date(r.created_at || r.timestamp);
           return d >= new Date(periodStartDate) && d <= new Date(periodEndDate);
@@ -443,42 +509,35 @@ export default function InsuranceScorecard({
           else if (s <= 45) riskDist.high++;
           else riskDist.critical++;
         });
-        const total = fratsInPeriod.length || 1;
-        doc.text(`Risk Distribution: Low ${Math.round(riskDist.low / total * 100)}% | Moderate ${Math.round(riskDist.moderate / total * 100)}% | High ${Math.round(riskDist.high / total * 100)}% | Critical ${Math.round(riskDist.critical / total * 100)}%`, margin, y);
-        y += 14;
-        doc.text(`Total FRATs in period: ${fratsInPeriod.length}`, margin, y);
-        y += 20;
+        const bw = (tableW - 30) / 4;
+        statBox("Total FRATs", fratsInPeriod.length, margin, bw);
+        statBox("Low Risk", riskDist.low, margin + bw + 10, bw);
+        statBox("Moderate", riskDist.moderate, margin + (bw + 10) * 2, bw);
+        statBox("High/Critical", riskDist.high + riskDist.critical, margin + (bw + 10) * 3, bw);
+        y += 48;
 
-        // Safety Reporting Trends
-        checkPage(60);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("Safety Reporting Trends", margin, y);
-        y += 16;
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
+        // Safety Reporting
+        sectionHeader("Safety Reporting");
         const reportsInPeriod = (reports || []).filter(r => {
           const d = new Date(r.created_at);
           return d >= new Date(periodStartDate) && d <= new Date(periodEndDate);
         });
         const reportsByType = {};
         reportsInPeriod.forEach(r => { reportsByType[r.type || "other"] = (reportsByType[r.type || "other"] || 0) + 1; });
-        doc.text(`Total reports: ${reportsInPeriod.length}`, margin, y);
-        y += 14;
-        Object.entries(reportsByType).forEach(([type, count]) => {
-          doc.text(`  ${type}: ${count}`, margin, y);
-          y += 12;
-        });
-        y += 10;
-
-        // CA Summary
-        checkPage(60);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("Corrective Actions Summary", margin, y);
-        y += 16;
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
+        doc.text(`Total reports in period: ${reportsInPeriod.length}`, margin + 8, y);
+        y += 14;
+        Object.entries(reportsByType).forEach(([type, count]) => {
+          doc.setTextColor(...SLATE);
+          doc.text(`${type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}: ${count}`, margin + 16, y);
+          y += 12;
+        });
+        doc.setTextColor(0, 0, 0);
+        y += 8;
+
+        // Corrective Actions
+        sectionHeader("Corrective Actions");
         const actionsInPeriod = (actions || []).filter(a => {
           const d = new Date(a.created_at);
           return d >= new Date(periodStartDate) && d <= new Date(periodEndDate);
@@ -486,82 +545,83 @@ export default function InsuranceScorecard({
         const openCAs = actionsInPeriod.filter(a => a.status !== "completed").length;
         const closedCAs = actionsInPeriod.filter(a => a.status === "completed").length;
         const overdueCAs = actionsInPeriod.filter(a => a.status !== "completed" && a.due_date && new Date(a.due_date) < new Date()).length;
-        doc.text(`Open: ${openCAs} | Closed: ${closedCAs} | Overdue: ${overdueCAs}`, margin, y);
-        y += 20;
+        const caBw = (tableW - 20) / 3;
+        statBox("Open", openCAs, margin, caBw);
+        statBox("Closed", closedCAs, margin + caBw + 10, caBw);
+        statBox("Overdue", overdueCAs, margin + (caBw + 10) * 2, caBw);
+        y += 48;
 
         // Training Compliance
-        checkPage(60);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("Training Compliance", margin, y);
-        y += 16;
+        sectionHeader("Training Compliance");
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
         (trainingReqs || []).forEach(req => {
-          checkPage(14);
+          checkPage(16);
           const matchingUsers = (orgProfiles || []).filter(p => !req.required_roles || req.required_roles.length === 0 || req.required_roles.includes(p.role));
           const compliant = matchingUsers.filter(u => (trainingRecs || []).some(r => r.user_id === u.id && r.requirement_id === req.id && (!r.expiry_date || new Date(r.expiry_date) > new Date()))).length;
           const rate = matchingUsers.length > 0 ? Math.round((compliant / matchingUsers.length) * 100) : 0;
-          doc.text(`${req.name || req.title || "Requirement"}: ${rate}% (${compliant}/${matchingUsers.length})`, margin, y);
-          y += 12;
+          // Mini bar
+          const barY = y - 3;
+          doc.setFillColor(230, 230, 230);
+          doc.roundedRect(margin + 8, barY, 100, 6, 2, 2, "F");
+          const [bR, bG, bB] = parseHex(getScoreColor(rate));
+          doc.setFillColor(bR, bG, bB);
+          doc.roundedRect(margin + 8, barY, Math.max(rate, 2), 6, 2, 2, "F");
+          doc.text(`${req.name || req.title || "Requirement"}: ${rate}% (${compliant}/${matchingUsers.length})`, margin + 116, y);
+          y += 16;
         });
-        y += 10;
+        y += 8;
 
         // Investigation Summary
-        checkPage(60);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("Investigation Summary", margin, y);
-        y += 16;
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
+        sectionHeader("Investigations");
         const hazardsInPeriod = (hazards || []).filter(h => {
           const d = new Date(h.created_at);
           return d >= new Date(periodStartDate) && d <= new Date(periodEndDate);
         });
         const byStatus = {};
         hazardsInPeriod.forEach(h => { byStatus[h.status || "open"] = (byStatus[h.status || "open"] || 0) + 1; });
-        doc.text(`Total hazards: ${hazardsInPeriod.length}`, margin, y);
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Total investigations: ${hazardsInPeriod.length}`, margin + 8, y);
         y += 14;
         Object.entries(byStatus).forEach(([status, count]) => {
-          doc.text(`  ${status}: ${count}`, margin, y);
+          doc.setTextColor(...SLATE);
+          doc.text(`${status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}: ${count}`, margin + 16, y);
           y += 12;
         });
-        y += 10;
+        doc.setTextColor(0, 0, 0);
+        y += 8;
 
-        // Part 5 compliance from audits
+        // IEP Audits
         if ((iepAudits || []).length > 0) {
-          checkPage(40);
-          doc.setFontSize(12);
-          doc.setFont("helvetica", "bold");
-          doc.text("IEP Audit Activity", margin, y);
-          y += 16;
-          doc.setFontSize(9);
-          doc.setFont("helvetica", "normal");
+          sectionHeader("IEP Audit Activity");
           const completedAudits = (iepAudits || []).filter(a => a.status === "completed");
-          doc.text(`Completed audits: ${completedAudits.length} | Total: ${(iepAudits || []).length}`, margin, y);
-          y += 20;
+          const auBw = (tableW - 10) / 2;
+          statBox("Completed", completedAudits.length, margin, auBw);
+          statBox("Total", (iepAudits || []).length, margin + auBw + 10, auBw);
+          y += 48;
         }
       }
 
-      // Summary text
-      checkPage(60);
+      // Footer bar
+      checkPage(70);
       y += 10;
-      doc.setFontSize(10);
+      doc.setDrawColor(200);
+      doc.line(margin, y, W - margin, y);
+      y += 14;
+      doc.setFontSize(9);
       doc.setFont("helvetica", "italic");
+      doc.setTextColor(...SLATE);
       const summaryText = `This ${type === "scorecard" ? "scorecard" : "report"} reflects the active use and performance of ${org?.name || "the organization"}'s Safety Management System as tracked in PreflightSMS during ${periodStartDate} to ${periodEndDate}.`;
       const splitSummary = doc.splitTextToSize(summaryText, W - margin * 2);
       doc.text(splitSummary, margin, y);
       y += splitSummary.length * 12 + 10;
 
-      // Disclaimer
-      checkPage(40);
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(120, 120, 120);
-      const disclaimer = "This report is generated from system data and does not constitute an audit or certification of SMS compliance.";
-      doc.text(disclaimer, margin, y);
-      y += 14;
+      doc.setTextColor(150, 150, 150);
+      doc.text("This report is generated from system data and does not constitute an audit or certification of SMS compliance.", margin, y);
+      y += 10;
       doc.text(`Generated ${new Date().toLocaleString()} by PreflightSMS`, margin, y);
       doc.setTextColor(0, 0, 0);
 
