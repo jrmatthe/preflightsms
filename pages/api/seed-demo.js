@@ -137,6 +137,7 @@ export default async function handler(req, res) {
         "foreflight_flights", "foreflight_config",   // FK → frat_submissions, flights
         "schedaero_trips", "schedaero_config",       // FK → frat_submissions, flights
         "fatigue_assessments",                       // FK → frat_submissions
+        "cbt_progress", "cbt_enrollments", "cbt_lessons", "cbt_courses", // FK chain: progress/enrollments → lessons → courses
         "notifications", "policy_acknowledgments", "training_records",
         "training_requirements", "corrective_actions", "hazard_register", "safety_reports",
         "flights", "frat_submissions", "policy_documents",
