@@ -71,7 +71,7 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy }) {
             </button>
           )}
         </div>
-        <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. PVTAIR Safety Policy Statement" style={inp} />
+        <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Safety Policy Statement" style={inp} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }} className="report-grid">
         <div>
