@@ -26,8 +26,8 @@ Deno.serve(async (req) => {
 
     if (!anthropicKey) {
       return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ lessonsLearned: null, debug: { error: "ANTHROPIC_API_KEY not configured" } }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -36,24 +36,21 @@ Deno.serve(async (req) => {
     // Parse auth token
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+      return new Response(JSON.stringify({ lessonsLearned: null, debug: { error: "Unauthorized" } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+      return new Response(JSON.stringify({ lessonsLearned: null, debug: { error: "Unauthorized" } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { orgId, hazardId } = await req.json();
     if (!orgId || !hazardId) {
-      return new Response(JSON.stringify({ error: "orgId and hazardId required" }), {
-        status: 400,
+      return new Response(JSON.stringify({ lessonsLearned: null, debug: { error: "orgId and hazardId required" } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -69,8 +66,8 @@ Deno.serve(async (req) => {
 
     if ((recentCalls || 0) >= 10) {
       return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ lessonsLearned: null, debug: { error: "Rate limit exceeded" } }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -83,8 +80,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!hazard) {
-      return new Response(JSON.stringify({ error: "Hazard not found" }), {
-        status: 404,
+      return new Response(JSON.stringify({ lessonsLearned: null, debug: { error: "Hazard not found", hazardId, orgId } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -223,8 +219,7 @@ Respond ONLY with a JSON object:
     );
   } catch (e) {
     console.error("Edge function error:", e);
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 500,
+    return new Response(JSON.stringify({ lessonsLearned: null, debug: { crash: true, message: (e as Error).message, stack: (e as Error).stack?.substring(0, 500) } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
