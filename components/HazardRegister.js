@@ -723,12 +723,15 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                   </div>
                 )}
                 {/* Initial → Residual comparison */}
-                {initScore && residualL && residualS && (
+                {initScore && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "8px 12px", background: NEAR_BLACK, borderRadius: 6 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(initScore) }}>{initScore}</span>
-                    <span style={{ color: MUTED }}>{"\u2192"}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(residualL * residualS) }}>{residualL * residualS}</span>
-                    <span style={{ fontSize: 10, color: MUTED }}>({riskLabel(residualL * residualS)})</span>
+                    <span style={{ color: MUTED, fontSize: 16 }}>{"\u2192"}</span>
+                    {residualL && residualS ? (
+                      <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(residualL * residualS) }}>{riskLabel(residualL * residualS)}</span>
+                    ) : (
+                      <span style={{ fontSize: 13, color: MUTED }}>—</span>
+                    )}
                   </div>
                 )}
                 <button onClick={() => {
