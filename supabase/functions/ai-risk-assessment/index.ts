@@ -29,19 +29,16 @@ Deno.serve(async (req) => {
       console.error("ai-risk-assessment: ANTHROPIC_API_KEY not configured");
       return new Response(
         JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse auth token
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -49,7 +46,6 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -58,12 +54,11 @@ Deno.serve(async (req) => {
     const { orgId, title, description, category, source, mitigations } = await req.json();
     if (!orgId || !title || !description) {
       return new Response(JSON.stringify({ error: "orgId, title, and description required" }), {
-        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Rate limit: 10 calls/hour/user
+    // Rate limit: 30 calls/hour/user
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
     const { count: recentCalls } = await supabase
       .from("ai_usage_log")
@@ -75,7 +70,7 @@ Deno.serve(async (req) => {
     if ((recentCalls || 0) >= 30) {
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -181,10 +176,21 @@ Respond ONLY with a JSON object:
       }),
     });
 
+    if (!claudeRes.ok) {
+      const errBody = await claudeRes.text();
+      console.error("Claude API error:", claudeRes.status, errBody);
+      return new Response(
+        JSON.stringify({ error: `Claude API returned ${claudeRes.status}` }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const claudeData = await claudeRes.json();
     console.log("ai-risk-assessment: Claude response status", claudeRes.status);
-    if (!claudeRes.ok) console.error("ai-risk-assessment: Claude error", JSON.stringify(claudeData));
-    const responseText = claudeData.content?.[0]?.text || "{}";
+    let responseText = claudeData.content?.[0]?.text || "{}";
+
+    // Strip markdown code fences if present
+    responseText = responseText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
 
     // Parse response
     const defaultResult = isResidualMode
@@ -217,7 +223,6 @@ Respond ONLY with a JSON object:
   } catch (e) {
     console.error("Edge function error:", e);
     return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

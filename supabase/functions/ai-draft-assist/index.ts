@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
 
     if (!anthropicKey) {
       return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ result: null, error: "ANTHROPIC_API_KEY not configured" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -38,16 +38,14 @@ Deno.serve(async (req) => {
     // Parse auth token
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+      return new Response(JSON.stringify({ result: null, error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+      return new Response(JSON.stringify({ result: null, error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -58,20 +56,18 @@ Deno.serve(async (req) => {
     console.log("ai-draft-assist invoked", { mode, orgId: orgId?.slice(0, 8) });
 
     if (!orgId || !mode) {
-      return new Response(JSON.stringify({ error: "orgId and mode required" }), {
-        status: 400,
+      return new Response(JSON.stringify({ result: null, error: "orgId and mode required" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!["audit_checklist", "moc_hazards", "policy_draft", "identify_hazard"].includes(mode)) {
-      return new Response(JSON.stringify({ error: "Invalid mode. Use: audit_checklist, moc_hazards, policy_draft, identify_hazard" }), {
-        status: 400,
+      return new Response(JSON.stringify({ result: null, error: "Invalid mode. Use: audit_checklist, moc_hazards, policy_draft, identify_hazard" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Rate limit: 10 calls/hour/user
+    // Rate limit: 30 calls/hour/user
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
     const { count: recentCalls } = await supabase
       .from("ai_usage_log")
@@ -82,8 +78,8 @@ Deno.serve(async (req) => {
 
     if ((recentCalls || 0) >= 30) {
       return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ result: null, error: "Rate limit exceeded. Try again later." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -331,8 +327,7 @@ Respond ONLY with a JSON object:
     );
   } catch (e) {
     console.error("Edge function error:", e);
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 500,
+    return new Response(JSON.stringify({ result: null, error: (e as Error).message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

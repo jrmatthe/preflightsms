@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     if (!anthropicKey) {
       return new Response(
-        JSON.stringify({ lessonsLearned: null, debug: { error: "ANTHROPIC_API_KEY not configured" } }),
+        JSON.stringify({ lessonsLearned: null, error: "ANTHROPIC_API_KEY not configured" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -36,26 +36,26 @@ Deno.serve(async (req) => {
     // Parse auth token
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ lessonsLearned: null, debug: { error: "Unauthorized" } }), {
+      return new Response(JSON.stringify({ lessonsLearned: null, error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(JSON.stringify({ lessonsLearned: null, debug: { error: "Unauthorized" } }), {
+      return new Response(JSON.stringify({ lessonsLearned: null, error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { orgId, hazardId } = await req.json();
     if (!orgId || !hazardId) {
-      return new Response(JSON.stringify({ lessonsLearned: null, debug: { error: "orgId and hazardId required" } }), {
+      return new Response(JSON.stringify({ lessonsLearned: null, error: "orgId and hazardId required" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Rate limit: 10 calls/hour/user
+    // Rate limit: 30 calls/hour/user
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
     const { count: recentCalls } = await supabase
       .from("ai_usage_log")
@@ -64,9 +64,9 @@ Deno.serve(async (req) => {
       .eq("feature", "lessons_learned")
       .gte("created_at", oneHourAgo);
 
-    if ((recentCalls || 0) >= 10) {
+    if ((recentCalls || 0) >= 30) {
       return new Response(
-        JSON.stringify({ lessonsLearned: null, debug: { error: "Rate limit exceeded" } }),
+        JSON.stringify({ lessonsLearned: null, error: "Rate limit exceeded. Try again later." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!hazard) {
-      return new Response(JSON.stringify({ lessonsLearned: null, debug: { error: "Hazard not found", hazardId, orgId } }), {
+      return new Response(JSON.stringify({ lessonsLearned: null, error: "Hazard not found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -173,9 +173,8 @@ Respond ONLY with a JSON object:
     if (!claudeRes.ok) {
       const errBody = await claudeRes.text();
       console.error("Claude API error:", claudeRes.status, errBody);
-      // Return 200 with debug info so client can surface it
       return new Response(
-        JSON.stringify({ lessonsLearned: null, debug: { status: claudeRes.status, body: errBody.substring(0, 500) } }),
+        JSON.stringify({ lessonsLearned: null, error: `Claude API returned ${claudeRes.status}` }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -199,9 +198,8 @@ Respond ONLY with a JSON object:
 
     if (!lessonsLearned.summary) {
       console.error("No summary in parsed response. Raw text:", responseText);
-      // Return 200 with debug info
       return new Response(
-        JSON.stringify({ lessonsLearned: null, debug: { parseError: true, raw: responseText.substring(0, 500) } }),
+        JSON.stringify({ lessonsLearned: null, error: "Failed to parse AI response" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -222,7 +220,7 @@ Respond ONLY with a JSON object:
     );
   } catch (e) {
     console.error("Edge function error:", e);
-    return new Response(JSON.stringify({ lessonsLearned: null, debug: { crash: true, message: (e as Error).message, stack: (e as Error).stack?.substring(0, 500) } }), {
+    return new Response(JSON.stringify({ lessonsLearned: null, error: (e as Error).message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

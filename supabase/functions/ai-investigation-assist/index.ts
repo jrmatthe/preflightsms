@@ -29,21 +29,18 @@ Deno.serve(async (req) => {
       console.error("ai-investigation-assist: ANTHROPIC_API_KEY not configured");
       return new Response(
         JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     console.log("ai-investigation-assist: API key found");
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse auth token
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       console.error("ai-investigation-assist: no auth header");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -52,7 +49,6 @@ Deno.serve(async (req) => {
     if (authError || !user) {
       console.error("ai-investigation-assist: auth failed", authError?.message, "token prefix", token.substring(0, 20));
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -62,12 +58,11 @@ Deno.serve(async (req) => {
     console.log("ai-investigation-assist: orgId", orgId, "hazardId", hazardId);
     if (!orgId || !hazardId) {
       return new Response(JSON.stringify({ error: "orgId and hazardId required" }), {
-        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Rate limit: 10 calls/hour/user
+    // Rate limit: 30 calls/hour/user
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
     const { count: recentCalls } = await supabase
       .from("ai_usage_log")
@@ -79,7 +74,7 @@ Deno.serve(async (req) => {
     if ((recentCalls || 0) >= 30) {
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -92,7 +87,6 @@ Deno.serve(async (req) => {
 
     if (!hazard) {
       return new Response(JSON.stringify({ error: "Hazard not found" }), {
-        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -177,10 +171,21 @@ Provide 2-4 root causes, 2-4 recommended actions, and note any similar patterns 
       }),
     });
 
+    if (!claudeRes.ok) {
+      const errBody = await claudeRes.text();
+      console.error("Claude API error:", claudeRes.status, errBody);
+      return new Response(
+        JSON.stringify({ error: `Claude API returned ${claudeRes.status}` }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const claudeData = await claudeRes.json();
     console.log("ai-investigation-assist: Claude response status", claudeRes.status);
-    if (!claudeRes.ok) console.error("ai-investigation-assist: Claude error", JSON.stringify(claudeData));
-    const responseText = claudeData.content?.[0]?.text || "{}";
+    let responseText = claudeData.content?.[0]?.text || "{}";
+
+    // Strip markdown code fences if present
+    responseText = responseText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
 
     // Parse analysis from response
     let analysis = { root_causes: [], recommended_actions: [], similar_patterns: [] };
@@ -210,7 +215,6 @@ Provide 2-4 root causes, 2-4 recommended actions, and note any similar patterns 
   } catch (e) {
     console.error("Edge function error:", e);
     return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
