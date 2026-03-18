@@ -285,7 +285,9 @@ export default async function handler(req, res) {
       const dAgo = randInt(0, 140);
       const pilot = pick(pilots);
       const pilotId = userIds[pilot.email];
-      const ac = pick(AIRCRAFT);
+      // For active flights (today), avoid N200KA since it's used for the admin demo flight
+      const acPool = dAgo === 0 ? AIRCRAFT.filter(a => a.registration !== "N200KA") : AIRCRAFT;
+      const ac = pick(acPool);
       const route = pick(ROUTES);
       const score = randInt(3, 45);
       const riskLevel = score <= 15 ? "LOW RISK" : score <= 30 ? "MODERATE RISK" : score <= 40 ? "HIGH RISK" : "CRITICAL";
