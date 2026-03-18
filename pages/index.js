@@ -4079,8 +4079,8 @@ export default function PVTAIRFrat() {
     try { window.history.pushState({ cv: newCv }, "", `#${newCv}`); } catch (e) {}
   }, []);
   useEffect(() => {
-    // Set initial hash without creating a history entry
-    if (!window.location.hash) try { window.history.replaceState({ cv }, "", `#${cv}`); } catch (e) {}
+    // Always reset hash to initial view on fresh page load (login)
+    try { window.history.replaceState({ cv }, "", `#${cv}`); } catch (e) {}
     const onPop = (e) => {
       const target = e.state?.cv || (window.location.hash ? window.location.hash.slice(1) : "home");
       cvRef.current = target;
