@@ -165,7 +165,7 @@ Respond ONLY with a JSON object:
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 1500,
+        max_tokens: 3000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -181,7 +181,10 @@ Respond ONLY with a JSON object:
     }
 
     const claudeData = await claudeRes.json();
-    const responseText = claudeData.content?.[0]?.text || "{}";
+    let responseText = claudeData.content?.[0]?.text || "{}";
+
+    // Strip markdown code fences if present
+    responseText = responseText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
 
     // Parse lessons learned from response
     let lessonsLearned: Record<string, unknown> = {};
