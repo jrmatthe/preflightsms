@@ -37,15 +37,18 @@ Deno.serve(async (req) => {
 
     // Parse auth token
     const authHeader = req.headers.get("Authorization");
+    console.log("Auth header present:", !!authHeader, authHeader ? `length=${authHeader.length}` : "missing");
     if (!authHeader) {
-      return new Response(JSON.stringify({ result: null, error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ result: null, error: "Unauthorized — no auth header" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const token = authHeader.replace("Bearer ", "");
+    console.log("Token length:", token.length, "starts with:", token.slice(0, 10));
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    console.log("Auth result:", { userId: user?.id, authError: authError?.message });
     if (authError || !user) {
-      return new Response(JSON.stringify({ result: null, error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ result: null, error: `Unauthorized — ${authError?.message || "no user"}` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
