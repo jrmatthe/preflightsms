@@ -113,47 +113,39 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(5);
 
-    // Build context
-    const hazardContext = `
-HAZARD DETAILS:
-- Code: ${hazard.hazard_code}
+    // Build context — focus on what happened, not investigation status
+    const eventContext = `
+EVENT:
 - Title: ${hazard.title}
 - Description: ${hazard.description}
 - Category: ${hazard.category}
-- Source: ${hazard.source || "N/A"}
-- Status: ${hazard.status}
-- Initial Risk: Likelihood ${hazard.initial_likelihood}, Severity ${hazard.initial_severity} (Score: ${hazard.initial_likelihood * hazard.initial_severity})
-- Residual Risk: ${hazard.residual_likelihood ? `Likelihood ${hazard.residual_likelihood}, Severity ${hazard.residual_severity} (Score: ${hazard.residual_likelihood * hazard.residual_severity})` : "N/A"}
-- Mitigations: ${hazard.mitigations || "None documented"}`;
-
-    const reportContext = linkedReport ? `
-LINKED SAFETY REPORT:
-- Title: ${linkedReport.title}
-- Description: ${linkedReport.description}
-- Category: ${linkedReport.category}
-- Severity: ${linkedReport.severity}
+${linkedReport ? `- What happened: ${linkedReport.description}
 - Location: ${linkedReport.location || "N/A"}
-- Root Cause: ${linkedReport.root_cause || "N/A"}` : "";
+- Flight phase: ${linkedReport.flight_phase || "N/A"}` : ""}
+- Mitigations put in place: ${hazard.mitigations || "None documented"}`;
 
-    const actionsContext = (actions || []).length > 0
-      ? `\nCORRECTIVE ACTIONS TAKEN:\n${actions!.map(a => `- [${a.status}] ${a.title}: ${a.description || "No description"}`).join("\n")}`
-      : "\nNo corrective actions recorded.";
-
-    const similarContext = (similarHazards || []).length > 0
-      ? `\nSIMILAR PAST HAZARDS:\n${similarHazards!.map(h => `- ${h.title} (${h.status}) — Mitigations: ${h.mitigations || "None"}`).join("\n")}`
+    const actionsContext = (actions || []).filter(a => a.status === "completed" || a.status === "in_progress").length > 0
+      ? `\nWHAT WAS DONE ABOUT IT:\n${actions!.filter(a => a.status === "completed" || a.status === "in_progress").map(a => `- ${a.title}`).join("\n")}`
       : "";
 
-    const prompt = `You are an aviation safety educator and analyst for a Part 135 flight operation. Analyze the following completed investigation and produce a comprehensive lessons-learned document.
-${hazardContext}${reportContext}${actionsContext}${similarContext}
+    const prompt = `You are writing a safety bulletin for pilots at a Part 135 charter operation. This will be read on the ramp in under 60 seconds. It must be deidentified — no names, no dates, no specific flight numbers, no hazard codes.
 
-Based on this investigation, produce:
-1. A summary of the safety event and investigation outcome
-2. Key takeaways that all personnel should understand
-3. Recommended training topics to prevent recurrence
-4. Prevention tips for operational safety
+${eventContext}${actionsContext}
+
+Write a lessons-learned brief with three sections:
+
+1. "summary" — What happened, written as a short narrative (3-4 sentences). Deidentify it: say "a crew member" or "during a flight" instead of specific names/codes. Focus on the event itself and why it matters, NOT the investigation process or status.
+
+2. "takeaways" — 2-3 key lessons. Each should be one sentence a pilot would remember. Focus on the operational lesson, not organizational process.
+
+3. "prevention_tips" — 2-3 concrete actions a pilot can take on their next flight to prevent this. Be specific and actionable — "brief the approach plate cold spots before every winter approach" not "review icing procedures."
+
+4. "training_topics" — 1-2 short topic names for related training.
+
+DO NOT mention investigation status, risk scores, corrective action status, or organizational processes. This is pilot-to-pilot safety communication.
 
 Respond ONLY with a JSON object:
-{"summary": "2-3 paragraph narrative summary", "takeaways": ["takeaway 1", "takeaway 2", ...], "training_topics": ["topic 1", "topic 2", ...], "prevention_tips": ["tip 1", "tip 2", ...]}`;
+{"summary": "deidentified narrative", "takeaways": ["lesson 1", "lesson 2"], "prevention_tips": ["action 1", "action 2"], "training_topics": ["topic 1"]}`;
 
     // Call Claude API
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -165,7 +157,7 @@ Respond ONLY with a JSON object:
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 3000,
+        max_tokens: 1500,
         messages: [{ role: "user", content: prompt }],
       }),
     });
