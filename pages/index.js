@@ -1591,9 +1591,16 @@ function FRATDetailModal({ fratId, records, flights, riskCategories, canApprove,
 }
 
 // ── My Flights View — personal pilot view with Scheduled / Active / Recent sections ──
-function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdateFlight, onDeleteFlight, onSelectScheduledFlight, onNewFrat }) {
+function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdateFlight, onDeleteFlight, onSelectScheduledFlight, onNewFrat, fleetAircraft }) {
   const now = Date.now();
   const h48 = 48 * 60 * 60 * 1000;
+  const [arrivedForm, setArrivedForm] = useState(null);
+  const [parkingSpot, setParkingSpot] = useState("");
+  const [fuelRemaining, setFuelRemaining] = useState("");
+  const [fuelLeft, setFuelLeft] = useState("");
+  const [fuelRight, setFuelRight] = useState("");
+  const [fuelUnit, setFuelUnit] = useState("lbs");
+  const [customFieldValues, setCustomFieldValues] = useState({});
 
   const myActive = useMemo(() => {
     const uid = session?.user?.id;
@@ -1734,18 +1741,78 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
                       <div style={{ height: "100%", width: `${progress}%`, background: GREEN, borderRadius: 2, transition: "width 0.5s" }} />
                     </div>
                   )}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {!isPending && (
-                      <button data-tour="tour-my-arrived" onClick={() => onUpdateFlight(f.id, "ARRIVED")} style={{
+                  {!isPending && arrivedForm !== f.id && (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button data-tour="tour-my-arrived" onClick={() => { setArrivedForm(f.id); setParkingSpot(""); setFuelRemaining(""); setFuelLeft(""); setFuelRight(""); setFuelUnit("lbs"); setCustomFieldValues({}); }} style={{
                         padding: "6px 14px", background: "rgba(34,211,238,0.08)", border: `1px solid rgba(34,211,238,0.25)`,
                         borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 700, cursor: "pointer",
                       }}>Mark Arrived</button>
-                    )}
-                    <button onClick={() => onUpdateFlight(f.id, "CANCEL")} style={{
-                      padding: "6px 14px", background: "transparent", border: `1px solid ${BORDER}`,
-                      borderRadius: 6, color: MUTED, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                    }}>Cancel</button>
-                  </div>
+                      <button onClick={() => onUpdateFlight(f.id, "CANCEL")} style={{
+                        padding: "6px 14px", background: "transparent", border: `1px solid ${BORDER}`,
+                        borderRadius: 6, color: MUTED, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                      }}>Cancel</button>
+                    </div>
+                  )}
+                  {!isPending && arrivedForm === f.id && (
+                    <div style={{ marginTop: 10, padding: 12, background: "rgba(74,222,128,0.06)", border: `1px solid rgba(74,222,128,0.2)`, borderRadius: 8 }}>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, display: "block" }}>Parking spot</label>
+                          <input value={parkingSpot} onChange={e => setParkingSpot(e.target.value)} placeholder="e.g. A3, Ramp 2"
+                            style={{ ...inp, fontSize: 13, padding: "8px 10px", width: "100%" }} />
+                        </div>
+                        {(() => { const mac = (fleetAircraft || []).find(a => a.registration === f.tailNumber); const isDual = mac?.dual_fuel_tanks; return isDual ? (
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, display: "block" }}>Fuel remaining (L / R)</label>
+                          <div style={{ display: "flex", gap: 0 }}>
+                            <input value={fuelLeft} onChange={e => { setFuelLeft(e.target.value); const l = parseFloat(e.target.value) || 0; const r = parseFloat(fuelRight) || 0; setFuelRemaining(l + r ? String(l + r) : ""); }} placeholder="Left" inputMode="decimal"
+                              style={{ ...inp, fontSize: 13, padding: "8px 10px", flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: "none", minWidth: 0 }} />
+                            <input value={fuelRight} onChange={e => { setFuelRight(e.target.value); const l = parseFloat(fuelLeft) || 0; const r = parseFloat(e.target.value) || 0; setFuelRemaining(l + r ? String(l + r) : ""); }} placeholder="Right" inputMode="decimal"
+                              style={{ ...inp, fontSize: 13, padding: "8px 10px", flex: 1, borderRadius: 0, borderRight: "none", minWidth: 0 }} />
+                            <button onClick={() => setFuelUnit(u => u === "lbs" ? "hrs" : "lbs")}
+                              style={{ padding: "8px 10px", background: CARD, border: `1px solid ${BORDER}`, borderTopRightRadius: 6, borderBottomRightRadius: 6, color: WHITE, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{fuelUnit}</button>
+                          </div>
+                          {(fuelLeft || fuelRight) && <div style={{ fontSize: 9, color: MUTED, marginTop: 3 }}>Total: {((parseFloat(fuelLeft) || 0) + (parseFloat(fuelRight) || 0)) || "—"} {fuelUnit}</div>}
+                        </div>
+                        ) : (
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, display: "block" }}>Fuel remaining</label>
+                          <div style={{ display: "flex", gap: 0 }}>
+                            <input value={fuelRemaining} onChange={e => setFuelRemaining(e.target.value)} placeholder="Optional" inputMode="decimal"
+                              style={{ ...inp, fontSize: 13, padding: "8px 10px", flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: "none", minWidth: 0 }} />
+                            <button onClick={() => setFuelUnit(u => u === "lbs" ? "hrs" : "lbs")}
+                              style={{ padding: "8px 10px", background: CARD, border: `1px solid ${BORDER}`, borderTopRightRadius: 6, borderBottomRightRadius: 6, color: WHITE, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>{fuelUnit}</button>
+                          </div>
+                        </div>
+                        ); })()}
+                      </div>
+                      {(() => { const mac = (fleetAircraft || []).find(a => a.registration === f.tailNumber); return mac?.status_field_defs?.length > 0 ? (
+                        <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                          {mac.status_field_defs.map(fd => (
+                            <div key={fd.name} style={{ flex: 1, minWidth: 120 }}>
+                              <label style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, display: "block" }}>{fd.name}</label>
+                              <input value={customFieldValues[fd.name] || ""} onChange={e => setCustomFieldValues(prev => ({ ...prev, [fd.name]: e.target.value }))}
+                                placeholder="Optional" style={{ ...inp, fontSize: 13, padding: "8px 10px", width: "100%" }} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : null; })()}
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => { const extra = {}; if (parkingSpot.trim()) extra.parkingSpot = parkingSpot.trim(); if (fuelRemaining.trim()) { extra.fuelRemaining = fuelRemaining.trim(); extra.fuelUnit = fuelUnit; } if (fuelLeft.trim()) extra.fuelLeft = fuelLeft.trim(); if (fuelRight.trim()) extra.fuelRight = fuelRight.trim(); if (Object.keys(customFieldValues).some(k => customFieldValues[k]?.trim())) { extra.customFieldValues = Object.fromEntries(Object.entries(customFieldValues).filter(([,v]) => v?.trim())); } onUpdateFlight(f.id, "ARRIVED", extra); setArrivedForm(null); }}
+                          style={{ flex: 1, padding: "10px 0", background: GREEN, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>CONFIRM ARRIVED</button>
+                        <button onClick={() => setArrivedForm(null)}
+                          style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Back</button>
+                      </div>
+                    </div>
+                  )}
+                  {isPending && (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => onUpdateFlight(f.id, "CANCEL")} style={{
+                        padding: "6px 14px", background: "transparent", border: `1px solid ${BORDER}`,
+                        borderRadius: 6, color: MUTED, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                      }}>Cancel</button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -6326,7 +6393,7 @@ export default function PVTAIRFrat() {
               </div>
             )}
             {showMyFlights
-              ? <MyFlightsView flights={boardFlights} myScheduledFlights={myScheduledFlights} session={session} profile={profile} onUpdateFlight={onUpdateFlight} onDeleteFlight={handleDeleteFlight} onSelectScheduledFlight={(fl) => { if (fl._source === "foreflight") setSelectedFfFlight(fl); else setSelectedScTrip(fl); setCv("submit"); }} onNewFrat={() => setCv("submit")} />
+              ? <MyFlightsView flights={boardFlights} myScheduledFlights={myScheduledFlights} session={session} profile={profile} onUpdateFlight={onUpdateFlight} onDeleteFlight={handleDeleteFlight} onSelectScheduledFlight={(fl) => { if (fl._source === "foreflight") setSelectedFfFlight(fl); else setSelectedScTrip(fl); setCv("submit"); }} onNewFrat={() => setCv("submit")} fleetAircraft={fleetAircraft} />
               : <FlightBoard flights={boardFlights} foreflightFlights={foreflightFlights} schedaeroTrips={schedaeroTrips} onUpdateFlight={onUpdateFlight} onDeleteFlight={handleDeleteFlight} initialSelectedFlight={activeFlow === "flights" ? "FRAT-DEMO" : null} adsbEnabled={hasFeature(org, "adsb_tracking")} session={session} fleetAircraft={fleetAircraft} fratRecords={records} riskCategories={riskCategories} onApproveFlight={async (flightDbId, fratDbId) => {
           setFlights(prev => prev.map(f => f.dbId === flightDbId ? { ...f, status: "ACTIVE", approvalStatus: "approved", approvedAt: new Date().toISOString() } : f));
           if (fratDbId) setRecords(prev => prev.map(r => r.dbId === fratDbId ? { ...r, approvalStatus: "approved" } : r));
