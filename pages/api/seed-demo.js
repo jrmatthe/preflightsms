@@ -373,7 +373,7 @@ export default async function handler(req, res) {
       { ...ffRoutes[0], pilot: adminUser, hoursFromNow: 2, notes: "Client pickup — 6 passengers to Portland meeting" },
       { ...ffRoutes[2], pilot: adminUser, hoursFromNow: 5, notes: "Charter to Boise — 5 pax corporate group" },
       { ...ffRoutes[1], pilot: pilots[1], hoursFromNow: 4, notes: "Charter to Spokane — return same day" },
-      { ...ffRoutes[4], pilot: adminUser, hoursFromNow: 26, notes: "Yakima medevac positioning flight" },
+      { ...ffRoutes[4], pilot: adminUser, hoursFromNow: 8, notes: "Yakima medevac positioning flight" },
       { ...ffRoutes[5], pilot: pilots[0], hoursFromNow: 28, notes: "Repositioning flight" },
     ];
 
