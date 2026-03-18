@@ -174,11 +174,20 @@ Respond ONLY with a JSON object:
       }),
     });
 
+    if (!claudeRes.ok) {
+      const errBody = await claudeRes.text();
+      console.error("Claude API error:", claudeRes.status, errBody);
+      return new Response(
+        JSON.stringify({ error: `Claude API returned ${claudeRes.status}` }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const claudeData = await claudeRes.json();
     const responseText = claudeData.content?.[0]?.text || "{}";
 
     // Parse lessons learned from response
-    let lessonsLearned = {};
+    let lessonsLearned: Record<string, unknown> = {};
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -186,6 +195,14 @@ Respond ONLY with a JSON object:
       }
     } catch {
       console.error("Failed to parse Claude response:", responseText);
+    }
+
+    if (!lessonsLearned.summary) {
+      console.error("No summary in parsed response. Raw text:", responseText);
+      return new Response(
+        JSON.stringify({ error: "Failed to generate lessons learned", raw: responseText.substring(0, 500) }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Log usage
