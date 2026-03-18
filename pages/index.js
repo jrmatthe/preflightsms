@@ -1868,12 +1868,17 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
     return () => { cancelled = true; clearInterval(iv); };
   }, [adsbEnabled, session?.access_token]);
 
-  // Fetch airport coordinates
+  // Fetch airport coordinates (with fallback for common airports)
+  const FALLBACK_COORDS = { KSEA: { lat: 47.449, lon: -122.309, name: "Seattle-Tacoma Intl" }, KBFI: { lat: 47.53, lon: -122.302, name: "Boeing Field" }, KPDX: { lat: 45.589, lon: -122.597, name: "Portland Intl" }, KBOI: { lat: 43.564, lon: -116.223, name: "Boise Air Terminal" }, KGEG: { lat: 47.62, lon: -117.534, name: "Spokane Intl" }, KYKM: { lat: 46.568, lon: -120.544, name: "Yakima Air Terminal" }, KPSC: { lat: 46.265, lon: -119.119, name: "Tri-Cities" }, KBLI: { lat: 48.793, lon: -122.538, name: "Bellingham Intl" }, KOLM: { lat: 46.969, lon: -122.903, name: "Olympia Regional" }, KSFF: { lat: 47.683, lon: -117.323, name: "Felts Field" } };
   useEffect(() => {
     const ids = new Set();
     flights.forEach(f => { if (f.departure) ids.add(f.departure); if (f.destination) ids.add(f.destination); });
     if (ids.size === 0) return;
-    const toFetch = [...ids].filter(id => !airportCoords[id]);
+    // Apply fallbacks immediately for known airports
+    const fallbacks = {};
+    ids.forEach(id => { if (FALLBACK_COORDS[id] && !airportCoords[id]) fallbacks[id] = FALLBACK_COORDS[id]; });
+    if (Object.keys(fallbacks).length > 0) setAirportCoords(prev => ({ ...prev, ...fallbacks }));
+    const toFetch = [...ids].filter(id => !airportCoords[id] && !fallbacks[id]);
     if (toFetch.length === 0) return;
     fetch(`/api/airports?ids=${toFetch.join(",")}`).then(r => r.json()).then(data => {
       setAirportCoords(prev => ({ ...prev, ...data }));
