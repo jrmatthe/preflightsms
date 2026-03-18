@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       .eq("feature", "draft_assist")
       .gte("created_at", oneHourAgo);
 
-    if ((recentCalls || 0) >= 10) {
+    if ((recentCalls || 0) >= 30) {
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -291,8 +291,20 @@ Respond ONLY with a JSON object:
       }),
     });
 
+    if (!claudeRes.ok) {
+      const errBody = await claudeRes.text();
+      console.error("Claude API error:", claudeRes.status, errBody);
+      return new Response(
+        JSON.stringify({ result: null, error: `Claude API returned ${claudeRes.status}` }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const claudeData = await claudeRes.json();
-    const responseText = claudeData.content?.[0]?.text || "{}";
+    let responseText = claudeData.content?.[0]?.text || "{}";
+
+    // Strip markdown code fences if present
+    responseText = responseText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
 
     // Parse result from response
     let result = {};

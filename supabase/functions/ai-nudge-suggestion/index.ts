@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       .eq("feature", "nudge_suggestion")
       .gte("created_at", oneHourAgo);
 
-    if ((recentCalls || 0) >= 10) {
+    if ((recentCalls || 0) >= 30) {
       return new Response(
         JSON.stringify({ suggestion: null }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

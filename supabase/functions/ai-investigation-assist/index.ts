@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       .eq("feature", "investigation_assist")
       .gte("created_at", oneHourAgo);
 
-    if ((recentCalls || 0) >= 10) {
+    if ((recentCalls || 0) >= 30) {
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
