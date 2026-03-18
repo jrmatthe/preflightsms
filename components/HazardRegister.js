@@ -728,7 +728,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                     <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(initScore) }}>{initScore}</span>
                     <span style={{ color: MUTED, fontSize: 16 }}>{"\u2192"}</span>
                     {residualL && residualS ? (
-                      <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(residualL * residualS) }}>{riskLabel(residualL * residualS)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(residualL * residualS) }}>{residualL * residualS} <span style={{ fontWeight: 600, fontSize: 11 }}>{riskLabel(residualL * residualS).toLowerCase()}</span></span>
                     ) : (
                       <span style={{ fontSize: 13, color: MUTED }}>—</span>
                     )}
