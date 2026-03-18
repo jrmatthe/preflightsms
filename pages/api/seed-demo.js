@@ -742,20 +742,8 @@ export default async function handler(req, res) {
     }
     log.push("Created SPIs with measurements");
 
-    // ── 13. Create SMS Manuals ──────────────────────────────────
-    await supabase.from("sms_manuals").upsert({
-      org_id: orgId, manual_key: "safety_policy",
-      title: "Safety Policy & Objectives",
-      description: "Management commitment to safety and organizational safety objectives.",
-      cfr_references: ["5.21(a)", "5.21(b)"],
-      status: "active", version: "2.0",
-      sections: [
-        { title: "Safety Policy Statement", content: "Cascade Charter Aviation is committed to developing, implementing, maintaining, and constantly improving strategies and processes to ensure that all aviation activities take place under a balanced allocation of organizational resources, aimed at achieving the highest level of safety performance." },
-        { title: "Safety Objectives", content: "1. Maintain zero accidents and serious incidents.\n2. Achieve 95% FRAT completion rate.\n3. Close all corrective actions within 30 days.\n4. Conduct quarterly safety stand-downs." },
-      ],
-      last_edited_by: adminId,
-    }, { onConflict: "org_id,manual_key" });
-    log.push("Created SMS manual");
+    // ── 13. SMS Manuals — intentionally empty so "Load Template Defaults" prompt appears in demo
+    log.push("Skipped SMS manuals (demo shows template loading flow)");
 
     // ── Done ────────────────────────────────────────────────────
     return res.status(200).json({
