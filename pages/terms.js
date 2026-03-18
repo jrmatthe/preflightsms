@@ -15,14 +15,24 @@ export default function TermsOfService() {
           <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "40px 36px" }}>
             <style>{`@media(max-width:480px){.tos-card{padding:24px 18px !important}}`}</style>
             <h1 style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia, serif", margin: "0 0 4px" }}>Terms of Service</h1>
-            <p style={{ fontSize: 12, color: MUTED, margin: "0 0 32px" }}>Last updated: February 19, 2026</p>
+            <p style={{ fontSize: 12, color: MUTED, margin: "0 0 32px" }}>Last updated: March 18, 2026</p>
 
             <Section title="1. Acceptance of Terms">
               By creating an account or using PreflightSMS ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you are using the Service on behalf of an organization, you represent that you have the authority to bind that organization to these Terms.
             </Section>
 
             <Section title="2. Description of Service">
-              PreflightSMS is a cloud-based Safety Management System (SMS) designed for Part 135 and other aviation operators. The Service includes flight risk assessment tools, flight following, safety reporting, hazard tracking, crew management, training records, and related features. PreflightSMS is a supplementary tool and does not replace regulatory requirements, approved SMS programs, or the judgment of qualified aviation professionals.
+              PreflightSMS is a cloud-based Safety Management System (SMS) designed for Part 135 and other aviation operators. The Service includes:
+              <br /><br />
+              <strong style={{ color: WHITE }}>Core SMS Features:</strong> Flight risk assessment tools (FRAT), flight following and tracking, safety reporting, hazard investigation and tracking, corrective action management, management of change (MOC), internal evaluation program (audits), safety performance indicators (SPIs), emergency response planning, safety culture surveys, and compliance tracking.
+              <br /><br />
+              <strong style={{ color: WHITE }}>Documentation Features:</strong> SMS manual authoring with templates, safety policy management, training and competency-based training (CBT) records, and document management.
+              <br /><br />
+              <strong style={{ color: WHITE }}>Integration Features:</strong> ForeFlight and SchedAero dispatch integration, real-time ADS-B flight tracking, insurance safety scorecard generation, and API access.
+              <br /><br />
+              <strong style={{ color: WHITE }}>AI-Powered Features:</strong> Optional AI assistance for risk analysis, hazard identification, investigation analysis, lessons learned generation, audit checklist generation, policy drafting, safety report categorization, and natural-language safety search. AI features are powered by Anthropic's Claude and are subject to Section 8a below.
+              <br /><br />
+              PreflightSMS is a supplementary tool and does not replace regulatory requirements, approved SMS programs, or the judgment of qualified aviation professionals.
             </Section>
 
             <Section title="3. Accounts and Registration">
@@ -39,26 +49,42 @@ export default function TermsOfService() {
 
             <Section title="6. Your Data">
               You retain ownership of all data you submit to the Service ("Your Data"). You grant PreflightSMS a limited license to store, process, and display Your Data solely to provide and improve the Service. We will not sell, share, or distribute Your Data to third parties except as described in our Privacy Policy or as required by law.
+              <br /><br />
+              When you use AI-powered features, relevant portions of Your Data (such as hazard descriptions, report details, and safety context) are sent to our AI provider (Anthropic) for processing. See Section 8a for details. Your Data is not used to train AI models.
             </Section>
 
             <Section title="7. Acceptable Use">
-              You agree not to: (a) use the Service for any unlawful purpose; (b) attempt to gain unauthorized access to any part of the Service; (c) interfere with or disrupt the Service; (d) upload malicious code; (e) impersonate any person or entity; or (f) use the Service in any manner that could damage, disable, or impair the Service.
+              You agree not to: (a) use the Service for any unlawful purpose; (b) attempt to gain unauthorized access to any part of the Service; (c) interfere with or disrupt the Service; (d) upload malicious code; (e) impersonate any person or entity; (f) use the Service in any manner that could damage, disable, or impair the Service; or (g) use the API or webhooks in a manner that exceeds reasonable usage or places undue burden on the Service.
             </Section>
 
             <Section title="8. Aviation Disclaimer">
-              PreflightSMS is a decision-support and recordkeeping tool. It does not provide operational control, dispatch authority, or regulatory compliance certification. All flight risk assessments, go/no-go decisions, and safety determinations remain the sole responsibility of the pilot-in-command and the certificate holder. PreflightSMS does not guarantee the accuracy, completeness, or timeliness of any risk assessment, weather data, or safety information presented through the Service.
+              PreflightSMS is a decision-support and recordkeeping tool. It does not provide operational control, dispatch authority, or regulatory compliance certification. All flight risk assessments, go/no-go decisions, and safety determinations remain the sole responsibility of the pilot-in-command and the certificate holder. PreflightSMS does not guarantee the accuracy, completeness, or timeliness of any risk assessment, weather data, flight tracking data, or safety information presented through the Service.
+              <br /><br />
+              Flight tracking features use publicly available ADS-B data and estimated positions based on departure times and flight plans. Position data may be delayed, inaccurate, or unavailable. Flight tracking is provided for situational awareness only and must not be relied upon for operational decisions, search and rescue, or air traffic control purposes.
             </Section>
 
-            <Section title="8a. User-Generated and Uploaded Content">
-              You are solely responsible for the accuracy, completeness, and regulatory compliance of all documents you upload to or create within the Service, including but not limited to safety policies, standard operating procedures, training materials, and any content generated from templates. PreflightSMS provides templates and tools as starting points but does not review, verify, or certify the compliance of any user content. There is no guarantee that documents — whether created from templates, manually entered, or uploaded — meet FAA, 14 CFR Part 5, or any other regulatory requirements. The certificate holder bears full responsibility for ensuring that all SMS documentation meets applicable regulations and is suitable for operational use.
+            <Section title="8a. AI Features Disclaimer">
+              AI-powered features in PreflightSMS are provided as decision-support tools only. AI-generated content — including risk assessments, hazard analyses, investigation findings, lessons learned, audit checklists, policy drafts, and safety recommendations — is generated by artificial intelligence and has not been reviewed or verified by a qualified aviation safety professional.
+              <br /><br />
+              <strong style={{ color: WHITE }}>You must review, verify, and approve all AI-generated content before acting on it or incorporating it into your safety management system.</strong> AI suggestions may be incomplete, inaccurate, or inappropriate for your specific operational context. The certificate holder and their qualified personnel bear full responsibility for all safety decisions, regardless of whether AI assistance was used.
+              <br /><br />
+              AI features are rate-limited (30 requests per hour per user). AI-generated content is not stored by our AI provider (Anthropic) for training purposes. See our Privacy Policy for details on what data is processed.
+            </Section>
+
+            <Section title="8b. User-Generated and Uploaded Content">
+              You are solely responsible for the accuracy, completeness, and regulatory compliance of all documents you upload to or create within the Service, including but not limited to safety policies, standard operating procedures, SMS manuals, training materials, audit templates, emergency response plans, and any content generated from templates or AI assistance. PreflightSMS provides templates and tools as starting points but does not review, verify, or certify the compliance of any user content. There is no guarantee that documents — whether created from templates, generated by AI, manually entered, or uploaded — meet FAA, 14 CFR Part 5, or any other regulatory requirements. The certificate holder bears full responsibility for ensuring that all SMS documentation meets applicable regulations and is suitable for operational use.
+            </Section>
+
+            <Section title="8c. Third-Party Integrations">
+              PreflightSMS integrates with third-party services including ForeFlight, SchedAero, Stripe, and publicly available ADS-B data sources. These integrations are provided on an "as-is" basis. We are not responsible for the availability, accuracy, or reliability of data from third-party services. Changes to third-party APIs or services may temporarily affect integration functionality. Your use of third-party services is subject to those services' own terms and privacy policies.
             </Section>
 
             <Section title="9. Limitation of Liability">
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, PREFLIGHTSMS AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE. OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT YOU PAID TO US IN THE TWELVE MONTHS PRECEDING THE CLAIM.
+              TO THE MAXIMUM EXTENT PERMITTED BY LAW, PREFLIGHTSMS AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE, INCLUDING BUT NOT LIMITED TO RELIANCE ON AI-GENERATED CONTENT, FLIGHT TRACKING DATA, OR THIRD-PARTY INTEGRATION DATA. OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT YOU PAID TO US IN THE TWELVE MONTHS PRECEDING THE CLAIM.
             </Section>
 
             <Section title="10. Indemnification">
-              You agree to indemnify and hold harmless PreflightSMS from any claims, damages, losses, or expenses arising from your use of the Service, your violation of these Terms, or your violation of any rights of a third party.
+              You agree to indemnify and hold harmless PreflightSMS from any claims, damages, losses, or expenses arising from your use of the Service, your violation of these Terms, your reliance on AI-generated content, or your violation of any rights of a third party.
             </Section>
 
             <Section title="11. Termination">

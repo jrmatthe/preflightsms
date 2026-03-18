@@ -4067,7 +4067,8 @@ export default function PVTAIRFrat() {
   const [cv, _setCv] = useState(() => {
     if (_initTab === "subscription") return "admin";
     if (_initTab) return _initTab;
-    if (_initHash) return _initHash;
+    // Default: home on desktop, flights (My Flights) on mobile
+    if (typeof window !== "undefined" && window.innerWidth <= 768) return "flights";
     return "home";
   });
   const cvRef = useRef(cv);
