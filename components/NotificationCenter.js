@@ -170,8 +170,15 @@ export default function NotificationCenter({ notifications, reads, onMarkRead, o
   const readSet = useMemo(() => new Set(reads || []), [reads]);
   const unreadCount = visible.filter(n => !readSet.has(n.id)).length;
 
+  const [bulletinModal, setBulletinModal] = useState(null);
+
   const handleClick = (n) => {
     if (!readSet.has(n.id)) onMarkRead(n.id);
+    if (n.type === "safety_bulletin") {
+      setBulletinModal(n);
+      setOpen(false);
+      return;
+    }
     if (n.link_tab) onNavigate(n.link_tab, n.link_id || null);
     setOpen(false);
   };
@@ -329,6 +336,30 @@ export default function NotificationCenter({ notifications, reads, onMarkRead, o
               )}
             </div>
           )}
+        </div>
+      )}
+      {/* Safety Bulletin Modal */}
+      {bulletinModal && (
+        <div onClick={() => setBulletinModal(null)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 10000,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12,
+            padding: 28, width: "90vw", maxWidth: 560, maxHeight: "80vh", overflowY: "auto",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: YELLOW, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Safety Bulletin</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: WHITE, lineHeight: 1.4 }}>{bulletinModal.title?.replace("Safety Bulletin: ", "")}</div>
+              </div>
+              <button onClick={() => setBulletinModal(null)} style={{
+                background: "none", border: "none", color: MUTED, fontSize: 20, cursor: "pointer", padding: "0 4px", lineHeight: 1,
+              }}>{"\u00D7"}</button>
+            </div>
+            <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{bulletinModal.body}</div>
+            <div style={{ marginTop: 16, fontSize: 10, color: MUTED }}>{new Date(bulletinModal.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+          </div>
         </div>
       )}
     </div>
