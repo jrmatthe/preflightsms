@@ -29,6 +29,7 @@ const PERMISSIONS = [
   { id: "view_analytics", label: "Analytics", desc: "Access the Safety Analytics dashboard and trend data" },
   { id: "view_compliance", label: "Compliance", desc: "Access the Audits & Compliance section" },
   { id: "view_all_reports", label: "View All Reports", desc: "View all safety reports in the organization, not just their own submissions" },
+  { id: "rectify_mel", label: "Rectify MEL", desc: "Can rectify (clear) MEL items — for pilots who also perform maintenance duties" },
 ];
 
 const TIER_DEFS = {

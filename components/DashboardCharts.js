@@ -1220,7 +1220,7 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
   const orgId = profile?.org_id;
   const isAdminRole = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const canDeferMel = !!onUpdateMel; // any role can defer an MEL
-  const canRectifyMel = profile?.role === "maintenance" || isAdminRole; // only maintenance/admin can clear
+  const canRectifyMel = profile?.role === "maintenance" || isAdminRole || (profile?.permissions || []).includes("rectify_mel");
   const [melFormOpen, setMelFormOpen] = useState(false);
   const [form, setForm] = useState({ description: "", mel_reference: "", category: "C", notes: "" });
   const [saving, setSaving] = useState(false);
