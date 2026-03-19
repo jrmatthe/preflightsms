@@ -25,6 +25,10 @@ const ROLES = [
 const PERMISSIONS = [
   { id: "flight_follower", label: "Flight Follower", desc: "Receives email alerts when a flight becomes overdue" },
   { id: "approver", label: "FRAT Approver", desc: "Can approve or reject high/critical risk FRATs (for non-admin roles like Pilot or Dispatcher)" },
+  { id: "view_investigations", label: "Investigations", desc: "Access the Investigations section (hazards, corrective actions, management of change)" },
+  { id: "view_analytics", label: "Analytics", desc: "Access the Safety Analytics dashboard and trend data" },
+  { id: "view_compliance", label: "Compliance", desc: "Access the Audits & Compliance section" },
+  { id: "view_all_reports", label: "View All Reports", desc: "View all safety reports in the organization, not just their own submissions" },
 ];
 
 const TIER_DEFS = {
