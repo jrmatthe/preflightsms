@@ -804,9 +804,11 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
   );
 }
 
-function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser }) {
+function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, onUpdateName, onUpdateEmail, onRemoveUser }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [editName, setEditName] = useState(user.full_name || "");
+  const [savingName, setSavingName] = useState(false);
   const [editEmail, setEditEmail] = useState(user.email || "");
   const [savingEmail, setSavingEmail] = useState(false);
   const role = ROLES.find(r => r.id === user.role) || ROLES[0];
@@ -864,6 +866,17 @@ function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, 
                 </button>
               );
             })}
+          </div>
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Name</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Full name"
+                style={{ padding: "6px 10px", borderRadius: 6, fontSize: 12, background: BLACK, color: OFF_WHITE, border: `1px solid ${BORDER}`, width: 240, boxSizing: "border-box" }} />
+              <button disabled={savingName || editName === (user.full_name || "")} onClick={async () => { setSavingName(true); await onUpdateName(user.id, editName); setSavingName(false); }}
+                style={{ padding: "6px 14px", borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: savingName || editName === (user.full_name || "") ? "default" : "pointer",
+                  background: savingName || editName === (user.full_name || "") ? "transparent" : `${GREEN}22`, color: savingName || editName === (user.full_name || "") ? MUTED : GREEN,
+                  border: `1px solid ${savingName || editName === (user.full_name || "") ? BORDER : GREEN + "44"}` }}>{savingName ? "Saving\u2026" : "Save"}</button>
+            </div>
           </div>
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Email</div>
@@ -1376,7 +1389,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
   );
 }
 
-export default function AdminPanel({ profile, session, orgProfiles, onUpdateRole, onUpdatePermissions, onUpdateEmail, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, onUpdateAircraftMel, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook, onStartFresh, onRequestDeletion, onCancelDeletion }) {
+export default function AdminPanel({ profile, session, orgProfiles, onUpdateRole, onUpdatePermissions, onUpdateName, onUpdateEmail, onRemoveUser, orgName, orgSlug, orgLogo, onUploadLogo, fratTemplate, fratTemplates, onSaveTemplate, onCreateTemplate, onDeleteTemplate, onSetActiveTemplate, orgData, onUpdateOrg, onCheckout, onBillingPortal, invitations, onInviteUser, onRevokeInvitation, onResendInvitation, initialTab, tourTab, fleetAircraft, maxAircraft, onAddAircraft, onUpdateAircraft, onDeleteAircraft, onUpdateAircraftMel, foreflightConfig, onSaveForeflightConfig, onTestForeflightConnection, onForeflightSyncNow, schedaeroConfig, onSaveSchedaeroConfig, onTestSchedaeroConnection, onSchedaeroSyncNow, apiKeys, webhooks, onCreateApiKey, onRevokeApiKey, onCreateWebhook, onUpdateWebhook, onDeleteWebhook, onTestWebhook, onStartFresh, onRequestDeletion, onCancelDeletion }) {
   const myRole = profile?.role;
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(myRole);
   const [uploading, setUploading] = useState(false);
@@ -1550,7 +1563,7 @@ export default function AdminPanel({ profile, session, orgProfiles, onUpdateRole
         </div>
 
         {orgProfiles.map(user => (
-          <UserRow key={user.id} user={user} profile={profile} canManage={canManage} onUpdateRole={onUpdateRole} onUpdatePermissions={onUpdatePermissions} onUpdateEmail={onUpdateEmail} onRemoveUser={onRemoveUser} />
+          <UserRow key={user.id} user={user} profile={profile} canManage={canManage} onUpdateRole={onUpdateRole} onUpdatePermissions={onUpdatePermissions} onUpdateName={onUpdateName} onUpdateEmail={onUpdateEmail} onRemoveUser={onRemoveUser} />
         ))}
       </div>
 
