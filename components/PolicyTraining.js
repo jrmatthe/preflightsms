@@ -32,21 +32,26 @@ const PART5_TAG_OPTIONS = [
 ];
 
 // ── POLICY LIBRARY ────────────────────────────────────────────
-function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy }) {
+function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy, editPolicy }) {
+  const isEdit = !!editPolicy;
   const [form, setForm] = useState({
-    title: "", description: "", category: "safety_policy", version: "1.0",
-    content: "", effectiveDate: "", reviewDate: "", status: "active",
+    title: editPolicy?.title || "", description: editPolicy?.description || "",
+    category: editPolicy?.category || "safety_policy", version: editPolicy?.version || "1.0",
+    content: editPolicy?.content || "", effectiveDate: editPolicy?.effective_date || "",
+    reviewDate: editPolicy?.review_date || "", status: editPolicy?.status || "active",
   });
   const [file, setFile] = useState(null);
-  const [part5Tags, setPart5Tags] = useState([]);
+  const [replaceFile, setReplaceFile] = useState(false);
+  const [part5Tags, setPart5Tags] = useState(editPolicy?.part5_tags || []);
   const [aiDraftLoading, setAiDraftLoading] = useState(false);
   const fileRef = { current: null };
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const versionChanged = isEdit && form.version !== (editPolicy?.version || "1.0");
   return (
     <div style={{ maxWidth: 700, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Add Policy Document</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>{isEdit ? "Edit Policy Document" : "Add Policy Document"}</div>
           <div style={{ fontSize: 11, color: MUTED }}>§5.21 — Safety policy documentation</div>
         </div>
         {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
@@ -101,8 +106,14 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy }) {
       </div>
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>File Attachment</label>
-        <input ref={el => fileRef.current = el} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" onChange={e => { if (e.target.files?.[0]) setFile(e.target.files[0]); }} style={{ display: "none" }} />
-        {!file ? (
+        <input ref={el => fileRef.current = el} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" onChange={e => { if (e.target.files?.[0]) { setFile(e.target.files[0]); setReplaceFile(true); } }} style={{ display: "none" }} />
+        {isEdit && editPolicy?.file_url && !replaceFile ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6 }}>
+            <span style={{ fontSize: 12, color: CYAN }}>📎</span>
+            <span style={{ fontSize: 12, color: OFF_WHITE, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{editPolicy.file_name || "Attached file"}</span>
+            <button onClick={() => fileRef.current?.click()} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, color: MUTED, fontSize: 10, cursor: "pointer", padding: "3px 8px" }}>Replace</button>
+          </div>
+        ) : !file ? (
           <button onClick={() => fileRef.current?.click()} style={{ padding: "10px 16px", background: NEAR_BLACK, border: `1px dashed ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, cursor: "pointer", width: "100%" }}>
             Upload PDF, DOC, XLS, PPT, or TXT file
           </button>
@@ -110,7 +121,7 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy }) {
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6 }}>
             <span style={{ fontSize: 12, color: OFF_WHITE, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
             <span style={{ fontSize: 10, color: MUTED }}>{(file.size / 1024).toFixed(0)} KB</span>
-            <button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ""; }} style={{ background: "none", border: "none", color: RED, fontSize: 14, cursor: "pointer", padding: "0 4px" }}>×</button>
+            <button onClick={() => { setFile(null); setReplaceFile(false); if (fileRef.current) fileRef.current.value = ""; }} style={{ background: "none", border: "none", color: RED, fontSize: 14, cursor: "pointer", padding: "0 4px" }}>×</button>
           </div>
         )}
       </div>
@@ -141,9 +152,15 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy }) {
           <input type="date" value={form.reviewDate} onChange={e => set("reviewDate", e.target.value)} style={inp} />
         </div>
       </div>
-      <button onClick={() => { if (form.title.trim()) onSubmit({ ...form, file, part5Tags: part5Tags.length > 0 ? part5Tags : null }); }} disabled={!form.title.trim()}
+      {isEdit && versionChanged && (
+        <div style={{ marginBottom: 12, padding: "10px 14px", background: `${YELLOW}10`, border: `1px solid ${YELLOW}33`, borderRadius: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: YELLOW }}>Version changed (v{editPolicy?.version} → v{form.version})</div>
+          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>All existing acknowledgments will be reset so users must re-acknowledge the updated document.</div>
+        </div>
+      )}
+      <button onClick={() => { if (form.title.trim()) onSubmit({ ...form, file: replaceFile ? file : null, part5Tags: part5Tags.length > 0 ? part5Tags : null, _isEdit: isEdit, _id: editPolicy?.id, _versionChanged: versionChanged }); }} disabled={!form.title.trim()}
         style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1 }}>
-        Add Document
+        {isEdit ? "Save Changes" : "Add Document"}
       </button>
     </div>
   );
@@ -151,7 +168,7 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy }) {
 
 // ── MAIN COMPONENT ────────────────────────────────────────────
 export default function PolicyTraining({
-  profile, session, policies, onCreatePolicy, onDeletePolicy, onAcknowledgePolicy, orgProfiles,
+  profile, session, policies, onCreatePolicy, onUpdatePolicy, onDeletePolicy, onAcknowledgePolicy, orgProfiles,
   smsManuals, showManuals, readOnlyManuals, tourTab,
   // SMS Manuals props (passed through when showManuals is true)
   templateVariables, signatures, fleetAircraft,
@@ -161,7 +178,8 @@ export default function PolicyTraining({
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const [topTab, setTopTab] = useState("policies");
   useEffect(() => { if (tourTab) setTopTab(tourTab); }, [tourTab]);
-  const [view, setView] = useState("list");   // list | new_policy
+  const [view, setView] = useState("list");   // list | new_policy | edit_policy
+  const [editingPolicy, setEditingPolicy] = useState(null);
   const [expandedPolicy, setExpandedPolicy] = useState(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("active");
@@ -246,6 +264,7 @@ export default function PolicyTraining({
 
   // Forms
   if (view === "new_policy") return <PolicyForm onSubmit={p => { onCreatePolicy(p); setView("list"); }} onCancel={() => setView("list")} onAiDraftPolicy={onAiDraftPolicy} />;
+  if (view === "edit_policy" && editingPolicy) return <PolicyForm editPolicy={editingPolicy} onSubmit={p => { if (onUpdatePolicy) onUpdatePolicy(p); setView("list"); setEditingPolicy(null); setExpandedPolicy(null); }} onCancel={() => { setView("list"); setEditingPolicy(null); }} onAiDraftPolicy={onAiDraftPolicy} />;
 
   // Compliance tab (admin-only)
   if (topTab === "compliance" && isAdmin) {
@@ -535,10 +554,17 @@ export default function PolicyTraining({
                       I have reviewed this document — Acknowledge
                     </button>
                   )}
+                  {isAdmin && onUpdatePolicy && (
+                    <button onClick={(e) => { e.stopPropagation(); setEditingPolicy(p); setView("edit_policy"); }}
+                      style={{ padding: "10px 16px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        background: `${CYAN}15`, color: CYAN, border: `1px solid ${CYAN}33`, marginLeft: "auto" }}>
+                      Edit
+                    </button>
+                  )}
                   {isAdmin && onDeletePolicy && (
                     <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete "${p.title}"? This cannot be undone.`)) { setExpandedPolicy(null); onDeletePolicy(p.id); } }}
                       style={{ padding: "10px 16px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                        background: `${RED}15`, color: RED, border: `1px solid ${RED}33`, marginLeft: "auto" }}>
+                        background: `${RED}15`, color: RED, border: `1px solid ${RED}33`, marginLeft: isAdmin && onUpdatePolicy ? 0 : "auto" }}>
                       Delete
                     </button>
                   )}
