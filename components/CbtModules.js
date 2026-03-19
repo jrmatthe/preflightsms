@@ -40,13 +40,13 @@ const CATEGORIES = [
   { id: "security", label: "Security" }, { id: "crew_resource", label: "CRM" }, { id: "company", label: "Company" },
 ];
 
-// ── PART 5 TRAINING REQUIREMENTS (pre-seed) ─────────────────────
-const PART5_TRAINING_REQUIREMENTS = [
-  { title: "Pillar 1: Safety Policy & SMS Foundations", description: "Comprehensive training on Safety Management Systems under 14 CFR Part 5 Subpart B. Covers the four pillars of SMS, safety policy development and implementation, organizational safety objectives, management commitment, safety reporting policy, just culture principles, roles and accountability for the Accountable Executive, Safety Manager, and all employees (§5.21, §5.23, §5.25). Includes the regulatory framework, real-world case studies of SMS implementation, and practical guidance for integrating SMS into daily operations.", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
-  { title: "Pillar 2: Safety Risk Management", description: "In-depth training on the Safety Risk Management process under 14 CFR Part 5 Subpart C (§5.51–§5.55). Covers systematic hazard identification through multiple data sources, system and task analysis methods, risk assessment using standardized 5×5 likelihood/severity matrices, risk control development following the hierarchy of controls, and residual risk evaluation. Includes practical application of risk management tools such as bowtie analysis, the Swiss Cheese Model, and real-world aviation case studies demonstrating how SRM prevents accidents.", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
-  { title: "Pillar 3: Safety Assurance", description: "Detailed training on Safety Assurance processes under 14 CFR Part 5 Subpart D (§5.71–§5.75). Covers continuous safety performance monitoring using Safety Performance Indicators (SPIs), multi-source data collection and trend analysis, safety performance assessment against organizational objectives, the continuous improvement cycle, corrective action development and verification, and management of change. Includes guidance on building effective safety review boards and leveraging data analytics for proactive safety management.", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
-  { title: "Pillar 4: Safety Promotion", description: "Training on Safety Promotion requirements under 14 CFR Part 5 Subpart E (§5.91, §5.93). Covers SMS competency and training program requirements, multi-channel safety communication strategies, hazard information dissemination tailored to employee responsibilities, explaining safety actions and procedure changes, and building and sustaining a positive safety culture. Includes practical guidance on safety newsletters, safety stand-downs, recognition programs, feedback mechanisms, and leadership behaviors that shape organizational safety culture.", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
-  { title: "Emergency Response Planning", description: "Training on the organization's Emergency Response Plan (ERP) as required by §5.27. Covers ERP structure and emergency classification levels, notification chains and command structure during emergencies, delegation of emergency authority, assignment of emergency responsibilities, coordination with interfacing organizations (airports, FBOs, medical facilities), post-event investigation procedures, organizational recovery planning, NTSB/FAA reporting requirements, and Critical Incident Stress Management (CISM). Includes tabletop exercise scenarios and real-world case studies.", category: "sms", requiredFor: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], frequencyMonths: 12 },
+// ── PART 5 TRAINING DEFINITIONS (pre-seed) ─────────────────────
+const PART5_TRAINING_DEFINITIONS = [
+  { title: "Pillar 1: Safety Policy & SMS Foundations", description: "Comprehensive training on Safety Management Systems under 14 CFR Part 5 Subpart B.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
+  { title: "Pillar 2: Safety Risk Management", description: "In-depth training on the Safety Risk Management process under 14 CFR Part 5 Subpart C.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
+  { title: "Pillar 3: Safety Assurance", description: "Detailed training on Safety Assurance processes under 14 CFR Part 5 Subpart D.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
+  { title: "Pillar 4: Safety Promotion", description: "Training on Safety Promotion requirements under 14 CFR Part 5 Subpart E.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
+  { title: "Emergency Response Planning", description: "Training on the organization's Emergency Response Plan (ERP) as required by §5.27.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
 ];
 
 // ── PART 5 CBT COURSES (pre-seed) ──────────────────────────────
@@ -550,58 +550,156 @@ const PART5_CBT_COURSES = [
   },
 ];
 
-// ── TRAINING RECORD FORM ────────────────────────────────────────
-function TrainingForm({ onSubmit, onCancel, requirements }) {
+// ── CREATE/EDIT TRAINING FORM ────────────────────────────────────
+function TrainingDefForm({ onSubmit, onCancel, orgProfiles, editTraining }) {
   const [form, setForm] = useState({
-    title: "", requirementId: "", completedDate: new Date().toISOString().slice(0, 10),
-    expiryDate: "", instructor: "", notes: "",
+    title: editTraining?.title || "",
+    description: editTraining?.description || "",
+    category: editTraining?.category || "sms",
+    scheduleType: editTraining?.schedule_type || "recurring",
+    frequencyMonths: editTraining?.frequency_months ?? 12,
+    enrolledRoles: editTraining?.enrolled_roles || ["pilot"],
+    enrolledUsers: editTraining?.enrolled_users || [],
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  const selectRequirement = (reqId) => {
-    const req = requirements.find(r => r.id === reqId);
-    if (req) {
-      const completed = form.completedDate || new Date().toISOString().slice(0, 10);
-      const expiry = req.frequency_months > 0 ? (() => {
-        const d = new Date(completed);
-        d.setMonth(d.getMonth() + req.frequency_months);
-        return d.toISOString().slice(0, 10);
-      })() : "";
-      set("requirementId", reqId);
-      setForm(f => ({ ...f, requirementId: reqId, title: req.title, expiryDate: expiry }));
-    }
+  const toggleRole = (role) => {
+    setForm(f => ({
+      ...f,
+      enrolledRoles: f.enrolledRoles.includes(role) ? f.enrolledRoles.filter(r => r !== role) : [...f.enrolledRoles, role],
+    }));
   };
+  const toggleUser = (userId) => {
+    setForm(f => ({
+      ...f,
+      enrolledUsers: f.enrolledUsers.includes(userId) ? f.enrolledUsers.filter(u => u !== userId) : [...f.enrolledUsers, userId],
+    }));
+  };
+  // Users not already covered by enrolled roles
+  const additionalUsers = (orgProfiles || []).filter(p => p.full_name && !form.enrolledRoles.includes(p.role));
 
   return (
     <div style={{ maxWidth: 600, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Log Training</div>
-          <div style={{ fontSize: 11, color: MUTED }}>§5.91 — Safety promotion: competency and training</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>{editTraining ? "Edit Training" : "New Training"}</div>
+          <div style={{ fontSize: 11, color: MUTED }}>Define a training with schedule and enrollment</div>
         </div>
         {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
       </div>
-      {requirements.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>From Requirement</label>
-          <select value={form.requirementId} onChange={e => selectRequirement(e.target.value)} style={inp}>
-            <option value="">Custom / one-off training</option>
-            {requirements.map(r => <option key={r.id} value={r.id}>{r.title} ({r.category})</option>)}
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Title *</label>
+        <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Annual SMS Recurrent Training" style={inp} />
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Description</label>
+        <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={2} placeholder="What this training covers..." style={{ ...inp, resize: "vertical" }} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }} className="report-grid">
+        <div>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Category</label>
+          <select value={form.category} onChange={e => set("category", e.target.value)} style={inp}>
+            {TRAINING_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Schedule</label>
+          <select value={form.scheduleType} onChange={e => set("scheduleType", e.target.value)} style={inp}>
+            <option value="one_time">One-time</option>
+            <option value="recurring">Recurring</option>
+          </select>
+        </div>
+      </div>
+      {form.scheduleType === "recurring" && (
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Repeat Every (months)</label>
+          <input type="number" min={1} value={form.frequencyMonths} onChange={e => set("frequencyMonths", parseInt(e.target.value) || 12)} style={{ ...inp, maxWidth: 120 }} />
         </div>
       )}
       <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Training Title *</label>
-        <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Initial SMS Awareness Training" style={inp} />
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Enroll by Role</label>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {["pilot", "dispatcher", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"].map(r => (
+            <button key={r} onClick={() => toggleRole(r)}
+              style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                background: form.enrolledRoles.includes(r) ? `${CYAN}22` : "transparent",
+                color: form.enrolledRoles.includes(r) ? CYAN : MUTED,
+                border: `1px solid ${form.enrolledRoles.includes(r) ? CYAN : BORDER}` }}>
+              {r.replace(/_/g, " ")}
+            </button>
+          ))}
+        </div>
       </div>
+      {additionalUsers.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Enroll Individual Users (optional)</label>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {additionalUsers.map(p => (
+              <button key={p.id} onClick={() => toggleUser(p.id)}
+                style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                  background: form.enrolledUsers.includes(p.id) ? `${GREEN}22` : "transparent",
+                  color: form.enrolledUsers.includes(p.id) ? GREEN : MUTED,
+                  border: `1px solid ${form.enrolledUsers.includes(p.id) ? GREEN : BORDER}` }}>
+                {p.full_name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <button onClick={() => { if (form.title.trim()) onSubmit(form); }} disabled={!form.title.trim()}
+        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1, marginTop: 8 }}>
+        {editTraining ? "Save Changes" : "Create Training"}
+      </button>
+    </div>
+  );
+}
+
+// ── LOG COMPLETION FORM ─────────────────────────────────────────
+function CompletionForm({ onSubmit, onCancel, trainings, orgProfiles, profile, isAdmin }) {
+  const [form, setForm] = useState({
+    trainingId: "", userId: profile?.id || "", completedDate: new Date().toISOString().slice(0, 10),
+    instructor: "", notes: "",
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const selectedTraining = (trainings || []).find(t => t.id === form.trainingId);
+  const computedExpiry = selectedTraining && selectedTraining.schedule_type === "recurring" && selectedTraining.frequency_months > 0
+    ? (() => { const d = new Date(form.completedDate); d.setMonth(d.getMonth() + selectedTraining.frequency_months); return d.toISOString().slice(0, 10); })()
+    : null;
+
+  return (
+    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Log Completion</div>
+          <div style={{ fontSize: 11, color: MUTED }}>Record that a user completed a training</div>
+        </div>
+        {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Training *</label>
+        <select value={form.trainingId} onChange={e => set("trainingId", e.target.value)} style={inp}>
+          <option value="">Select a training...</option>
+          {(trainings || []).map(t => <option key={t.id} value={t.id}>{t.title} ({t.schedule_type === "recurring" ? `every ${t.frequency_months}mo` : "one-time"})</option>)}
+        </select>
+      </div>
+      {isAdmin && (
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>User *</label>
+          <select value={form.userId} onChange={e => set("userId", e.target.value)} style={inp}>
+            <option value="">Select user...</option>
+            {(orgProfiles || []).filter(p => p.full_name).map(p => <option key={p.id} value={p.id}>{p.full_name} ({(p.role || "member").replace(/_/g, " ")})</option>)}
+          </select>
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }} className="report-grid">
         <div>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Completed Date *</label>
           <input type="date" value={form.completedDate} onChange={e => set("completedDate", e.target.value)} style={inp} />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Expiry Date</label>
-          <input type="date" value={form.expiryDate} onChange={e => set("expiryDate", e.target.value)} style={inp} />
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Expires</label>
+          <input type="date" value={computedExpiry || ""} readOnly style={{ ...inp, opacity: 0.6 }} />
+          {!computedExpiry && selectedTraining && <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>One-time — no expiry</div>}
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }} className="report-grid">
@@ -614,67 +712,10 @@ function TrainingForm({ onSubmit, onCancel, requirements }) {
           <input value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional" style={inp} />
         </div>
       </div>
-      <button onClick={() => { if (form.title.trim() && form.completedDate) onSubmit(form); }}
-        disabled={!form.title.trim() || !form.completedDate}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.title.trim() || !form.completedDate) ? 0.4 : 1 }}>
-        Log Training
-      </button>
-    </div>
-  );
-}
-
-// ── REQUIREMENT FORM ─────────────────────────────────────────────
-function RequirementForm({ onSubmit, onCancel }) {
-  const [form, setForm] = useState({ title: "", description: "", category: "sms", requiredFor: ["pilot"], frequencyMonths: 12 });
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const toggleRole = (role) => {
-    setForm(f => ({
-      ...f,
-      requiredFor: f.requiredFor.includes(role) ? f.requiredFor.filter(r => r !== role) : [...f.requiredFor, role],
-    }));
-  };
-  return (
-    <div style={{ maxWidth: 600, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>New Training Requirement</div>
-          <div style={{ fontSize: 11, color: MUTED }}>Define recurring or one-time training requirements</div>
-        </div>
-        {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Title *</label>
-        <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Annual SMS Recurrent Training" style={inp} />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }} className="report-grid">
-        <div>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Category</label>
-          <select value={form.category} onChange={e => set("category", e.target.value)} style={inp}>
-            {TRAINING_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Frequency (months, 0=one-time)</label>
-          <input type="number" value={form.frequencyMonths} onChange={e => set("frequencyMonths", parseInt(e.target.value) || 0)} style={inp} />
-        </div>
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Required For</label>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {["pilot", "dispatcher", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"].map(r => (
-            <button key={r} onClick={() => toggleRole(r)}
-              style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600, cursor: "pointer",
-                background: form.requiredFor.includes(r) ? `${CYAN}22` : "transparent",
-                color: form.requiredFor.includes(r) ? CYAN : MUTED,
-                border: `1px solid ${form.requiredFor.includes(r) ? CYAN : BORDER}` }}>
-              {r.replace(/_/g, " ")}
-            </button>
-          ))}
-        </div>
-      </div>
-      <button onClick={() => { if (form.title.trim()) onSubmit(form); }} disabled={!form.title.trim()}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1, marginTop: 8 }}>
-        Create Requirement
+      <button onClick={() => { if (form.trainingId && form.userId && form.completedDate) onSubmit(form); }}
+        disabled={!form.trainingId || !form.userId || !form.completedDate}
+        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.trainingId || !form.userId || !form.completedDate) ? 0.4 : 1 }}>
+        Log Completion
       </button>
     </div>
   );
@@ -1156,16 +1197,30 @@ export default function CbtModules({
   onSaveLesson, onDeleteLesson,
   onUpdateProgress, onUpdateEnrollment,
   onPublishCourse, onRefresh,
-  trainingRequirements, trainingRecords, onCreateRequirement, onLogTraining,
-  onDeleteTrainingRecord, onDeleteRequirement,
+  trainings, completions, onCreateTraining, onUpdateTraining, onDeleteTraining,
+  onLogCompletion, onDeleteCompletion,
   onInitTraining, tourTab,
+  // Legacy prop aliases
+  trainingRequirements: _legacyReqs, trainingRecords: _legacyRecs,
+  onCreateRequirement: _legacyCreateReq, onLogTraining: _legacyLogTraining,
+  onDeleteTrainingRecord: _legacyDelRec, onDeleteRequirement: _legacyDelReq,
 }) {
-  const [topTab, setTopTab] = useState("cbt"); // cbt | records | requirements
+  // Resolve new props vs legacy aliases
+  const trainingsList = trainings || _legacyReqs || [];
+  const completionsList = completions || _legacyRecs || [];
+  const handleCreateTraining = onCreateTraining || _legacyCreateReq;
+  const handleUpdateTraining = onUpdateTraining;
+  const handleDeleteTraining = onDeleteTraining || _legacyDelReq;
+  const handleLogCompletion = onLogCompletion || _legacyLogTraining;
+  const handleDeleteCompletion = onDeleteCompletion || _legacyDelRec;
+
+  const [topTab, setTopTab] = useState("cbt"); // cbt | trainings | completions | compliance
   useEffect(() => { if (tourTab) setTopTab(tourTab); }, [tourTab]);
   const [view, setView] = useState("catalog"); // catalog, course_detail, lesson, new_course, edit_course, new_lesson, edit_lesson
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
-  const [trainingView, setTrainingView] = useState("list"); // list | new_training | new_requirement
+  const [trainingView, setTrainingView] = useState("list"); // list | new_training | new_completion | edit_training
+  const [editingTraining, setEditingTraining] = useState(null);
   const [initializing, setInitializing] = useState(false);
   const [search, setSearch] = useState("");
   const [listFilter, setListFilter] = useState("all");
@@ -1179,35 +1234,35 @@ export default function CbtModules({
     if (!profile?.id || !onUpdateEnrollment) return;
     const now = new Date();
     for (const course of courses) {
-      const req = (trainingRequirements || []).find(r => r.title === course.title);
-      if (!req) continue;
-      const myRecord = (trainingRecords || [])
-        .filter(r => r.user_id === profile.id && r.requirement_id === req.id)
+      const tr = trainingsList.find(r => r.title === course.title);
+      if (!tr) continue;
+      const myCompletion = completionsList
+        .filter(r => r.user_id === profile.id && (r.training_id === tr.id || r.requirement_id === tr.id))
         .sort((a, b) => (b.completed_date || "").localeCompare(a.completed_date || ""))[0];
-      if (!myRecord?.expiry_date) continue;
-      if (new Date(myRecord.expiry_date) >= now) continue;
-      // Record is expired — reset enrollment if it's marked completed
+      const expiryDate = myCompletion?.expires_at || myCompletion?.expiry_date;
+      if (!expiryDate) continue;
+      if (new Date(expiryDate) >= now) continue;
       const myEnrollment = enrollments.find(e => e.course_id === course.id && e.user_id === profile.id && e.status === "completed");
       if (myEnrollment) {
         onUpdateEnrollment(course.id, { status: "expired", completedAt: null, certificateNumber: null });
       }
     }
-  }, [profile, courses, trainingRequirements, trainingRecords, enrollments, onUpdateEnrollment]);
+  }, [profile, courses, trainingsList, completionsList, enrollments, onUpdateEnrollment]);
 
   const handleInitTraining = async () => {
     setInitializing(true);
-    await onInitTraining(PART5_TRAINING_REQUIREMENTS, PART5_CBT_COURSES);
+    await onInitTraining(PART5_TRAINING_DEFINITIONS, PART5_CBT_COURSES);
     setInitializing(false);
   };
 
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const publishedCourses = courses.filter(c => c.status === "published" || isAdmin);
 
-  // Admins see all org records; non-admins see only their own
-  const visibleRecords = useMemo(() => {
-    if (isAdmin) return trainingRecords || [];
-    return (trainingRecords || []).filter(r => r.user_id === profile?.id);
-  }, [trainingRecords, isAdmin, profile]);
+  // Admins see all org completions; non-admins see only their own
+  const visibleCompletions = useMemo(() => {
+    if (isAdmin) return completionsList;
+    return completionsList.filter(r => r.user_id === profile?.id);
+  }, [completionsList, isAdmin, profile]);
 
   const openCourse = (c) => { setSelectedCourse(c); setView("course_detail"); };
   const openLesson = (l) => { setSelectedLesson(l); setView("lesson"); };
@@ -1215,9 +1270,10 @@ export default function CbtModules({
   const trainingStatus = useMemo(() => {
     const now = new Date();
     let current = 0, expiring = 0, expired = 0;
-    visibleRecords.forEach(r => {
-      if (!r.expiry_date) { current++; return; }
-      const exp = new Date(r.expiry_date);
+    visibleCompletions.forEach(r => {
+      const exp_date = r.expires_at || r.expiry_date;
+      if (!exp_date) { current++; return; }
+      const exp = new Date(exp_date);
       if (exp < now) expired++;
       else {
         const daysLeft = (exp - now) / (1000 * 60 * 60 * 24);
@@ -1226,51 +1282,67 @@ export default function CbtModules({
       }
     });
     return { current, expiring, expired };
-  }, [visibleRecords]);
+  }, [visibleCompletions]);
 
   // Current user's training status (for expiry banner in CBT view)
   const myTrainingStatus = useMemo(() => {
     const now = new Date();
     let expiring = 0, expired = 0;
-    (trainingRecords || []).forEach(r => {
-      if (r.user_id !== profile?.id || !r.expiry_date) return;
-      const exp = new Date(r.expiry_date);
+    completionsList.forEach(r => {
+      const exp_date = r.expires_at || r.expiry_date;
+      if (r.user_id !== profile?.id || !exp_date) return;
+      const exp = new Date(exp_date);
       if (exp < now) expired++;
       else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) expiring++;
     });
     return { expiring, expired };
-  }, [trainingRecords, profile]);
+  }, [completionsList, profile]);
 
-  // Compliance matrix: users × requirements (admin only)
+  // Compliance matrix: enrolled users × trainings (admin only)
   const complianceMatrix = useMemo(() => {
-    if (!isAdmin || !orgProfiles?.length || !trainingRequirements?.length) return { users: [], requirements: [], matrix: {}, compliantCount: 0, totalUsers: 0 };
+    if (!isAdmin || !orgProfiles?.length || !trainingsList.length) return { users: [], trainings: [], matrix: {}, compliantCount: 0, totalUsers: 0 };
     const now = new Date();
-    const reqs = trainingRequirements;
-    const users = orgProfiles.filter(p => p.full_name);
+    const allUsers = orgProfiles.filter(p => p.full_name);
+    // Determine which users are enrolled in at least one training
+    const enrolledUserIds = new Set();
+    for (const tr of trainingsList) {
+      const roles = tr.enrolled_roles || tr.required_for || [];
+      const userIds = tr.enrolled_users || [];
+      for (const u of allUsers) {
+        if (roles.includes(u.role) || userIds.includes(u.id)) enrolledUserIds.add(u.id);
+      }
+    }
+    const users = allUsers.filter(u => enrolledUserIds.has(u.id));
     const matrix = {};
     let compliantCount = 0;
     for (const user of users) {
       matrix[user.id] = {};
       let allCurrent = true;
-      for (const req of reqs) {
-        // Find most recent matching record for this user + requirement
-        const matching = (trainingRecords || [])
-          .filter(r => r.user_id === user.id && r.requirement_id === req.id)
+      for (const tr of trainingsList) {
+        const roles = tr.enrolled_roles || tr.required_for || [];
+        const userIds = tr.enrolled_users || [];
+        if (!roles.includes(user.role) && !userIds.includes(user.id)) {
+          matrix[user.id][tr.id] = "not_applicable";
+          continue;
+        }
+        const matching = completionsList
+          .filter(r => r.user_id === user.id && (r.training_id === tr.id || r.requirement_id === tr.id))
           .sort((a, b) => (b.completed_date || "").localeCompare(a.completed_date || ""));
         const rec = matching[0];
-        if (!rec) { matrix[user.id][req.id] = "not_completed"; allCurrent = false; }
-        else if (!rec.expiry_date) { matrix[user.id][req.id] = "current"; }
+        const expDate = rec?.expires_at || rec?.expiry_date;
+        if (!rec) { matrix[user.id][tr.id] = "not_completed"; allCurrent = false; }
+        else if (!expDate) { matrix[user.id][tr.id] = "current"; }
         else {
-          const exp = new Date(rec.expiry_date);
-          if (exp < now) { matrix[user.id][req.id] = "expired"; allCurrent = false; }
-          else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) { matrix[user.id][req.id] = "expiring"; }
-          else { matrix[user.id][req.id] = "current"; }
+          const exp = new Date(expDate);
+          if (exp < now) { matrix[user.id][tr.id] = "expired"; allCurrent = false; }
+          else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) { matrix[user.id][tr.id] = "expiring"; }
+          else { matrix[user.id][tr.id] = "current"; }
         }
       }
       if (allCurrent) compliantCount++;
     }
-    return { users, requirements: reqs, matrix, compliantCount, totalUsers: users.length };
-  }, [isAdmin, orgProfiles, trainingRequirements, trainingRecords]);
+    return { users, trainings: trainingsList, matrix, compliantCount, totalUsers: users.length };
+  }, [isAdmin, orgProfiles, trainingsList, completionsList]);
 
   // Count courses by category
   const courseCategoryCounts = useMemo(() => {
@@ -1285,19 +1357,20 @@ export default function CbtModules({
     const now = new Date();
     const map = {};
     for (const course of publishedCourses) {
-      const req = (trainingRequirements || []).find(r => r.title === course.title);
-      if (!req) continue;
-      const myRecord = (trainingRecords || [])
-        .filter(r => r.user_id === profile?.id && r.requirement_id === req.id)
+      const tr = trainingsList.find(r => r.title === course.title);
+      if (!tr) continue;
+      const myCompletion = completionsList
+        .filter(r => r.user_id === profile?.id && (r.training_id === tr.id || r.requirement_id === tr.id))
         .sort((a, b) => (b.completed_date || "").localeCompare(a.completed_date || ""))[0];
-      if (!myRecord) { map[course.id] = "not_completed"; continue; }
-      if (!myRecord.expiry_date) continue; // no expiry = current, no badge needed
-      const exp = new Date(myRecord.expiry_date);
+      if (!myCompletion) { map[course.id] = "not_completed"; continue; }
+      const expDate = myCompletion.expires_at || myCompletion.expiry_date;
+      if (!expDate) continue;
+      const exp = new Date(expDate);
       if (exp < now) map[course.id] = "expired";
       else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) map[course.id] = "expiring";
     }
     return map;
-  }, [publishedCourses, trainingRequirements, trainingRecords, profile]);
+  }, [publishedCourses, trainingsList, completionsList, profile]);
 
   // Filtered lists for search + filter
   const filteredCourses = useMemo(() => {
@@ -1324,59 +1397,64 @@ export default function CbtModules({
   const recordStatusCounts = useMemo(() => {
     const c = { all: 0, current: 0, expiring: 0, expired: 0 };
     const now = new Date();
-    visibleRecords.forEach(r => {
+    visibleCompletions.forEach(r => {
       c.all++;
-      if (!r.expiry_date) { c.current++; return; }
-      const exp = new Date(r.expiry_date);
+      const exp_date = r.expires_at || r.expiry_date;
+      if (!exp_date) { c.current++; return; }
+      const exp = new Date(exp_date);
       if (exp < now) c.expired++;
       else if ((exp - now) / (1000*60*60*24) < 30) c.expiring++;
       else c.current++;
     });
     return c;
-  }, [visibleRecords]);
+  }, [visibleCompletions]);
 
-  const filteredRecords = useMemo(() => {
+  const filteredCompletions = useMemo(() => {
     const q = search.toLowerCase().trim();
     const now = new Date();
-    let list = visibleRecords.filter(r => {
+    let list = visibleCompletions.filter(r => {
+      const exp_date = r.expires_at || r.expiry_date;
       if (listFilter !== "all") {
-        const isExpired = r.expiry_date && new Date(r.expiry_date) < now;
-        const isExpiring = r.expiry_date && !isExpired && (new Date(r.expiry_date) - now) / (1000*60*60*24) < 30;
+        const isExpired = exp_date && new Date(exp_date) < now;
+        const isExpiring = exp_date && !isExpired && (new Date(exp_date) - now) / (1000*60*60*24) < 30;
         const status = isExpired ? "expired" : isExpiring ? "expiring" : "current";
         if (listFilter !== status) return false;
       }
       if (q) {
-        const hay = `${r.title} ${r.user?.full_name || ""} ${r.instructor || ""}`.toLowerCase();
+        const title = r.training?.title || r.title || "";
+        const hay = `${title} ${r.user?.full_name || ""} ${r.instructor || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
     list.sort((a, b) => {
       if (sortBy === "oldest") return new Date(a.completed_date || a.created_at) - new Date(b.completed_date || b.created_at);
-      if (sortBy === "expiry") return (a.expiry_date || "9999") < (b.expiry_date || "9999") ? -1 : 1;
+      if (sortBy === "expiry") return (a.expires_at || a.expiry_date || "9999") < (b.expires_at || b.expiry_date || "9999") ? -1 : 1;
       return new Date(b.completed_date || b.created_at) - new Date(a.completed_date || a.created_at);
     });
     return list;
-  }, [trainingRecords, listFilter, search, sortBy]);
+  }, [completionsList, listFilter, search, sortBy, visibleCompletions]);
 
-  const requirementTypeCounts = useMemo(() => {
-    const c = { all: 0, initial: 0, recurrent: 0 };
-    (trainingRequirements || []).forEach(r => {
+  const trainingTypeCounts = useMemo(() => {
+    const c = { all: 0, one_time: 0, recurring: 0 };
+    trainingsList.forEach(r => {
       c.all++;
-      if (r.frequency_months > 0) c.recurrent++; else c.initial++;
+      const stype = r.schedule_type || (r.frequency_months > 0 ? "recurring" : "one_time");
+      if (stype === "recurring") c.recurring++; else c.one_time++;
     });
     return c;
-  }, [trainingRequirements]);
+  }, [trainingsList]);
 
-  const filteredRequirements = useMemo(() => {
+  const filteredTrainings = useMemo(() => {
     const q = search.toLowerCase().trim();
-    let list = (trainingRequirements || []).filter(r => {
+    let list = trainingsList.filter(r => {
       if (listFilter !== "all") {
-        const type = r.frequency_months > 0 ? "recurrent" : "initial";
-        if (listFilter !== type) return false;
+        const stype = r.schedule_type || (r.frequency_months > 0 ? "recurring" : "one_time");
+        if (listFilter !== stype) return false;
       }
       if (q) {
-        const hay = `${r.title} ${r.description || ""} ${r.category || ""} ${(r.required_for || []).join(" ")}`.toLowerCase();
+        const roles = r.enrolled_roles || r.required_for || [];
+        const hay = `${r.title} ${r.description || ""} ${r.category || ""} ${roles.join(" ")}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -1386,7 +1464,7 @@ export default function CbtModules({
       return (a.title || "").localeCompare(b.title || "");
     });
     return list;
-  }, [trainingRequirements, listFilter, search, sortBy]);
+  }, [trainingsList, listFilter, search, sortBy]);
 
   const handleCompleteLesson = async (result) => {
     if (!selectedCourse || !selectedLesson) return;
@@ -1405,26 +1483,18 @@ export default function CbtModules({
     if (allDone) {
       const certNum = `CBT-${Date.now().toString(36).toUpperCase()}`;
       await onUpdateEnrollment(selectedCourse.id, { status: "completed", completedAt: new Date().toISOString(), certificateNumber: certNum });
-      // Auto-log as training record — link to matching requirement and set expiry
-      if (onLogTraining) {
-        const matchingReq = (trainingRequirements || []).find(r => r.title === selectedCourse.title);
+      // Auto-log as completion — link to matching training
+      if (handleLogCompletion) {
+        const matchingTraining = trainingsList.find(r => r.title === selectedCourse.title);
         const completedDate = new Date().toISOString().slice(0, 10);
-        // Skip duplicate if same user + requirement + date already exists
-        const isDuplicate = matchingReq && (trainingRecords || []).some(r =>
-          r.user_id === profile.id && r.requirement_id === matchingReq.id && r.completed_date === completedDate
+        const isDuplicate = matchingTraining && completionsList.some(r =>
+          r.user_id === profile.id && (r.training_id === matchingTraining.id || r.requirement_id === matchingTraining.id) && r.completed_date === completedDate
         );
-        if (!isDuplicate) {
-          let expiryDate = null;
-          if (matchingReq && matchingReq.frequency_months > 0) {
-            const exp = new Date();
-            exp.setMonth(exp.getMonth() + matchingReq.frequency_months);
-            expiryDate = exp.toISOString().slice(0, 10);
-          }
-          await onLogTraining({
-            title: selectedCourse.title,
+        if (!isDuplicate && matchingTraining) {
+          await handleLogCompletion({
+            trainingId: matchingTraining.id,
+            userId: profile.id,
             completedDate,
-            requirementId: matchingReq?.id || null,
-            expiryDate,
             instructor: "Computer-Based Training",
             notes: `Certificate: ${certNum}`,
           });
@@ -1436,25 +1506,36 @@ export default function CbtModules({
     onRefresh();
   };
 
-  // Training forms (for records & requirements tabs)
-  if (trainingView === "new_training") return (
+  // Training forms
+  if (trainingView === "new_training" || trainingView === "edit_training") return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-      <TrainingForm requirements={trainingRequirements || []} onSubmit={t => { onLogTraining(t); setTrainingView("list"); }} onCancel={() => setTrainingView("list")} />
+      <TrainingDefForm orgProfiles={orgProfiles} editTraining={trainingView === "edit_training" ? editingTraining : null} onSubmit={t => {
+        if (trainingView === "edit_training" && editingTraining) {
+          if (handleUpdateTraining) handleUpdateTraining(editingTraining.id, {
+            title: t.title, description: t.description, category: t.category,
+            schedule_type: t.scheduleType, frequency_months: t.scheduleType === "recurring" ? t.frequencyMonths : 0,
+            enrolled_roles: t.enrolledRoles, enrolled_users: t.enrolledUsers,
+          });
+        } else {
+          handleCreateTraining(t);
+        }
+        setTrainingView("list"); setEditingTraining(null);
+      }} onCancel={() => { setTrainingView("list"); setEditingTraining(null); }} />
     </div>
   );
-  if (trainingView === "new_requirement") return (
+  if (trainingView === "new_completion") return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-      <RequirementForm onSubmit={r => { onCreateRequirement(r); setTrainingView("list"); }} onCancel={() => setTrainingView("list")} />
+      <CompletionForm trainings={trainingsList} orgProfiles={orgProfiles} profile={profile} isAdmin={isAdmin} onSubmit={c => { handleLogCompletion(c); setTrainingView("list"); }} onCancel={() => setTrainingView("list")} />
     </div>
   );
 
-  // Top-level tab bar (CBT Courses | Training Records | Requirements | Compliance)
-  const tabs = [["cbt", "Training Courses"], ["records", "Training Records"], ["requirements", "Requirements"]];
+  // Top-level tab bar (Courses | Trainings | Completions | Compliance)
+  const tabs = [["cbt", "Courses"], ["trainings", "Trainings"], ["completions", "Completions"]];
   if (isAdmin) tabs.push(["compliance", "Compliance"]);
   const renderTopTabs = () => (
     <div data-tour="tour-cbt-tabs" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {tabs.map(([id, label]) => (
-        <button key={id} data-onboarding={id === "cbt" ? "cbt-courses-tab" : id === "records" ? "cbt-records-tab" : id === "requirements" ? "cbt-requirements-tab" : id === "compliance" ? "cbt-compliance-tab" : undefined} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); setSortBy(id === "cbt" ? "title_az" : id === "records" ? "newest" : "title_az"); setShowCount(25); }}
+        <button key={id} data-onboarding={id === "cbt" ? "cbt-courses-tab" : id === "completions" ? "cbt-records-tab" : id === "trainings" ? "cbt-requirements-tab" : id === "compliance" ? "cbt-compliance-tab" : undefined} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); setSortBy(id === "cbt" ? "title_az" : id === "completions" ? "newest" : "title_az"); setShowCount(25); }}
           style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,
             background: topTab === id ? WHITE : "transparent", color: topTab === id ? BLACK : MUTED,
             fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{label}</button>
@@ -1462,16 +1543,16 @@ export default function CbtModules({
     </div>
   );
 
-  // ── Training Records tab ──
-  if (topTab === "records") {
+  // ── Completions tab ──
+  if (topTab === "completions") {
     return (
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Training Records</div>
-            <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Safety promotion and training</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Completions</div>
+            <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Training completion records</div>
           </div>
-          <button data-onboarding="cbt-log-training-btn" onClick={() => setTrainingView("new_training")} style={btnPrimary}>+ Log Training</button>
+          <button data-onboarding="cbt-log-training-btn" onClick={() => setTrainingView("new_completion")} style={btnPrimary}>+ Log Completion</button>
         </div>
         {renderTopTabs()}
         <div data-onboarding="cbt-records-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
@@ -1504,42 +1585,44 @@ export default function CbtModules({
                 fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label} ({recordStatusCounts[id] || 0})</button>
           ))}
         </div>
-        {filteredRecords.length === 0 ? (
+        {filteredCompletions.length === 0 ? (
           <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
             <div style={{ fontSize: 42, marginBottom: 12 }}>📚</div>
-            <div style={{ fontSize: 14 }}>{(trainingRecords || []).length === 0 ? "No training records yet" : "No matching records"}</div>
+            <div style={{ fontSize: 14 }}>{completionsList.length === 0 ? "No completions yet" : "No matching records"}</div>
           </div>
         ) : (<>
-          {filteredRecords.slice(0, showCount).map(r => {
-            const isExpired = r.expiry_date && new Date(r.expiry_date) < new Date();
-            const isExpiring = r.expiry_date && !isExpired && (new Date(r.expiry_date) - new Date()) / (1000*60*60*24) < 30;
+          {filteredCompletions.slice(0, showCount).map(r => {
+            const expDate = r.expires_at || r.expiry_date;
+            const isExpired = expDate && new Date(expDate) < new Date();
+            const isExpiring = expDate && !isExpired && (new Date(expDate) - new Date()) / (1000*60*60*24) < 30;
             const statusColor = isExpired ? RED : isExpiring ? YELLOW : GREEN;
+            const title = r.training?.title || r.title || "Unknown";
             return (
               <div key={r.id} style={{ ...card, padding: "12px 16px", marginBottom: 6, borderLeft: `3px solid ${statusColor}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 12, color: WHITE }}>{r.title}</div>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: WHITE }}>{title}</div>
                     <div style={{ fontSize: 10, color: MUTED }}>
                       {r.user?.full_name || "Unknown"} · Completed: {r.completed_date}
-                      {r.expiry_date && ` · Expires: ${r.expiry_date}`}
+                      {expDate && ` · Expires: ${expDate}`}
                       {r.instructor && ` · Instructor: ${r.instructor}`}
                     </div>
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 600, color: statusColor }}>
                     {isExpired ? "EXPIRED" : isExpiring ? "EXPIRING" : "CURRENT"}
                   </span>
-                  {isAdmin && onDeleteTrainingRecord && (
-                    <button onClick={() => { if (confirm("Delete this training record?")) onDeleteTrainingRecord(r.id); }}
+                  {isAdmin && handleDeleteCompletion && (
+                    <button onClick={() => { if (confirm("Delete this completion record?")) handleDeleteCompletion(r.id); }}
                       style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
                   )}
                 </div>
               </div>
             );
           })}
-          {filteredRecords.length > showCount && (
+          {filteredCompletions.length > showCount && (
             <button onClick={() => setShowCount(c => c + 25)}
               style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
-              Showing {showCount} of {filteredRecords.length} — Show 25 more
+              Showing {showCount} of {filteredCompletions.length} — Show 25 more
             </button>
           )}
         </>)}
@@ -1547,57 +1630,78 @@ export default function CbtModules({
     );
   }
 
-  // ── Requirements tab ──
-  if (topTab === "requirements") {
+  // ── Trainings tab ──
+  if (topTab === "trainings") {
     return (
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Training Requirements</div>
-            <div style={{ fontSize: 11, color: MUTED }}>Define recurring or one-time training requirements for your organization</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Trainings</div>
+            <div style={{ fontSize: 11, color: MUTED }}>Define trainings with schedules and enrollment</div>
           </div>
-          <button onClick={() => setTrainingView("new_requirement")} style={btnPrimary}>+ Requirement</button>
+          {isAdmin && <button onClick={() => setTrainingView("new_training")} style={btnPrimary}>+ New Training</button>}
         </div>
         {renderTopTabs()}
         <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search requirements..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search trainings..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
           <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
             <option value="title_az">Title A-Z</option>
             <option value="category">Category</option>
           </select>
         </div>
         <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-          {[["all", "All"], ["initial", "Initial"], ["recurrent", "Recurrent"]].map(([id, label]) => (
+          {[["all", "All"], ["one_time", "One-time"], ["recurring", "Recurring"]].map(([id, label]) => (
             <button key={id} onClick={() => setListFilter(id)}
               style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${listFilter === id ? WHITE : BORDER}`,
                 background: listFilter === id ? WHITE : CARD, color: listFilter === id ? BLACK : MUTED,
-                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label} ({requirementTypeCounts[id] || 0})</button>
+                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label} ({trainingTypeCounts[id] || 0})</button>
           ))}
         </div>
-        {filteredRequirements.length === 0 ? (
+        {filteredTrainings.length === 0 ? (
           <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
             <div style={{ fontSize: 42, marginBottom: 12 }}>📋</div>
-            <div style={{ fontSize: 14 }}>{(trainingRequirements || []).length === 0 ? "No training requirements defined yet" : "No matching requirements"}</div>
+            <div style={{ fontSize: 14 }}>{trainingsList.length === 0 ? "No trainings defined yet" : "No matching trainings"}</div>
           </div>
         ) : (<>
-          {filteredRequirements.slice(0, showCount).map(r => (
-            <div key={r.id} style={{ ...card, padding: "10px 14px", marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{r.title}</span>
-                <span style={{ fontSize: 10, color: MUTED, marginLeft: 8 }}>
-                  {r.frequency_months > 0 ? `Every ${r.frequency_months} months` : "One-time"} · {r.required_for?.join(", ")}
-                </span>
+          {filteredTrainings.slice(0, showCount).map(r => {
+            const roles = r.enrolled_roles || r.required_for || [];
+            const stype = r.schedule_type || (r.frequency_months > 0 ? "recurring" : "one_time");
+            const completionCount = completionsList.filter(c => c.training_id === r.id || c.requirement_id === r.id).length;
+            return (
+              <div key={r.id} style={{ ...card, padding: "12px 14px", marginBottom: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{r.title}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: stype === "recurring" ? `${CYAN}18` : `${GREEN}18`, color: stype === "recurring" ? CYAN : GREEN }}>
+                        {stype === "recurring" ? `Every ${r.frequency_months}mo` : "One-time"}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 10, color: MUTED }}>
+                      {r.category} · Enrolled: {roles.length > 0 ? roles.map(r => r.replace(/_/g, " ")).join(", ") : "none"}
+                      {(r.enrolled_users || []).length > 0 && ` + ${r.enrolled_users.length} individual${r.enrolled_users.length !== 1 ? "s" : ""}`}
+                      {completionCount > 0 && ` · ${completionCount} completion${completionCount !== 1 ? "s" : ""}`}
+                    </div>
+                    {r.description && <div style={{ fontSize: 10, color: MUTED, marginTop: 2, fontStyle: "italic" }}>{r.description.slice(0, 120)}{r.description.length > 120 ? "..." : ""}</div>}
+                  </div>
+                  {isAdmin && (
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={() => { setEditingTraining(r); setTrainingView("edit_training"); }}
+                        style={{ fontSize: 10, color: CYAN, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, cursor: "pointer", padding: "3px 8px" }}>Edit</button>
+                      {handleDeleteTraining && (
+                        <button onClick={() => { if (confirm(`Delete "${r.title}"? All completions will be removed.`)) handleDeleteTraining(r.id); }}
+                          style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-              {isAdmin && onDeleteRequirement && (
-                <button onClick={() => { if (confirm("Delete this requirement?")) onDeleteRequirement(r.id); }}
-                  style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
-              )}
-            </div>
-          ))}
-          {filteredRequirements.length > showCount && (
+            );
+          })}
+          {filteredTrainings.length > showCount && (
             <button onClick={() => setShowCount(c => c + 25)}
               style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
-              Showing {showCount} of {filteredRequirements.length} — Show 25 more
+              Showing {showCount} of {filteredTrainings.length} — Show 25 more
             </button>
           )}
         </>)}
@@ -1607,10 +1711,11 @@ export default function CbtModules({
 
   // ── Compliance tab (admin-only) ──
   if (topTab === "compliance" && isAdmin) {
-    const { users, requirements, matrix, compliantCount, totalUsers } = complianceMatrix;
+    const { users, trainings: matrixTrainings, matrix, compliantCount, totalUsers } = complianceMatrix;
     const statusDot = (status) => {
-      const colors = { current: GREEN, expiring: YELLOW, expired: RED, not_completed: SUBTLE };
-      const labels = { current: "Current", expiring: "Expiring", expired: "Expired", not_completed: "Not completed" };
+      const colors = { current: GREEN, expiring: YELLOW, expired: RED, not_completed: SUBTLE, not_applicable: "transparent" };
+      const labels = { current: "Current", expiring: "Expiring", expired: "Expired", not_completed: "Not completed", not_applicable: "N/A" };
+      if (status === "not_applicable") return <span title="N/A" style={{ fontSize: 10, color: MUTED }}>—</span>;
       return <span title={labels[status] || status} style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: colors[status] || SUBTLE }} />;
     };
     return (
@@ -1618,7 +1723,7 @@ export default function CbtModules({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Training Compliance</div>
-            <div style={{ fontSize: 11, color: MUTED }}>Per-user compliance status across all training requirements</div>
+            <div style={{ fontSize: 11, color: MUTED }}>Per-user compliance status for enrolled trainings</div>
           </div>
         </div>
         {renderTopTabs()}
@@ -1626,7 +1731,7 @@ export default function CbtModules({
           <div style={{ fontSize: 14, fontWeight: 700, color: compliantCount === totalUsers ? GREEN : YELLOW }}>
             {compliantCount} of {totalUsers}
           </div>
-          <div style={{ fontSize: 12, color: MUTED }}>users fully compliant</div>
+          <div style={{ fontSize: 12, color: MUTED }}>enrolled users fully compliant</div>
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", gap: 12, fontSize: 10, color: MUTED }}>
             <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: GREEN, marginRight: 4 }} />Current</span>
@@ -1635,10 +1740,10 @@ export default function CbtModules({
             <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: SUBTLE, marginRight: 4 }} />Not completed</span>
           </div>
         </div>
-        {requirements.length === 0 || users.length === 0 ? (
+        {matrixTrainings.length === 0 || users.length === 0 ? (
           <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
             <div style={{ fontSize: 42, marginBottom: 12 }}>📊</div>
-            <div style={{ fontSize: 14 }}>No training requirements or users found</div>
+            <div style={{ fontSize: 14 }}>No trainings or enrolled users found</div>
           </div>
         ) : (
           <div data-onboarding="cbt-compliance-matrix" style={{ overflowX: "auto" }}>
@@ -1646,9 +1751,9 @@ export default function CbtModules({
               <thead>
                 <tr>
                   <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111", minWidth: 140 }}>User</th>
-                  {requirements.map(r => (
-                    <th key={r.id} style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, fontSize: 10, maxWidth: 100, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={r.title}>
-                      {r.title.length > 16 ? r.title.slice(0, 15) + "…" : r.title}
+                  {matrixTrainings.map(t => (
+                    <th key={t.id} style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, fontSize: 10, maxWidth: 100, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={t.title}>
+                      {t.title.length > 16 ? t.title.slice(0, 15) + "…" : t.title}
                     </th>
                   ))}
                 </tr>
@@ -1657,9 +1762,9 @@ export default function CbtModules({
                 {users.map(user => (
                   <tr key={user.id}>
                     <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111" }}>{user.full_name}</td>
-                    {requirements.map(r => (
-                      <td key={r.id} style={{ textAlign: "center", padding: "6px", borderBottom: `1px solid ${BORDER}` }}>
-                        {statusDot(matrix[user.id]?.[r.id] || "not_completed")}
+                    {matrixTrainings.map(t => (
+                      <td key={t.id} style={{ textAlign: "center", padding: "6px", borderBottom: `1px solid ${BORDER}` }}>
+                        {statusDot(matrix[user.id]?.[t.id] || "not_completed")}
                       </td>
                     ))}
                   </tr>
@@ -1696,13 +1801,13 @@ export default function CbtModules({
         {myTrainingStatus.expired > 0 && (
           <div style={{ padding: "10px 14px", marginBottom: 12, borderRadius: 8, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 12, color: RED, fontWeight: 600 }}>You have {myTrainingStatus.expired} expired training record{myTrainingStatus.expired !== 1 ? "s" : ""}</span>
-            <button onClick={() => { setTopTab("records"); setTrainingView("list"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(239,68,68,0.2)", color: RED, fontSize: 10, padding: "4px 10px" }}>View</button>
+            <button onClick={() => { setTopTab("completions"); setTrainingView("list"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(239,68,68,0.2)", color: RED, fontSize: 10, padding: "4px 10px" }}>View</button>
           </div>
         )}
         {myTrainingStatus.expiring > 0 && myTrainingStatus.expired === 0 && (
           <div style={{ padding: "10px 14px", marginBottom: 12, borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 12, color: YELLOW, fontWeight: 600 }}>You have {myTrainingStatus.expiring} training record{myTrainingStatus.expiring !== 1 ? "s" : ""} expiring within 30 days</span>
-            <button onClick={() => { setTopTab("records"); setTrainingView("list"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(250,204,21,0.1)", color: YELLOW, fontSize: 10, padding: "4px 10px" }}>View</button>
+            <button onClick={() => { setTopTab("completions"); setTrainingView("list"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(250,204,21,0.1)", color: YELLOW, fontSize: 10, padding: "4px 10px" }}>View</button>
           </div>
         )}
 
@@ -1746,7 +1851,7 @@ export default function CbtModules({
                 Set up a complete 14 CFR Part 5 compliant training program with pre-built requirements and courses covering all SMS competency areas.
               </div>
               <div style={{ fontSize: 11, color: OFF_WHITE, marginBottom: 20 }}>
-                5 training requirements and 5 courses with 18 lessons covering Safety Policy, Safety Risk Management, Safety Assurance, Emergency Response Planning, and Safety Promotion will be created.
+                5 trainings and 5 courses with 18 lessons covering Safety Policy, Safety Risk Management, Safety Assurance, Emergency Response Planning, and Safety Promotion will be created.
               </div>
               <button data-onboarding="cbt-init-btn" onClick={handleInitTraining} disabled={initializing}
                 style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
