@@ -901,24 +901,31 @@ function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, 
 // ── INVITE SECTION ─────────────────────────────────────────
 function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend }) {
   const [showForm, setShowForm] = useState(false);
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("pilot");
+  const [selectedPerms, setSelectedPerms] = useState([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const handleInvite = async () => {
+    if (!fullName.trim()) { setError("Enter the user's full name"); return; }
     if (!email.trim()) { setError("Enter an email address"); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError("Invalid email address"); return; }
     setError(""); setSending(true);
     try {
-      const result = await onInvite(email.trim(), role);
+      const result = await onInvite({ email: email.trim(), fullName: fullName.trim(), role, permissions: selectedPerms });
       if (result?.error) { setError(result.error); setSending(false); return; }
-      setSuccess(`Invitation sent to ${email.trim()}`);
-      setEmail(""); setRole("pilot");
+      setSuccess(`${fullName.trim()} added and invitation sent to ${email.trim()}`);
+      setFullName(""); setEmail(""); setRole("pilot"); setSelectedPerms([]);
       setTimeout(() => { setSuccess(""); setShowForm(false); }, 3000);
     } catch (e) { setError(e.message); }
     setSending(false);
+  };
+
+  const togglePerm = (permId) => {
+    setSelectedPerms(prev => prev.includes(permId) ? prev.filter(p => p !== permId) : [...prev, permId]);
   };
 
   const pending = invitations.filter(i => i.status === "pending");
@@ -929,30 +936,46 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
   return (
     <div data-tour="tour-admin-invite" style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Invite Team Members</div>
-        {!showForm && <button onClick={() => setShowForm(true)} style={{ padding: "6px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Invite User</button>}
+        <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Add Team Members</div>
+        {!showForm && <button onClick={() => setShowForm(true)} style={{ padding: "6px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add User</button>}
       </div>
 
       {showForm && (
         <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 16, marginBottom: 14 }}>
-          <div className="invite-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, marginBottom: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Full Name</label>
+              <input type="text" value={fullName} onChange={e => { setFullName(e.target.value); setError(""); }}
+                placeholder="Jane Smith" style={{ ...inp, padding: "10px 12px" }} />
+            </div>
             <div>
               <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Email Address</label>
               <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(""); }}
                 placeholder="pilot@company.com" style={{ ...inp, padding: "10px 12px" }}
                 onKeyDown={e => { if (e.key === "Enter") handleInvite(); }} />
             </div>
-            <div>
-              <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Role</label>
-              <select value={role} onChange={e => setRole(e.target.value)} style={{ ...inp, padding: "10px 12px" }}>
-                <option value="pilot">Pilot</option>
-                <option value="dispatcher">Dispatcher</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="safety_manager">Safety Manager</option>
-                <option value="chief_pilot">Chief Pilot</option>
-                <option value="accountable_exec">Accountable Exec</option>
-                <option value="admin">Admin</option>
-              </select>
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Role</label>
+            <select value={role} onChange={e => setRole(e.target.value)} style={{ ...inp, padding: "10px 12px" }}>
+              {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+            </select>
+            {(() => { const rd = ROLES.find(r => r.id === role); return rd ? <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>{rd.desc}</div> : null; })()}
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: "block", fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Additional Permissions</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {PERMISSIONS.map(p => {
+                const has = selectedPerms.includes(p.id);
+                return (
+                  <button key={p.id} onClick={() => togglePerm(p.id)} title={p.desc}
+                    style={{ padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                      background: has ? `${GREEN}22` : "transparent", color: has ? GREEN : MUTED,
+                      border: `1px solid ${has ? GREEN + "44" : BORDER}` }}>
+                    {has ? "\u2713 " : ""}{p.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
           {error && <div style={{ fontSize: 11, color: RED, marginBottom: 8 }}>{error}</div>}
@@ -960,8 +983,8 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={handleInvite} disabled={sending}
               style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: sending ? "wait" : "pointer", opacity: sending ? 0.6 : 1 }}>
-              {sending ? "Sending..." : "Send Invitation"}</button>
-            <button onClick={() => { setShowForm(false); setError(""); setSuccess(""); }}
+              {sending ? "Adding..." : "Add User & Send Invite"}</button>
+            <button onClick={() => { setShowForm(false); setError(""); setSuccess(""); setFullName(""); setEmail(""); setRole("pilot"); setSelectedPerms([]); }}
               style={{ padding: "8px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
           </div>
         </div>
