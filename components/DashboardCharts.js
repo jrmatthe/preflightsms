@@ -1318,7 +1318,7 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
                 {item.expiration_date && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: `${expColor}18`, color: expColor }}>{expStatus === "expired" ? "EXPIRED" : expStatus === "warning" ? "EXPIRING" : `Exp ${item.expiration_date}`}</span>}
                 {item.deferred_by_name && <span style={{ fontSize: 9, color: MUTED }}>by {item.deferred_by_name}</span>}
               </div>
-              {onUpdateMel && !isRect && <button onClick={() => { setRectifyingId(item.id); setRectifyWork(""); }} style={{ padding: "3px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${GREEN}44`, color: GREEN }}>Rectify</button>}
+              {onUpdateMel && !isRect && profile?.role === "maintenance" && <button onClick={() => { setRectifyingId(item.id); setRectifyWork(""); }} style={{ padding: "3px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${GREEN}44`, color: GREEN }}>Rectify</button>}
             </div>
             <div style={{ fontSize: 12, color: WHITE, marginBottom: 2 }}>{item.description}</div>
             {item.deferred_date && <div style={{ fontSize: 10, color: MUTED }}>Deferred: {item.deferred_date} ({getDaysOpen(item.deferred_date)} days open)</div>}
