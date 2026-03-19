@@ -65,13 +65,15 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy, editPolicy }) {
               setAiDraftLoading(true); setAiDraftError(null);
               try {
                 const result = await onAiDraftPolicy({ policyTitle: form.title, policyCategory: form.category });
+                console.log("[AI Draft] result:", JSON.stringify(result));
                 if (result && (result.description || result.content)) {
                   if (result.description) set("description", result.description);
                   if (result.content) set("content", result.content);
+                  setAiDraftError(null);
                 } else {
-                  setAiDraftError("AI returned no content. Try again.");
+                  setAiDraftError("AI returned no content. Result: " + JSON.stringify(result)?.slice(0, 200));
                 }
-              } catch (e) { setAiDraftError("AI draft failed. Try again."); }
+              } catch (e) { setAiDraftError("AI draft failed: " + (e?.message || String(e))); }
               setAiDraftLoading(false);
             }} disabled={aiDraftLoading}
               style={{ fontSize: 10, color: CYAN, background: `${CYAN}08`, border: `1px solid ${CYAN}44`, borderRadius: 4, padding: "3px 10px", cursor: aiDraftLoading ? "wait" : "pointer", fontWeight: 600, fontFamily: "inherit", opacity: aiDraftLoading ? 0.6 : 1 }}>
