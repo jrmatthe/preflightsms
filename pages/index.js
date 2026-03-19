@@ -4164,6 +4164,9 @@ export default function PVTAIRFrat() {
   const [savingProfilePassword, setSavingProfilePassword] = useState(false);
   const [profilePasswordError, setProfilePasswordError] = useState("");
   const [profilePasswordSuccess, setProfilePasswordSuccess] = useState(false);
+  const [confirmSelfDelete, setConfirmSelfDelete] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [selfDeleteError, setSelfDeleteError] = useState("");
   // Supabase auth state
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -6430,6 +6433,50 @@ export default function PVTAIRFrat() {
                   });
                 })()}
               </div>
+              {/* Delete My Account */}
+              <div style={{ ...card, padding: "24px 28px", marginTop: 20, borderColor: `${RED}33` }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: RED, marginBottom: 6 }}>Delete My Account</div>
+                <div style={{ fontSize: 11, color: MUTED, marginBottom: 16, lineHeight: 1.5 }}>
+                  Permanently delete your account and remove all your data from this organization. This cannot be undone.
+                </div>
+                {selfDeleteError && <div style={{ fontSize: 11, color: RED, marginBottom: 12, padding: "8px 12px", background: `${RED}11`, borderRadius: 6 }}>{selfDeleteError}</div>}
+                {!confirmSelfDelete ? (
+                  <button onClick={() => { setConfirmSelfDelete(true); setSelfDeleteError(""); }}
+                    style={{ padding: "8px 18px", background: "transparent", color: RED, border: `1px solid ${RED}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                    Delete My Account
+                  </button>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 12, color: RED, fontWeight: 600, marginBottom: 12 }}>Are you sure? This will permanently delete your account.</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button disabled={deletingAccount} onClick={async () => {
+                        setDeletingAccount(true); setSelfDeleteError("");
+                        try {
+                          const token = (await supabase.auth.getSession())?.data?.session?.access_token;
+                          const res = await fetch("/api/delete-user", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ targetUserId: profile.id }),
+                          });
+                          const result = await res.json();
+                          if (!res.ok) throw new Error(result.error || "Failed to delete account");
+                          await signOut(); setSession(null); setProfile(null);
+                        } catch (err) {
+                          setSelfDeleteError(err.message);
+                          setDeletingAccount(false);
+                        }
+                      }}
+                        style={{ padding: "8px 18px", background: RED, color: WHITE, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: deletingAccount ? "default" : "pointer" }}>
+                        {deletingAccount ? "Deleting..." : "Yes, Delete My Account"}
+                      </button>
+                      <button onClick={() => { setConfirmSelfDelete(false); setSelfDeleteError(""); }}
+                        style={{ padding: "8px 18px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })()}
@@ -6513,7 +6560,23 @@ export default function PVTAIRFrat() {
         {cv === "cbt" && <CbtModules profile={profile} session={session} orgProfiles={orgProfiles} courses={boardCbtCourses} lessons={cbtLessonsMap} progress={cbtProgress} enrollments={cbtEnrollments} onCreateCourse={roGuard(onCreateCbtCourse)} onUpdateCourse={onUpdateCbtCourse} onDeleteCourse={async (id) => { await deleteCbtCourse(id); refreshCbt(); }} onSaveLesson={roGuard(onSaveCbtLesson)} onDeleteLesson={onDeleteCbtLesson} onUpdateProgress={onUpdateCbtProgress} onUpdateEnrollment={onUpdateCbtEnrollment} onPublishCourse={onUpdateCbtCourse} onRefresh={refreshCbt} completions={completions} onLogCompletion={roGuard(onLogCompletion)} onDeleteCompletion={roGuard(onDeleteCompletion)} onInitTraining={roGuard(onInitTraining)} />}
         {cv === "survey" && <SafetyCultureSurvey profile={profile} session={session} orgProfiles={orgProfiles} surveys={cultureSurveys} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} />}
         {cv === "dashboard" && (isAdminUser || isOnline) && <DashboardWrapper records={records} flights={flights} reports={reports} hazards={hazards} actions={actions} onDelete={onDelete} riskLevels={riskLevels} org={org} erpPlans={erpPlans} erpDrills={erpDrills} profile={profile} session={session} spis={spis} spiMeasurements={spiMeasurements} onCreateSpi={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createSpi(orgId, data); fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onUpdateSpi={roGuard(async (spiId, updates) => { await updateSpi(spiId, updates); const orgId = profile?.org_id; if (orgId) fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); })} onDeleteSpi={roGuard(async (spiId) => { await deleteSpi(spiId); const orgId = profile?.org_id; if (orgId) { fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); } })} onLoadTargets={async (spiId) => { const { data } = await fetchSpiTargets(spiId); return data || []; }} onCreateTarget={roGuard(async (target) => { await createSpiTarget(target); })} onUpdateTarget={roGuard(async (targetId, updates) => { await updateSpiTarget(targetId, updates); })} onDeleteTarget={roGuard(async (targetId) => { await deleteSpiTarget(targetId); })} onLoadMeasurements={async (spiId) => { const { data } = await fetchSpiMeasurements(spiId); return data || []; }} onCreateMeasurement={roGuard(async (measurement) => { await createSpiMeasurement(measurement); const orgId = profile?.org_id; if (orgId) fetchAllSpiMeasurements(orgId).then(({ data: d }) => setSpiMeasurements(d || [])); })} onInitSpiDefaults={roGuard(async () => { const { DEFAULT_SPIS } = await import("../components/SafetyPerformanceIndicators"); const orgId = profile?.org_id; if (!orgId) return; for (const tmpl of DEFAULT_SPIS) { const { default_target, ...spiData } = tmpl; const { data: spi } = await createSpi(orgId, spiData); if (spi && default_target) { await createSpiTarget({ spi_id: spi.id, ...default_target, effective_date: new Date().toISOString().split("T")[0] }); } } fetchSpis(orgId).then(({ data: d }) => setSpis(d || [])); setToast({ message: "8 default SPIs loaded with targets", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} cultureSurveys={cultureSurveys} orgProfiles={orgProfiles} onCreateSurvey={roGuard(async (data) => { const orgId = profile?.org_id; if (!orgId) return; await createCultureSurvey(orgId, data); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (data.status === "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${data.title}`, link_tab: "dashboard", target_roles: null }); } })} onUpdateSurvey={roGuard(async (id, updates) => { const orgId = profile?.org_id; if (!orgId) return; const existing = cultureSurveys.find(s => s.id === id); await updateCultureSurvey(id, updates); fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); if (updates.status === "active" && existing?.status !== "active") { createNotification(orgId, { type: "culture_survey_available", title: "Safety Culture Survey", body: `A new survey is available: ${existing?.title || "Survey"}`, link_tab: "dashboard", target_roles: null }); } })} onDeleteSurvey={roGuard(async (id) => { await deleteCultureSurvey(id); const orgId = profile?.org_id; if (orgId) fetchCultureSurveys(orgId).then(({ data: d }) => setCultureSurveys(d || [])); })} onFetchSurveyResponses={async (surveyId) => fetchCultureSurveyResponses(surveyId)} onSubmitSurveyResponse={async (response) => submitCultureSurveyResponse(response)} onCheckUserSurveyResponse={async (surveyId, userId) => checkUserSurveyResponse(surveyId, userId)} onFetchSurveyResults={async (surveyId) => fetchCultureSurveyResults(surveyId)} onUpsertSurveyResults={async (surveyId, results) => upsertCultureSurveyResults(surveyId, results)} trendAlerts={trendAlerts} onAcknowledgeTrendAlert={async (alertId) => { await acknowledgeTrendAlert(alertId, session.user.id); const orgId = profile?.org_id; if (orgId) fetchTrendAlerts(orgId).then(({ data }) => setTrendAlerts(data || [])); }} complianceFrameworks={complianceFrameworks} complianceChecklistItems={complianceChecklistItems} complianceStatusData={complianceStatusData} trainingReqs={trainingReqs} trainingRecs={trainingRecs} policies={policies} iepAudits={iepAudits} auditSchedules={auditSchedulesData} mocItems={mocItems} insuranceExports={insuranceExports} onGenerateExport={roGuard(async (exportData, pdfBlob) => { const orgId = profile?.org_id; if (!orgId) return; const { data } = await createInsuranceExport(orgId, exportData); if (data && pdfBlob) { const { data: pdfUrl } = await uploadInsuranceExportPdf(orgId, data.id, pdfBlob); if (pdfUrl) { await supabase.from('insurance_exports').update({ pdf_path: pdfUrl }).eq('id', data.id); } } fetchInsuranceExports(orgId).then(({ data: d }) => setInsuranceExports(d || [])); setToast({ message: "Insurance export generated", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000); })} onDeleteExport={roGuard(async (exportId) => { await deleteInsuranceExport(exportId); const orgId = profile?.org_id; if (orgId) fetchInsuranceExports(orgId).then(({ data }) => setInsuranceExports(data || [])); })} onNavigateSubscription={() => { setInitialAdminTab("subscription"); setCv("admin"); }} onNavigate={setCv} fleetAircraft={fleetAircraft} part5Compliance={part5Compliance} onViewDetail={(id) => setFratDetailId(id)} />}
-        {cv === "admin" && (isAdminUser || isOnline) && <AdminPanel profile={profile} session={session} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onUpdateEmail={async (userId, email) => { await updateProfileEmail(userId, email); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => { await removeUserFromOrg(userId); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); setToast({ message: "User removed", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000); }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
+        {cv === "admin" && (isAdminUser || isOnline) && <AdminPanel profile={profile} session={session} orgProfiles={orgProfiles} initialTab={initialAdminTab} onUpdateRole={onUpdateRole} onUpdatePermissions={async (userId, perms) => { await updateProfilePermissions(userId, perms); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onUpdateEmail={async (userId, email) => { await updateProfileEmail(userId, email); const orgId = profile?.org_id; if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || [])); }} onRemoveUser={async (userId) => {
+          try {
+            const token = (await supabase.auth.getSession())?.data?.session?.access_token;
+            const res = await fetch("/api/delete-user", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ targetUserId: userId }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || "Failed to remove user");
+            const orgId = profile?.org_id;
+            if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || []));
+            setToast({ message: "User removed and account deleted", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 3000);
+          } catch (err) {
+            setToast({ message: err.message, level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000);
+          }
+        }} orgName={orgName} orgSlug={profile?.organizations?.slug || ""} orgLogo={orgLogo} fratTemplate={fratTemplate} fratTemplates={fratTemplates} onSaveTemplate={async (templateData) => {
           const orgId = profile?.org_id;
           if (!orgId) return;
           const { data, error } = await upsertFratTemplate(orgId, templateData);
