@@ -11,18 +11,6 @@ const btn = { padding: "8px 14px", borderRadius: 6, fontWeight: 700, fontSize: 1
 const btnPrimary = { ...btn, background: WHITE, color: BLACK };
 const btnGhost = { ...btn, background: "transparent", color: MUTED, border: `1px solid ${BORDER}` };
 
-const TRAINING_CATEGORIES = [
-  { id: "sms", label: "SMS Training" },
-  { id: "initial", label: "Initial Training" },
-  { id: "recurrent", label: "Recurrent" },
-  { id: "aircraft_specific", label: "Aircraft Specific" },
-  { id: "emergency", label: "Emergency Procedures" },
-  { id: "hazmat", label: "Hazmat" },
-  { id: "security", label: "Security" },
-  { id: "crew_resource", label: "CRM" },
-  { id: "company", label: "Company" },
-  { id: "other", label: "Other" },
-];
 
 // Parse YouTube/Vimeo URLs into embeddable iframe src
 function getEmbedUrl(url) {
@@ -40,14 +28,6 @@ const CATEGORIES = [
   { id: "security", label: "Security" }, { id: "crew_resource", label: "CRM" }, { id: "company", label: "Company" },
 ];
 
-// ── PART 5 TRAINING DEFINITIONS (pre-seed) ─────────────────────
-const PART5_TRAINING_DEFINITIONS = [
-  { title: "Pillar 1: Safety Policy & SMS Foundations", description: "Comprehensive training on Safety Management Systems under 14 CFR Part 5 Subpart B.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
-  { title: "Pillar 2: Safety Risk Management", description: "In-depth training on the Safety Risk Management process under 14 CFR Part 5 Subpart C.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
-  { title: "Pillar 3: Safety Assurance", description: "Detailed training on Safety Assurance processes under 14 CFR Part 5 Subpart D.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
-  { title: "Pillar 4: Safety Promotion", description: "Training on Safety Promotion requirements under 14 CFR Part 5 Subpart E.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
-  { title: "Emergency Response Planning", description: "Training on the organization's Emergency Response Plan (ERP) as required by §5.27.", category: "sms", enrolledRoles: ["pilot", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"], scheduleType: "recurring", frequencyMonths: 12 },
-];
 
 // ── PART 5 CBT COURSES (pre-seed) ──────────────────────────────
 const PART5_CBT_COURSES = [
@@ -550,120 +530,18 @@ const PART5_CBT_COURSES = [
   },
 ];
 
-// ── CREATE/EDIT TRAINING FORM ────────────────────────────────────
-function TrainingDefForm({ onSubmit, onCancel, orgProfiles, editTraining }) {
-  const [form, setForm] = useState({
-    title: editTraining?.title || "",
-    description: editTraining?.description || "",
-    category: editTraining?.category || "sms",
-    scheduleType: editTraining?.schedule_type || "recurring",
-    frequencyMonths: editTraining?.frequency_months ?? 12,
-    enrolledRoles: editTraining?.enrolled_roles || ["pilot"],
-    enrolledUsers: editTraining?.enrolled_users || [],
-  });
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const toggleRole = (role) => {
-    setForm(f => ({
-      ...f,
-      enrolledRoles: f.enrolledRoles.includes(role) ? f.enrolledRoles.filter(r => r !== role) : [...f.enrolledRoles, role],
-    }));
-  };
-  const toggleUser = (userId) => {
-    setForm(f => ({
-      ...f,
-      enrolledUsers: f.enrolledUsers.includes(userId) ? f.enrolledUsers.filter(u => u !== userId) : [...f.enrolledUsers, userId],
-    }));
-  };
-  // Users not already covered by enrolled roles
-  const additionalUsers = (orgProfiles || []).filter(p => p.full_name && !form.enrolledRoles.includes(p.role));
-
-  return (
-    <div style={{ maxWidth: 600, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>{editTraining ? "Edit Training" : "New Training"}</div>
-          <div style={{ fontSize: 11, color: MUTED }}>Define a training with schedule and enrollment</div>
-        </div>
-        {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Title *</label>
-        <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Annual SMS Recurrent Training" style={inp} />
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Description</label>
-        <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={2} placeholder="What this training covers..." style={{ ...inp, resize: "vertical" }} />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }} className="report-grid">
-        <div>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Category</label>
-          <select value={form.category} onChange={e => set("category", e.target.value)} style={inp}>
-            {TRAINING_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Schedule</label>
-          <select value={form.scheduleType} onChange={e => set("scheduleType", e.target.value)} style={inp}>
-            <option value="one_time">One-time</option>
-            <option value="recurring">Recurring</option>
-          </select>
-        </div>
-      </div>
-      {form.scheduleType === "recurring" && (
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Repeat Every (months)</label>
-          <input type="number" min={1} value={form.frequencyMonths} onChange={e => set("frequencyMonths", parseInt(e.target.value) || 12)} style={{ ...inp, maxWidth: 120 }} />
-        </div>
-      )}
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Enroll by Role</label>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {["pilot", "dispatcher", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"].map(r => (
-            <button key={r} onClick={() => toggleRole(r)}
-              style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600, cursor: "pointer",
-                background: form.enrolledRoles.includes(r) ? `${CYAN}22` : "transparent",
-                color: form.enrolledRoles.includes(r) ? CYAN : MUTED,
-                border: `1px solid ${form.enrolledRoles.includes(r) ? CYAN : BORDER}` }}>
-              {r.replace(/_/g, " ")}
-            </button>
-          ))}
-        </div>
-      </div>
-      {additionalUsers.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Enroll Individual Users (optional)</label>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {additionalUsers.map(p => (
-              <button key={p.id} onClick={() => toggleUser(p.id)}
-                style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600, cursor: "pointer",
-                  background: form.enrolledUsers.includes(p.id) ? `${GREEN}22` : "transparent",
-                  color: form.enrolledUsers.includes(p.id) ? GREEN : MUTED,
-                  border: `1px solid ${form.enrolledUsers.includes(p.id) ? GREEN : BORDER}` }}>
-                {p.full_name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      <button onClick={() => { if (form.title.trim()) onSubmit(form); }} disabled={!form.title.trim()}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1, marginTop: 8 }}>
-        {editTraining ? "Save Changes" : "Create Training"}
-      </button>
-    </div>
-  );
-}
 
 // ── LOG COMPLETION FORM ─────────────────────────────────────────
-function CompletionForm({ onSubmit, onCancel, trainings, orgProfiles, profile, isAdmin }) {
+function CompletionForm({ onSubmit, onCancel, courses, orgProfiles, profile, isAdmin }) {
   const [form, setForm] = useState({
-    trainingId: "", userId: profile?.id || "", completedDate: new Date().toISOString().slice(0, 10),
+    courseId: "", userId: profile?.id || "", completedDate: new Date().toISOString().slice(0, 10),
     instructor: "", notes: "",
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const selectedTraining = (trainings || []).find(t => t.id === form.trainingId);
-  const computedExpiry = selectedTraining && selectedTraining.schedule_type === "recurring" && selectedTraining.frequency_months > 0
-    ? (() => { const d = new Date(form.completedDate); d.setMonth(d.getMonth() + selectedTraining.frequency_months); return d.toISOString().slice(0, 10); })()
+  const selectedCourse = (courses || []).find(t => t.id === form.courseId);
+  const computedExpiry = selectedCourse && selectedCourse.schedule_type === "recurring" && selectedCourse.frequency_months > 0
+    ? (() => { const d = new Date(form.completedDate); d.setMonth(d.getMonth() + selectedCourse.frequency_months); return d.toISOString().slice(0, 10); })()
     : null;
 
   return (
@@ -677,9 +555,9 @@ function CompletionForm({ onSubmit, onCancel, trainings, orgProfiles, profile, i
       </div>
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Training *</label>
-        <select value={form.trainingId} onChange={e => set("trainingId", e.target.value)} style={inp}>
+        <select value={form.courseId} onChange={e => set("courseId", e.target.value)} style={inp}>
           <option value="">Select a training...</option>
-          {(trainings || []).map(t => <option key={t.id} value={t.id}>{t.title} ({t.schedule_type === "recurring" ? `every ${t.frequency_months}mo` : "one-time"})</option>)}
+          {(courses || []).map(t => <option key={t.id} value={t.id}>{t.title} ({t.schedule_type === "recurring" ? `every ${t.frequency_months}mo` : "one-time"})</option>)}
         </select>
       </div>
       {isAdmin && (
@@ -699,7 +577,7 @@ function CompletionForm({ onSubmit, onCancel, trainings, orgProfiles, profile, i
         <div>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Expires</label>
           <input type="date" value={computedExpiry || ""} readOnly style={{ ...inp, opacity: 0.6 }} />
-          {!computedExpiry && selectedTraining && <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>One-time — no expiry</div>}
+          {!computedExpiry && selectedCourse && <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>One-time — no expiry</div>}
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }} className="report-grid">
@@ -712,41 +590,46 @@ function CompletionForm({ onSubmit, onCancel, trainings, orgProfiles, profile, i
           <input value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional" style={inp} />
         </div>
       </div>
-      <button onClick={() => { if (form.trainingId && form.userId && form.completedDate) onSubmit(form); }}
-        disabled={!form.trainingId || !form.userId || !form.completedDate}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.trainingId || !form.userId || !form.completedDate) ? 0.4 : 1 }}>
+      <button onClick={() => { if (form.courseId && form.userId && form.completedDate) onSubmit(form); }}
+        disabled={!form.courseId || !form.userId || !form.completedDate}
+        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.courseId || !form.userId || !form.completedDate) ? 0.4 : 1 }}>
         Log Completion
       </button>
     </div>
   );
 }
 
-// ── COURSE BUILDER (Admin) ─────────────────────────────────────
-function CourseForm({ course, onSave, onCancel }) {
+// ── TRAINING / COURSE BUILDER (Admin) ──────────────────────────
+function CourseForm({ course, onSave, onCancel, orgProfiles }) {
   const [form, setForm] = useState({
     title: course?.title || "", description: course?.description || "",
     category: course?.category || "sms", passingScore: course?.passing_score || 80,
     estimatedMinutes: course?.estimated_minutes || 30, requiredFor: course?.required_for || ["pilot"],
+    scheduleType: course?.schedule_type || "one_time",
+    frequencyMonths: course?.frequency_months || 12,
+    enrolledUsers: course?.enrolled_users || [],
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const toggleRole = r => set("requiredFor", form.requiredFor.includes(r) ? form.requiredFor.filter(x => x !== r) : [...form.requiredFor, r]);
+  const toggleUser = (userId) => set("enrolledUsers", form.enrolledUsers.includes(userId) ? form.enrolledUsers.filter(u => u !== userId) : [...form.enrolledUsers, userId]);
+  const additionalUsers = (orgProfiles || []).filter(p => p.full_name && !form.requiredFor.includes(p.role));
 
   return (
     <div style={{ maxWidth: 600 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>{course ? "Edit Course" : "New Course"}</div>
-          <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Safety promotion training</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>{course ? "Edit Training" : "New Training"}</div>
+          <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Training & course builder</div>
         </div>
         <button onClick={onCancel} style={btnGhost}>Cancel</button>
       </div>
       <div style={{ marginBottom: 12 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Course Title *</label>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Training Title *</label>
         <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. SMS Initial Training" style={inp} />
       </div>
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Description</label>
-        <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={3} placeholder="What this course covers..." style={{ ...inp, resize: "vertical" }} />
+        <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={3} placeholder="What this training covers..." style={{ ...inp, resize: "vertical" }} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
         <div>
@@ -764,8 +647,23 @@ function CourseForm({ course, onSave, onCancel }) {
           <input type="number" min={1} value={form.estimatedMinutes} onChange={e => set("estimatedMinutes", parseInt(e.target.value) || 30)} style={inp} />
         </div>
       </div>
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Required For</label>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        <div>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Schedule</label>
+          <select value={form.scheduleType} onChange={e => set("scheduleType", e.target.value)} style={inp}>
+            <option value="one_time">One-time</option>
+            <option value="recurring">Recurring</option>
+          </select>
+        </div>
+        {form.scheduleType === "recurring" && (
+          <div>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Repeat Every (months)</label>
+            <input type="number" min={1} value={form.frequencyMonths} onChange={e => set("frequencyMonths", parseInt(e.target.value) || 12)} style={inp} />
+          </div>
+        )}
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Enroll by Role</label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {["pilot", "dispatcher", "maintenance", "safety_manager", "chief_pilot", "accountable_exec", "admin"].map(r => (
             <button key={r} onClick={() => toggleRole(r)}
@@ -778,9 +676,25 @@ function CourseForm({ course, onSave, onCancel }) {
           ))}
         </div>
       </div>
+      {additionalUsers.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Enroll Individual Users (optional)</label>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {additionalUsers.map(p => (
+              <button key={p.id} onClick={() => toggleUser(p.id)}
+                style={{ padding: "4px 10px", borderRadius: 12, fontSize: 10, fontWeight: 600, cursor: "pointer",
+                  background: form.enrolledUsers.includes(p.id) ? `${GREEN}22` : "transparent",
+                  color: form.enrolledUsers.includes(p.id) ? GREEN : MUTED,
+                  border: `1px solid ${form.enrolledUsers.includes(p.id) ? GREEN : BORDER}` }}>
+                {p.full_name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <button onClick={() => { if (form.title.trim()) onSave(form); }} disabled={!form.title.trim()}
         style={{ ...btnPrimary, width: "100%", padding: "14px 0", fontSize: 13, opacity: !form.title.trim() ? 0.4 : 1 }}>
-        {course ? "Save Changes" : "Create Course"}
+        {course ? "Save Changes" : "Create Training"}
       </button>
     </div>
   );
@@ -1197,35 +1111,23 @@ export default function CbtModules({
   onSaveLesson, onDeleteLesson,
   onUpdateProgress, onUpdateEnrollment,
   onPublishCourse, onRefresh,
-  trainings, completions, onCreateTraining, onUpdateTraining, onDeleteTraining,
-  onLogCompletion, onDeleteCompletion,
+  completions: completionsProp, onLogCompletion, onDeleteCompletion,
   onInitTraining, tourTab,
-  // Legacy prop aliases
-  trainingRequirements: _legacyReqs, trainingRecords: _legacyRecs,
-  onCreateRequirement: _legacyCreateReq, onLogTraining: _legacyLogTraining,
-  onDeleteTrainingRecord: _legacyDelRec, onDeleteRequirement: _legacyDelReq,
 }) {
-  // Resolve new props vs legacy aliases
-  const trainingsList = trainings || _legacyReqs || [];
-  const completionsList = completions || _legacyRecs || [];
-  const handleCreateTraining = onCreateTraining || _legacyCreateReq;
-  const handleUpdateTraining = onUpdateTraining;
-  const handleDeleteTraining = onDeleteTraining || _legacyDelReq;
-  const handleLogCompletion = onLogCompletion || _legacyLogTraining;
-  const handleDeleteCompletion = onDeleteCompletion || _legacyDelRec;
+  const completions = completionsProp || [];
 
-  const [topTab, setTopTab] = useState("cbt"); // cbt | trainings | completions | compliance
+  const [topTab, setTopTab] = useState("trainings"); // trainings | records | compliance
   useEffect(() => { if (tourTab) setTopTab(tourTab); }, [tourTab]);
-  const [view, setView] = useState("catalog"); // catalog, course_detail, lesson, new_course, edit_course, new_lesson, edit_lesson
+  const [view, setView] = useState("catalog"); // catalog, course_detail, lesson, new_course, edit_course, new_lesson, edit_lesson, new_completion
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState(null);
-  const [trainingView, setTrainingView] = useState("list"); // list | new_training | new_completion | edit_training
-  const [editingTraining, setEditingTraining] = useState(null);
   const [initializing, setInitializing] = useState(false);
   const [search, setSearch] = useState("");
   const [listFilter, setListFilter] = useState("all");
   const [sortBy, setSortBy] = useState("title_az");
   const [showCount, setShowCount] = useState(25);
+  const [userFilter, setUserFilter] = useState("all");
+  const [trainingFilter, setTrainingFilter] = useState("all");
 
   useEffect(() => { setShowCount(25); }, [listFilter, search, sortBy]);
 
@@ -1234,24 +1136,21 @@ export default function CbtModules({
     if (!profile?.id || !onUpdateEnrollment) return;
     const now = new Date();
     for (const course of courses) {
-      const tr = trainingsList.find(r => r.title === course.title);
-      if (!tr) continue;
-      const myCompletion = completionsList
-        .filter(r => r.user_id === profile.id && (r.training_id === tr.id || r.requirement_id === tr.id))
+      const myCompletion = completions
+        .filter(r => r.user_id === profile.id && r.course_id === course.id)
         .sort((a, b) => (b.completed_date || "").localeCompare(a.completed_date || ""))[0];
-      const expiryDate = myCompletion?.expires_at || myCompletion?.expiry_date;
-      if (!expiryDate) continue;
-      if (new Date(expiryDate) >= now) continue;
+      const expiryDate = myCompletion?.expires_at;
+      if (!expiryDate || new Date(expiryDate) >= now) continue;
       const myEnrollment = enrollments.find(e => e.course_id === course.id && e.user_id === profile.id && e.status === "completed");
       if (myEnrollment) {
         onUpdateEnrollment(course.id, { status: "expired", completedAt: null, certificateNumber: null });
       }
     }
-  }, [profile, courses, trainingsList, completionsList, enrollments, onUpdateEnrollment]);
+  }, [profile, courses, completions, enrollments, onUpdateEnrollment]);
 
   const handleInitTraining = async () => {
     setInitializing(true);
-    await onInitTraining(PART5_TRAINING_DEFINITIONS, PART5_CBT_COURSES);
+    await onInitTraining(PART5_CBT_COURSES);
     setInitializing(false);
   };
 
@@ -1260,9 +1159,9 @@ export default function CbtModules({
 
   // Admins see all org completions; non-admins see only their own
   const visibleCompletions = useMemo(() => {
-    if (isAdmin) return completionsList;
-    return completionsList.filter(r => r.user_id === profile?.id);
-  }, [completionsList, isAdmin, profile]);
+    if (isAdmin) return completions;
+    return completions.filter(r => r.user_id === profile?.id);
+  }, [completions, isAdmin, profile]);
 
   const openCourse = (c) => { setSelectedCourse(c); setView("course_detail"); };
   const openLesson = (l) => { setSelectedLesson(l); setView("lesson"); };
@@ -1284,30 +1183,28 @@ export default function CbtModules({
     return { current, expiring, expired };
   }, [visibleCompletions]);
 
-  // Current user's training status (for expiry banner in CBT view)
+  // Current user's training status (for expiry banner)
   const myTrainingStatus = useMemo(() => {
     const now = new Date();
     let expiring = 0, expired = 0;
-    completionsList.forEach(r => {
-      const exp_date = r.expires_at || r.expiry_date;
-      if (r.user_id !== profile?.id || !exp_date) return;
-      const exp = new Date(exp_date);
+    completions.forEach(r => {
+      if (r.user_id !== profile?.id || !r.expires_at) return;
+      const exp = new Date(r.expires_at);
       if (exp < now) expired++;
       else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) expiring++;
     });
     return { expiring, expired };
-  }, [completionsList, profile]);
+  }, [completions, profile]);
 
   // Compliance matrix: enrolled users × trainings (admin only)
   const complianceMatrix = useMemo(() => {
-    if (!isAdmin || !orgProfiles?.length || !trainingsList.length) return { users: [], trainings: [], matrix: {}, compliantCount: 0, totalUsers: 0 };
+    if (!isAdmin || !orgProfiles?.length || !publishedCourses.length) return { users: [], trainings: [], matrix: {}, compliantCount: 0, totalUsers: 0 };
     const now = new Date();
     const allUsers = orgProfiles.filter(p => p.full_name);
-    // Determine which users are enrolled in at least one training
     const enrolledUserIds = new Set();
-    for (const tr of trainingsList) {
-      const roles = tr.enrolled_roles || tr.required_for || [];
-      const userIds = tr.enrolled_users || [];
+    for (const course of publishedCourses) {
+      const roles = course.required_for || [];
+      const userIds = course.enrolled_users || [];
       for (const u of allUsers) {
         if (roles.includes(u.role) || userIds.includes(u.id)) enrolledUserIds.add(u.id);
       }
@@ -1318,31 +1215,31 @@ export default function CbtModules({
     for (const user of users) {
       matrix[user.id] = {};
       let allCurrent = true;
-      for (const tr of trainingsList) {
-        const roles = tr.enrolled_roles || tr.required_for || [];
-        const userIds = tr.enrolled_users || [];
+      for (const course of publishedCourses) {
+        const roles = course.required_for || [];
+        const userIds = course.enrolled_users || [];
         if (!roles.includes(user.role) && !userIds.includes(user.id)) {
-          matrix[user.id][tr.id] = "not_applicable";
+          matrix[user.id][course.id] = "not_applicable";
           continue;
         }
-        const matching = completionsList
-          .filter(r => r.user_id === user.id && (r.training_id === tr.id || r.requirement_id === tr.id))
+        const matching = completions
+          .filter(r => r.user_id === user.id && r.course_id === course.id)
           .sort((a, b) => (b.completed_date || "").localeCompare(a.completed_date || ""));
         const rec = matching[0];
-        const expDate = rec?.expires_at || rec?.expiry_date;
-        if (!rec) { matrix[user.id][tr.id] = "not_completed"; allCurrent = false; }
-        else if (!expDate) { matrix[user.id][tr.id] = "current"; }
+        const expDate = rec?.expires_at;
+        if (!rec) { matrix[user.id][course.id] = "not_completed"; allCurrent = false; }
+        else if (!expDate) { matrix[user.id][course.id] = "current"; }
         else {
           const exp = new Date(expDate);
-          if (exp < now) { matrix[user.id][tr.id] = "expired"; allCurrent = false; }
-          else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) { matrix[user.id][tr.id] = "expiring"; }
-          else { matrix[user.id][tr.id] = "current"; }
+          if (exp < now) { matrix[user.id][course.id] = "expired"; allCurrent = false; }
+          else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) { matrix[user.id][course.id] = "expiring"; }
+          else { matrix[user.id][course.id] = "current"; }
         }
       }
       if (allCurrent) compliantCount++;
     }
-    return { users, trainings: trainingsList, matrix, compliantCount, totalUsers: users.length };
-  }, [isAdmin, orgProfiles, trainingsList, completionsList]);
+    return { users, trainings: publishedCourses, matrix, compliantCount, totalUsers: users.length };
+  }, [isAdmin, orgProfiles, publishedCourses, completions]);
 
   // Count courses by category
   const courseCategoryCounts = useMemo(() => {
@@ -1357,20 +1254,23 @@ export default function CbtModules({
     const now = new Date();
     const map = {};
     for (const course of publishedCourses) {
-      const tr = trainingsList.find(r => r.title === course.title);
-      if (!tr) continue;
-      const myCompletion = completionsList
-        .filter(r => r.user_id === profile?.id && (r.training_id === tr.id || r.requirement_id === tr.id))
+      const myCompletion = completions
+        .filter(r => r.user_id === profile?.id && r.course_id === course.id)
         .sort((a, b) => (b.completed_date || "").localeCompare(a.completed_date || ""))[0];
-      if (!myCompletion) { map[course.id] = "not_completed"; continue; }
-      const expDate = myCompletion.expires_at || myCompletion.expiry_date;
+      if (!myCompletion) {
+        const roles = course.required_for || [];
+        const userIds = course.enrolled_users || [];
+        if (roles.includes(profile?.role) || userIds.includes(profile?.id)) map[course.id] = "not_completed";
+        continue;
+      }
+      const expDate = myCompletion.expires_at;
       if (!expDate) continue;
       const exp = new Date(expDate);
       if (exp < now) map[course.id] = "expired";
       else if ((exp - now) / (1000 * 60 * 60 * 24) < 30) map[course.id] = "expiring";
     }
     return map;
-  }, [publishedCourses, trainingsList, completionsList, profile]);
+  }, [publishedCourses, completions, profile]);
 
   // Filtered lists for search + filter
   const filteredCourses = useMemo(() => {
@@ -1399,7 +1299,7 @@ export default function CbtModules({
     const now = new Date();
     visibleCompletions.forEach(r => {
       c.all++;
-      const exp_date = r.expires_at || r.expiry_date;
+      const exp_date = r.expires_at;
       if (!exp_date) { c.current++; return; }
       const exp = new Date(exp_date);
       if (exp < now) c.expired++;
@@ -1413,15 +1313,17 @@ export default function CbtModules({
     const q = search.toLowerCase().trim();
     const now = new Date();
     let list = visibleCompletions.filter(r => {
-      const exp_date = r.expires_at || r.expiry_date;
+      const exp_date = r.expires_at;
       if (listFilter !== "all") {
         const isExpired = exp_date && new Date(exp_date) < now;
         const isExpiring = exp_date && !isExpired && (new Date(exp_date) - now) / (1000*60*60*24) < 30;
         const status = isExpired ? "expired" : isExpiring ? "expiring" : "current";
         if (listFilter !== status) return false;
       }
+      if (userFilter !== "all" && r.user_id !== userFilter) return false;
+      if (trainingFilter !== "all" && r.course_id !== trainingFilter) return false;
       if (q) {
-        const title = r.training?.title || r.title || "";
+        const title = r.course?.title || "";
         const hay = `${title} ${r.user?.full_name || ""} ${r.instructor || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
@@ -1429,42 +1331,11 @@ export default function CbtModules({
     });
     list.sort((a, b) => {
       if (sortBy === "oldest") return new Date(a.completed_date || a.created_at) - new Date(b.completed_date || b.created_at);
-      if (sortBy === "expiry") return (a.expires_at || a.expiry_date || "9999") < (b.expires_at || b.expiry_date || "9999") ? -1 : 1;
+      if (sortBy === "expiry") return (a.expires_at || "9999") < (b.expires_at || "9999") ? -1 : 1;
       return new Date(b.completed_date || b.created_at) - new Date(a.completed_date || a.created_at);
     });
     return list;
-  }, [completionsList, listFilter, search, sortBy, visibleCompletions]);
-
-  const trainingTypeCounts = useMemo(() => {
-    const c = { all: 0, one_time: 0, recurring: 0 };
-    trainingsList.forEach(r => {
-      c.all++;
-      const stype = r.schedule_type || (r.frequency_months > 0 ? "recurring" : "one_time");
-      if (stype === "recurring") c.recurring++; else c.one_time++;
-    });
-    return c;
-  }, [trainingsList]);
-
-  const filteredTrainings = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    let list = trainingsList.filter(r => {
-      if (listFilter !== "all") {
-        const stype = r.schedule_type || (r.frequency_months > 0 ? "recurring" : "one_time");
-        if (listFilter !== stype) return false;
-      }
-      if (q) {
-        const roles = r.enrolled_roles || r.required_for || [];
-        const hay = `${r.title} ${r.description || ""} ${r.category || ""} ${roles.join(" ")}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-    list.sort((a, b) => {
-      if (sortBy === "category") return (a.category || "").localeCompare(b.category || "");
-      return (a.title || "").localeCompare(b.title || "");
-    });
-    return list;
-  }, [trainingsList, listFilter, search, sortBy]);
+  }, [completions, listFilter, search, sortBy, visibleCompletions, userFilter, trainingFilter]);
 
   const handleCompleteLesson = async (result) => {
     if (!selectedCourse || !selectedLesson) return;
@@ -1474,7 +1345,6 @@ export default function CbtModules({
       quizAnswers: result.quizAnswers,
       completedAt: new Date().toISOString(),
     });
-    // Check if all lessons in course are now complete
     const courseLessons = allLessonsMap[selectedCourse.id] || [];
     const updatedProgress = [...progress, { course_id: selectedCourse.id, lesson_id: selectedLesson.id, user_id: profile.id, status: "completed" }];
     const allDone = courseLessons.every(l =>
@@ -1483,21 +1353,11 @@ export default function CbtModules({
     if (allDone) {
       const certNum = `CBT-${Date.now().toString(36).toUpperCase()}`;
       await onUpdateEnrollment(selectedCourse.id, { status: "completed", completedAt: new Date().toISOString(), certificateNumber: certNum });
-      // Auto-log as completion — link to matching training
-      if (handleLogCompletion) {
-        const matchingTraining = trainingsList.find(r => r.title === selectedCourse.title);
+      if (onLogCompletion) {
         const completedDate = new Date().toISOString().slice(0, 10);
-        const isDuplicate = matchingTraining && completionsList.some(r =>
-          r.user_id === profile.id && (r.training_id === matchingTraining.id || r.requirement_id === matchingTraining.id) && r.completed_date === completedDate
-        );
-        if (!isDuplicate && matchingTraining) {
-          await handleLogCompletion({
-            trainingId: matchingTraining.id,
-            userId: profile.id,
-            completedDate,
-            instructor: "Computer-Based Training",
-            notes: `Certificate: ${certNum}`,
-          });
+        const isDuplicate = completions.some(r => r.user_id === profile.id && r.course_id === selectedCourse.id && r.completed_date === completedDate);
+        if (!isDuplicate) {
+          await onLogCompletion({ courseId: selectedCourse.id, userId: profile.id, completedDate, instructor: "Computer-Based Training", notes: `Certificate: ${certNum}` });
         }
       }
     } else {
@@ -1506,36 +1366,20 @@ export default function CbtModules({
     onRefresh();
   };
 
-  // Training forms
-  if (trainingView === "new_training" || trainingView === "edit_training") return (
+  // Log Completion form
+  if (view === "new_completion") return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-      <TrainingDefForm orgProfiles={orgProfiles} editTraining={trainingView === "edit_training" ? editingTraining : null} onSubmit={t => {
-        if (trainingView === "edit_training" && editingTraining) {
-          if (handleUpdateTraining) handleUpdateTraining(editingTraining.id, {
-            title: t.title, description: t.description, category: t.category,
-            schedule_type: t.scheduleType, frequency_months: t.scheduleType === "recurring" ? t.frequencyMonths : 0,
-            enrolled_roles: t.enrolledRoles, enrolled_users: t.enrolledUsers,
-          });
-        } else {
-          handleCreateTraining(t);
-        }
-        setTrainingView("list"); setEditingTraining(null);
-      }} onCancel={() => { setTrainingView("list"); setEditingTraining(null); }} />
-    </div>
-  );
-  if (trainingView === "new_completion") return (
-    <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-      <CompletionForm trainings={trainingsList} orgProfiles={orgProfiles} profile={profile} isAdmin={isAdmin} onSubmit={c => { handleLogCompletion(c); setTrainingView("list"); }} onCancel={() => setTrainingView("list")} />
+      <CompletionForm courses={publishedCourses} orgProfiles={orgProfiles} profile={profile} isAdmin={isAdmin} onSubmit={c => { onLogCompletion(c); setView("catalog"); setTopTab("records"); }} onCancel={() => setView("catalog")} />
     </div>
   );
 
-  // Top-level tab bar (Courses | Trainings | Completions | Compliance)
-  const tabs = [["cbt", "Courses"], ["trainings", "Trainings"], ["completions", "Completions"]];
+  // Top-level tab bar (Trainings | Records | Compliance)
+  const tabs = [["trainings", "Trainings"], ["records", "Records"]];
   if (isAdmin) tabs.push(["compliance", "Compliance"]);
   const renderTopTabs = () => (
     <div data-tour="tour-cbt-tabs" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
       {tabs.map(([id, label]) => (
-        <button key={id} data-onboarding={id === "cbt" ? "cbt-courses-tab" : id === "completions" ? "cbt-records-tab" : id === "trainings" ? "cbt-requirements-tab" : id === "compliance" ? "cbt-compliance-tab" : undefined} onClick={() => { setTopTab(id); setView("catalog"); setTrainingView("list"); setSearch(""); setListFilter("all"); setSortBy(id === "cbt" ? "title_az" : id === "completions" ? "newest" : "title_az"); setShowCount(25); }}
+        <button key={id} data-onboarding={id === "trainings" ? "cbt-courses-tab" : id === "records" ? "cbt-records-tab" : id === "compliance" ? "cbt-compliance-tab" : undefined} onClick={() => { setTopTab(id); setView("catalog"); setSearch(""); setListFilter("all"); setUserFilter("all"); setTrainingFilter("all"); setSortBy(id === "records" ? "newest" : "title_az"); setShowCount(25); }}
           style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${topTab === id ? WHITE : BORDER}`,
             background: topTab === id ? WHITE : "transparent", color: topTab === id ? BLACK : MUTED,
             fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{label}</button>
@@ -1543,16 +1387,16 @@ export default function CbtModules({
     </div>
   );
 
-  // ── Completions tab ──
-  if (topTab === "completions") {
+  // ── Records tab ──
+  if (topTab === "records") {
     return (
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Completions</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Records</div>
             <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Training completion records</div>
           </div>
-          <button data-onboarding="cbt-log-training-btn" onClick={() => setTrainingView("new_completion")} style={btnPrimary}>+ Log Completion</button>
+          <button data-onboarding="cbt-log-training-btn" onClick={() => setView("new_completion")} style={btnPrimary}>+ Log Completion</button>
         </div>
         {renderTopTabs()}
         <div data-onboarding="cbt-records-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
@@ -1571,6 +1415,16 @@ export default function CbtModules({
         </div>
         <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search records..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+          {isAdmin && (
+            <select value={userFilter} onChange={e => setUserFilter(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 200, padding: "5px 10px", fontSize: 12 }}>
+              <option value="all">All Users</option>
+              {(orgProfiles || []).filter(p => p.full_name).map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+            </select>
+          )}
+          <select value={trainingFilter} onChange={e => setTrainingFilter(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 200, padding: "5px 10px", fontSize: 12 }}>
+            <option value="all">All Trainings</option>
+            {publishedCourses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+          </select>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
@@ -1588,7 +1442,7 @@ export default function CbtModules({
         {filteredCompletions.length === 0 ? (
           <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
             <div style={{ fontSize: 42, marginBottom: 12 }}>📚</div>
-            <div style={{ fontSize: 14 }}>{completionsList.length === 0 ? "No completions yet" : "No matching records"}</div>
+            <div style={{ fontSize: 14 }}>{completions.length === 0 ? "No completions yet" : "No matching records"}</div>
           </div>
         ) : (<>
           {filteredCompletions.slice(0, showCount).map(r => {
@@ -1596,7 +1450,7 @@ export default function CbtModules({
             const isExpired = expDate && new Date(expDate) < new Date();
             const isExpiring = expDate && !isExpired && (new Date(expDate) - new Date()) / (1000*60*60*24) < 30;
             const statusColor = isExpired ? RED : isExpiring ? YELLOW : GREEN;
-            const title = r.training?.title || r.title || "Unknown";
+            const title = r.course?.title || "Unknown";
             return (
               <div key={r.id} style={{ ...card, padding: "12px 16px", marginBottom: 6, borderLeft: `3px solid ${statusColor}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1611,8 +1465,8 @@ export default function CbtModules({
                   <span style={{ fontSize: 10, fontWeight: 600, color: statusColor }}>
                     {isExpired ? "EXPIRED" : isExpiring ? "EXPIRING" : "CURRENT"}
                   </span>
-                  {isAdmin && handleDeleteCompletion && (
-                    <button onClick={() => { if (confirm("Delete this completion record?")) handleDeleteCompletion(r.id); }}
+                  {isAdmin && onDeleteCompletion && (
+                    <button onClick={() => { if (confirm("Delete this completion record?")) onDeleteCompletion(r.id); }}
                       style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
                   )}
                 </div>
@@ -1630,93 +1484,16 @@ export default function CbtModules({
     );
   }
 
-  // ── Trainings tab ──
-  if (topTab === "trainings") {
-    return (
-      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Trainings</div>
-            <div style={{ fontSize: 11, color: MUTED }}>Define trainings with schedules and enrollment</div>
-          </div>
-          {isAdmin && <button onClick={() => setTrainingView("new_training")} style={btnPrimary}>+ New Training</button>}
-        </div>
-        {renderTopTabs()}
-        <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search trainings..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
-            <option value="title_az">Title A-Z</option>
-            <option value="category">Category</option>
-          </select>
-        </div>
-        <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-          {[["all", "All"], ["one_time", "One-time"], ["recurring", "Recurring"]].map(([id, label]) => (
-            <button key={id} onClick={() => setListFilter(id)}
-              style={{ padding: "5px 10px", borderRadius: 16, border: `1px solid ${listFilter === id ? WHITE : BORDER}`,
-                background: listFilter === id ? WHITE : CARD, color: listFilter === id ? BLACK : MUTED,
-                fontSize: 10, fontWeight: 600, cursor: "pointer" }}>{label} ({trainingTypeCounts[id] || 0})</button>
-          ))}
-        </div>
-        {filteredTrainings.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 60, color: MUTED }}>
-            <div style={{ fontSize: 42, marginBottom: 12 }}>📋</div>
-            <div style={{ fontSize: 14 }}>{trainingsList.length === 0 ? "No trainings defined yet" : "No matching trainings"}</div>
-          </div>
-        ) : (<>
-          {filteredTrainings.slice(0, showCount).map(r => {
-            const roles = r.enrolled_roles || r.required_for || [];
-            const stype = r.schedule_type || (r.frequency_months > 0 ? "recurring" : "one_time");
-            const completionCount = completionsList.filter(c => c.training_id === r.id || c.requirement_id === r.id).length;
-            return (
-              <div key={r.id} style={{ ...card, padding: "12px 14px", marginBottom: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: WHITE }}>{r.title}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: stype === "recurring" ? `${CYAN}18` : `${GREEN}18`, color: stype === "recurring" ? CYAN : GREEN }}>
-                        {stype === "recurring" ? `Every ${r.frequency_months}mo` : "One-time"}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 10, color: MUTED }}>
-                      {r.category} · Enrolled: {roles.length > 0 ? roles.map(r => r.replace(/_/g, " ")).join(", ") : "none"}
-                      {(r.enrolled_users || []).length > 0 && ` + ${r.enrolled_users.length} individual${r.enrolled_users.length !== 1 ? "s" : ""}`}
-                      {completionCount > 0 && ` · ${completionCount} completion${completionCount !== 1 ? "s" : ""}`}
-                    </div>
-                    {r.description && <div style={{ fontSize: 10, color: MUTED, marginTop: 2, fontStyle: "italic" }}>{r.description.slice(0, 120)}{r.description.length > 120 ? "..." : ""}</div>}
-                  </div>
-                  {isAdmin && (
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <button onClick={() => { setEditingTraining(r); setTrainingView("edit_training"); }}
-                        style={{ fontSize: 10, color: CYAN, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, cursor: "pointer", padding: "3px 8px" }}>Edit</button>
-                      {handleDeleteTraining && (
-                        <button onClick={() => { if (confirm(`Delete "${r.title}"? All completions will be removed.`)) handleDeleteTraining(r.id); }}
-                          style={{ fontSize: 10, color: RED, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>✕</button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          {filteredTrainings.length > showCount && (
-            <button onClick={() => setShowCount(c => c + 25)}
-              style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
-              Showing {showCount} of {filteredTrainings.length} — Show 25 more
-            </button>
-          )}
-        </>)}
-      </div>
-    );
-  }
 
   // ── Compliance tab (admin-only) ──
   if (topTab === "compliance" && isAdmin) {
     const { users, trainings: matrixTrainings, matrix, compliantCount, totalUsers } = complianceMatrix;
-    const statusDot = (status) => {
-      const colors = { current: GREEN, expiring: YELLOW, expired: RED, not_completed: SUBTLE, not_applicable: "transparent" };
-      const labels = { current: "Current", expiring: "Expiring", expired: "Expired", not_completed: "Not completed", not_applicable: "N/A" };
-      if (status === "not_applicable") return <span title="N/A" style={{ fontSize: 10, color: MUTED }}>—</span>;
-      return <span title={labels[status] || status} style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: colors[status] || SUBTLE }} />;
+    const statusIcon = (status) => {
+      if (status === "not_applicable") return <span title="N/A" style={{ fontSize: 13, color: MUTED }}>—</span>;
+      if (status === "current") return <span title="Current" style={{ display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: GREEN }} />;
+      if (status === "expiring") return <span title="Expiring within 30 days" style={{ fontSize: 14, color: YELLOW, fontWeight: 700 }}>▲</span>;
+      if (status === "expired" || status === "not_completed") return <span title={status === "expired" ? "Expired" : "Not completed"} style={{ fontSize: 14, color: RED, fontWeight: 700 }}>✕</span>;
+      return <span title="Not completed" style={{ fontSize: 14, color: RED, fontWeight: 700 }}>✕</span>;
     };
     return (
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -1735,9 +1512,9 @@ export default function CbtModules({
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", gap: 12, fontSize: 10, color: MUTED }}>
             <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: GREEN, marginRight: 4 }} />Current</span>
-            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: YELLOW, marginRight: 4 }} />Expiring</span>
-            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: RED, marginRight: 4 }} />Expired</span>
-            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: SUBTLE, marginRight: 4 }} />Not completed</span>
+            <span><span style={{ color: YELLOW, fontWeight: 700, marginRight: 4 }}>▲</span>Expiring</span>
+            <span><span style={{ color: RED, fontWeight: 700, marginRight: 4 }}>✕</span>Expired / Past Due</span>
+            <span><span style={{ color: MUTED, marginRight: 4 }}>—</span>N/A</span>
           </div>
         </div>
         {matrixTrainings.length === 0 || users.length === 0 ? (
@@ -1764,7 +1541,7 @@ export default function CbtModules({
                     <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111" }}>{user.full_name}</td>
                     {matrixTrainings.map(t => (
                       <td key={t.id} style={{ textAlign: "center", padding: "6px", borderBottom: `1px solid ${BORDER}` }}>
-                        {statusDot(matrix[user.id]?.[t.id] || "not_completed")}
+                        {statusIcon(matrix[user.id]?.[t.id] || "not_completed")}
                       </td>
                     ))}
                   </tr>
@@ -1777,7 +1554,7 @@ export default function CbtModules({
     );
   }
 
-  // ── CBT Courses tab (default) ──
+  // ── Trainings tab (default) ──
 
   // Catalog view
   if (view === "catalog") {
@@ -1790,10 +1567,10 @@ export default function CbtModules({
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Training Courses</div>
-            <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Online training and safety promotion</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Trainings</div>
+            <div style={{ fontSize: 11, color: MUTED }}>§5.91–5.97 — Training courses and safety promotion</div>
           </div>
-          {isAdmin && <button data-onboarding="cbt-new-course-btn" onClick={() => setView("new_course")} style={btnPrimary}>+ New Course</button>}
+          {isAdmin && <button data-onboarding="cbt-new-course-btn" onClick={() => setView("new_course")} style={btnPrimary}>+ New Training</button>}
         </div>
 
         {renderTopTabs()}
@@ -1801,13 +1578,13 @@ export default function CbtModules({
         {myTrainingStatus.expired > 0 && (
           <div style={{ padding: "10px 14px", marginBottom: 12, borderRadius: 8, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 12, color: RED, fontWeight: 600 }}>You have {myTrainingStatus.expired} expired training record{myTrainingStatus.expired !== 1 ? "s" : ""}</span>
-            <button onClick={() => { setTopTab("completions"); setTrainingView("list"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(239,68,68,0.2)", color: RED, fontSize: 10, padding: "4px 10px" }}>View</button>
+            <button onClick={() => { setTopTab("records"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(239,68,68,0.2)", color: RED, fontSize: 10, padding: "4px 10px" }}>View</button>
           </div>
         )}
         {myTrainingStatus.expiring > 0 && myTrainingStatus.expired === 0 && (
           <div style={{ padding: "10px 14px", marginBottom: 12, borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 12, color: YELLOW, fontWeight: 600 }}>You have {myTrainingStatus.expiring} training record{myTrainingStatus.expiring !== 1 ? "s" : ""} expiring within 30 days</span>
-            <button onClick={() => { setTopTab("completions"); setTrainingView("list"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(250,204,21,0.1)", color: YELLOW, fontSize: 10, padding: "4px 10px" }}>View</button>
+            <button onClick={() => { setTopTab("records"); setSortBy("expiry"); }} style={{ ...btn, background: "rgba(250,204,21,0.1)", color: YELLOW, fontSize: 10, padding: "4px 10px" }}>View</button>
           </div>
         )}
 
@@ -1884,6 +1661,7 @@ export default function CbtModules({
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: WHITE }}>{c.title}</span>
+                  {c.schedule_type === "recurring" && <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: `${CYAN}18`, color: CYAN }}>Every {c.frequency_months}mo</span>}
                   {c.status === "draft" && <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: `${YELLOW}22`, color: YELLOW }}>DRAFT</span>}
                   {courseTrainingStatus[c.id] === "expired" && <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: `${RED}22`, color: RED }}>OVERDUE</span>}
                   {courseTrainingStatus[c.id] === "expiring" && <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 6px", borderRadius: 3, background: `${YELLOW}22`, color: YELLOW }}>DUE SOON</span>}
@@ -1924,10 +1702,10 @@ export default function CbtModules({
   if (view === "new_course" || view === "edit_course") {
     return (
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        <CourseForm course={view === "edit_course" ? selectedCourse : null}
+        <CourseForm course={view === "edit_course" ? selectedCourse : null} orgProfiles={orgProfiles}
           onSave={async (form) => {
             if (view === "edit_course" && selectedCourse) {
-              await onUpdateCourse(selectedCourse.id, { title: form.title, description: form.description, category: form.category, passing_score: form.passingScore, estimated_minutes: form.estimatedMinutes, required_for: form.requiredFor });
+              await onUpdateCourse(selectedCourse.id, { title: form.title, description: form.description, category: form.category, passing_score: form.passingScore, estimated_minutes: form.estimatedMinutes, required_for: form.requiredFor, schedule_type: form.scheduleType, frequency_months: form.scheduleType === "recurring" ? form.frequencyMonths : 0, enrolled_users: form.enrolledUsers });
             } else {
               await onCreateCourse(form);
             }
