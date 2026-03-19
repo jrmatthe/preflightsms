@@ -44,6 +44,7 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy, editPolicy }) {
   const [replaceFile, setReplaceFile] = useState(false);
   const [part5Tags, setPart5Tags] = useState(editPolicy?.part5_tags || []);
   const [aiDraftLoading, setAiDraftLoading] = useState(false);
+  const [aiDraftError, setAiDraftError] = useState(null);
   const fileRef = { current: null };
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const versionChanged = isEdit && form.version !== (editPolicy?.version || "1.0");
@@ -61,14 +62,16 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy, editPolicy }) {
           <label style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Title *</label>
           {onAiDraftPolicy && form.title.trim() && (
             <button onClick={async () => {
-              setAiDraftLoading(true);
+              setAiDraftLoading(true); setAiDraftError(null);
               try {
                 const result = await onAiDraftPolicy({ policyTitle: form.title, policyCategory: form.category });
-                if (result) {
+                if (result && (result.description || result.content)) {
                   if (result.description) set("description", result.description);
                   if (result.content) set("content", result.content);
+                } else {
+                  setAiDraftError("AI returned no content. Try again.");
                 }
-              } catch { /* handled by parent */ }
+              } catch (e) { setAiDraftError("AI draft failed. Try again."); }
               setAiDraftLoading(false);
             }} disabled={aiDraftLoading}
               style={{ fontSize: 10, color: CYAN, background: `${CYAN}08`, border: `1px solid ${CYAN}44`, borderRadius: 4, padding: "3px 10px", cursor: aiDraftLoading ? "wait" : "pointer", fontWeight: 600, fontFamily: "inherit", opacity: aiDraftLoading ? 0.6 : 1 }}>
@@ -76,7 +79,8 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy, editPolicy }) {
             </button>
           )}
         </div>
-        <input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Safety Policy Statement" style={inp} />
+        <input value={form.title} onChange={e => { set("title", e.target.value); setAiDraftError(null); }} placeholder="e.g. Safety Policy Statement" style={inp} />
+        {aiDraftError && <div style={{ fontSize: 10, color: RED, marginTop: 4 }}>{aiDraftError}</div>}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }} className="report-grid">
         <div>

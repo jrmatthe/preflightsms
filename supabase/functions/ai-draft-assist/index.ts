@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
 
       // Fetch existing policies for context
       const { data: policies } = await supabase
-        .from("policies")
+        .from("policy_documents")
         .select("title, category, description")
         .eq("org_id", orgId)
         .order("created_at", { ascending: false })
@@ -186,7 +186,7 @@ Respond ONLY with a JSON object:
 
       // Fetch existing policies
       const { data: policies } = await supabase
-        .from("policies")
+        .from("policy_documents")
         .select("title, category, description, content")
         .eq("org_id", orgId)
         .order("created_at", { ascending: false })
