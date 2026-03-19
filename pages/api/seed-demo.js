@@ -137,7 +137,7 @@ export default async function handler(req, res) {
         "foreflight_flights", "foreflight_config",   // FK → frat_submissions, flights
         "schedaero_trips", "schedaero_config",       // FK → frat_submissions, flights
         "fatigue_assessments",                       // FK → frat_submissions
-        "cbt_progress", "cbt_enrollments", "cbt_lessons", "cbt_courses", // FK chain: progress/enrollments → lessons → courses
+        "cbt_progress", "cbt_enrollments", "cbt_lessons", "training_completions", "cbt_courses", // FK chain: progress/enrollments/completions → courses
         "notifications", "policy_acknowledgments", "training_records",
         "training_requirements", "corrective_actions", "hazard_register", "safety_reports",
         "flights", "frat_submissions", "policy_documents",
@@ -542,65 +542,70 @@ export default async function handler(req, res) {
     }
     log.push(`Created ${actionTemplates.length} corrective actions`);
 
-    // ── 8. Create Training Requirements + Records ───────────────
-    const reqIds = {};
+    // ── 8. Create Training Completion Records (linked to cbt_courses) ──
+    // First, create cbt_courses for each TRAINING_REQS entry that doesn't already exist as a course
+    const { data: existingCourses } = await supabase.from("cbt_courses").select("id, title").eq("org_id", orgId);
+    const existingTitles = new Set((existingCourses || []).map(c => c.title));
+    const courseIdByTitle = {};
+    (existingCourses || []).forEach(c => { courseIdByTitle[c.title] = c.id; });
+
     for (const req of TRAINING_REQS) {
-      const { data, error } = await supabase.from("training_requirements").insert({
-        org_id: orgId, title: req.title, category: req.category,
-        frequency_months: req.frequency_months, required_for: req.required_for,
-        description: `Required training: ${req.title}`,
-      }).select().single();
-      if (error) { errors.push(`Training req ${req.title}: ${error.message}`); continue; }
-      reqIds[req.title] = data.id;
+      if (!existingTitles.has(req.title)) {
+        const { data: course, error } = await supabase.from("cbt_courses").insert({
+          org_id: orgId, title: req.title, category: req.category,
+          description: `Required training: ${req.title}`,
+          required_for: req.required_for,
+          schedule_type: req.frequency_months > 0 ? "recurring" : "one_time",
+          frequency_months: req.frequency_months || 0,
+          passing_score: 80, estimated_minutes: 30,
+          status: "published", created_by: adminId,
+        }).select().single();
+        if (error) { errors.push(`Training course ${req.title}: ${error.message}`); continue; }
+        courseIdByTitle[req.title] = course.id;
+      }
     }
 
-    // Create records — all current except 2 (one overdue, one expiring soon)
-    // Overdue: "Hazmat Awareness" for Mike Rodriguez
-    // Expiring soon: "Emergency Procedures Review" for David Park
+    // Create completion records — all current except 2 (one overdue, one expiring soon)
     const overdueReq = "Hazmat Awareness";
     const overdueUser = "mike.rodriguez@demo.preflightsms.com";
     const expiringReq = "Emergency Procedures Review";
     const expiringUser = "david.park@demo.preflightsms.com";
 
-    for (const pilot of [...pilots, DEMO_USERS[0], DEMO_USERS[4]]) { // pilots + admin + safety manager
+    for (const pilot of [...pilots, DEMO_USERS[0], DEMO_USERS[4]]) {
       const userId = userIds[pilot.email];
       for (const req of TRAINING_REQS) {
         if (!req.required_for.includes(pilot.role)) continue;
-        const reqId = reqIds[req.title];
-        if (!reqId) continue;
+        const courseId = courseIdByTitle[req.title];
+        if (!courseId) continue;
 
         let completedAgo, expiryDate;
         const expiryMonths = req.frequency_months || 12;
 
         if (req.title === overdueReq && pilot.email === overdueUser) {
-          // Overdue — completed 14 months ago, expired 2 months ago
           completedAgo = 14 * 30;
           expiryDate = new Date();
           expiryDate.setDate(expiryDate.getDate() - 60);
         } else if (req.title === expiringReq && pilot.email === expiringUser) {
-          // Expiring soon — completed 11 months ago, expires in 12 days
           completedAgo = 11 * 30;
           expiryDate = new Date();
           expiryDate.setDate(expiryDate.getDate() + 12);
         } else {
-          // Current — completed 1-4 months ago, well within expiry
           completedAgo = randInt(30, 120);
           expiryDate = new Date();
           expiryDate.setDate(expiryDate.getDate() - completedAgo);
           expiryDate.setMonth(expiryDate.getMonth() + expiryMonths);
         }
 
-        await supabase.from("training_records").insert({
-          org_id: orgId, user_id: userId, requirement_id: reqId,
-          title: req.title,
+        await supabase.from("training_completions").insert({
+          org_id: orgId, user_id: userId, course_id: courseId,
           completed_date: dateOnly(completedAgo),
-          expiry_date: expiryDate.toISOString().split("T")[0],
+          expires_at: req.frequency_months > 0 ? expiryDate.toISOString().split("T")[0] : null,
           instructor: pick(["Capt. Williams", "Safety Dept.", "External Provider", "Online CBT"]),
           notes: "Completed successfully.",
         });
       }
     }
-    log.push("Created training requirements and records (2 non-current)");
+    log.push("Created training completion records (2 non-current)");
 
     // ── 9. Policies — skipped so user can demo template loading ──
     log.push("Policies skipped (populate via templates during demo)");
