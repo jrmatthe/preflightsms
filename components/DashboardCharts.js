@@ -1218,7 +1218,9 @@ function FleetStatusRow({ ac, columns, fields, onUpdateStatus }) {
 
 function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
   const orgId = profile?.org_id;
-  const canManageMel = profile?.role === "maintenance" || ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
+  const isAdminRole = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
+  const canDeferMel = !!onUpdateMel; // any role can defer an MEL
+  const canRectifyMel = profile?.role === "maintenance" || isAdminRole; // only maintenance/admin can clear
   const [melFormOpen, setMelFormOpen] = useState(false);
   const [form, setForm] = useState({ description: "", mel_reference: "", category: "C", notes: "" });
   const [saving, setSaving] = useState(false);
@@ -1295,7 +1297,7 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
           <span style={{ fontSize: 10, fontWeight: 600, color: OFF_WHITE }}>MEL Deferrals</span>
           {activeItems.length > 0 && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: `${AMBER}18`, color: AMBER }}>{activeItems.length} active</span>}
         </div>
-        {onUpdateMel && canManageMel && !melFormOpen && (
+        {canDeferMel && !melFormOpen && (
           <button onClick={() => setMelFormOpen(true)} style={{ padding: "4px 10px", borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${CYAN}44`, color: CYAN }}>+ Defer MEL</button>
         )}
       </div>
@@ -1319,7 +1321,7 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
                 {item.expiration_date && <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: `${expColor}18`, color: expColor }}>{expStatus === "expired" ? "EXPIRED" : expStatus === "warning" ? "EXPIRING" : `Exp ${item.expiration_date}`}</span>}
                 {item.deferred_by_name && <span style={{ fontSize: 9, color: MUTED }}>by {item.deferred_by_name}</span>}
               </div>
-              {onUpdateMel && !isRect && canManageMel && <button onClick={() => { setRectifyingId(item.id); setRectifyWork(""); }} style={{ padding: "3px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${GREEN}44`, color: GREEN }}>Rectify</button>}
+              {onUpdateMel && !isRect && canRectifyMel && <button onClick={() => { setRectifyingId(item.id); setRectifyWork(""); }} style={{ padding: "3px 8px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${GREEN}44`, color: GREEN }}>Rectify</button>}
             </div>
             <div style={{ fontSize: 12, color: WHITE, marginBottom: 2 }}>{item.description}</div>
             {item.deferred_date && <div style={{ fontSize: 10, color: MUTED }}>Deferred: {item.deferred_date} ({getDaysOpen(item.deferred_date)} days open)</div>}
