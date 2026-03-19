@@ -218,7 +218,7 @@ Draft a professional policy document with a description and markdown-formatted c
 
 Respond ONLY with a JSON object:
 {"title": "${policyTitle || "Untitled Policy"}", "description": "Brief policy description", "content": "Full markdown policy content", "category": "${policyCategory || "general"}"}`;
-      maxTokens = 2048;
+      maxTokens = 4096;
 
     } else if (mode === "identify_hazard") {
       const { reportTitle, reportDescription, reportCategory, reportSeverity } = body;
@@ -296,19 +296,23 @@ Respond ONLY with a JSON object:
 
     const claudeData = await claudeRes.json();
     let responseText = claudeData.content?.[0]?.text || "{}";
+    console.log("Claude raw response length:", responseText.length, "first 500 chars:", responseText.slice(0, 500));
 
     // Strip markdown code fences if present
     responseText = responseText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
 
     // Parse result from response
-    let result = {};
+    let result: Record<string, unknown> = {};
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         result = JSON.parse(jsonMatch[0]);
+        console.log("Parsed result keys:", Object.keys(result));
+      } else {
+        console.error("No JSON object found in response:", responseText.slice(0, 300));
       }
-    } catch {
-      console.error("Failed to parse Claude response:", responseText);
+    } catch (parseErr) {
+      console.error("Failed to parse Claude response:", (parseErr as Error).message, responseText.slice(0, 300));
     }
 
     // Log usage
