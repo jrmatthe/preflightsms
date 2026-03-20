@@ -12,7 +12,7 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyAuth } from "../../lib/apiAuth";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST" && req.method !== "GET") return res.status(405).json({ error: "POST or GET only" });
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
@@ -30,10 +30,15 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized — provide secret or orgId" });
   }
 
-  // When using orgId mode, require a valid Supabase auth token
+  // When using orgId mode, require a valid Supabase auth token and verify org membership
   if (!isCron && orgIdParam) {
     const { user, error: authError } = await verifyAuth(req);
     if (authError || !user) return res.status(401).json({ error: authError || "Unauthorized" });
+    const tmpSb = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: callerProfile } = await tmpSb.from("profiles").select("org_id").eq("id", user.id).single();
+    if (!callerProfile || callerProfile.org_id !== orgIdParam) {
+      return res.status(403).json({ error: "Not a member of this organization" });
+    }
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);

@@ -62,7 +62,7 @@ const STEP_LABELS = [
 const STEP_KEYS = ["identification", "assessment", "decision", "analysis", "residual", "monitoring", "lessons"];
 
 function RiskMatrix({ likelihood, severity, onChange, label }) {
-  const score = likelihood && severity ? likelihood * severity : null;
+  const score = likelihood != null && severity != null ? likelihood * severity : null;
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -217,8 +217,8 @@ function getStepStatus(hazard, step, initScore, resScore, linkedActions) {
 
 // ── Hazard Card (list-row only) ─────────────────────────────
 function HazardCard({ hazard, linkedReport, linkedActions, onSelect }) {
-  const initScore = hazard.initial_risk_score || (hazard.initial_likelihood && hazard.initial_severity ? hazard.initial_likelihood * hazard.initial_severity : null);
-  const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
+  const initScore = hazard.initial_risk_score || (hazard.initial_likelihood != null && hazard.initial_severity != null ? hazard.initial_likelihood * hazard.initial_severity : null);
+  const resScore = hazard.residual_risk_score || (hazard.residual_likelihood != null && hazard.residual_severity != null ? hazard.residual_likelihood * hazard.residual_severity : null);
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
 
   return (
@@ -284,8 +284,8 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
   const [llDraft, setLlDraft] = useState(null);
 
   const status = HAZARD_STATUSES.find(s => s.id === hazard.status) || HAZARD_STATUSES[0];
-  const initScore = hazard.initial_risk_score || (hazard.initial_likelihood && hazard.initial_severity ? hazard.initial_likelihood * hazard.initial_severity : null);
-  const resScore = hazard.residual_risk_score || (hazard.residual_likelihood && hazard.residual_severity ? hazard.residual_likelihood * hazard.residual_severity : null);
+  const initScore = hazard.initial_risk_score || (hazard.initial_likelihood != null && hazard.initial_severity != null ? hazard.initial_likelihood * hazard.initial_severity : null);
+  const resScore = hazard.residual_risk_score || (hazard.residual_likelihood != null && hazard.residual_severity != null ? hazard.residual_likelihood * hazard.residual_severity : null);
 
   useEffect(() => { setResidualL(hazard.residual_likelihood || 0); setResidualS(hazard.residual_severity || 0); }, [hazard.residual_likelihood, hazard.residual_severity]);
   useEffect(() => { setInitialL(hazard.initial_likelihood || 0); setInitialS(hazard.initial_severity || 0); }, [hazard.initial_likelihood, hazard.initial_severity]);
@@ -704,7 +704,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                         const result = await onAiRiskAssess({ title: hazard.title, description: hazard.description, category: hazard.category, source: hazard.source, mitigations: actionSummary || hazard.mitigations });
                         if (result) {
                           setAiResidualResult(result);
-                          if (result.residual_likelihood && result.residual_severity) {
+                          if (result.residual_likelihood != null && result.residual_severity != null) {
                             setResidualL(result.residual_likelihood); setResidualS(result.residual_severity);
                           }
                         }
@@ -1287,13 +1287,13 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
     else if (filterStatus !== "all_including_closed") list = list.filter(h => h.status === filterStatus);
     if (sortBy === "newest") list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     else if (sortBy === "risk_high") list.sort((a, b) => {
-      const scoreA = (a.initial_likelihood && a.initial_severity) ? a.initial_likelihood * a.initial_severity : 0;
-      const scoreB = (b.initial_likelihood && b.initial_severity) ? b.initial_likelihood * b.initial_severity : 0;
+      const scoreA = (a.initial_likelihood != null && a.initial_severity != null) ? a.initial_likelihood * a.initial_severity : 0;
+      const scoreB = (b.initial_likelihood != null && b.initial_severity != null) ? b.initial_likelihood * b.initial_severity : 0;
       return scoreB - scoreA;
     });
     else if (sortBy === "risk_low") list.sort((a, b) => {
-      const scoreA = (a.initial_likelihood && a.initial_severity) ? a.initial_likelihood * a.initial_severity : Infinity;
-      const scoreB = (b.initial_likelihood && b.initial_severity) ? b.initial_likelihood * b.initial_severity : Infinity;
+      const scoreA = (a.initial_likelihood != null && a.initial_severity != null) ? a.initial_likelihood * a.initial_severity : Infinity;
+      const scoreB = (b.initial_likelihood != null && b.initial_severity != null) ? b.initial_likelihood * b.initial_severity : Infinity;
       return scoreA - scoreB;
     });
     return list;
@@ -1312,7 +1312,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
   // Risk summary
   const riskSummary = useMemo(() => {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
-    (hazards || []).filter(h => h.status !== "closed" && h.initial_likelihood && h.initial_severity).forEach(h => {
+    (hazards || []).filter(h => h.status !== "closed" && h.initial_likelihood != null && h.initial_severity != null).forEach(h => {
       const score = h.initial_likelihood * h.initial_severity;
       if (score >= 20) counts.critical++;
       else if (score >= 15) counts.high++;

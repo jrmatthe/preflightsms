@@ -212,7 +212,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
     });
     list.sort((a, b) => {
       if (sortBy === "oldest") return new Date(a.created_at) - new Date(b.created_at);
-      if (sortBy === "due_date") return (a.due_date || "9999") < (b.due_date || "9999") ? -1 : 1;
+      if (sortBy === "due_date") return (a.due_date || "9999-12-31") < (b.due_date || "9999-12-31") ? -1 : 1;
       if (sortBy === "priority") {
         const order = { critical: 0, high: 1, medium: 2, low: 3 };
         return (order[a.priority] ?? 4) - (order[b.priority] ?? 4);

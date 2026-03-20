@@ -457,6 +457,7 @@ export default function SafetyCultureSurvey({
 
   const handleSave = async (asDraft) => {
     if (!editForm.title.trim()) return;
+    if (!editQuestions || editQuestions.length === 0) { alert("Survey must have at least 1 question."); return; }
     const data = {
       ...editForm,
       questions: editQuestions,

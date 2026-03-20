@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST" && req.method !== "GET") return res.status(405).json({ error: "POST or GET only" });
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   // Auth — same pattern as check-overdue.js
   const authHeader = req.headers["authorization"];

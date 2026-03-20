@@ -103,7 +103,7 @@ export default async function handler(req, res) {
           }),
         });
         if (emailRes.ok) sent++;
-      } catch (e) {}
+      } catch (e) { console.error("Failed to send approval email:", e.message); }
     }
 
     return res.status(200).json({ message: `Notified ${sent} approvers`, sent, approvers: approvers.length });

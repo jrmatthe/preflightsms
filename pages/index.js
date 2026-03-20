@@ -6069,6 +6069,11 @@ export default function PVTAIRFrat() {
       try {
         const { data: inv, error: invErr } = await getInvitationByToken(orphanInviteToken);
         if (invErr || !inv) { setOrphanInviteProcessing(false); return; }
+        // Verify invite hasn't expired
+        if (inv.expires_at && new Date(inv.expires_at) < new Date()) { setOrphanInviteProcessing(false); return; }
+        // Verify session user's email matches the invitation
+        const sessionEmail = session.user.email?.toLowerCase().trim();
+        if (!sessionEmail || sessionEmail !== inv.email?.toLowerCase().trim()) { setOrphanInviteProcessing(false); return; }
         const userId = session.user.id;
         const { data: existingProfile } = await supabase.from("profiles").select("id").eq("id", userId).single();
         if (existingProfile) {
@@ -6457,6 +6462,7 @@ export default function PVTAIRFrat() {
                           });
                           const result = await res.json();
                           if (!res.ok) throw new Error(result.error || "Failed to delete account");
+                          try { localStorage.removeItem("pvtair_profile"); localStorage.removeItem("pvtair_cached_frats"); } catch (e) {}
                           await signOut(); setSession(null); setProfile(null);
                         } catch (err) {
                           setSelfDeleteError(err.message);

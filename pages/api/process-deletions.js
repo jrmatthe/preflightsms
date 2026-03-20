@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { deleteOrganization } from "../../lib/deleteOrg";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST" && req.method !== "GET") return res.status(405).json({ error: "POST or GET only" });
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   const authHeader = req.headers["authorization"];
   const cronSecret = req.headers["x-cron-secret"] || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);

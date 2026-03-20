@@ -20,7 +20,11 @@ export default async function handler(req, res) {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  const { data: webhook } = await supabase.from("webhooks").select("*").eq("id", webhookId).single();
+  // Verify caller belongs to the same org as the webhook
+  const { data: callerProfile } = await supabase.from("profiles").select("org_id").eq("id", user.id).single();
+  if (!callerProfile) return res.status(403).json({ error: "Profile not found" });
+
+  const { data: webhook } = await supabase.from("webhooks").select("*").eq("id", webhookId).eq("org_id", callerProfile.org_id).single();
   if (!webhook) return res.status(404).json({ error: "Webhook not found" });
 
   const payload = JSON.stringify({
