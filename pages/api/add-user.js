@@ -7,8 +7,27 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyAuth } from "../../lib/apiAuth";
 import crypto from "crypto";
 
+// In-memory rate limiter (per-process; resets on cold start)
+const rateLimits = new Map();
+const MAX_ATTEMPTS = 10;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  let entry = rateLimits.get(ip);
+  if (!entry || now - entry.windowStart > WINDOW_MS) {
+    entry = { windowStart: now, count: 0 };
+    rateLimits.set(ip, entry);
+  }
+  entry.count++;
+  return entry.count > MAX_ATTEMPTS;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
+  if (checkRateLimit(ip)) return res.status(429).json({ error: "Too many attempts. Try again later." });
 
   const { user, error: authError } = await verifyAuth(req);
   if (authError || !user) return res.status(401).json({ error: authError || "Unauthorized" });

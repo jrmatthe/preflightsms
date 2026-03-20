@@ -935,9 +935,13 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
     try {
       const result = await onInvite({ email: email.trim(), fullName: fullName.trim(), role, permissions: selectedPerms });
       if (result?.error) { setError(result.error); setSending(false); return; }
-      setSuccess(`${fullName.trim()} added and invitation sent to ${email.trim()}`);
+      if (result?.emailFailed) {
+        setSuccess(`${fullName.trim()} added to the organization, but the invite email failed to send. Use "Resend" to try again.`);
+      } else {
+        setSuccess(`${fullName.trim()} added and invitation sent to ${email.trim()}`);
+      }
       setFullName(""); setEmail(""); setRole("pilot"); setSelectedPerms([]);
-      setTimeout(() => { setSuccess(""); setShowForm(false); }, 3000);
+      setTimeout(() => { setSuccess(""); setShowForm(false); }, result?.emailFailed ? 6000 : 3000);
     } catch (e) { setError(e.message); }
     setSending(false);
   };

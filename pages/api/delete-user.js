@@ -7,8 +7,27 @@
 import { createClient } from "@supabase/supabase-js";
 import { verifyAuth } from "../../lib/apiAuth";
 
+// In-memory rate limiter (per-process; resets on cold start)
+const rateLimits = new Map();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  let entry = rateLimits.get(ip);
+  if (!entry || now - entry.windowStart > WINDOW_MS) {
+    entry = { windowStart: now, count: 0 };
+    rateLimits.set(ip, entry);
+  }
+  entry.count++;
+  return entry.count > MAX_ATTEMPTS;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || "unknown";
+  if (checkRateLimit(ip)) return res.status(429).json({ error: "Too many attempts. Try again later." });
 
   const { user, error: authError } = await verifyAuth(req);
   if (authError || !user) return res.status(401).json({ error: authError || "Unauthorized" });
@@ -76,43 +95,60 @@ export default async function handler(req, res) {
       }
     }
 
-    // 1. Clean up all FK references (NULL out org data, delete user-specific data)
+    // Snapshot target info before deletion (for audit log)
+    const { data: targetSnapshot } = await supabase
+      .from("profiles")
+      .select("full_name, email, role")
+      .eq("id", targetUserId)
+      .single();
+
+    // 1. Clean up all FK references — resilient: track errors, don't bail on individual failures
     const uid = targetUserId;
+    const warnings = [];
+
+    async function safeUpdate(table, col, val, filterCol, filterVal) {
+      const { error } = await supabase.from(table).update({ [col]: val }).eq(filterCol, filterVal);
+      if (error) warnings.push(`${table}.${col}: ${error.message}`);
+    }
+    async function safeDelete(table, col, val) {
+      const { error } = await supabase.from(table).delete().eq(col, val);
+      if (error) warnings.push(`${table} delete: ${error.message}`);
+    }
 
     // NULL out references — preserves org data (FRATs, reports, etc.)
-    await supabase.from("invitations").update({ invited_by: null }).eq("invited_by", uid);
-    await supabase.from("cbt_courses").update({ created_by: null }).eq("created_by", uid);
-    await supabase.from("flights").update({ user_id: null }).eq("user_id", uid);
-    await supabase.from("audits").update({ auditor_id: null }).eq("auditor_id", uid);
-    await supabase.from("audit_schedules").update({ assigned_to: null }).eq("assigned_to", uid);
-    await supabase.from("erp_plans").update({ reviewed_by: null }).eq("reviewed_by", uid);
-    await supabase.from("erp_drills").update({ conducted_by: null }).eq("conducted_by", uid);
-    await supabase.from("declarations").update({ created_by: null }).eq("created_by", uid);
-    await supabase.from("ai_suggestions").update({ created_by: null }).eq("created_by", uid);
-    await supabase.from("ai_usage_log").update({ user_id: null }).eq("user_id", uid);
-    await supabase.from("trend_alerts").update({ acknowledged_by: null }).eq("acknowledged_by", uid);
-    await supabase.from("mel_audit_log").update({ performed_by: null }).eq("performed_by", uid);
-    await supabase.from("asap_reports").update({ reporter_id: null }).eq("reporter_id", uid);
-    await supabase.from("asap_erc_reviews").update({ reviewer_id: null }).eq("reviewer_id", uid);
-    await supabase.from("asap_corrective_actions").update({ assigned_to: null }).eq("assigned_to", uid);
-    await supabase.from("management_of_change").update({ initiator_id: null }).eq("initiator_id", uid);
-    await supabase.from("management_of_change").update({ responsible_id: null }).eq("responsible_id", uid);
-    await supabase.from("management_of_change").update({ closed_by: null }).eq("closed_by", uid);
-    await supabase.from("moc_attachments").update({ uploaded_by: null }).eq("uploaded_by", uid);
-    await supabase.from("culture_surveys").update({ created_by: null }).eq("created_by", uid);
-    await supabase.from("culture_survey_responses").update({ respondent_id: null }).eq("respondent_id", uid);
-    await supabase.from("compliance_status").update({ reviewed_by: null }).eq("reviewed_by", uid);
-    await supabase.from("insurance_exports").update({ generated_by: null }).eq("generated_by", uid);
-    await supabase.from("foreflight_config").update({ matched_pilot_id: null }).eq("matched_pilot_id", uid);
-    await supabase.from("schedaero_trips").update({ matched_pilot_id: null }).eq("matched_pilot_id", uid);
-    await supabase.from("api_keys").update({ created_by: null }).eq("created_by", uid);
-    await supabase.from("safety_recognitions").update({ user_id: null }).eq("user_id", uid);
-    await supabase.from("fatigue_assessments").update({ pilot_id: null }).eq("pilot_id", uid);
+    await safeUpdate("invitations", "invited_by", null, "invited_by", uid);
+    await safeUpdate("cbt_courses", "created_by", null, "created_by", uid);
+    await safeUpdate("flights", "user_id", null, "user_id", uid);
+    await safeUpdate("audits", "auditor_id", null, "auditor_id", uid);
+    await safeUpdate("audit_schedules", "assigned_to", null, "assigned_to", uid);
+    await safeUpdate("erp_plans", "reviewed_by", null, "reviewed_by", uid);
+    await safeUpdate("erp_drills", "conducted_by", null, "conducted_by", uid);
+    await safeUpdate("declarations", "created_by", null, "created_by", uid);
+    await safeUpdate("ai_suggestions", "created_by", null, "created_by", uid);
+    await safeUpdate("ai_usage_log", "user_id", null, "user_id", uid);
+    await safeUpdate("trend_alerts", "acknowledged_by", null, "acknowledged_by", uid);
+    await safeUpdate("mel_audit_log", "performed_by", null, "performed_by", uid);
+    await safeUpdate("asap_reports", "reporter_id", null, "reporter_id", uid);
+    await safeUpdate("asap_erc_reviews", "reviewer_id", null, "reviewer_id", uid);
+    await safeUpdate("asap_corrective_actions", "assigned_to", null, "assigned_to", uid);
+    await safeUpdate("management_of_change", "initiator_id", null, "initiator_id", uid);
+    await safeUpdate("management_of_change", "responsible_id", null, "responsible_id", uid);
+    await safeUpdate("management_of_change", "closed_by", null, "closed_by", uid);
+    await safeUpdate("moc_attachments", "uploaded_by", null, "uploaded_by", uid);
+    await safeUpdate("culture_surveys", "created_by", null, "created_by", uid);
+    await safeUpdate("culture_survey_responses", "respondent_id", null, "respondent_id", uid);
+    await safeUpdate("compliance_status", "reviewed_by", null, "reviewed_by", uid);
+    await safeUpdate("insurance_exports", "generated_by", null, "generated_by", uid);
+    await safeUpdate("foreflight_config", "matched_pilot_id", null, "matched_pilot_id", uid);
+    await safeUpdate("schedaero_trips", "matched_pilot_id", null, "matched_pilot_id", uid);
+    await safeUpdate("api_keys", "created_by", null, "created_by", uid);
+    await safeUpdate("safety_recognitions", "user_id", null, "user_id", uid);
+    await safeUpdate("fatigue_assessments", "pilot_id", null, "pilot_id", uid);
 
     // Delete user-specific rows (no value without the user)
-    await supabase.from("notification_reads").delete().eq("user_id", uid);
-    await supabase.from("notifications").delete().eq("target_user_id", uid);
-    await supabase.from("push_subscriptions").delete().eq("user_id", uid);
+    await safeDelete("notification_reads", "user_id", uid);
+    await safeDelete("notifications", "target_user_id", uid);
+    await safeDelete("push_subscriptions", "user_id", uid);
 
     // 2. Delete profile row
     const { error: profileDeleteErr } = await supabase
@@ -121,21 +157,41 @@ export default async function handler(req, res) {
       .eq("id", uid);
 
     if (profileDeleteErr) {
-      return res.status(500).json({ error: "Failed to delete profile: " + profileDeleteErr.message });
+      warnings.push(`profile delete: ${profileDeleteErr.message}`);
+      // Profile deletion is critical — if it fails, FK cleanup wasn't sufficient
+      return res.status(500).json({
+        error: "Failed to delete profile: " + profileDeleteErr.message,
+        warnings,
+      });
     }
 
     // 3. Delete auth user
     const { error: authDeleteErr } = await supabase.auth.admin.deleteUser(uid);
-
     if (authDeleteErr) {
-      console.error("Failed to delete auth user:", authDeleteErr.message);
-      return res.status(200).json({
-        success: true,
-        warning: "Profile removed but auth cleanup failed. User may need manual removal from Supabase Auth.",
-      });
+      warnings.push(`auth delete: ${authDeleteErr.message}`);
     }
 
-    return res.status(200).json({ success: true });
+    // 4. Write audit log entry
+    try {
+      await supabase.from("user_deletion_log").insert({
+        org_id: callerProfile.org_id,
+        deleted_user_id: uid,
+        deleted_user_email: targetSnapshot?.email || "unknown",
+        deleted_user_name: targetSnapshot?.full_name || "unknown",
+        deleted_user_role: targetSnapshot?.role || "unknown",
+        deleted_by: user.id,
+        is_self_delete: isSelfDelete,
+        warnings: warnings.length > 0 ? warnings : null,
+      });
+    } catch (logErr) {
+      // Audit log failure is non-fatal — user is already deleted
+      console.error("Failed to write deletion audit log:", logErr.message);
+    }
+
+    const result = { success: true };
+    if (warnings.length > 0) result.warnings = warnings;
+    if (authDeleteErr) result.authWarning = "Profile removed but auth cleanup failed. User may need manual removal from Supabase Auth.";
+    return res.status(200).json(result);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

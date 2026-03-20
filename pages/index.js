@@ -6666,14 +6666,16 @@ export default function PVTAIRFrat() {
             const result = await res.json();
             if (!res.ok) return { error: result.error || "Failed to add user" };
             // Send the invite email via edge function
+            let emailSent = true;
             try {
               const { error: invokeErr } = await supabase.functions.invoke('send-invite', {
                 body: { email, orgName, role, token: result.token },
               });
-              if (invokeErr) console.error("Invite email error:", invokeErr);
-            } catch (e) { console.error("Failed to send invite email:", e); }
+              if (invokeErr) { console.error("Invite email error:", invokeErr); emailSent = false; }
+            } catch (e) { console.error("Failed to send invite email:", e); emailSent = false; }
             fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
             if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || []));
+            if (!emailSent) return { success: true, emailFailed: true };
             return { success: true };
           } catch (err) { return { error: err.message }; }
         }} onRevokeInvitation={async (invId) => {
@@ -6684,10 +6686,18 @@ export default function PVTAIRFrat() {
           const { data } = await resendInvitation(invId);
           if (data) {
             try {
-              await supabase.functions.invoke('send-invite', {
+              const { error: invokeErr } = await supabase.functions.invoke('send-invite', {
                 body: { email: data.email, orgName, role: data.role, token: data.token },
               });
-            } catch (e) { console.error("Failed to resend invite:", e); }
+              if (invokeErr) {
+                setToast({ message: "Failed to resend invite email — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000);
+              } else {
+                setToast({ message: `Invite resent to ${data.email}`, level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
+              }
+            } catch (e) {
+              console.error("Failed to resend invite:", e);
+              setToast({ message: "Failed to resend invite email — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000);
+            }
           }
           const orgId = profile?.org_id;
           if (orgId) fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || []));
