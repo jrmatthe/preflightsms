@@ -47,6 +47,16 @@ export default async function handler(req, res) {
     const now = new Date();
     const results = { training_expiring: 0, training_admin: 0, action_overdue: 0, action_due_soon: 0 };
 
+    // Skip cancelled/dormant orgs in cron mode
+    let cancelledOrgIds = new Set();
+    if (isCron) {
+      const { data: cancelledOrgs } = await supabase
+        .from("organizations")
+        .select("id")
+        .eq("subscription_status", "cancelled");
+      cancelledOrgIds = new Set((cancelledOrgs || []).map(o => o.id));
+    }
+
     // ── 1. Training Expiring / Expired ───────────────────────────
     const thresholdDate = new Date(now);
     thresholdDate.setDate(thresholdDate.getDate() + 30);
@@ -67,6 +77,7 @@ export default async function handler(req, res) {
       for (const record of expiringRecords) {
         const user = record.user;
         if (!user?.org_id || !user?.id) continue;
+        if (cancelledOrgIds.has(user.org_id)) continue;
 
         const expiryDate = new Date(record.expiry_date);
         const isExpired = expiryDate < now;
@@ -145,6 +156,7 @@ export default async function handler(req, res) {
 
     if (overdueActions?.length) {
       for (const action of overdueActions) {
+        if (cancelledOrgIds.has(action.org_id)) continue;
         const { data: existing } = await supabase
           .from("notifications")
           .select("id")
@@ -186,6 +198,7 @@ export default async function handler(req, res) {
 
     if (dueSoonActions?.length) {
       for (const action of dueSoonActions) {
+        if (cancelledOrgIds.has(action.org_id)) continue;
         const daysUntil = Math.ceil((new Date(action.due_date) - now) / (1000 * 60 * 60 * 24));
 
         const { data: existing } = await supabase

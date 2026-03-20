@@ -629,7 +629,7 @@ function CourseForm({ course, onSave, onCancel, orgProfiles }) {
       </div>
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Description</label>
-        <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={3} placeholder="What this training covers..." style={{ ...inp, resize: "vertical" }} />
+        <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={3} placeholder="What this training covers..." maxLength={10000} style={{ ...inp, resize: "vertical" }} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
         <div>
@@ -752,7 +752,7 @@ function LessonEditor({ lesson, onSave, onCancel }) {
               </div>
             ) : (
               <textarea value={bl.content} onChange={e => updateBlock(i, e.target.value)} rows={bl.type === "callout" ? 2 : 4}
-                placeholder={bl.type === "callout" ? "Key takeaway or important note..." : "Lesson content..."} style={{ ...inp, resize: "vertical" }} />
+                placeholder={bl.type === "callout" ? "Key takeaway or important note..." : "Lesson content..."} maxLength={10000} style={{ ...inp, resize: "vertical" }} />
             )}
           </div>
         ))}

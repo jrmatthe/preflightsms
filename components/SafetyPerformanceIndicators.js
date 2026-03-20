@@ -574,7 +574,7 @@ function SpiEditor({ existing, isAdmin, onBack, onSave }) {
         <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. FRAT Completion Rate" style={{ ...inp, marginBottom: 12 }} />
 
         <label style={{ fontSize: 11, fontWeight: 600, color: MUTED, display: "block", marginBottom: 4 }}>Description</label>
-        <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="What does this indicator measure?" style={{ ...inp, marginBottom: 12, resize: "vertical" }} />
+        <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="What does this indicator measure?" maxLength={10000} style={{ ...inp, marginBottom: 12, resize: "vertical" }} />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
           <div>

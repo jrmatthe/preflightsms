@@ -184,7 +184,7 @@ function MelItemRow({ item, canManage, onEdit, onRectify, rectifying, rectifyWor
       {rectifying && (
         <div style={{marginTop:8,padding:"8px 10px",background:`${GREEN}08`,border:`1px solid ${GREEN}22`,borderRadius:6}}>
           <div style={{fontSize:10,fontWeight:600,color:GREEN,marginBottom:4}}>Rectification</div>
-          <textarea value={rectifyWork} onChange={e=>setRectifyWork(e.target.value)} placeholder="Work performed (required)" rows={2} style={{width:"100%",padding:"6px 8px",background:NEAR_BLACK,border:`1px solid ${BORDER}`,borderRadius:4,color:WHITE,fontSize:11,resize:"vertical",boxSizing:"border-box",fontFamily:"inherit"}} />
+          <textarea value={rectifyWork} onChange={e=>setRectifyWork(e.target.value)} placeholder="Work performed (required)" maxLength={10000} rows={2} style={{width:"100%",padding:"6px 8px",background:NEAR_BLACK,border:`1px solid ${BORDER}`,borderRadius:4,color:WHITE,fontSize:11,resize:"vertical",boxSizing:"border-box",fontFamily:"inherit"}} />
           <div style={{display:"flex",gap:6,marginTop:6}}>
             <button onClick={()=>onRectify(null)} style={{padding:"4px 10px",borderRadius:4,fontSize:10,fontWeight:600,cursor:"pointer",background:"transparent",border:`1px solid ${BORDER}`,color:MUTED}}>Cancel</button>
             <button onClick={()=>onRectify(item,true)} disabled={!rectifyWork.trim()||rectifySaving} style={{padding:"4px 10px",borderRadius:4,fontSize:10,fontWeight:600,cursor:rectifyWork.trim()?"pointer":"not-allowed",background:rectifyWork.trim()?GREEN:`${GREEN}44`,border:"none",color:BLACK}}>{rectifySaving?"Saving...":"Confirm Rectification"}</button>
@@ -470,7 +470,7 @@ function AircraftForm({form,setField,onSave,onCancel,isNew,aircraft}) {
     </div>
     <div style={{marginBottom:8,marginTop:4}}>
       <div style={{...lbl}}>Notes</div>
-      <textarea value={form.notes||""} onChange={e=>setField("notes",e.target.value)} rows={3} style={{...inp,resize:"vertical"}} />
+      <textarea value={form.notes||""} onChange={e=>setField("notes",e.target.value)} rows={3} maxLength={10000} style={{...inp,resize:"vertical"}} />
     </div>
     <div style={{marginBottom:8,marginTop:4}}>
       <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>

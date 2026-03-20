@@ -1329,7 +1329,7 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
             {isRect && (
               <div style={{ marginTop: 8, padding: "8px 10px", background: `${GREEN}08`, border: `1px solid ${GREEN}22`, borderRadius: 6 }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: GREEN, marginBottom: 4 }}>Rectification</div>
-                <textarea value={rectifyWork} onChange={e => setRectifyWork(e.target.value)} placeholder="Work performed (required)" rows={2} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+                <textarea value={rectifyWork} onChange={e => setRectifyWork(e.target.value)} placeholder="Work performed (required)" maxLength={10000} rows={2} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
                 <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                   <button onClick={() => { setRectifyingId(null); setRectifyWork(""); }} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: "pointer", background: "transparent", border: `1px solid ${BORDER}`, color: MUTED }}>Cancel</button>
                   <button onClick={() => handleRectify(item)} disabled={!rectifyWork.trim() || rectifySaving} style={{ padding: "4px 10px", borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: rectifyWork.trim() ? "pointer" : "not-allowed", background: rectifyWork.trim() ? GREEN : `${GREEN}44`, border: "none", color: BLACK }}>{rectifySaving ? "Saving..." : "Confirm Rectification"}</button>

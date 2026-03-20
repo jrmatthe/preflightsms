@@ -67,7 +67,7 @@ function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation, orgP
       </div>
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Details</label>
-        <textarea value={form.description} onChange={e => set("description", e.target.value)} placeholder="Additional context, steps, acceptance criteria" rows={3} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+        <textarea value={form.description} onChange={e => set("description", e.target.value)} placeholder="Additional context, steps, acceptance criteria" maxLength={10000} rows={3} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }} className="report-grid">
         <div>

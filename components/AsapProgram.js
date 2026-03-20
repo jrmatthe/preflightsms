@@ -438,7 +438,7 @@ export default function AsapProgram({
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Event Description *</label>
           <textarea value={reportForm.event_description || ""} onChange={e => set("event_description", e.target.value)}
-            style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="Describe the event in detail..." />
+            maxLength={10000} style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="Describe the event in detail..." />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
@@ -485,7 +485,7 @@ export default function AsapProgram({
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Immediate Actions Taken</label>
           <textarea value={reportForm.immediate_actions_taken || ""} onChange={e => set("immediate_actions_taken", e.target.value)}
-            style={{ ...inp, minHeight: 60, resize: "vertical" }} placeholder="Describe any immediate actions taken..." />
+            maxLength={10000} style={{ ...inp, minHeight: 60, resize: "vertical" }} placeholder="Describe any immediate actions taken..." />
         </div>
 
         <div style={{ padding: 12, background: `${CYAN}08`, border: `1px solid ${CYAN}22`, borderRadius: 6, marginBottom: 12 }}>
@@ -701,7 +701,7 @@ export default function AsapProgram({
             </div>
             <div style={{ marginBottom: 10 }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Description</label>
-              <textarea value={caForm.description || ""} onChange={e => setCaForm(f => ({ ...f, description: e.target.value }))} style={{ ...inp, minHeight: 60, resize: "vertical" }} />
+              <textarea value={caForm.description || ""} onChange={e => setCaForm(f => ({ ...f, description: e.target.value }))} maxLength={10000} style={{ ...inp, minHeight: 60, resize: "vertical" }} />
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={handleCreateCA} style={btn(GREEN, "#000")} disabled={!caForm.title}>Save</button>
@@ -845,14 +845,14 @@ export default function AsapProgram({
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Sole Source Check</label>
               <textarea value={reviewForm.sole_source_assessment || ""} onChange={e => setReviewForm(f => ({ ...f, sole_source_assessment: e.target.value }))}
-                style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="Is this ASAP report the only way we learned about this event? If not, note other sources." />
+                maxLength={10000} style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="Is this ASAP report the only way we learned about this event? If not, note other sources." />
             </div>
 
             {/* Recommendation */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Recommendation</label>
               <textarea value={reviewForm.recommendation || ""} onChange={e => setReviewForm(f => ({ ...f, recommendation: e.target.value }))}
-                style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="What does the committee recommend? (e.g., additional training, procedure change, no action needed)" />
+                maxLength={10000} style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="What does the committee recommend? (e.g., additional training, procedure change, no action needed)" />
             </div>
 
             {/* Disposition */}
@@ -1080,7 +1080,7 @@ export default function AsapProgram({
             <div style={{ marginBottom: 10 }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4 }}>Minutes</label>
               <textarea value={meetingForm.minutes || ""} onChange={e => setMeetingForm(f => ({ ...f, minutes: e.target.value }))}
-                style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="Meeting minutes..." />
+                maxLength={10000} style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="Meeting minutes..." />
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={handleSaveMeeting} style={btn(GREEN, "#000")} disabled={!meetingForm.meeting_date}>Save Meeting</button>
@@ -1194,7 +1194,7 @@ export default function AsapProgram({
         <div style={{ ...card, padding: 16, marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 }}>MOU Text</div>
           <textarea value={configForm.mou_text || ""} onChange={e => setConfigForm(f => ({ ...f, mou_text: e.target.value }))}
-            style={{ ...inp, minHeight: 200, resize: "vertical", fontSize: 12, fontFamily: "monospace" }} placeholder="Enter MOU text..." />
+            maxLength={10000} style={{ ...inp, minHeight: 200, resize: "vertical", fontSize: 12, fontFamily: "monospace" }} placeholder="Enter MOU text..." />
         </div>
 
         <div style={{ ...card, padding: 16, marginBottom: 16 }}>

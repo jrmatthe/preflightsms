@@ -354,7 +354,7 @@ export default function EmergencyResponsePlan({
             {ERP_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
           </select>
           <label style={{ fontSize: 11, fontWeight: 600, color: MUTED, display: "block", marginBottom: 4 }}>Description</label>
-          <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={4} placeholder="Describe the emergency scenario and scope of this plan..." style={{ ...inp, marginBottom: 16, resize: "vertical" }} />
+          <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={4} placeholder="Describe the emergency scenario and scope of this plan..." maxLength={10000} style={{ ...inp, marginBottom: 16, resize: "vertical" }} />
           <div style={{ display: "flex", gap: 8 }}>
             <Btn primary disabled={!form.name.trim()} onClick={async () => {
               await onCreatePlan({ name: form.name.trim(), category: form.category, description: form.description.trim() });
@@ -1005,9 +1005,9 @@ function DrillsView({ erpDrills, erpPlans, isAdmin, onBack, onCreateDrill, onUpd
                 <label style={{ fontSize: 11, fontWeight: 600, color: MUTED, display: "block", marginBottom: 4 }}>Completion Date</label>
                 <input type="date" value={editForm.completed_date || ""} onChange={e => setEditForm(f => ({ ...f, completed_date: e.target.value }))} style={{ ...inp, maxWidth: 200, marginBottom: 8 }} />
                 <label style={{ fontSize: 11, fontWeight: 600, color: MUTED, display: "block", marginBottom: 4 }}>Lessons Learned</label>
-                <textarea value={editForm.lessons_learned || ""} onChange={e => setEditForm(f => ({ ...f, lessons_learned: e.target.value }))} rows={3} style={{ ...inp, marginBottom: 8, resize: "vertical" }} placeholder="Key takeaways from the drill..." />
+                <textarea value={editForm.lessons_learned || ""} onChange={e => setEditForm(f => ({ ...f, lessons_learned: e.target.value }))} rows={3} maxLength={10000} style={{ ...inp, marginBottom: 8, resize: "vertical" }} placeholder="Key takeaways from the drill..." />
                 <label style={{ fontSize: 11, fontWeight: 600, color: MUTED, display: "block", marginBottom: 4 }}>Findings</label>
-                <textarea value={editForm.findings || ""} onChange={e => setEditForm(f => ({ ...f, findings: e.target.value }))} rows={3} style={{ ...inp, marginBottom: 12, resize: "vertical" }} placeholder="Issues identified, areas for improvement..." />
+                <textarea value={editForm.findings || ""} onChange={e => setEditForm(f => ({ ...f, findings: e.target.value }))} rows={3} maxLength={10000} style={{ ...inp, marginBottom: 12, resize: "vertical" }} placeholder="Issues identified, areas for improvement..." />
                 <div style={{ display: "flex", gap: 8 }}>
                   <Btn primary onClick={async () => {
                     await onUpdateDrill(drill.id, { status: "completed", completed_date: editForm.completed_date, lessons_learned: editForm.lessons_learned, findings: editForm.findings });

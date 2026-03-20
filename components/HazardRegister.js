@@ -630,7 +630,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                   <input value={inlineActionForm.title} onChange={e => setInlineActionForm(f => ({ ...f, title: e.target.value }))}
                     placeholder="Action title" style={{ ...inp, marginBottom: 6 }} />
                   <textarea value={inlineActionForm.description} onChange={e => setInlineActionForm(f => ({ ...f, description: e.target.value }))}
-                    placeholder="Description (optional)" rows={2} style={{ ...inp, resize: "vertical", fontFamily: "inherit", marginBottom: 6 }} />
+                    placeholder="Description (optional)" maxLength={10000} rows={2} style={{ ...inp, resize: "vertical", fontFamily: "inherit", marginBottom: 6 }} />
                   <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
                     <select value={inlineActionForm.priority} onChange={e => setInlineActionForm(f => ({ ...f, priority: e.target.value }))}
                       style={{ ...inp, flex: "1 1 100px" }}>
@@ -864,22 +864,22 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                     <div style={{ marginBottom: 12 }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Summary</div>
                       <textarea value={llDraft.summary || ""} onChange={e => setLlDraft(d => ({ ...d, summary: e.target.value }))}
-                        rows={5} style={{ ...inp, resize: "vertical", fontFamily: "inherit", fontSize: 12, lineHeight: 1.6 }} />
+                        maxLength={10000} rows={5} style={{ ...inp, resize: "vertical", fontFamily: "inherit", fontSize: 12, lineHeight: 1.6 }} />
                     </div>
                     <div style={{ marginBottom: 12 }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Key Takeaways <span style={{ fontWeight: 400, textTransform: "none" }}>(one per line)</span></div>
                       <textarea value={(llDraft.takeaways || []).join("\n")} onChange={e => setLlDraft(d => ({ ...d, takeaways: e.target.value.split("\n") }))}
-                        rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", fontSize: 11, lineHeight: 1.6 }} />
+                        maxLength={10000} rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", fontSize: 11, lineHeight: 1.6 }} />
                     </div>
                     <div style={{ marginBottom: 12 }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Training Topics <span style={{ fontWeight: 400, textTransform: "none" }}>(one per line)</span></div>
                       <textarea value={(llDraft.training_topics || []).join("\n")} onChange={e => setLlDraft(d => ({ ...d, training_topics: e.target.value.split("\n") }))}
-                        rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", fontSize: 11, lineHeight: 1.6 }} />
+                        maxLength={10000} rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", fontSize: 11, lineHeight: 1.6 }} />
                     </div>
                     <div style={{ marginBottom: 12 }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, textTransform: "uppercase", marginBottom: 4 }}>Prevention Tips <span style={{ fontWeight: 400, textTransform: "none" }}>(one per line)</span></div>
                       <textarea value={(llDraft.prevention_tips || []).join("\n")} onChange={e => setLlDraft(d => ({ ...d, prevention_tips: e.target.value.split("\n") }))}
-                        rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", fontSize: 11, lineHeight: 1.6 }} />
+                        maxLength={10000} rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit", fontSize: 11, lineHeight: 1.6 }} />
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={() => {
@@ -1072,6 +1072,35 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
   const [aiResult, setAiResult] = useState(null);
   const [duplicateMatches, setDuplicateMatches] = useState([]);
   const debounceRef = useRef(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (fromReport) return; // Don't restore draft if created from report
+    try {
+      const saved = localStorage.getItem("preflight_draft_hazard");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.title || parsed.description)) {
+          setForm(f => ({ ...f, ...parsed }));
+          setDraftSaved(true);
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
+
+  // Autosave draft when form changes
+  useEffect(() => {
+    if (fromReport) return; // Don't save drafts for report-linked forms
+    if (form.title || form.description) {
+      localStorage.setItem("preflight_draft_hazard", JSON.stringify(form));
+      setDraftSaved(true);
+    } else {
+      localStorage.removeItem("preflight_draft_hazard");
+      setDraftSaved(false);
+    }
+  }, [form, fromReport]);
 
   // Duplicate detection — debounced title comparison
   useEffect(() => {
@@ -1117,9 +1146,16 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
     onSelectHazard?.(existingHazard.id);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.title.trim() || !form.description.trim()) return;
-    onSubmit({ ...form, hazardCode: `HAZ-${String(existingCount + 1).padStart(3, "0")}` });
+    setSubmitting(true);
+    try {
+      localStorage.removeItem("preflight_draft_hazard");
+      setDraftSaved(false);
+      await onSubmit({ ...form, hazardCode: `HAZ-${String(existingCount + 1).padStart(3, "0")}` });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -1129,7 +1165,10 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>New Investigation</div>
           <div style={{ fontSize: 11, color: MUTED }}>{"\u00A7"}5.51 — Safety investigation and risk analysis</div>
         </div>
-        {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {draftSaved && <span style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>Draft saved</span>}
+          {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
+        </div>
       </div>
 
       {fromReport && (
@@ -1209,7 +1248,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Description *</label>
         <textarea value={form.description} onChange={e => set("description", e.target.value)}
           placeholder="Describe the hazard, contributing factors, and potential consequences"
-          rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+          maxLength={10000} rows={4} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }} className="report-grid">
@@ -1240,9 +1279,9 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
         </div>
       </div>
 
-      <button onClick={handleSubmit} disabled={!form.title.trim() || !form.description.trim()}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.title.trim() || !form.description.trim()) ? 0.4 : 1 }}>
-        Register Investigation
+      <button onClick={handleSubmit} disabled={!form.title.trim() || !form.description.trim() || submitting}
+        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: submitting ? "wait" : "pointer", opacity: (!form.title.trim() || !form.description.trim() || submitting) ? 0.4 : 1 }}>
+        {submitting ? "Submitting..." : "Register Investigation"}
       </button>
     </div>
   );

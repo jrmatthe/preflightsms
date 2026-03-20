@@ -148,7 +148,7 @@ function MocForm({ onSubmit, onCancel, orgProfiles, session }) {
         <label style={labelStyle}>Description *</label>
         <textarea value={form.description} onChange={e => set("description", e.target.value)}
           placeholder="Describe the change, its scope, and potential impact" rows={4}
-          style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+          maxLength={10000} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }} className="report-grid">
         <div>
@@ -294,7 +294,7 @@ function MocDetail({ item, orgProfiles, onUpdate, onClose, onUploadFile, onFetch
       {/* Description */}
       <div style={{ marginBottom: 16 }}>
         <label style={labelStyle}>Description</label>
-        <textarea style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} rows={4} value={form.description || ""} onChange={e => set("description", e.target.value)} />
+        <textarea style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} rows={4} value={form.description || ""} onChange={e => set("description", e.target.value)} maxLength={10000} />
       </div>
 
       {/* Hazard Analysis */}
@@ -342,7 +342,7 @@ function MocDetail({ item, orgProfiles, onUpdate, onClose, onUploadFile, onFetch
       <div style={{ ...card, padding: "16px 18px", marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Mitigation Plan</div>
         <textarea style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} rows={4} value={form.mitigation_plan || ""} onChange={e => set("mitigation_plan", e.target.value)}
-          placeholder="Describe strategies to mitigate identified hazards..." />
+          placeholder="Describe strategies to mitigate identified hazards..." maxLength={10000} />
       </div>
 
       {/* Residual Risk — only visible after mitigation plan filled */}
@@ -384,7 +384,7 @@ function MocDetail({ item, orgProfiles, onUpdate, onClose, onUploadFile, onFetch
         <div style={{ ...card, padding: "16px 18px", marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Effectiveness Review</div>
           <textarea style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} rows={4} value={form.effectiveness_review || ""} onChange={e => set("effectiveness_review", e.target.value)}
-            placeholder="Document the effectiveness of the change and mitigation measures..." />
+            placeholder="Document the effectiveness of the change and mitigation measures..." maxLength={10000} />
           <button onClick={closeChange}
             style={{ marginTop: 10, padding: "10px 20px", background: GREEN, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
             Close Change

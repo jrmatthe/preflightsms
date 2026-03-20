@@ -108,7 +108,7 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy, editPolicy }) {
       </div>
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Content</label>
-        <textarea value={form.content} onChange={e => set("content", e.target.value)} placeholder="Paste policy text here, or use file upload below" rows={8} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+        <textarea value={form.content} onChange={e => set("content", e.target.value)} placeholder="Paste policy text here, or use file upload below" maxLength={10000} rows={8} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
       </div>
       <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>File Attachment</label>

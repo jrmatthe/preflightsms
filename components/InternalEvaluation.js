@@ -560,7 +560,7 @@ export default function InternalEvaluation({
         </div>
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 11, color: MUTED, fontWeight: 600, display: "block", marginBottom: 4 }}>Description</label>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} style={{ ...inp, minHeight: 60, resize: "vertical" }} placeholder="Template description" />
+          <textarea value={desc} onChange={e => setDesc(e.target.value)} maxLength={10000} style={{ ...inp, minHeight: 60, resize: "vertical" }} placeholder="Template description" />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <span style={{ fontSize: 13, color: OFF_WHITE, fontWeight: 700 }}>Sections</span>
@@ -605,7 +605,7 @@ export default function InternalEvaluation({
                     <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
                       <div style={{ flex: 1 }}>
                         <label style={{ fontSize: 10, color: MUTED, fontWeight: 600, display: "block", marginBottom: 2 }}>Question</label>
-                        <textarea value={q.text} onChange={e => updateQuestion(si, qi, "text", e.target.value)} style={{ ...inp, minHeight: 36, resize: "vertical", fontSize: 12 }} placeholder="Question text" />
+                        <textarea value={q.text} onChange={e => updateQuestion(si, qi, "text", e.target.value)} maxLength={10000} style={{ ...inp, minHeight: 36, resize: "vertical", fontSize: 12 }} placeholder="Question text" />
                       </div>
                       <div style={{ width: 160 }}>
                         <label style={{ fontSize: 10, color: MUTED, fontWeight: 600, display: "block", marginBottom: 2 }}>Response Type</label>
@@ -719,7 +719,7 @@ export default function InternalEvaluation({
                         </>}
                         {rType === "text" && (
                           <textarea value={r.response || ""} onChange={e => saveResponse(idx, { response: e.target.value })}
-                            style={{ ...inp, minHeight: 60, resize: "vertical", fontSize: 12 }} placeholder="Enter response..." />
+                            maxLength={10000} style={{ ...inp, minHeight: 60, resize: "vertical", fontSize: 12 }} placeholder="Enter response..." />
                         )}
                         {rType === "numeric_1_5" && [1, 2, 3, 4, 5].map(n => (
                           <ResponseButton key={n} value={String(n)} label={String(n)} color={n >= 4 ? GREEN : n >= 3 ? AMBER : RED} />
@@ -730,7 +730,7 @@ export default function InternalEvaluation({
                           <div style={{ marginBottom: 8 }}>
                             <label style={{ fontSize: 10, color: AMBER, fontWeight: 700, display: "block", marginBottom: 4 }}>Finding Description</label>
                             <textarea value={r.finding_text || ""} onChange={e => saveResponse(idx, { finding_text: e.target.value })}
-                              style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="Describe the finding..." />
+                              maxLength={10000} style={{ ...inp, minHeight: 48, resize: "vertical", fontSize: 12 }} placeholder="Describe the finding..." />
                           </div>
                           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                             <div style={{ flex: 1 }}>

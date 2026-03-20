@@ -63,18 +63,53 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
   });
   const [aiSuggestion, setAiSuggestion] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (initialData) return; // Don't restore draft if prefilled
+    try {
+      const saved = localStorage.getItem("preflight_draft_report");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.title || parsed.description)) {
+          setForm(f => ({ ...f, ...parsed }));
+          setDraftSaved(true);
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
+
+  // Autosave draft when form changes
+  useEffect(() => {
+    if (form.title || form.description) {
+      localStorage.setItem("preflight_draft_report", JSON.stringify(form));
+      setDraftSaved(true);
+    } else {
+      localStorage.removeItem("preflight_draft_report");
+      setDraftSaved(false);
+    }
+  }, [form]);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.title.trim()) return;
     if (!form.description.trim()) return;
-    const tailNumber = form.tailNumber === "__other" ? (form.tailNumberCustom || "") : form.tailNumber;
-    onSubmit({
-      ...form, tailNumber, reportCode: generateReportCode(),
-      aiSuggestedCategory: aiSuggestion?.category || null,
-      aiSuggestedSeverity: aiSuggestion?.severity || null,
-    });
+    setSubmitting(true);
+    try {
+      const tailNumber = form.tailNumber === "__other" ? (form.tailNumberCustom || "") : form.tailNumber;
+      localStorage.removeItem("preflight_draft_report");
+      setDraftSaved(false);
+      await onSubmit({
+        ...form, tailNumber, reportCode: generateReportCode(),
+        aiSuggestedCategory: aiSuggestion?.category || null,
+        aiSuggestedSeverity: aiSuggestion?.severity || null,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -84,7 +119,10 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Submit Safety Report</div>
           <div style={{ fontSize: 11, color: MUTED }}>All reports contribute to organizational safety. Be specific and factual.</div>
         </div>
-        {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {draftSaved && <span style={{ fontSize: 10, color: MUTED, fontStyle: "italic" }}>Draft saved</span>}
+          {onCancel && <button onClick={onCancel} style={{ fontSize: 11, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>Cancel</button>}
+        </div>
       </div>
 
       {/* Report Type */}
@@ -114,7 +152,7 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
         <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 }}>Description *</label>
         <textarea value={form.description} onChange={e => set("description", e.target.value)}
           placeholder="What happened? What were the conditions? What was the outcome or potential outcome?"
-          rows={5} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+          maxLength={10000} rows={5} style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
       </div>
 
       {/* AI Suggest Button */}
@@ -216,9 +254,9 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
         </label>
       </div>
 
-      <button data-onboarding="sr-submit-btn" onClick={handleSubmit} disabled={!form.title.trim() || !form.description.trim()}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.title.trim() || !form.description.trim()) ? 0.4 : 1 }}>
-        Submit Report
+      <button data-onboarding="sr-submit-btn" onClick={handleSubmit} disabled={!form.title.trim() || !form.description.trim() || submitting}
+        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: submitting ? "wait" : "pointer", opacity: (!form.title.trim() || !form.description.trim() || submitting) ? 0.4 : 1 }}>
+        {submitting ? "Submitting..." : "Submit Report"}
       </button>
     </div>
   );

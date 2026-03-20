@@ -38,6 +38,13 @@ export default async function handler(req, res) {
     const thresholdDate = new Date(now);
     thresholdDate.setDate(thresholdDate.getDate() + 30);
 
+    // Get cancelled orgs to skip (dormant org filtering)
+    const { data: cancelledOrgs } = await supabase
+      .from("organizations")
+      .select("id")
+      .eq("subscription_status", "cancelled");
+    const cancelledOrgIds = new Set((cancelledOrgs || []).map(o => o.id));
+
     const { data: expiringRecords, error: recErr } = await supabase
       .from("training_records")
       .select("*, user:profiles!training_records_user_id_fkey(id, full_name, email, org_id, notification_preferences)")
@@ -61,6 +68,11 @@ export default async function handler(req, res) {
 
     for (const record of expiringRecords) {
       const user = record.user;
+      // Skip cancelled/dormant orgs
+      if (user?.org_id && cancelledOrgIds.has(user.org_id)) {
+        results.push({ record: record.id, status: "org_cancelled" });
+        continue;
+      }
       if (!user?.email) {
         results.push({ record: record.id, status: "no_email" });
         await supabase.from("training_records").update({ expiry_notified_at: now.toISOString() }).eq("id", record.id);
