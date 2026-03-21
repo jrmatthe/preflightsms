@@ -1641,9 +1641,31 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
     }).sort((a, b) => new Date(b.arrivedAt || b.timestamp).getTime() - new Date(a.arrivedAt || a.timestamp).getTime());
   }, [flights, session?.user?.id, profile?.full_name, now]);
 
-  const fmtTime = (iso) => {
-    if (!iso) return "—";
-    try { return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }); } catch { return "—"; }
+  const fmtTime = (v) => {
+    if (!v) return "—";
+    // Handle plain time strings like "14:00", "1400", "2:30 PM"
+    if (typeof v === "string" && !/^\d{4}-/.test(v) && !v.includes("T")) {
+      const stripped = v.replace(/\s/g, "");
+      // Already formatted with AM/PM
+      if (/am|pm/i.test(stripped)) return v.trim();
+      // "1400" or "0830" — 4-digit military time
+      if (/^\d{4}$/.test(stripped)) {
+        const h = parseInt(stripped.slice(0, 2), 10);
+        const m = stripped.slice(2);
+        const ampm = h >= 12 ? "PM" : "AM";
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${h12}:${m} ${ampm}`;
+      }
+      // "14:00" or "8:30" — HH:MM
+      if (/^\d{1,2}:\d{2}$/.test(stripped)) {
+        const [hh, mm] = stripped.split(":");
+        const h = parseInt(hh, 10);
+        const ampm = h >= 12 ? "PM" : "AM";
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${h12}:${mm} ${ampm}`;
+      }
+    }
+    try { const d = new Date(v); if (isNaN(d.getTime())) return v; return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }); } catch { return "—"; }
   };
 
   const parseETE = (ete) => {
