@@ -306,6 +306,7 @@ function TemplateVariablesForm({ variables, onSave, fleetAircraft }) {
           </div>
         </div>
       )}
+
     </div>
   );
 }
