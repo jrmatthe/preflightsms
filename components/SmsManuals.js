@@ -124,16 +124,43 @@ function findUnfilledVariables(content) {
 // ══════════════════════════════════════════════════════
 
 function TemplateVariablesForm({ variables, onSave, fleetAircraft }) {
-  const [values, setValues] = useState(variables || {});
+  const DRAFT_KEY = "preflight_draft_template_vars";
+  const [values, setValues] = useState(() => {
+    try { const d = localStorage.getItem(DRAFT_KEY); if (d) { const parsed = JSON.parse(d); return parsed.values || variables || {}; } } catch {}
+    return variables || {};
+  });
   const [expanded, setExpanded] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [aircraft, setAircraft] = useState(variables?._aircraft || [{ type: "", reg: "", pax: "", range: "" }]);
+  const [aircraft, setAircraft] = useState(() => {
+    try { const d = localStorage.getItem(DRAFT_KEY); if (d) { const parsed = JSON.parse(d); if (parsed.aircraft?.length) return parsed.aircraft; } } catch {}
+    return variables?._aircraft || [{ type: "", reg: "", pax: "", range: "" }];
+  });
+  const [draftRestored, setDraftRestored] = useState(() => { try { return !!localStorage.getItem(DRAFT_KEY); } catch { return false; } });
 
   useEffect(() => {
+    // Only sync from server when no local draft exists
+    try { if (localStorage.getItem(DRAFT_KEY)) return; } catch {}
     setValues(variables || {});
     setAircraft(variables?._aircraft || [{ type: "", reg: "", pax: "", range: "" }]);
   }, [variables]);
+
+  // Auto-save draft to localStorage on changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        // Only save if values differ from server state
+        const hasChanges = JSON.stringify(values) !== JSON.stringify(variables || {}) ||
+          JSON.stringify(aircraft) !== JSON.stringify(variables?._aircraft || [{ type: "", reg: "", pax: "", range: "" }]);
+        if (hasChanges) {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, aircraft }));
+        } else {
+          localStorage.removeItem(DRAFT_KEY);
+        }
+      } catch {}
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [values, aircraft, variables]);
 
   const allVars = TEMPLATE_VARIABLES.flatMap(g => g.vars);
   const filledCount = allVars.filter(v => values[v.key]?.trim()).length;
@@ -153,6 +180,8 @@ function TemplateVariablesForm({ variables, onSave, fleetAircraft }) {
   const handleSave = async (applyToManuals) => {
     setSaveMode(applyToManuals ? "apply" : "save");
     await onSave({ ...values, _aircraft: aircraft }, applyToManuals);
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    setDraftRestored(false);
     setSaveMode(null);
   };
 
@@ -165,8 +194,10 @@ function TemplateVariablesForm({ variables, onSave, fleetAircraft }) {
           <span style={{ fontSize: 10, color: filledCount === allVars.length ? GREEN : CYAN, fontWeight: 600 }}>
             {filledCount} of {allVars.length} filled
           </span>
+          {draftRestored && <span style={{ fontSize: 9, fontWeight: 600, color: AMBER, background: "rgba(245,158,11,0.1)", padding: "2px 6px", borderRadius: 4 }}>Unsaved changes restored</span>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {draftRestored && <button onClick={(e) => { e.stopPropagation(); try { localStorage.removeItem(DRAFT_KEY); } catch {} setValues(variables || {}); setAircraft(variables?._aircraft || [{ type: "", reg: "", pax: "", range: "" }]); setDraftRestored(false); }} style={{ fontSize: 9, color: MUTED, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "2px 8px", cursor: "pointer" }}>Discard</button>}
           <span style={{ fontSize: 10, color: MUTED }}>Fill in once, replaces everywhere</span>
           <span style={{ fontSize: 12, color: MUTED }}>{expanded ? "\u25B4" : "\u25BE"}</span>
         </div>
