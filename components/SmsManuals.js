@@ -712,9 +712,13 @@ function ManualEditor({ manual, onSave, onPublish, onBack, templateVariables, si
       return tmplSec && tmplSec.content ? { ...sec, content: tmplSec.content } : sec;
     });
   };
-  const [sections, setSections] = useState(initSections);
+  const MANUAL_DRAFT_KEY = `preflight_draft_manual_${manual.id}`;
+  const [sections, setSections] = useState(() => {
+    try { const d = localStorage.getItem(MANUAL_DRAFT_KEY); if (d) return JSON.parse(d); } catch {}
+    return initSections();
+  });
   const [expandedSection, setExpandedSection] = useState(null);
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState(() => { try { return !!localStorage.getItem(MANUAL_DRAFT_KEY); } catch { return false; } });
   const [saveStatus, setSaveStatus] = useState(null); // null | "saving" | "saved"
   const saveTimerRef = useRef(null);
   const sectionsRef = useRef(sections);
@@ -728,10 +732,15 @@ function ManualEditor({ manual, onSave, onPublish, onBack, templateVariables, si
     await onSave({ ...manual, sections: sectionsRef.current });
     setDirty(false);
     setSaveStatus("saved");
-  }, [manual, onSave]);
+    try { localStorage.removeItem(MANUAL_DRAFT_KEY); } catch {}
+  }, [manual, onSave, MANUAL_DRAFT_KEY]);
 
   const updateSection = (idx, updates) => {
-    setSections(prev => prev.map((s, i) => i === idx ? { ...s, ...updates, lastEdited: new Date().toISOString() } : s));
+    setSections(prev => {
+      const next = prev.map((s, i) => i === idx ? { ...s, ...updates, lastEdited: new Date().toISOString() } : s);
+      try { localStorage.setItem(MANUAL_DRAFT_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
     setDirty(true);
     setSaveStatus(null);
     // Auto-save after 2 seconds of inactivity
@@ -739,8 +748,13 @@ function ManualEditor({ manual, onSave, onPublish, onBack, templateVariables, si
     saveTimerRef.current = setTimeout(() => doSave(), 2000);
   };
 
-  // Cleanup timer on unmount
-  useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
+  // Flush pending save on unmount (don't discard unsaved changes)
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  useEffect(() => () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    if (dirtyRef.current) doSave();
+  }, []);
 
   const handleSave = () => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
