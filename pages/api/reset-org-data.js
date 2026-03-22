@@ -33,9 +33,8 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "You are not a member of this organization" });
     }
 
-    const adminRoles = ["admin", "safety_manager", "accountable_exec", "chief_pilot"];
-    if (!adminRoles.includes(callerProfile.role)) {
-      return res.status(403).json({ error: "Insufficient permissions" });
+    if (callerProfile.role !== "admin") {
+      return res.status(403).json({ error: "Only admins can reset organization data" });
     }
 
     // Verify org is trial or active (for post-payment reset)

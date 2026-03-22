@@ -46,6 +46,7 @@ export default async function handler(req, res) {
   try {
     const now = new Date();
     const results = { training_expiring: 0, training_admin: 0, action_overdue: 0, action_due_soon: 0 };
+    const sevenDaysAgoISO = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Skip cancelled/dormant orgs in cron mode
     let cancelledOrgIds = new Set();
@@ -74,6 +75,21 @@ export default async function handler(req, res) {
     const { data: expiringRecords } = await trainingQuery;
 
     if (expiringRecords?.length) {
+      // Fetch ALL existing recent training_expiring notifications upfront
+      const relevantOrgIds = [...new Set(expiringRecords.map(r => r.user?.org_id).filter(Boolean))];
+      let existingTrainingNotifs = [];
+      if (relevantOrgIds.length > 0) {
+        const { data: notifs } = await supabase
+          .from("notifications")
+          .select("id, org_id, target_user_id, body")
+          .eq("type", "training_expiring")
+          .in("org_id", relevantOrgIds)
+          .gte("created_at", sevenDaysAgoISO);
+        existingTrainingNotifs = notifs || [];
+      }
+
+      const pendingInserts = [];
+
       for (const record of expiringRecords) {
         const user = record.user;
         if (!user?.org_id || !user?.id) continue;
@@ -89,18 +105,14 @@ export default async function handler(req, res) {
           : `${record.title} expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""} (${user.full_name || "Unknown"})`;
 
         // ── 1a. Per-user notification ──
-        const { data: existingUser } = await supabase
-          .from("notifications")
-          .select("id")
-          .eq("org_id", user.org_id)
-          .eq("type", "training_expiring")
-          .eq("target_user_id", user.id)
-          .ilike("body", `%${record.title}%`)
-          .gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .limit(1);
+        const hasExistingUser = existingTrainingNotifs.some(n =>
+          n.org_id === user.org_id &&
+          n.target_user_id === user.id &&
+          n.body?.toLowerCase().includes(record.title.toLowerCase())
+        );
 
-        if (!existingUser?.length) {
-          await supabase.from("notifications").insert({
+        if (!hasExistingUser) {
+          pendingInserts.push({
             org_id: user.org_id,
             type: "training_expiring",
             title: isExpired ? "Training Expired" : "Training Expiring Soon",
@@ -117,19 +129,15 @@ export default async function handler(req, res) {
           ? `${user.full_name || "Unknown"}'s ${record.title} expired ${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago`
           : `${user.full_name || "Unknown"}'s ${record.title} expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`;
 
-        const { data: existingAdmin } = await supabase
-          .from("notifications")
-          .select("id")
-          .eq("org_id", user.org_id)
-          .eq("type", "training_expiring")
-          .is("target_user_id", null)
-          .ilike("body", `%${record.title}%`)
-          .ilike("body", `%${user.full_name || "Unknown"}%`)
-          .gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .limit(1);
+        const hasExistingAdmin = existingTrainingNotifs.some(n =>
+          n.org_id === user.org_id &&
+          n.target_user_id === null &&
+          n.body?.toLowerCase().includes(record.title.toLowerCase()) &&
+          n.body?.toLowerCase().includes((user.full_name || "Unknown").toLowerCase())
+        );
 
-        if (!existingAdmin?.length) {
-          await supabase.from("notifications").insert({
+        if (!hasExistingAdmin) {
+          pendingInserts.push({
             org_id: user.org_id,
             type: "training_expiring",
             title: isExpired ? "Training Expired" : "Training Expiring Soon",
@@ -139,6 +147,14 @@ export default async function handler(req, res) {
             target_roles: ["admin", "safety_manager"],
           });
           results.training_admin++;
+        }
+      }
+
+      // Batch insert all training notifications
+      if (pendingInserts.length > 0) {
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < pendingInserts.length; i += BATCH_SIZE) {
+          await supabase.from("notifications").insert(pendingInserts.slice(i, i + BATCH_SIZE));
         }
       }
     }
@@ -153,33 +169,6 @@ export default async function handler(req, res) {
     if (orgIdParam) overdueQuery = overdueQuery.eq("org_id", orgIdParam);
 
     const { data: overdueActions } = await overdueQuery;
-
-    if (overdueActions?.length) {
-      for (const action of overdueActions) {
-        if (cancelledOrgIds.has(action.org_id)) continue;
-        const { data: existing } = await supabase
-          .from("notifications")
-          .select("id")
-          .eq("org_id", action.org_id)
-          .eq("type", "action_overdue")
-          .ilike("body", `%${action.action_code || action.title}%`)
-          .gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .limit(1);
-
-        if (existing?.length) continue;
-
-        await supabase.from("notifications").insert({
-          org_id: action.org_id,
-          type: "action_overdue",
-          title: "Corrective Action Overdue",
-          body: `${action.action_code || action.title || "Untitled"} is past due (${action.due_date})`,
-          link_tab: "actions",
-          target_roles: ["admin", "safety_manager"],
-          target_user_id: null,
-        });
-        results.action_overdue++;
-      }
-    }
 
     // ── 3. Corrective Actions Due Within 7 Days ─────────────────
     const dueSoonDate = new Date(now);
@@ -196,23 +185,68 @@ export default async function handler(req, res) {
 
     const { data: dueSoonActions } = await dueSoonQuery;
 
+    // Fetch ALL existing recent action notifications upfront for both overdue and due_soon
+    const actionOrgIds = [
+      ...new Set([
+        ...(overdueActions || []).map(a => a.org_id),
+        ...(dueSoonActions || []).map(a => a.org_id),
+      ].filter(Boolean))
+    ];
+
+    let existingActionNotifs = [];
+    if (actionOrgIds.length > 0) {
+      const { data: notifs } = await supabase
+        .from("notifications")
+        .select("id, org_id, type, body")
+        .in("type", ["action_overdue", "action_due_soon"])
+        .in("org_id", actionOrgIds)
+        .gte("created_at", sevenDaysAgoISO);
+      existingActionNotifs = notifs || [];
+    }
+
+    const actionInserts = [];
+
+    if (overdueActions?.length) {
+      for (const action of overdueActions) {
+        if (cancelledOrgIds.has(action.org_id)) continue;
+
+        const identifier = (action.action_code || action.title || "").toLowerCase();
+        const hasExisting = existingActionNotifs.some(n =>
+          n.org_id === action.org_id &&
+          n.type === "action_overdue" &&
+          n.body?.toLowerCase().includes(identifier)
+        );
+
+        if (hasExisting) continue;
+
+        actionInserts.push({
+          org_id: action.org_id,
+          type: "action_overdue",
+          title: "Corrective Action Overdue",
+          body: `${action.action_code || action.title || "Untitled"} is past due (${action.due_date})`,
+          link_tab: "actions",
+          target_roles: ["admin", "safety_manager"],
+          target_user_id: null,
+        });
+        results.action_overdue++;
+      }
+    }
+
     if (dueSoonActions?.length) {
       for (const action of dueSoonActions) {
         if (cancelledOrgIds.has(action.org_id)) continue;
         const daysUntil = Math.ceil((new Date(action.due_date) - now) / (1000 * 60 * 60 * 24));
 
-        const { data: existing } = await supabase
-          .from("notifications")
-          .select("id")
-          .eq("org_id", action.org_id)
-          .eq("type", "action_due_soon")
-          .ilike("body", `%${action.action_code || action.title}%`)
-          .gte("created_at", new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .limit(1);
+        const identifier = (action.action_code || action.title || "").toLowerCase();
+        const hasExisting = existingActionNotifs.some(n =>
+          n.org_id === action.org_id &&
+          n.type === "action_due_soon" &&
+          n.body?.toLowerCase().includes(identifier)
+        );
 
-        if (existing?.length) continue;
+        if (hasExisting) continue;
 
-        await supabase.from("notifications").insert({
+        actionInserts.push({
           org_id: action.org_id,
           type: "action_due_soon",
           title: "Corrective Action Due Soon",
@@ -222,6 +256,14 @@ export default async function handler(req, res) {
           target_user_id: null,
         });
         results.action_due_soon++;
+      }
+    }
+
+    // Batch insert all action notifications
+    if (actionInserts.length > 0) {
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < actionInserts.length; i += BATCH_SIZE) {
+        await supabase.from("notifications").insert(actionInserts.slice(i, i + BATCH_SIZE));
       }
     }
 

@@ -34,7 +34,6 @@ function uid() { return crypto.randomUUID(); }
 
 // ── Constants ────────────────────────────────────────────────
 const DEMO_ORG_SLUG = "cascade-charter-demo";
-const DEMO_PASSWORD = "PreflightDemo2026!";
 
 const DEMO_USERS = [
   { email: "admin@demo.preflightsms.com", name: "James Mitchell", role: "admin" },
@@ -112,6 +111,11 @@ export default async function handler(req, res) {
 
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
     return res.status(500).json({ error: "Missing SUPABASE_URL or SERVICE_ROLE_KEY" });
+  }
+
+  const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
+  if (!DEMO_PASSWORD) {
+    return res.status(500).json({ error: "DEMO_PASSWORD not configured" });
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {

@@ -50,19 +50,45 @@ export default async function handler(req, res) {
     let skipped = 0;
     let staleRemoved = 0;
 
-    for (const nudge of dueNudges) {
-      // 2. Check no terminal response exists for this flight
-      const { data: terminal } = await supabase
+    // Batch-fetch terminal responses for all due nudges upfront
+    const nudgeFlightUserPairs = dueNudges.map(n => ({ flight_id: n.flight_id, user_id: n.user_id }));
+    const uniqueFlightIds = [...new Set(dueNudges.map(n => n.flight_id))];
+    let terminalResponses = [];
+    if (uniqueFlightIds.length > 0) {
+      const { data: terminals } = await supabase
         .from("nudge_responses")
-        .select("id")
-        .eq("flight_id", nudge.flight_id)
-        .eq("user_id", nudge.user_id)
-        .in("response", ["submitted_report", "nothing_to_report", "dismissed"])
-        .limit(1);
+        .select("flight_id, user_id")
+        .in("flight_id", uniqueFlightIds)
+        .in("response", ["submitted_report", "nothing_to_report", "dismissed"]);
+      terminalResponses = terminals || [];
+    }
+    const terminalSet = new Set(terminalResponses.map(t => `${t.flight_id}:${t.user_id}`));
 
-      if (terminal && terminal.length > 0) {
+    // Batch-fetch recent nudge push notifications for idempotency
+    let recentNudgePushes = new Set();
+    if (uniqueFlightIds.length > 0) {
+      const { data: recentNotifs } = await supabase
+        .from("notifications")
+        .select("body")
+        .eq("type", "nudge_push")
+        .gte("created_at", new Date(Date.now() - 30 * 60 * 1000).toISOString()); // within nudge interval (30 min)
+      for (const n of (recentNotifs || [])) {
+        recentNudgePushes.add(n.body);
+      }
+    }
+
+    for (const nudge of dueNudges) {
+      // 2. Check no terminal response exists for this flight (using pre-fetched data)
+      if (terminalSet.has(`${nudge.flight_id}:${nudge.user_id}`)) {
         // Already handled — mark push_sent_at so we don't check again
         await supabase.from("nudge_responses").update({ push_sent_at: nowISO }).eq("id", nudge.id);
+        skipped++;
+        continue;
+      }
+
+      // Idempotency: skip if a nudge push was already sent for this flight+user recently
+      const nudgeDedupKey = `nudge:${nudge.flight_id}:${nudge.user_id}`;
+      if (recentNudgePushes.has(nudgeDedupKey)) {
         skipped++;
         continue;
       }
@@ -115,6 +141,15 @@ export default async function handler(req, res) {
 
       // Mark push as sent
       await supabase.from("nudge_responses").update({ push_sent_at: nowISO }).eq("id", nudge.id);
+      // Insert dedup record for idempotency
+      await supabase.from("notifications").insert({
+        org_id: null,
+        type: "nudge_push",
+        title: "Nudge Push Sent",
+        body: `nudge:${nudge.flight_id}:${nudge.user_id}`,
+        target_user_id: nudge.user_id,
+        target_roles: null,
+      });
       sent++;
     }
 

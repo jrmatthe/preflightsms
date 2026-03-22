@@ -70,11 +70,12 @@ export default async function handler(req, res) {
     return res.status(200).json({ positions: cached || [], cached: true });
   }
 
-  // Fetch ALL active flights across ALL orgs (batch efficiency)
+  // Fetch active flights for this org only
   const { data: activeFlights, error: flightErr } = await supabase
     .from("flights")
     .select("id, org_id, tail_number, destination")
-    .eq("status", "ACTIVE");
+    .eq("status", "ACTIVE")
+    .eq("org_id", orgId);
 
   if (flightErr) {
     console.error("[flight-positions] Flight query error:", flightErr.message);

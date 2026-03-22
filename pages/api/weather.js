@@ -6,8 +6,14 @@ const headers = { "User-Agent": "PreflightSMS/1.0" };
 
 async function parseBody(r) {
   if (r.status === 204) return [];
+  // Guard against non-JSON responses (e.g. HTML error pages from AWC)
+  const contentType = r.headers.get("content-type") || "";
   const text = await r.text();
   if (!text || text.trim().length === 0) return [];
+  if (!contentType.includes("application/json") && text.trim().startsWith("<")) {
+    console.warn("[weather] AWC returned non-JSON response (content-type:", contentType, ")");
+    return [];
+  }
   try {
     const parsed = JSON.parse(text);
     return Array.isArray(parsed) ? parsed : [];

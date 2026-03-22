@@ -43,6 +43,7 @@ export default async function handler(req, res) {
     const GRACE_MINUTES = 30;
     const graceThreshold = new Date(now.getTime() - GRACE_MINUTES * 60000).toISOString();
     const nowISO = now.toISOString();
+    const twentyFourHoursAgoISO = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
     if (req.query.reset === "true") {
       return res.status(403).json({ error: "reset=true is disabled — use the platform admin panel to reset notification flags" });
@@ -51,7 +52,7 @@ export default async function handler(req, res) {
     // Only notify flights whose ETA is more than GRACE_MINUTES ago
     const { data: overdueFlights, error: flightErr } = await supabase
       .from("flights")
-      .select("*, organizations(name, slug)")
+      .select("*, organizations(name, slug, timezone)")
       .eq("status", "ACTIVE")
       .not("eta", "is", null)
       .lt("eta", graceThreshold)
@@ -73,7 +74,29 @@ export default async function handler(req, res) {
     let totalSMS = 0;
     const results = [];
 
+    // Fetch existing recent overdue notifications for idempotency check
+    const overdueFlightIds = overdueFlights.map(f => f.id);
+    let recentOverdueNotifs = new Set();
+    if (overdueFlightIds.length > 0) {
+      const { data: existingNotifs } = await supabase
+        .from("notifications")
+        .select("body")
+        .eq("type", "flight_overdue")
+        .gte("created_at", twentyFourHoursAgoISO);
+      // Build a set of frat_codes that already have notifications
+      for (const n of (existingNotifs || [])) {
+        recentOverdueNotifs.add(n.body);
+      }
+    }
+
     for (const flight of overdueFlights) {
+      // Idempotency: skip if an overdue notification was already sent for this FRAT in the last 24h
+      const dedupKey = `overdue:${flight.frat_code}:${flight.id}`;
+      if (recentOverdueNotifs.has(dedupKey)) {
+        results.push({ flight: flight.frat_code, status: "already_notified_recently" });
+        continue;
+      }
+
       // Get all profiles in this org that have an email
       const { data: followers, error: followerErr } = await supabase
         .from("profiles")
@@ -107,12 +130,13 @@ export default async function handler(req, res) {
 
       const etaDate = new Date(flight.eta);
       const minsOverdue = Math.round((new Date() - etaDate) / 60000);
+      const orgTimezone = flight.organizations?.timezone || "UTC";
       const etaLocal = etaDate.toLocaleString("en-US", {
-        timeZone: "America/Los_Angeles",
+        timeZone: orgTimezone,
         hour: "numeric", minute: "2-digit", hour12: true,
       });
       const dateLocal = etaDate.toLocaleDateString("en-US", {
-        timeZone: "America/Los_Angeles",
+        timeZone: orgTimezone,
         month: "short", day: "numeric",
       });
 
@@ -200,6 +224,15 @@ export default async function handler(req, res) {
       // Only mark as notified if at least one notification was actually sent
       if (flightResults.emails > 0 || flightResults.sms > 0) {
         await supabase.from("flights").update({ overdue_notified_at: nowISO }).eq("id", flight.id);
+        // Insert dedup record into notifications table
+        await supabase.from("notifications").insert({
+          org_id: flight.org_id,
+          type: "flight_overdue",
+          title: "Overdue Flight Notification Sent",
+          body: `overdue:${flight.frat_code}:${flight.id}`,
+          target_user_id: null,
+          target_roles: ["admin", "safety_manager"],
+        });
         flightResults.markedNotified = true;
       } else {
         flightResults.markedNotified = false;

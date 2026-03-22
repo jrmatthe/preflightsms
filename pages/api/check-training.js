@@ -66,6 +66,12 @@ export default async function handler(req, res) {
     // Group by org for summary emails
     const byOrg = {};
 
+    // Collect record IDs to batch-update expiry_notified_at at the end
+    const idsToMarkNotified = [];
+
+    // Collect email payloads first, then send
+    const emailPayloads = [];
+
     for (const record of expiringRecords) {
       const user = record.user;
       // Skip cancelled/dormant orgs
@@ -75,14 +81,14 @@ export default async function handler(req, res) {
       }
       if (!user?.email) {
         results.push({ record: record.id, status: "no_email" });
-        await supabase.from("training_records").update({ expiry_notified_at: now.toISOString() }).eq("id", record.id);
+        idsToMarkNotified.push(record.id);
         continue;
       }
 
       // Skip email if user has disabled training notifications
       if (user.notification_preferences?.training === false) {
         results.push({ record: record.id, status: "training_disabled" });
-        await supabase.from("training_records").update({ expiry_notified_at: now.toISOString() }).eq("id", record.id);
+        idsToMarkNotified.push(record.id);
         continue;
       }
 
@@ -100,30 +106,16 @@ export default async function handler(req, res) {
         status: isExpired ? "EXPIRED" : `Expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`,
       };
 
-      // Send individual email to user
-      try {
-        const emailRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            from: process.env.FROM_EMAIL || "PreflightSMS Alerts <noreply@preflightsms.com>",
-            to: [user.email],
-            subject: isExpired
-              ? `EXPIRED — ${record.title} training has expired`
-              : `Training Expiring — ${record.title} expires ${r.expiryDate}`,
-            html: buildUserEmailHtml(r),
-          }),
-        });
-        if (emailRes.ok) {
-          totalEmails++;
-          results.push({ record: record.id, title: record.title, to: user.email, status: "sent" });
-        } else {
-          const errData = await emailRes.json();
-          results.push({ record: record.id, to: user.email, status: "error", error: errData.message || "Unknown" });
-        }
-      } catch (e) {
-        results.push({ record: record.id, to: user.email, status: "error", error: e.message });
-      }
+      // Collect email payload for sending
+      emailPayloads.push({
+        recordId: record.id,
+        to: user.email,
+        subject: isExpired
+          ? `EXPIRED — ${record.title} training has expired`
+          : `Training Expiring — ${record.title} expires ${r.expiryDate}`,
+        html: buildUserEmailHtml(r),
+        title: record.title,
+      });
 
       // Track for org summary
       const orgId = user.org_id || record.org_id;
@@ -132,8 +124,38 @@ export default async function handler(req, res) {
         byOrg[orgId].push(r);
       }
 
-      // Mark as notified
-      await supabase.from("training_records").update({ expiry_notified_at: now.toISOString() }).eq("id", record.id);
+      // Collect for batch update
+      idsToMarkNotified.push(record.id);
+    }
+
+    // Send all collected emails (Resend requires per-recipient calls)
+    for (const payload of emailPayloads) {
+      try {
+        const emailRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: process.env.FROM_EMAIL || "PreflightSMS Alerts <noreply@preflightsms.com>",
+            to: [payload.to],
+            subject: payload.subject,
+            html: payload.html,
+          }),
+        });
+        if (emailRes.ok) {
+          totalEmails++;
+          results.push({ record: payload.recordId, title: payload.title, to: payload.to, status: "sent" });
+        } else {
+          const errData = await emailRes.json();
+          results.push({ record: payload.recordId, to: payload.to, status: "error", error: errData.message || "Unknown" });
+        }
+      } catch (e) {
+        results.push({ record: payload.recordId, to: payload.to, status: "error", error: e.message });
+      }
+    }
+
+    // Batch update all expiry_notified_at in one query
+    if (idsToMarkNotified.length > 0) {
+      await supabase.from("training_records").update({ expiry_notified_at: now.toISOString() }).in("id", idsToMarkNotified);
     }
 
     // Send org summary emails to admins and safety managers
