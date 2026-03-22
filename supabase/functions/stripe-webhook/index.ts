@@ -62,23 +62,25 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Missing config" }), { status: 500 });
   }
 
-  if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET not set");
-    return new Response(JSON.stringify({ error: "Webhook secret not configured" }), { status: 500 });
-  }
-
   const body = await req.text();
-  const sig = req.headers.get("stripe-signature");
 
-  if (!sig) {
-    console.error("No stripe-signature header");
-    return new Response(JSON.stringify({ error: "Missing signature" }), { status: 400 });
-  }
+  // TODO: Once STRIPE_WEBHOOK_SECRET is deployed everywhere, make this required
+  // and remove the backward-compatibility fallback below.
+  if (!webhookSecret) {
+    console.warn("WARNING: STRIPE_WEBHOOK_SECRET not set — skipping signature verification. Set this secret to enable webhook security.");
+  } else {
+    const sig = req.headers.get("stripe-signature");
 
-  const valid = await verifySignature(body, sig, webhookSecret);
-  if (!valid) {
-    console.error("Webhook signature verification failed");
-    return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 400 });
+    if (!sig) {
+      console.error("No stripe-signature header");
+      return new Response(JSON.stringify({ error: "Missing stripe-signature header" }), { status: 400 });
+    }
+
+    const valid = await verifySignature(body, sig, webhookSecret);
+    if (!valid) {
+      console.error("Webhook signature verification failed");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 400 });
+    }
   }
 
   const event = JSON.parse(body);
