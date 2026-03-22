@@ -288,6 +288,12 @@ function getSection(cv) {
 function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSignOut, org, userRole, notifications, notifReads, onMarkNotifRead, onMarkAllNotifsRead, profile, isOnline, session, onNotifNavigate, onUpgrade, onSwitchToMobile, onUpdatePreferences, showOnboarding, onboardingState, onStartFlow, isTrial, onStartFresh, activeFlow, showTour, tourState, tourFlows, tourOrder, onStartTour, onDismissTour, activeTour }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingClosing, setOnboardingClosing] = useState(false);
+  // Fallback timer: if CSS animation doesn't fire (e.g. prefers-reduced-motion), close after 300ms
+  useEffect(() => {
+    if (!onboardingClosing) return;
+    const t = setTimeout(() => { setMenuOpen(false); setOnboardingClosing(false); }, 350);
+    return () => clearTimeout(t);
+  }, [onboardingClosing]);
   const didAutoOpen = useRef(false);
   const prevActiveFlow = useRef(activeFlow);
   const prevActiveTour = useRef(activeTour);
@@ -802,7 +808,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     return { score: clamped, level, points: fratPoints };
   }, [fatigueEnabled, fatigue]);
 
-  const score = useMemo(() => { let s = 0; RISK_CATEGORIES.forEach(c => c.factors.forEach(f => { if (checked[f.id]) s += f.score; })); return s + fatigueResult.points; }, [checked, fatigueResult.points]);
+  const score = useMemo(() => { let s = 0; RISK_CATEGORIES.forEach(c => (c.factors || []).forEach(f => { if (checked[f.id]) s += f.score; })); return s + fatigueResult.points; }, [checked, fatigueResult.points]);
   const toggle = id => {
     setChecked(p => ({ ...p, [id]: !p[id] }));
     if (autoSuggested[id]) setAutoSuggested(p => { const n = { ...p }; delete n[id]; return n; });
@@ -811,8 +817,8 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
   // Auto-fetch weather when airports or altitude change
   useEffect(() => {
     if (fetchTimer.current) clearTimeout(fetchTimer.current);
-    const dep = fi.departure.trim().toUpperCase();
-    const dest = fi.destination.trim().toUpperCase();
+    const dep = (fi.departure || "").trim().toUpperCase();
+    const dest = (fi.destination || "").trim().toUpperCase();
     if (dep.length < 3 && dest.length < 3) {
       setWxData(null);
       setWxAnalysis({ flags: {}, reasons: {}, briefing: null });
@@ -866,7 +872,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
 
   // Fetch departure airport timezone
   useEffect(() => {
-    const dep = fi.departure.trim().toUpperCase();
+    const dep = (fi.departure || "").trim().toUpperCase();
     if (dep.length < 3) { setDepTz(null); return; }
     fetch(`/api/airports?ids=${dep}`).then(r => r.json()).then(data => {
       if (data[dep]?.tz) setDepTz({ tz: data[dep].tz, tzAbbr: data[dep].tzAbbr });
@@ -876,7 +882,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
 
   // Fetch destination airport timezone
   useEffect(() => {
-    const dest = fi.destination.trim().toUpperCase();
+    const dest = (fi.destination || "").trim().toUpperCase();
     if (dest.length < 3) { setDestTz(null); return; }
     fetch(`/api/airports?ids=${dest}`).then(r => r.json()).then(data => {
       if (data[dest]?.tz) setDestTz({ tz: data[dest].tz, tzAbbr: data[dest].tzAbbr });
@@ -937,12 +943,16 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
     if (!fi.destination) errs.destination = "Enter destination airport (e.g. KBOI)";
     if (fi.destination && fi.destination.length < 3) errs.destination = "Use ICAO or IATA code (e.g. KBOI)";
     if (!fi.cruiseAlt) errs.cruiseAlt = "Enter cruise altitude (e.g. FL180)";
+    else { const altRaw = fi.cruiseAlt.trim().toUpperCase(); const altNum = altRaw.startsWith("FL") ? parseInt(altRaw.slice(2), 10) * 100 : parseInt(altRaw, 10); if (!isNaN(altNum) && altNum > 60000) errs.cruiseAlt = "Altitude cannot exceed FL600 / 60,000 ft"; }
     if (!fi.date) errs.date = "Select a flight date";
     if (!fi.etd) errs.etd = "Enter departure time (e.g. 1430)";
     if (!fi.ete) errs.ete = "Enter time enroute (e.g. 1:30)";
     if (!fi.fuelLbs) errs.fuelLbs = `Enter fuel onboard in ${fratFuelUnit}`;
+    else { const fuelVal = parseFloat(fi.fuelLbs); if (isNaN(fuelVal) || fuelVal < 0) errs.fuelLbs = "Fuel must be a positive number"; else if (fratFuelUnit === "lbs" && fuelVal > 100000) errs.fuelLbs = "Fuel exceeds 100,000 lbs"; else if (fratFuelUnit === "hrs" && fuelVal > 24) errs.fuelLbs = "Fuel exceeds 24 hours"; }
     if (!fi.numCrew) errs.numCrew = "Enter number of crew";
+    else { const crew = parseInt(fi.numCrew, 10); if (isNaN(crew) || crew < 1) errs.numCrew = "Crew must be at least 1"; else if (crew > 20) errs.numCrew = "Crew cannot exceed 20"; }
     if (!fi.numPax) errs.numPax = "Enter number of passengers";
+    else { const pax = parseInt(fi.numPax, 10); if (isNaN(pax) || pax < 0) errs.numPax = "Passengers cannot be negative"; else if (pax > 500) errs.numPax = "Passengers cannot exceed 500"; }
     // 12-hour advance submission limit
     if (fi.date && fi.etd && !errs.date && !errs.etd) {
       const t = (fi.etd || "").replace(/[^0-9]/g, "").padStart(4, "0");
@@ -1975,6 +1985,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
     if (!adsbEnabled || !session?.access_token) return;
     let cancelled = false;
     const poll = async () => {
+      if (document.hidden) return;
       try {
         const res = await fetch("/api/flight-positions", {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -4126,6 +4137,7 @@ export default function PVTAIRFrat() {
     return "home";
   });
   const cvRef = useRef(cv);
+  const profileRef = useRef(null);
   const setCv = useCallback((newCv) => {
     if (newCv === cvRef.current) return;
     cvRef.current = newCv;
@@ -4180,6 +4192,12 @@ export default function PVTAIRFrat() {
   const [templateVariables, setTemplateVariables] = useState({});
   const [smsSignatures, setSmsSignatures] = useState({});
   const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+  const showToast = useCallback((msg, level, duration = 4000) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message: msg, level });
+    toastTimerRef.current = setTimeout(() => setToast(null), duration);
+  }, []);
   const [pendingSync, setPendingSync] = useState(0);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [profileEmail, setProfileEmail] = useState("");
@@ -4197,6 +4215,7 @@ export default function PVTAIRFrat() {
   // Supabase auth state
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
   const [authLoading, setAuthLoading] = useState(!!supabase);
   const [profileLoading, setProfileLoading] = useState(false);
   const [fratTemplate, setFratTemplate] = useState(null);
@@ -4218,6 +4237,11 @@ export default function PVTAIRFrat() {
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
     return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
+  }, []);
+
+  const notifyOtherTabs = useCallback(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    try { const bc = new BroadcastChannel("preflightsms_sync"); bc.postMessage({ type: "data_changed" }); bc.close(); } catch (_) {}
   }, []);
 
   // Cache profile to localStorage for offline use
@@ -5141,6 +5165,18 @@ export default function PVTAIRFrat() {
     fetchWebhooks(orgId).then(({ data }) => setWebhooksData(data || []));
   };
 
+  // Multi-tab sync: refresh data when another tab makes changes
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const bc = new BroadcastChannel("preflightsms_sync");
+    bc.onmessage = (e) => {
+      if (e.data?.type === "data_changed" && profile?.org_id) {
+        refreshAllData(profile.org_id);
+      }
+    };
+    return () => bc.close();
+  }, [profile?.org_id]);
+
   // ── Load data from Supabase when profile is available ──
   useEffect(() => {
     if (!profile) return;
@@ -5165,10 +5201,11 @@ export default function PVTAIRFrat() {
         });
       });
       // Also refresh pending dispatch flights and FRAT records so all sections stay in sync
-      if (hasFeature(profile?.organizations, "foreflight_integration")) {
+      // Use profileRef to avoid stale closure if org features change mid-session
+      if (hasFeature(profileRef.current?.organizations, "foreflight_integration")) {
         fetchPendingForeflightFlights(orgId).then(({ data }) => setPendingFfFlights(data || []));
       }
-      if (hasFeature(profile?.organizations, "schedaero_integration")) {
+      if (hasFeature(profileRef.current?.organizations, "schedaero_integration")) {
         fetchPendingSchedaeroTrips(orgId).then(({ data }) => setPendingScTrips(data || []));
       }
       fetchFRATs(orgId).then(({ data }) => {
@@ -5247,14 +5284,19 @@ export default function PVTAIRFrat() {
 
   const [fratPrefill, setFratPrefill] = useState(null);
 
-  // ── Poll notifications every 60s ──
+  // ── Poll notifications every 60s (pauses when tab is hidden) ──
   useEffect(() => {
     if (!profile?.org_id || !session?.user?.id) return;
-    const interval = setInterval(() => {
+    const poll = () => {
+      if (document.hidden) return;
       fetchNotifications(profile.org_id).then(({ data }) => { if (data) setNotifications(data); });
       fetchNotificationReads(session.user.id).then(({ data }) => { if (data) setNotifReads(data.map(r => r.notification_id)); });
-    }, 60000);
-    return () => clearInterval(interval);
+    };
+    const interval = setInterval(poll, 60000);
+    // Refresh immediately when tab becomes visible again
+    const onVisible = () => { if (!document.hidden) poll(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(interval); document.removeEventListener("visibilitychange", onVisible); };
   }, [profile, session]);
 
   // ── Refresh pending dispatch flights when FRAT view opens ──
@@ -5337,7 +5379,17 @@ export default function PVTAIRFrat() {
     const networkOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
 
     if (isOnline && profile && networkOnline) {
-      const { data: fratData, error: fratErr } = await submitFRAT(profile.org_id, session.user.id, {
+      // Refresh session before long async chain to prevent mid-submission expiry
+      let currentSession = session;
+      if (supabase) {
+        const { data: { session: freshSession } } = await supabase.auth.getSession();
+        if (!freshSession) {
+          showToast("Session expired — please sign in again", { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: "#EF4444" }, 5000);
+          return;
+        }
+        currentSession = freshSession;
+      }
+      const { data: fratData, error: fratErr } = await submitFRAT(profile.org_id, currentSession.user.id, {
         ...entry,
         approvalStatus: fratApprovalStatus,
         fatigueScore: entry.fatigueData?.calculatedScore ?? null,
@@ -5350,7 +5402,7 @@ export default function PVTAIRFrat() {
         const localFlight = { id: entry.id, pilot: entry.pilot, aircraft: entry.aircraft, tailNumber: entry.tailNumber || "", departure: entry.departure, destination: entry.destination, cruiseAlt: entry.cruiseAlt || "", etd: entry.etd || "", ete: entry.ete || "", eta: entry.eta || "", fuelLbs: entry.fuelLbs || "", numCrew: entry.numCrew || "", numPax: entry.numPax || "", score: entry.score, riskLevel: entry.riskLevel, status: needsBlock ? "PENDING_APPROVAL" : "ACTIVE", timestamp: entry.timestamp, arrivedAt: null, pendingSync: true };
         setFlights(prev => [localFlight, ...prev]);
         setRecords(prev => [entry, ...prev]);
-        setToast({ message: `${entry.id} saved offline — will sync when connected`, level: { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" } }); setTimeout(() => setToast(null), 5000);
+        showToast(`${entry.id} saved offline — will sync when connected`, { bg: "rgba(250,204,21,0.15)", border: "rgba(250,204,21,0.4)", color: "#FACC15" }, 5000);
         return;
       }
       const { data: flightData, error: flightErr } = await createFlight(profile.org_id, fratData.id, entry, needsBlock, session.user.id);
@@ -5446,6 +5498,7 @@ export default function PVTAIRFrat() {
       })));
       const { data: fl } = await fetchFlights(profile.org_id);
       setFlights(prev => mapDbFlights(fl, prev));
+      notifyOtherTabs();
     } else {
       enqueue({ type: "frat_submit", payload: { orgId: profile?.org_id, userId: session?.user?.id, entry } });
       setPendingSync(getQueueCount());
@@ -5454,7 +5507,7 @@ export default function PVTAIRFrat() {
       const nf = [flight, ...flights]; saveFlightsLocal(nf);
       toastMsg = `${entry.id} saved offline — will sync when connected`;
     }
-    setToast({ message: toastMsg, level: getRiskLevel(entry.score, riskLevels) }); setTimeout(() => setToast(null), 4000);
+    showToast(toastMsg, getRiskLevel(entry.score, riskLevels), 4000);
   }, [records, flights, saveLocal, saveFlightsLocal, profile, session, isOnline, foreflightConfig]);
 
   // ── Update flight status ──
@@ -5547,10 +5600,11 @@ export default function PVTAIRFrat() {
     setTimeout(() => setToast(null), 3000);
   }, [flights, saveFlightsLocal, profile, isOnline, nudgeResponses, activeFlow]);
 
-  // ── Remind-later nudge check (every 5 min) ──
+  // ── Remind-later nudge check (every 5 min, pauses when tab hidden) ──
   useEffect(() => {
     if (!session?.user?.id || !profile) return;
     const check = () => {
+      if (document.hidden) return;
       const now = new Date();
       const pending = nudgeResponses.filter(nr =>
         nr.response === 'remind_later' && nr.remind_at && new Date(nr.remind_at) <= now
