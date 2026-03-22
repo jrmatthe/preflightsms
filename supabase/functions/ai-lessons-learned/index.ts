@@ -14,6 +14,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/** Sanitize user-generated text before embedding in AI prompts */
+function sanitizeForPrompt(text: string): string {
+  if (!text) return '';
+  const truncated = text.slice(0, 2000);
+  return truncated
+    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?)/gi, '[filtered]')
+    .replace(/you\s+are\s+now/gi, '[filtered]')
+    .replace(/system\s*:\s*/gi, '[filtered]')
+    .replace(/<\/?system>/gi, '[filtered]');
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -26,8 +37,8 @@ Deno.serve(async (req) => {
 
     if (!anthropicKey) {
       return new Response(
-        JSON.stringify({ lessonsLearned: null, error: "ANTHROPIC_API_KEY not configured" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -116,13 +127,13 @@ Deno.serve(async (req) => {
     // Build context — focus on what happened, not investigation status
     const eventContext = `
 EVENT:
-- Title: ${hazard.title}
-- Description: ${hazard.description}
+- Title: ${sanitizeForPrompt(hazard.title)}
+- Description: ${sanitizeForPrompt(hazard.description)}
 - Category: ${hazard.category}
-${linkedReport ? `- What happened: ${linkedReport.description}
-- Location: ${linkedReport.location || "N/A"}
+${linkedReport ? `- What happened: ${sanitizeForPrompt(linkedReport.description)}
+- Location: ${sanitizeForPrompt(linkedReport.location || "N/A")}
 - Flight phase: ${linkedReport.flight_phase || "N/A"}` : ""}
-- Mitigations put in place: ${hazard.mitigations || "None documented"}`;
+- Mitigations put in place: ${sanitizeForPrompt(hazard.mitigations || "None documented")}`;
 
     const actionsContext = (actions || []).filter(a => a.status === "completed" || a.status === "in_progress").length > 0
       ? `\nWHAT WAS DONE ABOUT IT:\n${actions!.filter(a => a.status === "completed" || a.status === "in_progress").map(a => `- ${a.title}`).join("\n")}`

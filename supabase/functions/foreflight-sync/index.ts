@@ -178,7 +178,25 @@ Deno.serve(async (req) => {
         let syncedCount = 0;
         const releasedFfIds = new Set<string>(); // Track released flight IDs for stale cleanup
 
-        for (const ff of flights) {
+        // Pagination: only process the most recent flights (configurable, default 100)
+        const FLIGHT_LIMIT = config.sync_flight_limit || 100;
+        // Timeout guard: stop processing if we've been running too long (25s edge function safety margin)
+        const TIMEOUT_MS = 25000;
+        const startTime = Date.now();
+
+        // Sort flights by departure time descending (most recent first), then limit
+        const sortedFlights = [...flights].sort((a: any, b: any) => {
+          const aTime = a.flightData?.departureTime || a.departureTime || a.etd || "";
+          const bTime = b.flightData?.departureTime || b.departureTime || b.etd || "";
+          return bTime > aTime ? 1 : bTime < aTime ? -1 : 0;
+        }).slice(0, FLIGHT_LIMIT);
+
+        for (const ff of sortedFlights) {
+          // Timeout guard: stop if we've exceeded the time limit
+          if (Date.now() - startTime > TIMEOUT_MS) {
+            console.log(`[foreflight-sync] Timeout guard hit after ${syncedCount} flights for org ${config.org_id}`);
+            break;
+          }
          try {
           const ffId = String(ff.flightId || ff.id || "");
           if (!ffId) continue;

@@ -14,6 +14,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/** Sanitize user-generated text before embedding in AI prompts */
+function sanitizeForPrompt(text: string): string {
+  if (!text) return '';
+  const truncated = text.slice(0, 2000);
+  return truncated
+    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?)/gi, '[filtered]')
+    .replace(/you\s+are\s+now/gi, '[filtered]')
+    .replace(/system\s*:\s*/gi, '[filtered]')
+    .replace(/<\/?system>/gi, '[filtered]');
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -26,8 +37,8 @@ Deno.serve(async (req) => {
 
     if (!anthropicKey) {
       return new Response(
-        JSON.stringify({ suggestions: [], error: "ANTHROPIC_API_KEY not configured" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -119,11 +130,11 @@ Deno.serve(async (req) => {
     const prompt = `You are an aviation safety risk analyst for a Part 135 flight operation. Based on the following flight context and historical FRAT data, suggest which risk factors should be checked for this flight.
 
 FLIGHT CONTEXT:
-- Departure: ${departure || "Not specified"}
-- Destination: ${destination || "Not specified"}
-- Aircraft Type: ${aircraft || "Not specified"}
-- Flight Date: ${flightDate || "Not specified"}
-- ETD: ${etd || "Not specified"}
+- Departure: ${sanitizeForPrompt(departure || "Not specified")}
+- Destination: ${sanitizeForPrompt(destination || "Not specified")}
+- Aircraft Type: ${sanitizeForPrompt(aircraft || "Not specified")}
+- Flight Date: ${sanitizeForPrompt(flightDate || "Not specified")}
+- ETD: ${sanitizeForPrompt(etd || "Not specified")}
 - Season: ${season}
 
 HISTORICAL FRAT DATA (recent flights on similar routes/aircraft):

@@ -14,6 +14,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/** Sanitize user-generated text before embedding in AI prompts */
+function sanitizeForPrompt(text: string): string {
+  if (!text) return '';
+  const truncated = text.slice(0, 2000);
+  return truncated
+    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?)/gi, '[filtered]')
+    .replace(/you\s+are\s+now/gi, '[filtered]')
+    .replace(/system\s*:\s*/gi, '[filtered]')
+    .replace(/<\/?system>/gi, '[filtered]');
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -28,8 +39,8 @@ Deno.serve(async (req) => {
     if (!anthropicKey) {
       console.error("ai-risk-assessment: ANTHROPIC_API_KEY not configured");
       return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -105,13 +116,13 @@ RISK MATRIX SCALES:
 - Low: 1-4, Medium: 5-9, High: 10-16, Critical: 17-25
 
 HAZARD DETAILS:
-- Title: ${title}
-- Description: ${description}
-- Category: ${category || "other"}
-- Source: ${source || "N/A"}
+- Title: ${sanitizeForPrompt(title)}
+- Description: ${sanitizeForPrompt(description)}
+- Category: ${sanitizeForPrompt(category || "other")}
+- Source: ${sanitizeForPrompt(source || "N/A")}
 
 SIMILAR PAST HAZARDS FOR CALIBRATION:
-${(similarHazards || []).map(h => `- ${h.hazard_code}: ${h.title} (L=${h.initial_likelihood}, S=${h.initial_severity}, Score=${(h.initial_likelihood || 0) * (h.initial_severity || 0)}) — Mitigations: ${h.mitigations || "None"}`).join("\n") || "None found."}
+${(similarHazards || []).map(h => `- ${h.hazard_code}: ${sanitizeForPrompt(h.title)} (L=${h.initial_likelihood}, S=${h.initial_severity}, Score=${(h.initial_likelihood || 0) * (h.initial_severity || 0)}) — Mitigations: ${sanitizeForPrompt(h.mitigations || "None")}`).join("\n") || "None found."}
 
 Based on the hazard description and similar past hazards, provide:
 1. Suggested initial likelihood and severity scores with reasoning
@@ -137,16 +148,16 @@ RISK MATRIX SCALES:
 - Low: 1-4, Medium: 5-9, High: 10-16, Critical: 17-25
 
 HAZARD DETAILS:
-- Title: ${title}
-- Description: ${description}
-- Category: ${category || "other"}
-- Source: ${source || "N/A"}
+- Title: ${sanitizeForPrompt(title)}
+- Description: ${sanitizeForPrompt(description)}
+- Category: ${sanitizeForPrompt(category || "other")}
+- Source: ${sanitizeForPrompt(source || "N/A")}
 
 MITIGATIONS IN PLACE:
-${mitigations}
+${sanitizeForPrompt(mitigations)}
 
 SIMILAR PAST HAZARDS FOR CALIBRATION:
-${(similarHazards || []).filter(h => h.residual_likelihood && h.residual_severity).map(h => `- ${h.hazard_code}: ${h.title} (Initial: L=${h.initial_likelihood} S=${h.initial_severity}, Residual: L=${h.residual_likelihood} S=${h.residual_severity}) — Mitigations: ${h.mitigations || "None"}`).join("\n") || "None found."}
+${(similarHazards || []).filter(h => h.residual_likelihood && h.residual_severity).map(h => `- ${h.hazard_code}: ${sanitizeForPrompt(h.title)} (Initial: L=${h.initial_likelihood} S=${h.initial_severity}, Residual: L=${h.residual_likelihood} S=${h.residual_severity}) — Mitigations: ${sanitizeForPrompt(h.mitigations || "None")}`).join("\n") || "None found."}
 
 Evaluate how much the mitigations reduce the initial risk. Consider:
 - Do the mitigations address the root causes?

@@ -14,6 +14,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/** Sanitize user-generated text before embedding in AI prompts */
+function sanitizeForPrompt(text: string): string {
+  if (!text) return '';
+  const truncated = text.slice(0, 2000);
+  return truncated
+    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?)/gi, '[filtered]')
+    .replace(/you\s+are\s+now/gi, '[filtered]')
+    .replace(/system\s*:\s*/gi, '[filtered]')
+    .replace(/<\/?system>/gi, '[filtered]');
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -26,8 +37,8 @@ Deno.serve(async (req) => {
 
     if (!anthropicKey) {
       return new Response(
-        JSON.stringify({ suggestion: null, error: "ANTHROPIC_API_KEY not configured" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -95,10 +106,10 @@ Deno.serve(async (req) => {
     const prompt = `You are an aviation safety report classifier for a Part 135 flight operation. Given the following safety report details, suggest the most appropriate category, severity level, flight phase, and a brief triage summary.
 
 REPORT DETAILS:
-- Title: ${title}
-- Description: ${description}
-- Location: ${location || "Not specified"}
-- Aircraft: ${tailNumber || "Not specified"}
+- Title: ${sanitizeForPrompt(title)}
+- Description: ${sanitizeForPrompt(description)}
+- Location: ${sanitizeForPrompt(location || "Not specified")}
+- Aircraft: ${sanitizeForPrompt(tailNumber || "Not specified")}
 
 ORGANIZATION FLEET: ${fleetSummary || "No fleet data"}
 

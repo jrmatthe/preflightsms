@@ -14,6 +14,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/** Sanitize user-generated text before embedding in AI prompts */
+function sanitizeForPrompt(text: string): string {
+  if (!text) return '';
+  const truncated = text.slice(0, 2000);
+  return truncated
+    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?)/gi, '[filtered]')
+    .replace(/you\s+are\s+now/gi, '[filtered]')
+    .replace(/system\s*:\s*/gi, '[filtered]')
+    .replace(/<\/?system>/gi, '[filtered]');
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -28,8 +39,8 @@ Deno.serve(async (req) => {
     if (!anthropicKey) {
       console.error("ai-investigation-assist: ANTHROPIC_API_KEY not configured");
       return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     console.log("ai-investigation-assist: API key found");
@@ -125,19 +136,19 @@ Deno.serve(async (req) => {
 
 HAZARD DETAILS:
 - Code: ${hazard.hazard_code}
-- Title: ${hazard.title}
-- Description: ${hazard.description || "N/A"}
+- Title: ${sanitizeForPrompt(hazard.title)}
+- Description: ${sanitizeForPrompt(hazard.description || "N/A")}
 - Category: ${hazard.category || "other"}
 - Source: ${hazard.source || "N/A"}
 - Current Status: ${hazard.status}
-- Existing Mitigations: ${hazard.mitigations || "None"}
+- Existing Mitigations: ${sanitizeForPrompt(hazard.mitigations || "None")}
 ${linkedReport ? `
 LINKED SAFETY REPORT:
-- Title: ${linkedReport.title}
-- Description: ${linkedReport.description || "N/A"}
+- Title: ${sanitizeForPrompt(linkedReport.title)}
+- Description: ${sanitizeForPrompt(linkedReport.description || "N/A")}
 - Category: ${linkedReport.category || "N/A"}
 - Severity: ${linkedReport.severity || "N/A"}
-- Location: ${linkedReport.location || "N/A"}
+- Location: ${sanitizeForPrompt(linkedReport.location || "N/A")}
 - Flight Phase: ${linkedReport.flight_phase || "N/A"}
 ` : ""}
 SIMILAR PAST HAZARDS:

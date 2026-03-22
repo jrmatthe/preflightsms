@@ -16,6 +16,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/** Sanitize user-generated text before embedding in AI prompts */
+function sanitizeForPrompt(text: string): string {
+  if (!text) return '';
+  const truncated = text.slice(0, 2000);
+  return truncated
+    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?)/gi, '[filtered]')
+    .replace(/you\s+are\s+now/gi, '[filtered]')
+    .replace(/system\s*:\s*/gi, '[filtered]')
+    .replace(/<\/?system>/gi, '[filtered]');
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -28,8 +39,8 @@ Deno.serve(async (req) => {
 
     if (!anthropicKey) {
       return new Response(
-        JSON.stringify({ result: null, error: "ANTHROPIC_API_KEY not configured" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -117,8 +128,8 @@ Deno.serve(async (req) => {
 
       prompt = `You are an aviation safety auditor for a Part 135 operation (${orgData?.name || "operator"}). Generate a comprehensive internal audit checklist template.
 
-AUDIT SCOPE: ${auditScope || "General SMS audit"}
-AUDIT CATEGORY: ${auditCategory || "general"}
+AUDIT SCOPE: ${sanitizeForPrompt(auditScope || "General SMS audit")}
+AUDIT CATEGORY: ${sanitizeForPrompt(auditCategory || "general")}
 
 EXISTING POLICIES:
 ${policySummary || "No policies found"}
@@ -165,9 +176,9 @@ Include 3-5 sections with 3-6 questions each. Response types can be: yes_no_na, 
       prompt = `You are a safety risk analyst for a Part 135 flight operation (${orgData?.name || "operator"}). Identify potential hazards for the following operational change.
 
 CHANGE REQUEST:
-- Title: ${mocTitle || "Untitled change"}
-- Type: ${changeType || "other"}
-- Description: ${mocDescription || "No description"}
+- Title: ${sanitizeForPrompt(mocTitle || "Untitled change")}
+- Type: ${sanitizeForPrompt(changeType || "other")}
+- Description: ${sanitizeForPrompt(mocDescription || "No description")}
 
 EXISTING HAZARDS IN REGISTER:
 ${hazardSummary || "No existing hazards"}
@@ -205,8 +216,8 @@ Respond ONLY with a JSON object:
       prompt = `You are a safety management system specialist for a Part 135 flight operation (${orgData?.name || "operator"}). Draft a safety policy document.
 
 POLICY TO DRAFT:
-- Title: ${policyTitle || "Untitled Policy"}
-- Category: ${policyCategory || "general"}
+- Title: ${sanitizeForPrompt(policyTitle || "Untitled Policy")}
+- Category: ${sanitizeForPrompt(policyCategory || "general")}
 
 EXISTING POLICIES:
 ${policySummary || "No existing policies"}
@@ -250,10 +261,10 @@ IMPORTANT: A safety report describes what HAPPENED (an event). A hazard describe
 - Report: "Hydraulic fluid leak found during preflight" → Hazard: "Aging hydraulic system reliability on fleet nose gear assemblies"
 
 SAFETY REPORT:
-- Title: ${reportTitle || "Untitled"}
-- Description: ${reportDescription || "No description"}
-- Category: ${reportCategory || "other"}
-- Severity: ${reportSeverity || "unknown"}
+- Title: ${sanitizeForPrompt(reportTitle || "Untitled")}
+- Description: ${sanitizeForPrompt(reportDescription || "No description")}
+- Category: ${sanitizeForPrompt(reportCategory || "other")}
+- Severity: ${sanitizeForPrompt(reportSeverity || "unknown")}
 
 EXISTING HAZARDS (avoid duplicates):
 ${hazardSummary || "None"}

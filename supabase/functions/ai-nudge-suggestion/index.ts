@@ -14,6 +14,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/** Sanitize user-generated text before embedding in AI prompts */
+function sanitizeForPrompt(text: string): string {
+  if (!text) return '';
+  const truncated = text.slice(0, 2000);
+  return truncated
+    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?)/gi, '[filtered]')
+    .replace(/you\s+are\s+now/gi, '[filtered]')
+    .replace(/system\s*:\s*/gi, '[filtered]')
+    .replace(/<\/?system>/gi, '[filtered]');
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -26,8 +37,8 @@ Deno.serve(async (req) => {
 
     if (!anthropicKey) {
       return new Response(
-        JSON.stringify({ suggestion: null, error: "ANTHROPIC_API_KEY not configured" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -148,9 +159,9 @@ that encourages the pilot to report something relevant. Be conversational, not f
 
 FLIGHT: ${flight.departure || "?"} → ${flight.destination || "?"}, ${flight.aircraft || "Unknown"} (${flight.tail_number || "N/A"})
 FRAT SCORE: ${frat ? `${frat.score} (${frat.risk_level})` : "No FRAT filed"} — Factors flagged: ${factorsList}
-WEATHER BRIEFING: ${frat?.wx_briefing || "None filed"}
-AIRCRAFT MEL: ${melItems.length > 0 ? melItems.join(", ") : "No MEL items"}
-RECENT REPORTS AT THESE AIRPORTS: ${reportSummaries}
+WEATHER BRIEFING: ${sanitizeForPrompt(frat?.wx_briefing || "None filed")}
+AIRCRAFT MEL: ${melItems.length > 0 ? sanitizeForPrompt(melItems.join(", ")) : "No MEL items"}
+RECENT REPORTS AT THESE AIRPORTS: ${sanitizeForPrompt(reportSummaries)}
 
 Respond with ONLY the suggestion text, no JSON, no quotes, no preamble.
 Examples of good suggestions:
