@@ -1,37 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabase";
 
 export default function AuthVerify() {
   const router = useRouter();
   const [error, setError] = useState(null);
+  const attempted = useRef(false);
 
   useEffect(() => {
-    const { token_hash, type } = router.query;
-    if (!token_hash || !type) return;
+    const { access_token, refresh_token } = router.query;
+    if (!access_token || !refresh_token) return;
+    if (attempted.current) return;
+    attempted.current = true;
 
-    async function verify() {
+    async function setSession() {
       try {
-        const { data, error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash,
-          type,
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
         });
 
-        if (verifyError) {
-          console.error("[verify] error:", verifyError);
-          setError(verifyError.message);
+        if (sessionError) {
+          console.error("[verify] setSession error:", sessionError);
+          setError(sessionError.message);
           return;
         }
 
-        // Session is now set — redirect to the main app
-        router.replace("/");
+        // Session is set — navigate to main app
+        window.location.href = "/";
       } catch (err) {
         console.error("[verify]", err);
         setError(err.message);
       }
     }
 
-    verify();
+    setSession();
   }, [router.query]);
 
   if (error) {

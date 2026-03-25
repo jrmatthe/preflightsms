@@ -2,9 +2,7 @@ import jwt from "jsonwebtoken";
 import { createClient } from "@supabase/supabase-js";
 
 // Auth callback — receives a platform token from the portal,
-// syncs the user session, and redirects to the app.
-// preflightSMS is the platform Supabase — users/orgs already exist here,
-// so we just need to verify the token and create a session.
+// generates a Supabase session, and passes it to the client via the verify page.
 export default async function handler(req, res) {
   const { token } = req.query;
 
@@ -27,23 +25,36 @@ export default async function handler(req, res) {
       process.env.SUPABASE_SERVICE_KEY
     );
 
-    // Generate a session directly using admin API
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
+    // Generate a magic link and extract the hashed token
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: "magiclink",
       email: payload.email,
     });
 
-    if (sessionError) {
-      console.error("[auth/callback] generateLink error:", sessionError);
+    if (linkError) {
+      console.error("[auth/callback] generateLink error:", linkError);
       return res.status(500).send("Failed to generate session");
     }
 
-    // Use the token_hash and redirect to a client page that will verify it
-    const hashed_token = sessionData.properties.hashed_token;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+    // Now verify the OTP server-side to get actual session tokens
+    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: linkData.properties.hashed_token,
+      type: "magiclink",
+    });
 
-    // Redirect to the verify page which will call verifyOtp on the client side
-    return res.redirect(302, `${appUrl}/auth/verify?token_hash=${hashed_token}&type=magiclink`);
+    if (verifyError) {
+      console.error("[auth/callback] verifyOtp error:", verifyError);
+      return res.status(500).send("Failed to verify session");
+    }
+
+    // Pass session tokens to client via the verify page
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+    const accessToken = verifyData.session.access_token;
+    const refreshToken = verifyData.session.refresh_token;
+
+    return res.redirect(302,
+      `${appUrl}/auth/verify?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`
+    );
   } catch (err) {
     console.error("[auth/callback]", err);
     if (err.name === "TokenExpiredError") {
