@@ -381,16 +381,42 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
       {isGated && <span style={{ fontSize: 9, opacity: 0.5, marginLeft: "auto", marginRight: 10 }}>{"\uD83D\uDD12"}</span>}
     </button>);
   };
+  const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
+  const productLinks = [
+    { id: "sms", label: "SMS", url: null },
+    { id: "crew", label: "CREW", url: process.env.NEXT_PUBLIC_CREW_URL || "http://localhost:3002" },
+    { id: "docs", label: "DOCS", url: process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:3003" },
+  ];
   return (<>
+    {/* Top bar — product switcher */}
+    <div className="nav-topbar" style={{
+      height: 56, padding: "0 32px",
+      background: "rgba(4,8,24,0.85)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+      borderBottom: "1px solid rgba(255,255,255,0.03)",
+      display: "flex", alignItems: "center", gap: 20,
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 200,
+    }}>
+      <a href={portalUrl} style={{ display: "flex", alignItems: "center", marginRight: 8 }}>
+        <img src="/pf360-logo.png" alt="Preflight 360" style={{ width: 140 }} />
+      </a>
+      <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.06)", marginRight: 4 }} />
+      <div style={{ display: "flex", gap: 1, background: "rgba(255,255,255,0.03)", borderRadius: 8, padding: 2 }}>
+        {productLinks.map(p => (
+          <a key={p.id} href={p.url || "#"} style={{ padding: "5px 16px", borderRadius: 6, fontSize: 11, fontWeight: 500, letterSpacing: "1px", textDecoration: "none", transition: "all 0.2s ease", background: !p.url ? "rgba(201,169,110,0.1)" : "transparent", color: !p.url ? GOLD : "rgba(255,255,255,0.25)", cursor: p.url ? "pointer" : "default" }}>{p.label}</a>
+        ))}
+      </div>
+      <div style={{ flex: 1 }} />
+      <span style={{ fontSize: 13, fontWeight: 300, color: "rgba(255,255,255,0.7)", letterSpacing: 0.2 }}>{profile?.full_name}</span>
+      <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.06)" }} />
+      <span style={{ fontSize: 12, fontWeight: 300, color: "rgba(255,255,255,0.2)", letterSpacing: 0.3 }}>{orgName}</span>
+      <a href={portalUrl} style={{ padding: "5px 14px", borderRadius: 6, fontSize: 11, fontWeight: 400, color: "rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.04)", textDecoration: "none", letterSpacing: 0.3 }}>Portal</a>
+    </div>
     {/* Desktop sidebar */}
     <aside className="nav-sidebar" style={{
-      position: "fixed", left: 0, top: 0, bottom: 0, width: 140, zIndex: 100,
-      background: NEAR_BLACK, borderRight: `1px solid ${BORDER}`,
-      display: "flex", flexDirection: "column", paddingTop: 12,
+      position: "fixed", left: 0, top: 56, bottom: 0, width: 140, zIndex: 100,
+      background: "rgba(5,5,8,0.95)", backdropFilter: "blur(24px)", borderRight: `1px solid ${BORDER}`,
+      display: "flex", flexDirection: "column", paddingTop: 8,
     }}>
-      <div style={{ marginBottom: 16, padding: "0 12px", display: "flex", justifyContent: "center" }}>
-        <img src={orgLogo || LOGO_URL} alt={orgName || "P"} style={{ width: 52, height: 52, objectFit: "contain", borderRadius: 50, border: `1px solid ${BORDER}` }} onError={e => { e.target.src = LOGO_URL; }} />
-      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
         {visibleSections.map(sec => sideTab(sec))}
       </div>
@@ -3688,7 +3714,7 @@ function SignupFlow({ onAuth }) {
   const slide = slides[step];
 
   return (
-    <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: NEAR_BLACK, paddingTop: 56 }}>
       <style>{`@media(max-width:768px){
 .signup-split{grid-template-columns:1fr !important;min-height:auto !important}
 .signup-left-panel{display:none !important}
@@ -6326,7 +6352,7 @@ export default function PVTAIRFrat() {
   );
   return (
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
-    <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: NEAR_BLACK, paddingTop: 56 }}>
       <NavBar currentView={cv} setCurrentView={setCv} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainings([]); setCompletions([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} activeFlow={activeFlow} showTour={showTour} tourState={tourState} tourFlows={tourFlows} tourOrder={tourOrder} onStartTour={handleStartTour} onDismissTour={handleDismissTour} activeTour={activeTour} />
       <div className="main-content" style={{ marginLeft: 140 }}>
         {/* Pending deletion banner — red when read-only countdown active */}
