@@ -38,20 +38,24 @@ const COMPANY_NAME = "PreflightSMS";
 const LOGO_URL = "/logo.png";
 
 const BLACK = "#000000";
-const NEAR_BLACK = "#0A0A0A";
-const DARK = "#111111";
-const CARD = "#161616";
-const BORDER = "#232323";
-const LIGHT_BORDER = "#2E2E2E";
+const NEAR_BLACK = "#050508";
+const DARK = "#0a0d14";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
+const LIGHT_BORDER = "rgba(255,255,255,0.06)";
 const WHITE = "#FFFFFF";
 const OFF_WHITE = "#D4D4D4";
-const MUTED = "#666666";
-const SUBTLE = "#444444";
+const MUTED = "rgba(255,255,255,0.35)";
+const SUBTLE = "rgba(255,255,255,0.2)";
 const GREEN = "#4ADE80";
 const YELLOW = "#FACC15";
 const AMBER = "#F59E0B";
 const RED = "#EF4444";
 const CYAN = "#22D3EE";
+const BLUE = "#3B82F6";
+const GOLD = "#C9A96E";
+const GOLD_DIM = "rgba(201,169,110,0.15)";
+const GOLD_BORDER = "rgba(201,169,110,0.25)";
 
 // Timeout wrapper for AI edge function calls (30s)
 function withAiTimeout(promise, ms = 30000) {
