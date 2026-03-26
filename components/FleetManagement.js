@@ -4,11 +4,12 @@ import { createMelAuditEntry, fetchMelAuditLog, createNotification } from "../li
 
 const normalizeAircraftKey = (name) => (name || "").toLowerCase().replace(/[-\s.]/g, "");
 
-const BLACK="#000000",NEAR_BLACK="#0A0A0A",CARD="#222222",BORDER="#2E2E2E",LIGHT_BORDER="#3A3A3A";
-const WHITE="#FFFFFF",OFF_WHITE="#E0E0E0",MUTED="#777777";
+const BLACK="#050508",NEAR_BLACK="#050508",CARD="#0e1118",BORDER="rgba(255,255,255,0.06)",LIGHT_BORDER="rgba(255,255,255,0.06)";
+const WHITE="#FFFFFF",OFF_WHITE="#E0E0E0",MUTED="rgba(255,255,255,0.35)";
+const GOLD = "#C9A96E";
 const GREEN="#4ADE80",AMBER="#F59E0B",RED="#EF4444",CYAN="#22D3EE";
-const card={background:CARD,borderRadius:10,border:`1px solid ${BORDER}`};
-const inp={width:"100%",padding:"8px 12px",background:NEAR_BLACK,border:`1px solid ${BORDER}`,borderRadius:6,color:WHITE,fontSize:12,boxSizing:"border-box"};
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
 const lbl={fontSize:9,color:MUTED,textTransform:"uppercase",letterSpacing:1,marginBottom:3,fontWeight:600};
 
 const emptyForm = {
@@ -91,7 +92,7 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, o
                   <span style={{fontSize:10,color:AMBER,fontWeight:600}}>Aircraft limit reached — upgrade to add more</span>
                   <button disabled style={{padding:"8px 20px",background:MUTED,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"not-allowed",opacity:0.5}}>+ Add Aircraft</button>
                 </div>
-              : <button data-onboarding="fleet-add-btn" onClick={startAdd} style={{padding:"8px 20px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Add Aircraft</button>
+              : <button data-onboarding="fleet-add-btn" onClick={startAdd} style={{padding:"8px 20px",background:"rgba(201,169,110,0.08)",color:GOLD,border:"1px solid rgba(201,169,110,0.3)",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Add Aircraft</button>
           )}
         </div>
       </div>
@@ -107,7 +108,7 @@ export default function FleetManagement({ aircraft, onAdd, onUpdate, onDelete, o
             </svg>
             <div style={{fontSize:14,fontWeight:600,color:WHITE,marginBottom:6}}>No aircraft registered</div>
             <div style={{fontSize:11,color:MUTED,lineHeight:1.6,maxWidth:340,margin:"0 auto",marginBottom:16}}>Add your fleet to enable FRAT submissions and flight following. Aircraft details are used across safety reports and risk assessments.</div>
-            {canManage && !atLimit && !editing && <button data-onboarding="fleet-add-btn" onClick={startAdd} style={{padding:"10px 24px",background:WHITE,color:BLACK,border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>Add Aircraft</button>}
+            {canManage && !atLimit && !editing && <button data-onboarding="fleet-add-btn" onClick={startAdd} style={{padding:"10px 24px",background:"rgba(201,169,110,0.08)",color:GOLD,border:"1px solid rgba(201,169,110,0.3)",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>Add Aircraft</button>}
           </div>:<div style={{fontSize:11,color:MUTED}}>No aircraft found</div>}</div>
           :filtered.map((a,ai)=>{
             const isSelected=selected?.id===a.id;

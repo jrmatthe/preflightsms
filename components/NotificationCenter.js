@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { isNotificationEnabled, CATEGORY_LABELS, CATEGORY_DESCRIPTIONS, CATEGORY_ORDER } from "../lib/notificationCategories";
 
-const DARK = "#111111";
-const CARD = "#161616";
-const BORDER = "#232323";
+const DARK = "#0a0d14";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
 const WHITE = "#FFFFFF";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const OFF_WHITE = "#D4D4D4";
 const RED = "#EF4444";
 const GREEN = "#4ADE80";

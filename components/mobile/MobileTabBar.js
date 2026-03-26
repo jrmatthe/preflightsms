@@ -1,7 +1,7 @@
-const BLACK = "#000000";
-const BORDER = "#232323";
+const BLACK = "#050508";
+const BORDER = "rgba(255,255,255,0.04)";
 const WHITE = "#FFFFFF";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const CYAN = "#22D3EE";
 const RED = "#EF4444";
 

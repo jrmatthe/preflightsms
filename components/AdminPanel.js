@@ -4,13 +4,14 @@ import { hasFeature } from "../lib/tiers";
 const FRATTemplateEditor = dynamic(() => import("./FRATTemplateEditor"), { ssr: false });
 const FleetManagement = dynamic(() => import("./FleetManagement"), { ssr: false });
 
-const CARD = "#161616", NEAR_BLACK = "#111111";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
-const BORDER = "#232323";
+const CARD = "#0e1118", NEAR_BLACK = "#0a0d14";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "rgba(255,255,255,0.35)", BLACK = "#050508";
+const GOLD = "#C9A96E";
+const BORDER = "rgba(255,255,255,0.04)";
 const GREEN = "#4ADE80", RED = "#EF4444", CYAN = "#22D3EE", YELLOW = "#FACC15", AMBER = "#F59E0B";
 
-const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
-const inp = { width: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, background: BLACK, color: OFF_WHITE, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
 
 const ROLES = [
   { id: "pilot", label: "Pilot", desc: "Submit FRATs, file flight plans, submit safety reports" },
@@ -200,7 +201,7 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
             {testing ? "Testing..." : "Test Connection"}
           </button>
           <button onClick={handleSave} disabled={saving}
-            style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1 }}>
+            style={{ padding: "8px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1 }}>
             {saving ? "Saving..." : "Save"}
           </button>
           {testResult && (
@@ -382,7 +383,7 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
             {testing ? "Testing..." : "Test Connection"}
           </button>
           <button onClick={handleSave} disabled={saving}
-            style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1 }}>
+            style={{ padding: "8px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1 }}>
             {saving ? "Saving..." : "Save"}
           </button>
           {testResult && (
@@ -622,7 +623,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
             Use the Stripe portal to update your payment method, change plans, view invoices, or cancel.
           </div>
           <button onClick={async () => { setPortalLoading(true); try { await onBillingPortal?.(); } finally { setPortalLoading(false); } }} disabled={portalLoading}
-            style={{ padding: "10px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: portalLoading ? "wait" : "pointer", opacity: portalLoading ? 0.6 : 1 }}>
+            style={{ padding: "10px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: portalLoading ? "wait" : "pointer", opacity: portalLoading ? 0.6 : 1 }}>
             {portalLoading ? "Opening..." : status === "past_due" ? "Update Payment Method" : "Manage Subscription"}
           </button>
         </div>
@@ -959,7 +960,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
     <div data-tour="tour-admin-invite" style={{ ...card, padding: "16px 20px", marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Add Team Members</div>
-        {!showForm && <button onClick={() => setShowForm(true)} style={{ padding: "6px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add User</button>}
+        {!showForm && <button onClick={() => setShowForm(true)} style={{ padding: "6px 14px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add User</button>}
       </div>
 
       {showForm && (
@@ -1004,7 +1005,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
           {success && <div style={{ fontSize: 11, color: GREEN, marginBottom: 8 }}>{success}</div>}
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={handleInvite} disabled={sending}
-              style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: sending ? "wait" : "pointer", opacity: sending ? 0.6 : 1 }}>
+              style={{ padding: "8px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: sending ? "wait" : "pointer", opacity: sending ? 0.6 : 1 }}>
               {sending ? "Adding..." : "Add User & Send Invite"}</button>
             <button onClick={() => { setShowForm(false); setError(""); setSuccess(""); setFullName(""); setEmail(""); setRole("pilot"); setSelectedPerms([]); }}
               style={{ padding: "8px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
@@ -1179,7 +1180,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>API Keys</div>
           {!showCreateKey && !createdKey && (
-            <button onClick={() => setShowCreateKey(true)} style={{ padding: "6px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Create API Key</button>
+            <button onClick={() => setShowCreateKey(true)} style={{ padding: "6px 14px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Create API Key</button>
           )}
         </div>
 
@@ -1212,7 +1213,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={handleCreateKey} disabled={creating || !keyName.trim()}
-                style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: creating ? "wait" : "pointer", opacity: creating || !keyName.trim() ? 0.6 : 1 }}>
+                style={{ padding: "8px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: creating ? "wait" : "pointer", opacity: creating || !keyName.trim() ? 0.6 : 1 }}>
                 {creating ? "Creating..." : "Create Key"}</button>
               <button onClick={() => { setShowCreateKey(false); setKeyName(""); setKeyExpiry(""); }}
                 style={{ padding: "8px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
@@ -1231,7 +1232,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
                 {copiedKey ? "Copied!" : "Copy"}</button>
             </div>
             <button onClick={dismissKeyModal}
-              style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Done</button>
+              style={{ padding: "8px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Done</button>
           </div>
         )}
 
@@ -1273,7 +1274,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>Webhooks</div>
           {!showCreateWh && !createdSecret && (
-            <button onClick={() => setShowCreateWh(true)} style={{ padding: "6px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Webhook</button>
+            <button onClick={() => setShowCreateWh(true)} style={{ padding: "6px 14px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Webhook</button>
           )}
         </div>
 
@@ -1305,7 +1306,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={handleCreateWebhook} disabled={creatingWh || !whUrl.trim() || whEvents.length === 0}
-                style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: creatingWh ? "wait" : "pointer", opacity: creatingWh || !whUrl.trim() || whEvents.length === 0 ? 0.6 : 1 }}>
+                style={{ padding: "8px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: creatingWh ? "wait" : "pointer", opacity: creatingWh || !whUrl.trim() || whEvents.length === 0 ? 0.6 : 1 }}>
                 {creatingWh ? "Creating..." : "Create Webhook"}</button>
               <button onClick={() => { setShowCreateWh(false); setWhUrl(""); setWhEvents([]); setWhDesc(""); }}
                 style={{ padding: "8px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 11, cursor: "pointer" }}>Cancel</button>
@@ -1324,7 +1325,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
                 {copiedSecret ? "Copied!" : "Copy"}</button>
             </div>
             <button onClick={dismissSecretModal}
-              style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Done</button>
+              style={{ padding: "8px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Done</button>
           </div>
         )}
 

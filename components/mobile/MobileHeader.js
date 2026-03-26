@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 
-const BLACK = "#000000";
-const BORDER = "#232323";
+const BLACK = "#050508";
+const BORDER = "rgba(255,255,255,0.04)";
 const WHITE = "#FFFFFF";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const OFF_WHITE = "#D4D4D4";
 const RED = "#EF4444";
-const CARD = "#161616";
+const CARD = "#0e1118";
 
 function getInitials(name) {
   if (!name) return "?";

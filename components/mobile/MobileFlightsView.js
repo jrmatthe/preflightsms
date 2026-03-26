@@ -1,13 +1,14 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 
-const BLACK = "#000000";
-const DARK = "#111111";
-const CARD = "#161616";
-const BORDER = "#232323";
-const LIGHT_BORDER = "#2E2E2E";
+const BLACK = "#050508";
+const DARK = "#0a0d14";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
+const LIGHT_BORDER = "rgba(255,255,255,0.06)";
 const WHITE = "#FFFFFF";
+const GOLD = "#C9A96E";
 const OFF_WHITE = "#D4D4D4";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const GREEN = "#4ADE80";
 const YELLOW = "#FACC15";
 const AMBER = "#F59E0B";
@@ -294,7 +295,7 @@ function PostFlightNudge({ flight, suggestion, onFileReport, onNothingToReport, 
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <button onClick={onFileReport} style={{
-          flex: 1, padding: "11px 0", background: WHITE, color: BLACK, border: "none",
+          flex: 1, padding: "11px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)",
           borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 44,
         }}>
           File Report

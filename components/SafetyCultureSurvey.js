@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
-const CARD = "#222222", NEAR_BLACK = "#0A0A0A", BLACK = "#000000";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777";
-const BORDER = "#2E2E2E";
+const CARD = "#0e1118", NEAR_BLACK = "#050508", BLACK = "#050508";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "rgba(255,255,255,0.35)";
+const GOLD = "#C9A96E";
+const BORDER = "rgba(255,255,255,0.06)";
 const GREEN = "#4ADE80", YELLOW = "#FACC15", AMBER = "#F59E0B", RED = "#EF4444", CYAN = "#22D3EE";
-const card = { background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` };
-const inp = { width: "100%", padding: "10px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 14, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
 const labelStyle = { display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 };
 
 const DIMENSIONS = {
@@ -216,7 +217,7 @@ function SurveyForm({ survey, onSubmit, onCancel }) {
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
         <button onClick={() => setCurrentDim(Math.max(0, currentDim - 1))} disabled={currentDim === 0}
           style={{ padding: "8px 20px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: currentDim === 0 ? "default" : "pointer",
-            background: "transparent", color: currentDim === 0 ? MUTED : OFF_WHITE, border: `1px solid ${currentDim === 0 ? BORDER : "#3A3A3A"}` }}>
+            background: "transparent", color: currentDim === 0 ? MUTED : OFF_WHITE, border: `1px solid ${currentDim === 0 ? BORDER : "rgba(255,255,255,0.06)"}` }}>
           Previous
         </button>
         {currentDim < dims.length - 1 ? (
@@ -411,7 +412,7 @@ function ResultsDashboard({ survey, results, allResults, responses, onExportPdf 
 
       {/* Export */}
       <button onClick={onExportPdf}
-        style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: WHITE, color: BLACK, border: "none" }}>
+        style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)" }}>
         Export PDF Report
       </button>
     </div>
@@ -625,7 +626,7 @@ export default function SafetyCultureSurvey({
         <div style={{ fontSize: 18, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Thank You!</div>
         <div style={{ fontSize: 12, color: MUTED, marginBottom: 24 }}>Your survey response has been submitted{selectedSurvey?.is_anonymous ? " anonymously" : ""}. Your feedback helps improve our safety culture.</div>
         <button onClick={() => { setView("list"); setSelectedSurvey(null); }}
-          style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", background: WHITE, color: BLACK, border: "none" }}>
+          style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)" }}>
           Back to Surveys
         </button>
       </div>
@@ -736,7 +737,7 @@ export default function SafetyCultureSurvey({
             Save as Draft
           </button>
           <button onClick={() => handleSave(false)} disabled={!editForm.title.trim()}
-            style={{ flex: 1, padding: "12px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: WHITE, color: BLACK, border: "none", opacity: !editForm.title.trim() ? 0.4 : 1 }}>
+            style={{ flex: 1, padding: "12px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", opacity: !editForm.title.trim() ? 0.4 : 1 }}>
             Save &amp; Launch
           </button>
         </div>
@@ -768,7 +769,7 @@ export default function SafetyCultureSurvey({
                 {s.is_anonymous && <div style={{ fontSize: 9, color: GREEN, marginTop: 4 }}>Anonymous survey</div>}
               </div>
               <button onClick={() => handleTakeSurvey(s)}
-                style={{ padding: "8px 20px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", background: WHITE, color: BLACK, border: "none", whiteSpace: "nowrap" }}>
+                style={{ padding: "8px 20px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", whiteSpace: "nowrap" }}>
                 Take Survey
               </button>
             </div>
@@ -797,7 +798,7 @@ export default function SafetyCultureSurvey({
             <div style={{ fontSize: 12, fontWeight: 700, color: CYAN, textTransform: "uppercase", letterSpacing: 0.5 }}>Survey Management</div>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={() => handleCreateNew("standard")}
-                style={{ padding: "8px 14px", borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: "pointer", background: WHITE, color: BLACK, border: "none" }}>
+                style={{ padding: "8px 14px", borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: "pointer", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)" }}>
                 + Standard Template
               </button>
               <button onClick={() => handleCreateNew("custom")}

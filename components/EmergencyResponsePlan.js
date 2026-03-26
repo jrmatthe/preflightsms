@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 
-const BLACK = "#000000", DARK = "#0A0A0A", NEAR_BLACK = "#111111", CARD = "#141414";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888";
-const BORDER = "#232323";
+const BLACK = "#050508", DARK = "#050508", NEAR_BLACK = "#0a0d14", CARD = "#0e1118";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "rgba(255,255,255,0.35)";
+const BORDER = "rgba(255,255,255,0.04)";
 const GREEN = "#4ADE80", RED = "#EF4444", YELLOW = "#FACC15", AMBER = "#F59E0B", CYAN = "#22D3EE";
 
-const inp = { width: "100%", maxWidth: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 14, background: NEAR_BLACK, color: OFF_WHITE, boxSizing: "border-box" };
-const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 const ERP_CATEGORIES = [
   { id: "accident", label: "Aircraft Accident/Incident", icon: "🛩️", color: RED },
@@ -1144,7 +1144,7 @@ function ErpComplianceView({ erpPlans, orgProfiles, onBack, onUpdatePlan, sessio
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr>
-                <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111", minWidth: 160 }}>User</th>
+                <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#0a0d14", minWidth: 160 }}>User</th>
                 {activePlans.map(p => {
                   const cat = getCat(p.category);
                   return (
@@ -1158,7 +1158,7 @@ function ErpComplianceView({ erpPlans, orgProfiles, onBack, onUpdatePlan, sessio
             <tbody>
               {users.map(user => (
                 <tr key={user.id}>
-                  <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111" }}>
+                  <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#0a0d14" }}>
                     {user.full_name}
                     <div style={{ fontSize: 10, color: MUTED }}>{user.role}</div>
                   </td>

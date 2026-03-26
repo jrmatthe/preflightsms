@@ -1,11 +1,12 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
-const BLACK = "#000000", NEAR_BLACK = "#0A0A0A", CARD = "#161616", BORDER = "#232323";
-const WHITE = "#FFFFFF", OFF_WHITE = "#D4D4D4", MUTED = "#666666";
+const BLACK = "#050508", NEAR_BLACK = "#050508", CARD = "#0e1118", BORDER = "rgba(255,255,255,0.04)";
+const WHITE = "#FFFFFF", OFF_WHITE = "#D4D4D4", MUTED = "rgba(255,255,255,0.35)";
+const GOLD = "#C9A96E";
 const GREEN = "#4ADE80", YELLOW = "#FACC15", AMBER = "#F59E0B", RED = "#EF4444", CYAN = "#22D3EE";
 
-const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
-const inp = { width: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 13, background: NEAR_BLACK, color: OFF_WHITE, boxSizing: "border-box", fontFamily: "inherit" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
 
 // ══════════════════════════════════════════════════════
 // TEMPLATE VARIABLES DEFINITION
@@ -357,7 +358,7 @@ function SignaturePad({ existingSignature, onSave }) {
     const pos = getPos(e);
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
-    ctx.strokeStyle = "#000000";
+    ctx.strokeStyle = "#050508";
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -1132,7 +1133,7 @@ export default function SmsManuals({ profile, session, smsManuals, onSaveManual,
             7 manuals will be created: Safety Policy, Safety Accountability, Emergency Response Plan, Safety Risk Management, Safety Assurance, Safety Promotion, and Organizational System Description.
           </div>
           <button data-onboarding="sms-init-btn" onClick={handleInit} disabled={initializing}
-            style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
+            style={{ padding: "14px 32px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
             {initializing ? "Setting up..." : "Set Up SMS Manuals"}
           </button>
         </div>

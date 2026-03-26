@@ -9,11 +9,11 @@ import MobileTrainingView from "./MobileTrainingView";
 import MobileComplianceView from "./MobileComplianceView";
 import { getQueueCount } from "../../lib/offlineQueue";
 
-const DARK = "#111111";
-const MUTED = "#666666";
+const DARK = "#0a0d14";
+const MUTED = "rgba(255,255,255,0.35)";
 const WHITE = "#FFFFFF";
 const OFF_WHITE = "#D4D4D4";
-const BORDER = "#232323";
+const BORDER = "rgba(255,255,255,0.04)";
 const GREEN = "#4ADE80";
 const AMBER = "#F59E0B";
 const CYAN = "#22D3EE";
@@ -40,7 +40,7 @@ function MobileAddAircraftPrompt({ onAdd }) {
     }
   };
 
-  const inp = { width: "100%", padding: "14px 16px", background: "#1A1A1A", border: `1px solid ${BORDER}`, borderRadius: 10, color: WHITE, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" };
+  const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: DARK, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>

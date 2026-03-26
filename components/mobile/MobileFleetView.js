@@ -2,18 +2,18 @@ import { useState, useMemo } from "react";
 import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpiration, CATEGORY_LIMITS, getDaysOpen } from "../../lib/melHelpers";
 import { createMelAuditEntry, fetchMelAuditLog, createNotification } from "../../lib/supabase";
 
-const BLACK = "#000000";
-const CARD = "#161616";
-const BORDER = "#232323";
+const BLACK = "#050508";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
 const WHITE = "#FFFFFF";
 const OFF_WHITE = "#D4D4D4";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const GREEN = "#4ADE80";
 const CYAN = "#22D3EE";
 const AMBER = "#F59E0B";
 const RED = "#EF4444";
 
-const cardStyle = { background: CARD, borderRadius: 12, border: `1px solid ${BORDER}` };
+const cardStyle = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 const inputStyle = {
   width: "100%", padding: "10px 12px", borderRadius: 8, fontSize: 14, color: WHITE,
   background: BLACK, border: `1px solid ${BORDER}`, fontFamily: "inherit", boxSizing: "border-box",

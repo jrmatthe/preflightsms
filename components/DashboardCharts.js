@@ -3,20 +3,20 @@ import { getActiveMelItems, getMelExpirationStatus, generateMelId, calculateExpi
 import { createMelAuditEntry, fetchMelAuditLog, createNotification } from "../lib/supabase";
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis } from "recharts";
 
-const CARD = "#222222";
-const BORDER = "#2E2E2E";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.06)";
 const WHITE = "#FFFFFF";
 const OFF_WHITE = "#E0E0E0";
-const MUTED = "#777777";
-const SUBTLE = "#555555";
-const BLACK = "#000000";
-const NEAR_BLACK = "#0A0A0A";
+const MUTED = "rgba(255,255,255,0.35)";
+const SUBTLE = "rgba(255,255,255,0.2)";
+const BLACK = "#050508";
+const NEAR_BLACK = "#050508";
 const GREEN = "#4ADE80";
 const YELLOW = "#FACC15";
 const AMBER = "#F59E0B";
 const RED = "#EF4444";
 const CYAN = "#22D3EE";
-const card = { background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 function getRiskColor(s) {
   if (s <= 15) return GREEN;
@@ -89,7 +89,7 @@ function StatCard({ label, value, sub, color, icon, onClick }) {
       cursor: "pointer",
       transition: "all 0.15s",
       ...(hovered ? {
-        borderColor: "#444444",
+        borderColor: "rgba(255,255,255,0.2)",
         background: "#282828",
       } : {}),
     } : {}),
@@ -1240,7 +1240,7 @@ function FleetMelSection({ aircraft, onUpdateMel, session, profile }) {
   const expiration = useMemo(() => calculateExpiration(form.category, today), [form.category]);
 
   const lbl = { fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3, fontWeight: 600 };
-  const inp = { width: "100%", padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" };
+  const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
 
   const handleSaveDefer = async () => {
     if (!form.description.trim() || saving) return;

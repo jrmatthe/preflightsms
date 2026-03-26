@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 
-const CARD = "#161616", NEAR_BLACK = "#111111";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
-const BORDER = "#232323", SUBTLE = "#555555";
+const CARD = "#0e1118", NEAR_BLACK = "#0a0d14";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "rgba(255,255,255,0.35)", BLACK = "#050508";
+const GOLD = "#C9A96E";
+const BORDER = "rgba(255,255,255,0.04)", SUBTLE = "rgba(255,255,255,0.2)";
 const GREEN = "#4ADE80", RED = "#EF4444", YELLOW = "#FACC15", CYAN = "#22D3EE", AMBER = "#F59E0B";
 
-const inp = { width: "100%", maxWidth: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 14, background: NEAR_BLACK, color: OFF_WHITE, boxSizing: "border-box" };
-const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 const btn = { padding: "8px 14px", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer", border: "none", fontFamily: "inherit" };
-const btnPrimary = { ...btn, background: WHITE, color: BLACK };
+const btnPrimary = { ...btn, background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)" };
 const btnGhost = { ...btn, background: "transparent", color: MUTED, border: `1px solid ${BORDER}` };
 
 
@@ -592,7 +593,7 @@ function CompletionForm({ onSubmit, onCancel, courses, orgProfiles, profile, isA
       </div>
       <button onClick={() => { if (form.courseId && form.userId && form.completedDate) onSubmit(form); }}
         disabled={!form.courseId || !form.userId || !form.completedDate}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.courseId || !form.userId || !form.completedDate) ? 0.4 : 1 }}>
+        style={{ width: "100%", padding: "14px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.courseId || !form.userId || !form.completedDate) ? 0.4 : 1 }}>
         Log Completion
       </button>
     </div>
@@ -1527,7 +1528,7 @@ export default function CbtModules({
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111", minWidth: 140 }}>User</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#0a0d14", minWidth: 140 }}>User</th>
                   {matrixTrainings.map(t => (
                     <th key={t.id} style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, fontSize: 10, maxWidth: 100, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={t.title}>
                       {t.title.length > 16 ? t.title.slice(0, 15) + "…" : t.title}
@@ -1538,7 +1539,7 @@ export default function CbtModules({
               <tbody>
                 {users.map(user => (
                   <tr key={user.id}>
-                    <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111" }}>{user.full_name}</td>
+                    <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#0a0d14" }}>{user.full_name}</td>
                     {matrixTrainings.map(t => (
                       <td key={t.id} style={{ textAlign: "center", padding: "6px", borderBottom: `1px solid ${BORDER}` }}>
                         {statusIcon(matrix[user.id]?.[t.id] || "not_completed")}
@@ -1631,7 +1632,7 @@ export default function CbtModules({
                 5 trainings and 5 courses with 18 lessons covering Safety Policy, Safety Risk Management, Safety Assurance, Emergency Response Planning, and Safety Promotion will be created.
               </div>
               <button data-onboarding="cbt-init-btn" onClick={handleInitTraining} disabled={initializing}
-                style={{ padding: "14px 32px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
+                style={{ padding: "14px 32px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: initializing ? "default" : "pointer", opacity: initializing ? 0.5 : 1 }}>
                 {initializing ? "Initializing..." : "Initialize Part 5 Training Program"}
               </button>
             </div>

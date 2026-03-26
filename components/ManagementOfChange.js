@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 
-const CARD = "#161616", NEAR_BLACK = "#111111";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
-const BORDER = "#232323";
+const CARD = "#0e1118", NEAR_BLACK = "#0a0d14";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "rgba(255,255,255,0.35)", BLACK = "#050508";
+const GOLD = "#C9A96E";
+const BORDER = "rgba(255,255,255,0.04)";
 const GREEN = "#4ADE80", RED = "#EF4444", YELLOW = "#FACC15", CYAN = "#22D3EE";
 
-const inp = { width: "100%", maxWidth: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 14, background: NEAR_BLACK, color: OFF_WHITE, boxSizing: "border-box" };
-const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 const labelStyle = { display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1 };
 
 const STATUSES = [
@@ -172,7 +173,7 @@ function MocForm({ onSubmit, onCancel, orgProfiles, session }) {
         </div>
       </div>
       <button onClick={() => { if (!form.title.trim() || !form.description.trim()) return; onSubmit(form); }} disabled={!form.title.trim() || !form.description.trim()}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.title.trim() || !form.description.trim()) ? 0.4 : 1 }}>
+        style={{ width: "100%", padding: "14px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: (!form.title.trim() || !form.description.trim()) ? 0.4 : 1 }}>
         Create Change Request
       </button>
     </div>
@@ -423,7 +424,7 @@ function MocDetail({ item, orgProfiles, onUpdate, onClose, onUploadFile, onFetch
 
       {/* Save button */}
       <button onClick={() => save()}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", marginBottom: 32 }}>
+        style={{ width: "100%", padding: "14px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", marginBottom: 32 }}>
         Save Changes
       </button>
     </div>
@@ -443,7 +444,7 @@ function KanbanCard({ item, orgProfiles, onClick, onDragStart }) {
       onDragStart={(e) => { e.dataTransfer.setData("text/plain", item.id); onDragStart?.(item.id); }}
       onClick={onClick}
       style={{ ...card, padding: "12px 14px", marginBottom: 6, cursor: "grab", transition: "border-color 0.15s" }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = "#444"}
+      onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"}
       onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}
     >
       <div style={{ fontSize: 12, fontWeight: 600, color: WHITE, marginBottom: 6, lineHeight: 1.3 }}>{item.title}</div>
@@ -568,7 +569,7 @@ export default function ManagementOfChange({
             </button>
           </div>
           <button onClick={() => setView("form")}
-            style={{ padding: "8px 16px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", background: WHITE, color: BLACK, border: "none" }}>
+            style={{ padding: "8px 16px", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)" }}>
             + New Change
           </button>
         </div>
@@ -680,7 +681,7 @@ export default function ManagementOfChange({
             Management of Change helps you evaluate the safety impact of operational changes before they happen. Track new routes, fleet changes, procedure updates, and more through structured hazard analysis.
           </div>
           <button onClick={() => setView("form")}
-            style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: WHITE, color: BLACK, border: "none" }}>
+            style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)" }}>
             Start a Change Request
           </button>
         </div>

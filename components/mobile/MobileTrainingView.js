@@ -1,20 +1,21 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 
-const BLACK = "#000000";
-const DARK = "#111111";
-const CARD = "#161616";
-const BORDER = "#232323";
-const LIGHT_BORDER = "#2E2E2E";
+const BLACK = "#050508";
+const DARK = "#0a0d14";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
+const LIGHT_BORDER = "rgba(255,255,255,0.06)";
 const WHITE = "#FFFFFF";
+const GOLD = "#C9A96E";
 const OFF_WHITE = "#D4D4D4";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const GREEN = "#4ADE80";
 const YELLOW = "#FACC15";
 const AMBER = "#F59E0B";
 const RED = "#EF4444";
 const CYAN = "#22D3EE";
 
-const cardStyle = { background: CARD, borderRadius: 12, border: `1px solid ${BORDER}` };
+const cardStyle = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 const CATEGORIES = [
   { id: "sms", label: "SMS" }, { id: "initial", label: "Initial" }, { id: "recurrent", label: "Recurrent" },
@@ -368,14 +369,14 @@ function LessonContentView({ lesson, course, progress, onComplete, onBack, onSta
           ) : hasQuiz ? (
             <button onClick={onStartQuiz} style={{
               width: "100%", padding: "16px 0", borderRadius: 12, fontSize: 16, fontWeight: 600,
-              background: WHITE, color: BLACK, border: "none", cursor: "pointer", fontFamily: "inherit",
+              background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", cursor: "pointer", fontFamily: "inherit",
             }}>
               Take Quiz ({(lesson.quiz_questions || []).length} question{(lesson.quiz_questions || []).length !== 1 ? "s" : ""})
             </button>
           ) : (
             <button onClick={handleMarkComplete} style={{
               width: "100%", padding: "16px 0", borderRadius: 12, fontSize: 16, fontWeight: 600,
-              background: WHITE, color: BLACK, border: "none", cursor: "pointer", fontFamily: "inherit",
+              background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", cursor: "pointer", fontFamily: "inherit",
             }}>
               Mark as Complete
             </button>
@@ -519,7 +520,7 @@ function QuizView({ lesson, course, onComplete, onBack }) {
               </button>
               <button onClick={handleRetake} style={{
                 flex: 1, padding: "16px 0", borderRadius: 12, fontSize: 15, fontWeight: 600,
-                background: WHITE, color: BLACK, border: "none", cursor: "pointer", fontFamily: "inherit",
+                background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", cursor: "pointer", fontFamily: "inherit",
               }}>
                 Retake Quiz
               </button>
@@ -620,7 +621,7 @@ function QuizView({ lesson, course, onComplete, onBack }) {
         {showFeedback && (
           <button onClick={handleNext} style={{
             width: "100%", padding: "16px 0", borderRadius: 12, fontSize: 16, fontWeight: 600,
-            background: WHITE, color: BLACK, border: "none", cursor: "pointer", fontFamily: "inherit",
+            background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", cursor: "pointer", fontFamily: "inherit",
           }}>
             {currentQ < total - 1 ? "Next Question" : "See Results"}
           </button>

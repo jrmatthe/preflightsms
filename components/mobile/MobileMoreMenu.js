@@ -9,13 +9,13 @@ import MobileNotificationsView from "./MobileNotificationsView";
 import MobileProfileView from "./MobileProfileView";
 import MobileTrainingView from "./MobileTrainingView";
 
-const BLACK = "#000000";
-const DARK = "#111111";
-const CARD = "#161616";
-const BORDER = "#232323";
+const BLACK = "#050508";
+const DARK = "#0a0d14";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
 const WHITE = "#FFFFFF";
 const OFF_WHITE = "#D4D4D4";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const RED = "#EF4444";
 const CYAN = "#22D3EE";
 

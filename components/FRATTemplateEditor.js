@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 
-const BLACK = "#000000", NEAR_BLACK = "#0A0A0A", CARD = "#161616", BORDER = "#232323", LIGHT_BORDER = "#2E2E2E";
-const WHITE = "#FFFFFF", OFF_WHITE = "#D4D4D4", MUTED = "#666666", SUBTLE = "#444444";
+const BLACK = "#050508", NEAR_BLACK = "#050508", CARD = "#0e1118", BORDER = "rgba(255,255,255,0.04)", LIGHT_BORDER = "rgba(255,255,255,0.06)";
+const WHITE = "#FFFFFF", OFF_WHITE = "#D4D4D4", MUTED = "rgba(255,255,255,0.35)", SUBTLE = "rgba(255,255,255,0.2)";
+const GOLD = "#C9A96E";
 const GREEN = "#4ADE80", YELLOW = "#FACC15", AMBER = "#F59E0B", RED = "#EF4444", CYAN = "#22D3EE";
 
-const inp = { width: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 13, background: BLACK, color: OFF_WHITE, boxSizing: "border-box" };
-const card = { background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 const sectionLabel = { fontSize: 11, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 };
-const btnPrimary = { padding: "10px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 };
+const btnPrimary = { padding: "10px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 };
 const btnSecondary = { padding: "8px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" };
 const colorMap = { green: GREEN, yellow: YELLOW, amber: AMBER, red: RED };
 

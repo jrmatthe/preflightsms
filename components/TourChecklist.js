@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-const BORDER = "#2E2E2E";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777";
+const BORDER = "rgba(255,255,255,0.06)";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "rgba(255,255,255,0.35)";
 const GREEN = "#4ADE80", CYAN = "#22D3EE";
 
 export default function TourChecklist({ tourState, tourFlows, tourOrder, onStartFlow, onDismissTour }) {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777";
-const GREEN = "#4ADE80", CARD = "#222222", BORDER = "#2E2E2E";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "rgba(255,255,255,0.35)";
+const GREEN = "#4ADE80", CARD = "#0e1118", BORDER = "rgba(255,255,255,0.06)";
 
 export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, onComplete, onSkip, noConfetti }) {
   const [targetRect, setTargetRect] = useState(null);
@@ -271,7 +271,7 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
               style={{
                 padding: "7px 20px",
                 background: continueEnabled ? WHITE : "rgba(255,255,255,0.1)",
-                color: continueEnabled ? "#000000" : MUTED,
+                color: continueEnabled ? "#050508" : MUTED,
                 border: "none",
                 borderRadius: 6,
                 fontWeight: 700,
@@ -296,7 +296,7 @@ export default function OnboardingFlow({ flow, currentStep, onAdvance, onBack, o
               style={{
                 padding: "8px 20px",
                 background: GREEN,
-                color: "#000000",
+                color: "#050508",
                 border: "none",
                 borderRadius: 6,
                 fontWeight: 700,

@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect } from "react";
 import SmsManuals from "./SmsManuals";
 
-const CARD = "#161616", NEAR_BLACK = "#111111";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
-const BORDER = "#232323";
+const CARD = "#0e1118", NEAR_BLACK = "#0a0d14";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "rgba(255,255,255,0.35)", BLACK = "#050508";
+const GOLD = "#C9A96E";
+const BORDER = "rgba(255,255,255,0.04)";
 const GREEN = "#4ADE80", RED = "#EF4444", YELLOW = "#FACC15", CYAN = "#22D3EE";
 
-const inp = { width: "100%", maxWidth: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 14, background: NEAR_BLACK, color: OFF_WHITE, boxSizing: "border-box" };
-const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 const POLICY_CATEGORIES = [
   { id: "safety_policy", label: "Safety Policy" },
@@ -165,7 +166,7 @@ function PolicyForm({ onSubmit, onCancel, onAiDraftPolicy, editPolicy }) {
         </div>
       )}
       <button onClick={() => { if (form.title.trim()) onSubmit({ ...form, file: replaceFile ? file : null, part5Tags: part5Tags.length > 0 ? part5Tags : null, _isEdit: isEdit, _id: editPolicy?.id, _versionChanged: versionChanged }); }} disabled={!form.title.trim()}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1 }}>
+        style={{ width: "100%", padding: "14px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1 }}>
         {isEdit ? "Save Changes" : "Add Document"}
       </button>
     </div>
@@ -311,7 +312,7 @@ export default function PolicyTraining({
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111", minWidth: 140 }}>User</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#0a0d14", minWidth: 140 }}>User</th>
                   {tags.map(t => (
                     <th key={t.id} style={{ textAlign: "center", padding: "8px 6px", color: MUTED, fontWeight: 600, borderBottom: `1px solid ${BORDER}`, fontSize: 10, minWidth: 80 }} title={`${t.label} (${t.cfr})`}>
                       {t.label}
@@ -322,7 +323,7 @@ export default function PolicyTraining({
               <tbody>
                 {users.map(user => (
                   <tr key={user.id}>
-                    <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#111" }}>{user.full_name}</td>
+                    <td style={{ padding: "6px 10px", color: WHITE, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, position: "sticky", left: 0, background: "#0a0d14" }}>{user.full_name}</td>
                     {tags.map(t => (
                       <td key={t.id} style={{ textAlign: "center", padding: "6px", borderBottom: `1px solid ${BORDER}` }}>
                         {ackDot(matrix[user.id]?.[t.id] || "not_acknowledged")}
@@ -367,7 +368,7 @@ export default function PolicyTraining({
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           {isAdmin && (
-            <button data-onboarding="policy-add-doc" onClick={() => setView("new_policy")} style={{ padding: "8px 14px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Document</button>
+            <button data-onboarding="policy-add-doc" onClick={() => setView("new_policy")} style={{ padding: "8px 14px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Add Document</button>
           )}
         </div>
       </div>
@@ -446,7 +447,7 @@ export default function PolicyTraining({
                       {!acked && (
                         <button onClick={() => onAcknowledgePolicy(p.id)}
                           style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                            background: WHITE, color: BLACK, border: "none" }}>
+                            background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)" }}>
                           I have reviewed this document — Acknowledge
                         </button>
                       )}
@@ -520,7 +521,7 @@ export default function PolicyTraining({
                     {p.effective_date && ` \u00b7 Effective: ${p.effective_date}`}
                     {p.review_date && ` \u00b7 Review: ${p.review_date}`}
                   </div>
-                  {p.description && <div style={{ color: "#666", fontSize: 11, marginTop: 2 }}>{p.description}</div>}
+                  {p.description && <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>{p.description}</div>}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {!acked && (
@@ -556,7 +557,7 @@ export default function PolicyTraining({
                   {!acked && (
                     <button onClick={() => onAcknowledgePolicy(p.id)}
                       style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                        background: WHITE, color: BLACK, border: "none" }}>
+                        background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)" }}>
                       I have reviewed this document — Acknowledge
                     </button>
                   )}

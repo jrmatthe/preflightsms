@@ -2,14 +2,15 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { getActiveMelItems, getMelExpirationStatus } from "../../lib/melHelpers";
 import { analyzeWeather, getCeiling, parseCruiseAlt, parseETE, formatETE } from "../../lib/analyzeWeather";
 
-const BLACK = "#000000";
-const DARK = "#111111";
-const CARD = "#161616";
-const BORDER = "#232323";
-const LIGHT_BORDER = "#2E2E2E";
+const BLACK = "#050508";
+const DARK = "#0a0d14";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
+const LIGHT_BORDER = "rgba(255,255,255,0.06)";
 const WHITE = "#FFFFFF";
+const GOLD = "#C9A96E";
 const OFF_WHITE = "#D4D4D4";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const GREEN = "#4ADE80";
 const YELLOW = "#FACC15";
 const AMBER = "#F59E0B";
@@ -1111,7 +1112,7 @@ export default function MobileFRATWizard({
         <svg width="48" height="48" viewBox="0 0 24 24" fill={MUTED} stroke="none" style={{ opacity: 0.5, marginBottom: 16 }}><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0011.5 2 1.5 1.5 0 0010 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
         <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>No Aircraft Registered</div>
         <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 20 }}>Add your fleet in the Admin panel under Fleet Management before submitting a FRAT.</div>
-        <button onClick={onCancel} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Go Back</button>
+        <button onClick={onCancel} style={{ padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Go Back</button>
       </div>
     );
   }

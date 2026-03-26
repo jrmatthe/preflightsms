@@ -1,19 +1,19 @@
 import { useState, useMemo } from "react";
 import MobileBottomSheet from "./MobileBottomSheet";
 
-const BLACK = "#000000";
-const CARD = "#161616";
-const BORDER = "#232323";
+const BLACK = "#050508";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
 const WHITE = "#FFFFFF";
 const OFF_WHITE = "#D4D4D4";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const GREEN = "#4ADE80";
 const YELLOW = "#FACC15";
 const AMBER = "#F59E0B";
 const RED = "#EF4444";
 const CYAN = "#22D3EE";
 
-const cardStyle = { background: CARD, borderRadius: 12, border: `1px solid ${BORDER}` };
+const cardStyle = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 const PRIORITY_COLORS = { low: GREEN, medium: YELLOW, high: "#F97316", critical: RED };
 const STATUS_COLORS = { open: CYAN, in_progress: YELLOW, completed: GREEN, overdue: RED, cancelled: MUTED };
@@ -183,8 +183,8 @@ function ActionCard({ action, hazards, onUpdateAction, orgProfiles }) {
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                 <button onClick={(e) => { e.stopPropagation(); setShowSheet(true); }} style={{
                   flex: 1, padding: "14px 0", borderRadius: 10,
-                  background: WHITE, color: BLACK, fontSize: 15, fontWeight: 600,
-                  border: "none", cursor: "pointer", fontFamily: "inherit", minHeight: 48,
+                  background: "rgba(201,169,110,0.08)", color: "#C9A96E", fontSize: 15, fontWeight: 600,
+                  border: "1px solid rgba(201,169,110,0.3)", cursor: "pointer", fontFamily: "inherit", minHeight: 48,
                 }}>
                   Update Status
                 </button>

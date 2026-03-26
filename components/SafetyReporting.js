@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { hasFeature } from "../lib/tiers";
 
-const BLACK = "#000000", DARK = "#0A0A0A", NEAR_BLACK = "#111111", CARD = "#141414";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", SUBTLE = "#555555";
-const BORDER = "#232323", LIGHT_BORDER = "#333333";
+const BLACK = "#050508", DARK = "#050508", NEAR_BLACK = "#0a0d14", CARD = "#0e1118";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "rgba(255,255,255,0.35)", SUBTLE = "rgba(255,255,255,0.2)";
+const GOLD = "#C9A96E";
+const BORDER = "rgba(255,255,255,0.04)", LIGHT_BORDER = "rgba(255,255,255,0.06)";
 const GREEN = "#4ADE80", RED = "#EF4444", YELLOW = "#FACC15", CYAN = "#22D3EE";
 
-const inp = { width: "100%", maxWidth: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 14, background: NEAR_BLACK, color: OFF_WHITE, boxSizing: "border-box" };
-const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 const REPORT_TYPES = [
   { id: "hazard", label: "Hazard", color: YELLOW, desc: "A condition that could lead to an unsafe event" },
@@ -255,7 +256,7 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
       </div>
 
       <button data-onboarding="sr-submit-btn" onClick={handleSubmit} disabled={!form.title.trim() || !form.description.trim() || submitting}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: submitting ? "wait" : "pointer", opacity: (!form.title.trim() || !form.description.trim() || submitting) ? 0.4 : 1 }}>
+        style={{ width: "100%", padding: "14px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: submitting ? "wait" : "pointer", opacity: (!form.title.trim() || !form.description.trim() || submitting) ? 0.4 : 1 }}>
         {submitting ? "Submitting..." : "Submit Report"}
       </button>
     </div>
@@ -421,7 +422,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
           <div style={{ fontSize: 11, color: MUTED }}>14 CFR §5.71 — Safety Assurance: Internal reporting of hazards and incidents</div>
         </div>
         <button data-onboarding="sr-new-btn" onClick={() => setView("new")}
-          style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+          style={{ padding: "8px 16px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
           + New Report
         </button>
       </div>
@@ -519,7 +520,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
             Filing reports helps your organization identify and address hazards before they become incidents. Every report strengthens your safety culture.
           </div>
           <button onClick={() => setView("new")}
-            style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            style={{ padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
             File Your First Report
           </button>
         </div>

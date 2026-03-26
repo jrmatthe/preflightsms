@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
 
-const BLACK = "#000000";
-const CARD = "#161616";
-const BORDER = "#232323";
+const BLACK = "#050508";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
 const WHITE = "#FFFFFF";
 const OFF_WHITE = "#D4D4D4";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const GREEN = "#4ADE80";
 const YELLOW = "#FACC15";
 const AMBER = "#F59E0B";
 const RED = "#EF4444";
 const CYAN = "#22D3EE";
 
-const cardStyle = { background: CARD, borderRadius: 12, border: `1px solid ${BORDER}` };
+const cardStyle = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 const ERP_CATEGORIES = {
   accident: { label: "Aircraft Accident/Incident", color: RED, icon: "\u2708\uFE0F" },
@@ -104,8 +104,8 @@ function PlanDetail({ plan, onLoadChecklist, onLoadCallTree, onBack, onAcknowled
                 setAcking(false);
               }}
               style={{
-                width: "100%", padding: "12px 16px", borderRadius: 8, border: "none",
-                background: WHITE, color: BLACK, fontSize: 15, fontWeight: 600,
+                width: "100%", padding: "12px 16px", borderRadius: 8, border: "1px solid rgba(201,169,110,0.3)",
+                background: "rgba(201,169,110,0.08)", color: "#C9A96E", fontSize: 15, fontWeight: 600,
                 cursor: acking ? "not-allowed" : "pointer", opacity: acking ? 0.5 : 1,
               }}
             >{acking ? "Acknowledging..." : "Acknowledge"}</button>

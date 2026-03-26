@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { hasFeature } from "../lib/tiers";
 
-const BLACK = "#000000", DARK = "#0A0A0A", NEAR_BLACK = "#111111", CARD = "#141414";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888";
-const BORDER = "#232323";
+const BLACK = "#050508", DARK = "#050508", NEAR_BLACK = "#0a0d14", CARD = "#0e1118";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "rgba(255,255,255,0.35)";
+const GOLD = "#C9A96E";
+const BORDER = "rgba(255,255,255,0.04)";
 const GREEN = "#4ADE80", RED = "#EF4444", YELLOW = "#FACC15", CYAN = "#22D3EE";
 
-const inp = { width: "100%", maxWidth: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 14, background: NEAR_BLACK, color: OFF_WHITE, boxSizing: "border-box" };
-const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 const LIKELIHOOD_LABELS = ["", "Improbable", "Remote", "Occasional", "Probable", "Frequent"];
 const SEVERITY_LABELS = ["", "Negligible", "Minor", "Major", "Hazardous", "Catastrophic"];
@@ -383,7 +384,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                   closeModalAndUpdate(hazard.id, { initial_likelihood: initialL, initial_severity: initialS, status: "assessed" });
                   setAiRiskResult(null);
                 }} disabled={!initialL || !initialS}
-                  style={{ padding: "8px 18px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: (!initialL || !initialS) ? "not-allowed" : "pointer", opacity: (!initialL || !initialS) ? 0.4 : 1, fontFamily: "inherit" }}>
+                  style={{ padding: "8px 18px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: (!initialL || !initialS) ? "not-allowed" : "pointer", opacity: (!initialL || !initialS) ? 0.4 : 1, fontFamily: "inherit" }}>
                   Complete Assessment
                 </button>
               </div>
@@ -739,7 +740,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                   closeModalAndUpdate(hazard.id, { residual_likelihood: residualL, residual_severity: residualS, status: "mitigated" });
                   setAiResidualResult(null);
                 }} disabled={!residualL || !residualS}
-                  style={{ padding: "8px 18px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: (!residualL || !residualS) ? "not-allowed" : "pointer", opacity: (!residualL || !residualS) ? 0.4 : 1, fontFamily: "inherit" }}>
+                  style={{ padding: "8px 18px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: (!residualL || !residualS) ? "not-allowed" : "pointer", opacity: (!residualL || !residualS) ? 0.4 : 1, fontFamily: "inherit" }}>
                   Complete Mitigation Review
                 </button>
               </div>
@@ -1280,7 +1281,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
       </div>
 
       <button onClick={handleSubmit} disabled={!form.title.trim() || !form.description.trim() || submitting}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: submitting ? "wait" : "pointer", opacity: (!form.title.trim() || !form.description.trim() || submitting) ? 0.4 : 1 }}>
+        style={{ width: "100%", padding: "14px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: submitting ? "wait" : "pointer", opacity: (!form.title.trim() || !form.description.trim() || submitting) ? 0.4 : 1 }}>
         {submitting ? "Submitting..." : "Register Investigation"}
       </button>
     </div>
@@ -1431,7 +1432,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
         </div>
         {canManage && (
           <button onClick={() => setShowForm(true)}
-            style={{ padding: "8px 18px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            style={{ padding: "8px 18px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
             + New Investigation
           </button>
         )}

@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-const DARK = "#0A0A0A";
-const CARD = "#222222";
-const BORDER = "#2E2E2E";
+const DARK = "#050508";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.06)";
 const WHITE = "#FFFFFF";
 const OFF_WHITE = "#D4D4D4";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const GREEN = "#4ADE80";
 const YELLOW = "#FACC15";
 const AMBER = "#F59E0B";

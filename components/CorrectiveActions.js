@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 
-const CARD = "#161616", NEAR_BLACK = "#111111";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "#888888", BLACK = "#000000";
-const BORDER = "#232323";
+const CARD = "#0e1118", NEAR_BLACK = "#0a0d14";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "rgba(255,255,255,0.35)", BLACK = "#050508";
+const GOLD = "#C9A96E";
+const BORDER = "rgba(255,255,255,0.04)";
 const GREEN = "#4ADE80", RED = "#EF4444", YELLOW = "#FACC15", CYAN = "#22D3EE";
 
-const inp = { width: "100%", maxWidth: "100%", padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 14, background: NEAR_BLACK, color: OFF_WHITE, boxSizing: "border-box" };
-const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8 };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 const PRIORITIES = [
   { id: "low", label: "Low", color: GREEN },
@@ -89,7 +90,7 @@ function ActionForm({ onSubmit, onCancel, existingCount, fromInvestigation, orgP
         </div>
       </div>
       <button onClick={handleSubmit} disabled={!form.title.trim()}
-        style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1 }}>
+        style={{ width: "100%", padding: "14px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", opacity: !form.title.trim() ? 0.4 : 1 }}>
         Create Action
       </button>
     </div>
@@ -115,7 +116,7 @@ function ActionCard({ a, onUpdateAction, linkedInvestigation, orgProfiles }) {
             {a.assigned_to_name && ` · Assigned: ${a.assigned_to_name}`}
             {a.due_date && ` · Due: ${a.due_date}`}
           </div>
-          {a.description && <div style={{ color: "#666", fontSize: 11, marginTop: 4 }}>{a.description}</div>}
+          {a.description && <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 4 }}>{a.description}</div>}
         </div>
         <span style={{ color: MUTED, fontSize: 14, flexShrink: 0 }}>{expanded ? "\u25B2" : "\u25BC"}</span>
       </div>
@@ -241,7 +242,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
           <div style={{ fontSize: 18, fontWeight: 700, color: WHITE }}>Corrective Actions</div>
           <div style={{ fontSize: 11, color: MUTED }}>§5.73 — Track and verify corrective actions to completion</div>
         </div>
-        <button data-onboarding="ca-new-btn" onClick={() => setView("new")} style={{ padding: "8px 16px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ New Action</button>
+        <button data-onboarding="ca-new-btn" onClick={() => setView("new")} style={{ padding: "8px 16px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ New Action</button>
       </div>
 
       <div data-onboarding="ca-stats" data-tour="tour-actions-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }} className="stat-grid">
@@ -289,7 +290,7 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
             Actions are created from investigation findings to track and resolve safety issues. Each action is assigned, tracked, and verified to ensure hazards are properly addressed.
           </div>
           <button onClick={() => setView("new")}
-            style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            style={{ padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
             Create Your First Action
           </button>
         </div>

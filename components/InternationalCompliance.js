@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 
-const DARK = "#0A0A0A", NEAR_BLACK = "#111111", CARD_BG = "#222222";
-const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "#777777";
-const BORDER = "#2E2E2E";
+const DARK = "#050508", NEAR_BLACK = "#0a0d14", CARD_BG = "#0e1118";
+const WHITE = "#FFFFFF", OFF_WHITE = "#E0E0E0", MUTED = "rgba(255,255,255,0.35)";
+const BORDER = "rgba(255,255,255,0.06)";
 const GREEN = "#4ADE80", RED = "#EF4444", YELLOW = "#FACC15", AMBER = "#F59E0B", CYAN = "#22D3EE";
 
-const card = { background: CARD_BG, borderRadius: 10, border: `1px solid ${BORDER}` };
-const inp = { width: "100%", padding: "8px 12px", background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 6, color: WHITE, fontSize: 12, boxSizing: "border-box" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
 const btnStyle = (bg, color) => ({ padding: "8px 16px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: bg, color });
 const badge = (bg, color) => ({ display: "inline-block", padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 700, background: bg, color, letterSpacing: 0.3 });
 

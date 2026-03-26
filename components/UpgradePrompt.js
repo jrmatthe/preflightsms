@@ -1,8 +1,9 @@
 import { useState } from "react";
 
-const CARD = "#161616", NEAR_BLACK = "#0A0A0A", DARK = "#111111";
-const WHITE = "#FFFFFF", OFF_WHITE = "#D4D4D4", MUTED = "#666666", BLACK = "#000000";
-const BORDER = "#232323";
+const CARD = "#0e1118", NEAR_BLACK = "#050508", DARK = "#0a0d14";
+const WHITE = "#FFFFFF", OFF_WHITE = "#D4D4D4", MUTED = "rgba(255,255,255,0.35)", BLACK = "#050508";
+const GOLD = "#C9A96E";
+const BORDER = "rgba(255,255,255,0.04)";
 const GREEN = "#4ADE80", CYAN = "#22D3EE", YELLOW = "#FACC15", AMBER = "#F59E0B";
 
 const PLAN_COMPARISON = [
@@ -41,7 +42,7 @@ export default function UpgradePrompt({ feature, message, onNavigateToSubscripti
           </div>
 
           <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 12 }}>
-            <button onClick={onNavigateToSubscription} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>See Plan Options</button>
+            <button onClick={onNavigateToSubscription} style={{ padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>See Plan Options</button>
             <button onClick={onDismiss} style={{ padding: "10px 24px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Maybe Later</button>
           </div>
 

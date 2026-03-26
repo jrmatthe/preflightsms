@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-const BORDER = "#232323";
+const BORDER = "rgba(255,255,255,0.04)";
 
 export default function MobileBottomSheet({ onClose, children, zIndex = 2000, maxHeight }) {
   const sheetRef = useRef(null);
@@ -36,7 +36,7 @@ export default function MobileBottomSheet({ onClose, children, zIndex = 2000, ma
       `}</style>
       <div onClick={onClose} aria-hidden="true" style={{ flex: 1, background: "rgba(0,0,0,0.6)", animation: "_bsBackdropIn 0.2s ease-out" }} />
       <div ref={sheetRef} role="dialog" style={{
-        background: "#161616", borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0",
+        background: "#0e1118", borderTop: `1px solid ${BORDER}`, borderRadius: "16px 16px 0 0",
         padding: "0 16px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
         animation: "_bsSlideUp 0.25s ease-out",
         ...(maxHeight ? { maxHeight, overflowY: "auto" } : {}),

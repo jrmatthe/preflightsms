@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 
-const BLACK = "#000000";
-const CARD = "#161616";
-const BORDER = "#232323";
+const BLACK = "#050508";
+const CARD = "#0e1118";
+const BORDER = "rgba(255,255,255,0.04)";
 const WHITE = "#FFFFFF";
-const MUTED = "#666666";
+const MUTED = "rgba(255,255,255,0.35)";
 const GREEN = "#4ADE80";
 const AMBER = "#F59E0B";
 const RED = "#EF4444";

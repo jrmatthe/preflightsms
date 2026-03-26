@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import DeclarationWizard from "./DeclarationWizard";
 
-const BLACK="#000000",NEAR_BLACK="#0A0A0A",CARD="#222222",BORDER="#2E2E2E",LIGHT_BORDER="#3A3A3A";
-const WHITE="#FFFFFF",OFF_WHITE="#E0E0E0",MUTED="#777777";
+const BLACK="#050508",NEAR_BLACK="#050508",CARD="#0e1118",BORDER="rgba(255,255,255,0.06)",LIGHT_BORDER="rgba(255,255,255,0.06)";
+const WHITE="#FFFFFF",OFF_WHITE="#E0E0E0",MUTED="rgba(255,255,255,0.35)";
 const GREEN="#4ADE80",YELLOW="#FACC15",AMBER="#F59E0B",RED="#EF4444",CYAN="#22D3EE";
-const card={background:CARD,borderRadius:10,border:`1px solid ${BORDER}`};
-const inp={width:"100%",padding:"8px 12px",background:NEAR_BLACK,border:`1px solid ${BORDER}`,borderRadius:6,color:WHITE,fontSize:12,boxSizing:"border-box"};
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
+const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
 
 // ══════════════════════════════════════════════════════
 // COMPLETE 14 CFR PART 5 REQUIREMENTS FOR PART 135
