@@ -134,8 +134,8 @@ function formatDateTime(d) { return new Date(d).toLocaleString("en-US", { month:
 function generateId() { return `FRAT-${Date.now().toString(36).toUpperCase()}`; }
 function downloadBlob(c, t, f) { const b = new Blob([c], { type: t }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = f; a.style.display = "none"; document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(u); }, 200); }
 
-const inp = { width: "100%", maxWidth: "100%", padding: "12px 14px", border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 14, background: BLACK, color: OFF_WHITE, boxSizing: "border-box" };
-const card = { background: CARD, borderRadius: 10, border: `1px solid ${BORDER}` };
+const inp = { width: "100%", maxWidth: "100%", padding: "12px 18px", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, background: "rgba(255,255,255,0.025)", color: OFF_WHITE, boxSizing: "border-box", letterSpacing: 0.2, transition: "border-color 0.2s" };
+const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
 // ── TIME UTILITIES ──────────────────────────────────────────────
 // Pilots enter times in local time for the departure airport. App converts to UTC for TAF matching.
@@ -369,16 +369,15 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
       }}
       title={sec.label}
       style={{
-        width: "100%", height: 40, display: "flex", alignItems: "center", gap: 8, paddingLeft: 14,
-        background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
-        color: isActive ? WHITE : isGated ? "#444" : MUTED,
-        border: "none", borderLeft: isActive ? `2px solid ${WHITE}` : "2px solid transparent",
-        cursor: "pointer", fontSize: 15, transition: "all 0.15s", borderRadius: 0,
-        fontFamily: "inherit",
+        width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 14px",
+        background: isActive ? "rgba(201,169,110,0.06)" : "transparent",
+        color: isActive ? "rgba(255,255,255,0.9)" : isGated ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.3)",
+        border: "none", borderLeft: isActive ? `2px solid ${GOLD}` : "2px solid transparent",
+        cursor: "pointer", transition: "all 0.2s ease", borderRadius: 0,
+        fontFamily: "inherit", marginBottom: 1,
       }}>
-      <span style={{ width: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>{icons[sec.icon]}</span>
-      <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, letterSpacing: 0.3 }}>{sec.label}</span>
-      {isGated && <span style={{ fontSize: 9, opacity: 0.5, marginLeft: "auto", marginRight: 10 }}>{"\uD83D\uDD12"}</span>}
+      <span style={{ fontSize: 12, fontWeight: 400, letterSpacing: 0.3 }}>{sec.label}</span>
+      {isGated && <span style={{ fontSize: 9, opacity: 0.4, marginLeft: "auto", marginRight: 6 }}>{"\uD83D\uDD12"}</span>}
     </button>);
   };
   const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
@@ -413,7 +412,7 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
     </div>
     {/* Desktop sidebar */}
     <aside className="nav-sidebar" style={{
-      position: "fixed", left: 0, top: 56, bottom: 0, width: 140, zIndex: 100,
+      position: "fixed", left: 0, top: 56, bottom: 0, width: 200, zIndex: 100,
       background: "rgba(5,5,8,0.95)", backdropFilter: "blur(24px)", borderRight: `1px solid ${BORDER}`,
       display: "flex", flexDirection: "column", paddingTop: 8,
     }}>
@@ -1024,7 +1023,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
       <svg width="48" height="48" viewBox="0 0 24 24" fill={MUTED} style={{ opacity: 0.4, marginBottom: 16 }}><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
       <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>No Aircraft Registered</div>
       <div style={{ fontSize: 12, color: MUTED, marginBottom: 20, lineHeight: 1.6, maxWidth: 380, margin: "0 auto 20px" }}>{isAdmin ? "Add your fleet to enable FRAT submissions. You can add aircraft in the Admin panel under Fleet Management." : "Your organization hasn't added any aircraft yet. Ask an admin to add aircraft in Fleet Management to enable FRAT submissions."}</div>
-      {isAdmin && <button onClick={() => onNavigate("admin")} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Fleet Management</button>}
+      {isAdmin && <button onClick={() => onNavigate("admin")} style={{ padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Fleet Management</button>}
     </div>
   );
 
@@ -1493,7 +1492,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
                 </div>
               )}
             </div>
-            <button onClick={handleSubmit} style={{ width: "100%", padding: "14px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", letterSpacing: 0.5, textTransform: "uppercase" }}>Submit FRAT</button>
+            <button onClick={handleSubmit} style={{ width: "100%", padding: "14px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", letterSpacing: 0.5, textTransform: "uppercase" }}>Submit FRAT</button>
           </div>
         </div></div>
 
@@ -1505,7 +1504,7 @@ function FRATForm({ onSubmit, onNavigate, riskCategories, riskLevels, orgId, use
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontWeight: 700, color: getRL(score).color, fontSize: 11 }}>{getRL(score).label}</div>
               <div style={{ color: MUTED, fontSize: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{getRL(score).action}</div></div></div>
-          <button onClick={handleSubmit} style={{ padding: "10px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>SUBMIT</button></div></div>
+          <button onClick={handleSubmit} style={{ padding: "10px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>SUBMIT</button></div></div>
     </div>);
 }
 
@@ -1745,7 +1744,7 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
     </div>
   );
 
-  const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10 };
+  const card = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.03)", borderRadius: 12 };
 
   const isEmpty = myScheduledFlights.length === 0 && myActive.length === 0 && myRecent.length === 0;
 
@@ -1898,7 +1897,7 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
           <div style={{ color: WHITE, fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No flights</div>
           <div style={{ color: MUTED, fontSize: 13, marginBottom: 20 }}>Submit a FRAT to create a flight</div>
           <button onClick={onNewFrat} style={{
-            padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 8,
+            padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 8,
             fontSize: 13, fontWeight: 700, cursor: "pointer",
           }}>New FRAT</button>
         </div>
@@ -2303,7 +2302,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                     {f.status === "ACTIVE" && !pending && arrivedForm !== f.id && (
                       <div data-tour="tour-flights-arrived" style={{ display: "flex", gap: 8, marginTop: 10 }}>
                         <button data-onboarding="ff-arrived-btn" onClick={(e) => { e.stopPropagation(); setArrivedForm(f.id); setParkingSpot(""); setFuelRemaining(""); setFuelLeft(""); setFuelRight(""); setFuelUnit("lbs"); setCustomFieldValues({}); }}
-                          style={{ flex: 1, padding: "10px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
+                          style={{ flex: 1, padding: "10px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer", letterSpacing: 0.5 }}>MARK ARRIVED</button>
                         <button onClick={(e) => { e.stopPropagation(); onUpdateFlight(f.id, "CANCEL"); }}
                           style={{ padding: "10px 16px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>Cancel</button>
                       </div>)}
@@ -2516,7 +2515,7 @@ function ComplianceBar({ compStats, compColor, part5Compliance, onClick, dragHan
 }
 
 function HomeView({ profile, profiles, frats, flights, reports, actions, hazards, auditSchedules, auditTemplates, trainingRequirements, trainingRecords, policies, mocItems, erpPlans, erpDrills, onNavigate, org, session, myTodayFlights, onSelectFfFlight, onSelectScTrip, cultureSurveys, mySurveyResponseIds, asapCorrActions }) {
-  const card = { background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "16px 20px" };
+  const card = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.03)", borderRadius: 12, padding: "16px 20px" };
   const sectionTitle = { fontSize: 13, fontWeight: 700, color: WHITE, marginBottom: 12 };
   const isAdmin = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
   const userId = session?.user?.id || profile?.id;
@@ -3509,7 +3508,7 @@ function LandingPage() {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => nav("login")} style={{ padding: "8px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Log In</button>
-          <button onClick={() => nav("signup")} style={{ padding: "8px 20px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Start Free Trial</button>
+          <button onClick={() => nav("signup")} style={{ padding: "8px 20px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Start Free Trial</button>
         </div>
       </nav>
 
@@ -3521,7 +3520,7 @@ function LandingPage() {
           FRAT submissions, flight following, hazard reporting, corrective actions, and full Part 5 audit compliance — in one platform your pilots will actually use.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => nav("signup")} style={{ padding: "14px 36px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: 0.3 }}>Start 14-Day Free Trial</button>
+          <button onClick={() => nav("signup")} style={{ padding: "14px 36px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: 0.3 }}>Start 14-Day Free Trial</button>
           <button onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })} style={{ padding: "14px 36px", background: "transparent", color: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>See Features</button>
         </div>
         <div style={{ fontSize: 11, color: MUTED, marginTop: 12 }}>No credit card required</div>
@@ -3586,7 +3585,7 @@ function LandingPage() {
         <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "40px 32px", maxWidth: 600, margin: "0 auto" }}>
           <h2 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 8px", fontFamily: "Georgia, serif" }}>Ready to Get Compliant?</h2>
           <p style={{ fontSize: 13, color: MUTED, marginBottom: 24 }}>Set up your SMS in minutes. Your team can be submitting FRATs today.</p>
-          <button onClick={() => nav("signup")} style={{ padding: "14px 40px", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Start Free Trial</button>
+          <button onClick={() => nav("signup")} style={{ padding: "14px 40px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Start Free Trial</button>
           <div style={{ marginTop: 10 }}><button onClick={() => nav("signup?plan=free")} style={{ background: "none", border: "none", color: CYAN, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Or start with the Free plan &rarr;</button></div>
         </div>
       </section>
@@ -3853,7 +3852,7 @@ function SignupFlow({ onAuth }) {
             {error && <div style={{ color: error.includes("Check your email") || error.includes("created") ? GREEN : RED, fontSize: 12, padding: "10px 14px", borderRadius: 8, background: error.includes("created") ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)", marginTop: 12 }}>{error}</div>}
             <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
               {step > 1 && <button onClick={() => { setStep(step - 1); setError(""); }} style={{ padding: "13px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>{"\u2190"}</button>}
-              <button onClick={next} disabled={loading} style={{ flex: 1, padding: "13px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1, letterSpacing: 0.3 }}>
+              <button onClick={next} disabled={loading} style={{ flex: 1, padding: "13px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1, letterSpacing: 0.3 }}>
                 {loading ? "Setting up..." : step === 3 ? (selectedPlan === "free" ? "Start Free Plan \u2192" : "Start Professional Trial \u2192") : "Continue \u2192"}</button>
             </div>
             <div style={{ textAlign: "center", marginTop: 20, fontSize: 11, color: MUTED }}>
@@ -3956,7 +3955,7 @@ function InviteAcceptScreen({ token, onAuth }) {
             <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 8 }}>Invitation Expired</div>
             <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 20 }}>This invitation link has expired or is no longer valid. Ask your organization admin to send a new one.</div>
             <button onClick={() => { if (typeof window !== "undefined") window.location.href = "/"; }}
-              style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Login</button>
+              style={{ padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Go to Login</button>
           </div>
         )}
 
@@ -3989,7 +3988,7 @@ function InviteAcceptScreen({ token, onAuth }) {
             {error && <div style={{ color: error.includes("Check your email") ? GREEN : RED, fontSize: 11, marginBottom: 12, padding: "8px 10px", borderRadius: 6, background: error.includes("Check your email") ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.1)" }}>{error}</div>}
 
             <button onClick={handleAccept} disabled={submitting}
-              style={{ width: "100%", padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: submitting ? "wait" : "pointer", opacity: submitting ? 0.7 : 1 }}>
+              style={{ width: "100%", padding: "12px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: submitting ? "wait" : "pointer", opacity: submitting ? 0.7 : 1 }}>
               {submitting ? "Creating account..." : "Accept & Join"}</button>
 
             <div style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: MUTED }}>
@@ -4123,13 +4122,13 @@ function AuthScreen({ onAuth, initialMode }) {
         <div style={{ display: "flex", gap: 8 }}>
           {mode === "forgot" && resetSent ? (
             <button onClick={() => { setMode("login"); setError(""); setResetSent(false); }}
-              style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Back to Login</button>
+              style={{ flex: 1, padding: "12px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Back to Login</button>
           ) : mode === "reset_password" && passwordUpdated ? (
             <button onClick={() => { setMode("login"); setError(""); setPasswordUpdated(false); setPassword(""); setConfirmPassword(""); if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname); }}
-              style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Log In</button>
+              style={{ flex: 1, padding: "12px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Log In</button>
           ) : (
             <button onClick={mode === "login" ? handleLogin : mode === "forgot" ? handleForgotPassword : handleSetNewPassword} disabled={loading}
-              style={{ flex: 1, padding: "12px 0", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1 }}>
+              style={{ flex: 1, padding: "12px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1 }}>
               {loading ? "..." : mode === "login" ? "Log In" : mode === "forgot" ? "Send Reset Link" : "Update Password"}</button>
           )}
         </div>
@@ -6239,7 +6238,7 @@ export default function PVTAIRFrat() {
           <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>No Organization Found</h2>
           <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>Your account is not associated with any organization. You may have been removed, or your organization no longer exists. Contact your administrator or join a new organization.</p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-            <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
+            <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
           </div>
         </div>
       </div>
@@ -6271,7 +6270,7 @@ export default function PVTAIRFrat() {
           <span style={{ fontSize: 28 }}>{"\u26D4"}</span></div>
         <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>Account Suspended</h2>
         <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>This organization&apos;s subscription has been suspended. Please contact your administrator or support to restore access.</p>
-        <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
+        <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
       </div>
     </div>
   );
@@ -6286,7 +6285,7 @@ export default function PVTAIRFrat() {
             <span style={{ fontSize: 28 }}>{"\u23F0"}</span></div>
           <h2 style={{ color: WHITE, fontFamily: "Georgia,serif", margin: "0 0 8px", fontSize: 20 }}>Trial Expired</h2>
           <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.5, margin: "0 0 24px" }}>Your organization&apos;s free trial has ended. Contact your administrator to subscribe and restore access.</p>
-          <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ padding: "10px 24px", background: WHITE, color: BLACK, border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
+          <button onClick={async () => { await signOut(); setSession(null); setProfile(null); }} style={{ padding: "10px 24px", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Sign Out</button>
         </div>
       </div>
     );
@@ -6354,7 +6353,7 @@ export default function PVTAIRFrat() {
     <><Head><title>{orgName} SMS - PreflightSMS</title><meta name="theme-color" content="#000000" /><link rel="icon" type="image/png" href="/favicon.png" /><link rel="icon" href="/favicon.ico" /><link rel="manifest" href="/manifest.json" /><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" /></Head>
     <div style={{ minHeight: "100vh", background: NEAR_BLACK, paddingTop: 56 }}>
       <NavBar currentView={cv} setCurrentView={setCv} orgLogo={orgLogo} orgName={orgName} userName={userName} org={profile?.organizations || {}} userRole={profile?.role} onSignOut={async () => { await signOut(); setSession(null); setProfile(null); setRecords([]); setFlights([]); setReports([]); setHazards([]); setActions([]); setOrgProfiles([]); setPolicies([]); setTrainings([]); setCompletions([]); setCbtCourses([]); setCbtLessonsMap({}); setCbtProgress([]); setCbtEnrollments([]); setSmsManuals([]); setTemplateVariables({}); setSmsSignatures({}); }} notifications={notifications} notifReads={notifReads} onMarkNotifRead={onMarkNotifRead} onMarkAllNotifsRead={onMarkAllNotifsRead} profile={profile} isOnline={isOnline} session={session} onNotifNavigate={(tab, linkId) => { if (linkId) { if (profile?.org_id) refreshAllData(profile.org_id); setFratDetailId(linkId); } else { setCv(tab); } }} onUpgrade={(feature, message) => setUpgradePrompt({ feature, message })} onSwitchToMobile={isMobileViewport ? () => setDesktopPreference(false) : undefined} onUpdatePreferences={onUpdateNotifPreferences} showOnboarding={showOnboarding} onboardingState={onboardingState} onStartFlow={handleStartFlow} isTrial={isTrial} onStartFresh={() => setShowStartFreshConfirm(true)} activeFlow={activeFlow} showTour={showTour} tourState={tourState} tourFlows={tourFlows} tourOrder={tourOrder} onStartTour={handleStartTour} onDismissTour={handleDismissTour} activeTour={activeTour} />
-      <div className="main-content" style={{ marginLeft: 140 }}>
+      <div className="main-content" style={{ marginLeft: 200 }}>
         {/* Pending deletion banner — red when read-only countdown active */}
         {isPendingDeletion && (() => {
           const delDate = new Date(org.scheduled_deletion_at);
