@@ -381,11 +381,17 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
     </button>);
   };
   const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
-  const productLinks = [
-    { id: "sms", label: "SMS", url: null },
-    { id: "crew", label: "CREW", url: process.env.NEXT_PUBLIC_CREW_URL || "http://localhost:3002" },
-    { id: "docs", label: "DOCS", url: process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:3003" },
-  ];
+  const ALL_PRODUCTS = {
+    sms: { label: "SMS", url: null },
+    crew: { label: "CREW", url: process.env.NEXT_PUBLIC_CREW_URL || "http://localhost:3002" },
+    docs: { label: "DOCS", url: process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:3003" },
+    fleet: { label: "FLEET", url: process.env.NEXT_PUBLIC_FLEET_URL || "http://localhost:3005" },
+    ops: { label: "OPS", url: process.env.NEXT_PUBLIC_OPS_URL || null },
+  };
+  const subscribedProducts = profile?.subscribed_products || [];
+  const productLinks = Object.entries(ALL_PRODUCTS)
+    .filter(([id]) => id === "sms" || subscribedProducts.includes(id))
+    .map(([id, cfg]) => ({ id, label: cfg.label, url: id === "sms" ? null : cfg.url }));
   return (<>
     {/* Top bar — product switcher */}
     <div className="nav-topbar" style={{

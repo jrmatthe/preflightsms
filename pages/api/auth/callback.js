@@ -47,6 +47,12 @@ export default async function handler(req, res) {
       return res.status(500).send("Failed to verify session");
     }
 
+    // Always refresh subscribed_products from SSO token on every login
+    const userId = verifyData.user?.id || payload.sub;
+    await supabase.from("profiles").update({
+      subscribed_products: payload.products,
+    }).eq("id", userId);
+
     // Pass session tokens to client via the verify page
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
     const accessToken = verifyData.session.access_token;
