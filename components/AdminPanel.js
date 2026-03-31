@@ -1482,26 +1482,6 @@ export default function AdminPanel({ profile, session, orgProfiles, onUpdateRole
         </div>
         
         {/* Logo Upload */}
-        {canManage && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${BORDER}` }}>
-            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Organization Logo</div>
-            {["professional", "enterprise"].includes(orgData?.tier) ? (
-              <>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  {orgLogo && <img src={orgLogo} alt="Org logo" style={{ height: 40, objectFit: "contain", borderRadius: 4, background: BLACK, padding: 4 }} />}
-                  <label style={{ fontSize: 11, color: CYAN, cursor: "pointer", padding: "6px 14px", borderRadius: 6, border: `1px solid ${CYAN}44`, background: "rgba(34,211,238,0.08)" }}>
-                    {uploading ? "Uploading..." : orgLogo ? "Change Logo" : "Upload Logo"}
-                    <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: "none" }} disabled={uploading} />
-                  </label>
-                  {uploadMsg && <span style={{ fontSize: 10, color: uploadMsg.includes("failed") ? RED : GREEN }}>{uploadMsg}</span>}
-                </div>
-                <div style={{ fontSize: 9, color: MUTED, marginTop: 6 }}>PNG or JPG, max 2MB. This logo appears in the header for all team members.</div>
-              </>
-            ) : (
-              <div style={{ fontSize: 10, color: MUTED }}>Custom logo is available on the Professional plan and above.</div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Fleet Status Settings */}

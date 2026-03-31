@@ -389,7 +389,7 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
       display: "flex", alignItems: "center", gap: 20,
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 200,
     }}>
-      <img src="/logo.png" alt="preflightSMS" style={{ height: 28 }} />
+      <img src="/pf360-logo.png" alt="Preflight 360" style={{ height: 28 }} />
       <div style={{ flex: 1 }} />
       <span style={{ fontSize: 13, fontWeight: 300, color: "rgba(255,255,255,0.7)", letterSpacing: 0.2 }}>{profile?.full_name}</span>
       <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.06)" }} />
@@ -509,7 +509,7 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
     </aside>
     {/* Mobile top bar */}
     <header className="nav-mobile-header" style={{ display: "none", background: BLACK, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, zIndex: 100, padding: "0 16px", alignItems: "center", justifyContent: "space-between" }}>
-      <img src={orgLogo || LOGO_URL} alt={orgName || "P"} style={{ height: 28, objectFit: "contain" }} onError={e => { e.target.src = LOGO_URL; }} />
+      <img src="/pf360-logo.png" alt="Preflight 360" style={{ height: 28, objectFit: "contain" }} />
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {isOnline && session && <NotificationCenter notifications={notifications} reads={notifReads} onMarkRead={onMarkNotifRead} onMarkAllRead={onMarkAllNotifsRead} profile={profile} onNavigate={(tab, linkId) => { if (onNotifNavigate) onNotifNavigate(tab, linkId); else setCurrentView(tab); setMenuOpen(false); }} onUpdatePreferences={onUpdatePreferences} />}
         <button className="nav-hamburger" onClick={() => setMenuOpen(!menuOpen)}
