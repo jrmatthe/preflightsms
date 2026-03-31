@@ -35,9 +35,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, isTr
         <span style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE }}>
           Setup — {pct}% complete
         </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <span style={{ fontSize: 10, color: MUTED }}>v</span>
       </div>
     );
   }
@@ -53,9 +51,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, isTr
             onClick={() => setCollapsed(true)}
             style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", padding: 2 }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="18 15 12 9 6 15" />
-            </svg>
+            <span style={{ fontSize: 10 }}>^</span>
           </button>
         </div>
       </div>
@@ -95,9 +91,7 @@ export default function OnboardingDashboard({ onboardingState, onStartFlow, isTr
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {isComplete ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: GREEN }}>Done</span>
                 ) : (
                   <span style={{
                     width: 18, height: 18, borderRadius: 5,

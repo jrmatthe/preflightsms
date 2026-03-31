@@ -173,7 +173,7 @@ function ReportForm({ onSubmit, onCancel, fleetAircraft, initialData, onAiCatego
             setAiLoading(false);
           }} disabled={aiLoading}
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1 }}>
-            <span style={{ fontSize: 14 }}>🤖</span> {aiLoading ? "Analyzing..." : "AI Suggest Category & Severity"}
+            {aiLoading ? "Analyzing..." : "AI Suggest Category & Severity"}
           </button>
           {aiSuggestion?.triage_summary && (
             <div style={{ marginTop: 8, padding: "10px 14px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
@@ -287,7 +287,7 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard, orgP
             {report.confidential && " · Confidential"}
           </div>
         </div>
-        <span style={{ color: MUTED, fontSize: 14, flexShrink: 0 }}>{expanded ? "\u25B2" : "\u25BC"}</span>
+        <span style={{ color: MUTED, fontSize: 10, flexShrink: 0, fontWeight: 600 }}>{expanded ? "HIDE" : "SHOW"}</span>
       </div>
 
       {expanded && (
@@ -446,7 +446,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
       {onAiSearch && hasFeature(org, "safety_trend_alerts") && (
         <div style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ color: CYAN, fontSize: 16 }}>🤖</span>
+            <span style={{ color: CYAN, fontSize: 11, fontWeight: 700 }}>AI</span>
             <input
               placeholder="Search with AI — e.g. 'bird strikes during takeoff last 6 months'"
               value={aiQuery}
@@ -507,14 +507,6 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
       {/* Report list */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 20px", color: MUTED }}>
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ marginBottom: 16, opacity: 0.5 }}>
-            <rect x="10" y="4" width="28" height="40" rx="3" stroke={MUTED} strokeWidth="2" fill="none" />
-            <path d="M18 8h12v4H18z" fill={MUTED} opacity="0.3" />
-            <line x1="16" y1="18" x2="32" y2="18" stroke={MUTED} strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="16" y1="24" x2="28" y2="24" stroke={MUTED} strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="16" y1="30" x2="30" y2="30" stroke={MUTED} strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="16" y1="36" x2="24" y2="36" stroke={MUTED} strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
           <div style={{ fontSize: 15, fontWeight: 600, color: OFF_WHITE, marginBottom: 6 }}>No safety reports yet</div>
           <div style={{ fontSize: 12, lineHeight: 1.6, maxWidth: 420, margin: "0 auto", marginBottom: 20 }}>
             Filing reports helps your organization identify and address hazards before they become incidents. Every report strengthens your safety culture.

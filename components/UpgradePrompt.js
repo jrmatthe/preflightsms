@@ -32,9 +32,6 @@ export default function UpgradePrompt({ feature, message, onNavigateToSubscripti
       <div style={{ background: CARD, borderRadius: 12, border: `1px solid ${BORDER}`, maxWidth: showComparison ? 700 : 440, width: "100%", maxHeight: "90vh", overflow: "auto" }}>
         <div style={{ padding: "28px 24px 20px" }}>
           <div style={{ textAlign: "center" }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", background: NEAR_BLACK, border: `1px solid ${CYAN}44`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <span style={{ fontSize: 22 }}>{"\u2B06"}</span>
-            </div>
             <div style={{ fontSize: 16, fontWeight: 700, color: WHITE, marginBottom: 6 }}>This Feature is Available on a Paid Plan</div>
             <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 20 }}>
               {message || `${feature || "This feature"} is included with the Starter plan. Upgrading gives your team access to more tools for managing safety effectively.`}

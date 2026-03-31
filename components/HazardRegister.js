@@ -150,9 +150,7 @@ function HorizontalStepper({ stepStatuses, onStepClick }) {
                 transition: "all 0.2s",
               }}>
                 {isCompleted ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={BLACK} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: BLACK }}>OK</span>
                 ) : (
                   <span style={{ fontSize: 13, fontWeight: 700, color: isActive ? WHITE : isSkipped ? `${MUTED}44` : MUTED }}>{i + 1}</span>
                 )}
@@ -251,11 +249,11 @@ function HazardCard({ hazard, linkedReport, linkedActions, onSelect }) {
         {resScore && initScore && (
           <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
             <span style={{ fontSize: 11, color: riskColor(initScore), fontWeight: 700 }}>{initScore}</span>
-            <span style={{ fontSize: 11, color: MUTED }}>{"\u2192"}</span>
+            <span style={{ fontSize: 11, color: MUTED }}>{"-->"}</span>
             <span style={{ fontSize: 11, color: riskColor(resScore), fontWeight: 700 }}>{resScore}</span>
           </div>
         )}
-        <span style={{ color: MUTED, fontSize: 14, flexShrink: 0 }}>{"\u203A"}</span>
+        <span style={{ color: MUTED, fontSize: 10, flexShrink: 0, fontWeight: 600 }}>VIEW</span>
       </div>
     </div>
   );
@@ -329,7 +327,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
             <div style={{ fontSize: 12, color: OFF_WHITE, lineHeight: 1.6, whiteSpace: "pre-wrap", marginBottom: 12 }}>{hazard.description}</div>
             {linkedReport && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 8, background: `${CYAN}11`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
-                <span style={{ fontSize: 10, color: CYAN, fontWeight: 700 }}>{"\u26A0"}</span>
+                <span style={{ fontSize: 10, color: CYAN, fontWeight: 700 }}>{"!"}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>From report {linkedReport.report_code}</div>
                   <div style={{ fontSize: 10, color: MUTED }}>{linkedReport.title}</div>
@@ -369,11 +367,11 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                       setAiRiskLoading(false);
                     }} disabled={aiRiskLoading}
                       style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiRiskLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiRiskLoading ? 0.6 : 1 }}>
-                      <span style={{ fontSize: 14 }}>{"\uD83E\uDD16"}</span> {aiRiskLoading ? "Analyzing..." : "AI Suggest Risk Scores"}
+                      {aiRiskLoading ? "Analyzing..." : "AI Suggest Risk Scores"}
                     </button>
                     {aiRiskResult?.reasoning && (
                       <div style={{ marginTop: 6, padding: "10px 12px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, marginBottom: 4 }}>{"\uD83E\uDD16"} AI Risk Assessment</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, marginBottom: 4 }}>AIAI Risk Assessment</div>
                         <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{aiRiskResult.reasoning}</div>
                       </div>
                     )}
@@ -441,7 +439,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
             {/* Action consolidation warning */}
             {openActionCount > 15 && (
               <div style={{ padding: "10px 14px", marginBottom: 12, background: `${YELLOW}11`, border: `1px solid ${YELLOW}33`, borderRadius: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ color: YELLOW, fontSize: 14 }}>{"\u26A0"}</span>
+                <span style={{ color: YELLOW, fontSize: 14 }}>{"!"}</span>
                 <div style={{ fontSize: 11, color: YELLOW }}>Your organization has {openActionCount} open corrective actions — consider consolidating or closing completed ones</div>
               </div>
             )}
@@ -460,14 +458,14 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                 setAiLoading(false);
               }} disabled={aiLoading}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginBottom: 8, background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1 }}>
-                <span style={{ fontSize: 14 }}>{"\uD83E\uDD16"}</span> {aiLoading ? "Analyzing..." : "AI Investigation Analysis"}
+                {aiLoading ? "Analyzing..." : "AI Investigation Analysis"}
               </button>
             )}
             {aiAnalysis && (
               <div style={{ marginBottom: 10, padding: "14px 16px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: aiAnalysisCollapsed ? 0 : 10 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: CYAN, cursor: "pointer" }} onClick={() => setAiAnalysisCollapsed(!aiAnalysisCollapsed)}>
-                    {"\uD83E\uDD16"} AI Investigation Analysis <span style={{ fontSize: 9, color: MUTED, marginLeft: 4 }}>{aiAnalysisCollapsed ? "\u25B8 Show" : "\u25BE"}</span>
+                    AIAI Investigation Analysis <span style={{ fontSize: 9, color: MUTED, marginLeft: 4 }}>{aiAnalysisCollapsed ? "Show" : "Hide"}</span>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     {!aiAnalysisCollapsed && <button onClick={() => setAiAnalysisCollapsed(true)} style={{ background: "none", border: "none", color: MUTED, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>Collapse</button>}
@@ -577,7 +575,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                       const sColor = a.status === "in_progress" ? YELLOW : a.status === "overdue" ? RED : CYAN;
                       return (
                         <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", marginBottom: 4, background: `${sColor}11`, border: `1px solid ${sColor}33`, borderRadius: 6 }}>
-                          <span style={{ fontSize: 10, color: sColor, fontWeight: 700 }}>{"\u2713"}</span>
+                          <span style={{ fontSize: 10, color: sColor, fontWeight: 700 }}>{"OK"}</span>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{a.action_code} — {a.title}</div>
                             {a.assigned_to_name && <div style={{ fontSize: 9, color: MUTED }}>{a.assigned_to_name}{a.due_date ? ` · Due ${a.due_date}` : ""}</div>}
@@ -603,7 +601,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                       <div style={{ opacity: 0.5, marginTop: 4 }}>
                         {completedActions.map(a => (
                           <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", marginBottom: 4, background: `${GREEN}08`, border: `1px solid ${GREEN}22`, borderRadius: 6 }}>
-                            <span style={{ fontSize: 10, color: GREEN, fontWeight: 700 }}>{"\u2713"}</span>
+                            <span style={{ fontSize: 10, color: GREEN, fontWeight: 700 }}>{"OK"}</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{a.action_code} — {a.title}</div>
                             </div>
@@ -678,7 +676,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
               ) : (
                 <button onClick={() => setShowInlineActionForm(true)}
                   style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 4, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                  <span style={{ fontSize: 14 }}>{"\u2713"}</span> Create Corrective Action
+                  <span style={{ fontSize: 14 }}>{"OK"}</span> Create Corrective Action
                 </button>
               ))}
             </div>
@@ -713,11 +711,11 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                       setAiResidualLoading(false);
                     }} disabled={aiResidualLoading}
                       style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 10, fontWeight: 600, cursor: aiResidualLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiResidualLoading ? 0.6 : 1 }}>
-                      <span style={{ fontSize: 12 }}>{"\uD83E\uDD16"}</span> {aiResidualLoading ? "Analyzing..." : "AI Suggest Residual Risk"}
+                      {aiResidualLoading ? "Analyzing..." : "AI Suggest Residual Risk"}
                     </button>
                     {aiResidualResult?.reasoning && (
                       <div style={{ marginTop: 6, padding: "10px 12px", background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, marginBottom: 4 }}>{"\uD83E\uDD16"} Residual Risk Assessment</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, marginBottom: 4 }}>AIResidual Risk Assessment</div>
                         <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{aiResidualResult.reasoning}</div>
                       </div>
                     )}
@@ -727,7 +725,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                 {initScore && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "8px 12px", background: NEAR_BLACK, borderRadius: 6 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(initScore) }}>{initScore}</span>
-                    <span style={{ color: MUTED, fontSize: 16 }}>{"\u2192"}</span>
+                    <span style={{ color: MUTED, fontSize: 16 }}>{"-->"}</span>
                     {residualL && residualS ? (
                       <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(residualL * residualS) }}>{residualL * residualS} <span style={{ fontWeight: 600, fontSize: 11 }}>{riskLabel(residualL * residualS).toLowerCase()}</span></span>
                     ) : (
@@ -748,7 +746,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
               resScore && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(initScore) }}>{initScore}</span>
-                  <span style={{ color: MUTED }}>{"\u2192"}</span>
+                  <span style={{ color: MUTED }}>{"-->"}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: riskColor(resScore) }}>{resScore}</span>
                   <span style={{ fontSize: 10, color: MUTED }}>L{hazard.residual_likelihood} × S{hazard.residual_severity}</span>
                 </div>
@@ -853,7 +851,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                 setLlLoading(false);
               }} disabled={llLoading}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginBottom: 8, background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: llLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: llLoading ? 0.6 : 1 }}>
-                <span style={{ fontSize: 14 }}>{"\uD83E\uDD16"}</span> {llLoading ? "Generating..." : "Generate Lessons Learned"}
+                {llLoading ? "Generating..." : "Generate Lessons Learned"}
               </button>
             )}
             {hazard.lessons_learned && hazard.lessons_learned.summary && (() => {
@@ -1012,7 +1010,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
       {/* Back button */}
       <button onClick={onBack}
         style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: 16 }}>
-        {"\u2190"} Back to Investigations
+        Back to Investigations
       </button>
 
       {/* Header */}
@@ -1175,7 +1173,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
       {fromReport && (
         <div style={{ padding: "12px 14px", marginBottom: 16, background: `${CYAN}08`, border: `1px solid ${CYAN}33`, borderRadius: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: onAiIdentifyHazard ? 10 : 0 }}>
-            <span style={{ color: CYAN, fontSize: 12 }}>{"\u26A0"}</span>
+            <span style={{ color: CYAN, fontSize: 12 }}>{"!"}</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>Creating from report {fromReport.report_code}</div>
               <div style={{ fontSize: 10, color: MUTED }}>{fromReport.title}</div>
@@ -1200,11 +1198,11 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
                 setAiLoading(false);
               }} disabled={aiLoading}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${CYAN}44`, borderRadius: 6, color: CYAN, fontSize: 11, fontWeight: 600, cursor: aiLoading ? "wait" : "pointer", fontFamily: "inherit", opacity: aiLoading ? 0.6 : 1, width: "100%" }}>
-                <span style={{ fontSize: 14 }}>{"\uD83E\uDD16"}</span> {aiLoading ? "Identifying underlying hazard..." : "AI Identify Underlying Hazard"}
+                {aiLoading ? "Identifying underlying hazard..." : "AI Identify Underlying Hazard"}
               </button>
               {aiResult?.reasoning && (
                 <div style={{ marginTop: 8, padding: "10px 12px", background: `${CYAN}12`, border: `1px solid ${CYAN}33`, borderRadius: 6 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, marginBottom: 4 }}>{"\uD83E\uDD16"} AI Analysis</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: CYAN, marginBottom: 4 }}>AIAI Analysis</div>
                   <div style={{ fontSize: 11, color: OFF_WHITE, lineHeight: 1.5 }}>{aiResult.reasoning}</div>
                 </div>
               )}
@@ -1221,7 +1219,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
       {/* Duplicate Detection Matches */}
       {duplicateMatches.length > 0 && (
         <div style={{ padding: "12px 14px", marginBottom: 12, background: `${YELLOW}11`, border: `1px solid ${YELLOW}44`, borderRadius: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: YELLOW, marginBottom: 8 }}>{"\u26A0"} Similar investigations found:</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: YELLOW, marginBottom: 8 }}>{"!"} Similar investigations found:</div>
           {duplicateMatches.map(match => {
             const matchStatus = HAZARD_STATUSES.find(s => s.id === match.status) || HAZARD_STATUSES[0];
             return (
@@ -1441,7 +1439,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
       {/* Overdue Monitoring Banner */}
       {overdueHazards.length > 0 && (
         <div style={{ padding: "12px 16px", marginBottom: 12, background: `${RED}11`, border: `1px solid ${RED}44`, borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 14, color: RED }}>{"\u26A0"}</span>
+          <span style={{ fontSize: 14, color: RED }}>{"!"}</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: RED }}>{overdueHazards.length} hazard{overdueHazards.length !== 1 ? "s" : ""} overdue for monitoring review</div>
           </div>
@@ -1459,7 +1457,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
       {/* Action Consolidation Warning */}
       {openActionCount > 15 && (
         <div style={{ padding: "12px 16px", marginBottom: 12, background: `${YELLOW}11`, border: `1px solid ${YELLOW}44`, borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 14, color: YELLOW }}>{"\u26A0"}</span>
+          <span style={{ fontSize: 14, color: YELLOW }}>{"!"}</span>
           <div style={{ fontSize: 11, color: YELLOW }}>Your organization has {openActionCount} open corrective actions — consider consolidating or closing completed ones</div>
         </div>
       )}
@@ -1486,8 +1484,8 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
         <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search investigations..." style={{ ...inp, maxWidth: 250, fontSize: 11, padding: "6px 10px" }} />
         <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, maxWidth: 140, fontSize: 11, padding: "6px 10px" }}>
           <option value="newest">Newest first</option>
-          <option value="risk_high">Risk: high {"\u2192"} low</option>
-          <option value="risk_low">Risk: low {"\u2192"} high</option>
+          <option value="risk_high">Risk: high {"-->"} low</option>
+          <option value="risk_low">Risk: low {"-->"} high</option>
         </select>
       </div>
 

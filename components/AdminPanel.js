@@ -206,7 +206,7 @@ function ForeflightIntegration({ config, onSave, onTestConnection, onSyncNow }) 
           </button>
           {testResult && (
             <span style={{ fontSize: 11, fontWeight: 600, color: testResult.success ? GREEN : RED }}>
-              {testResult.success ? "\u2713 Connected" : `\u2717 ${testResult.error || "Failed"}`}
+              {testResult.success ? "Connected" : `Failed: ${testResult.error || "Failed"}`}
             </span>
           )}
         </div>
@@ -388,7 +388,7 @@ function SchedaeroIntegration({ config, onSave, onTestConnection, onSyncNow }) {
           </button>
           {testResult && (
             <span style={{ fontSize: 11, fontWeight: 600, color: testResult.success ? GREEN : RED }}>
-              {testResult.success ? "\u2713 Connected" : `\u2717 ${testResult.error || "Failed"}`}
+              {testResult.success ? "Connected" : `Failed: ${testResult.error || "Failed"}`}
             </span>
           )}
         </div>
@@ -578,7 +578,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
                   <div style={{ minHeight: 120 }}>
                     {p.features.map((f, i) => (
                       <div key={i} style={{ fontSize: 9, color: f.includes("Everything") || f.includes("plus:") ? CYAN : OFF_WHITE, padding: "2px 0", display: "flex", gap: 4 }}>
-                        <span style={{ color: GREEN, flexShrink: 0 }}>{f.includes("Everything") || f.includes("plus:") ? "\u2605" : "\u2713"}</span>{f}
+                        {f}
                       </div>
                     ))}
                   </div>
@@ -586,13 +586,13 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
                     <div style={{ width: "100%", marginTop: 10, padding: "9px 0", borderRadius: 6, fontWeight: 700, fontSize: 11, textAlign: "center",
                       background: isCurrent ? `${GREEN}22` : "transparent", color: isCurrent ? GREEN : MUTED,
                       border: `1px solid ${isCurrent ? GREEN + "44" : BORDER}` }}>
-                      {isCurrent ? "\u2713 Current Plan" : "Free Forever"}
+                      {isCurrent ? "Current Plan" : "Free Forever"}
                     </div>
                   ) : p.isEnterprise ? (
                     <a href="mailto:sales@preflightsms.com" style={{ display: "block", width: "100%", marginTop: 10, padding: "9px 0", borderRadius: 6, fontWeight: 700, fontSize: 11, textAlign: "center", textDecoration: "none",
                       background: isCurrent ? `${GREEN}22` : "transparent", color: isCurrent ? GREEN : CYAN,
                       border: `1px solid ${isCurrent ? GREEN + "44" : CYAN + "44"}` }}>
-                      {isCurrent ? "\u2713 Current Plan" : "Contact Sales"}
+                      {isCurrent ? "Current Plan" : "Contact Sales"}
                     </a>
                   ) : (
                     <button onClick={() => handleCheckout(p.id)} disabled={checkoutLoading || portalLoading || isCurrent}
@@ -600,7 +600,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
                         background: isCurrent ? `${GREEN}22` : WHITE, color: isCurrent ? GREEN : BLACK,
                         border: isCurrent ? `1px solid ${GREEN}44` : "none",
                         opacity: (checkoutLoading || portalLoading) ? 0.6 : 1 }}>
-                      {isCurrent ? "\u2713 Current Plan" : (checkoutLoading || portalLoading) ? "Redirecting..." : hasStripe ? "Change Plan" : "Subscribe"}
+                      {isCurrent ? "Current Plan" : (checkoutLoading || portalLoading) ? "Redirecting..." : hasStripe ? "Change Plan" : "Subscribe"}
                     </button>
                   )}
                 </div>
@@ -616,7 +616,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
           <div style={{ fontSize: 12, fontWeight: 600, color: OFF_WHITE, marginBottom: 8 }}>Manage Subscription</div>
           {status === "past_due" && (
             <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(250,204,21,0.08)", border: "1px solid rgba(250,204,21,0.25)", color: YELLOW, fontSize: 11, fontWeight: 600, marginBottom: 14 }}>
-              {"\u26A0\uFE0F"} Your payment is past due. Update your payment method to restore full access.
+              Your payment is past due. Update your payment method to restore full access.
             </div>
           )}
           <div style={{ fontSize: 11, color: MUTED, marginBottom: 14 }}>
@@ -729,11 +729,6 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
       {showDeleteModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => !deletionLoading && setShowDeleteModal(false)}>
           <div style={{ background: NEAR_BLACK, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 32, maxWidth: 480, width: "100%", textAlign: "center" }} onClick={e => e.stopPropagation()}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={RED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-            </div>
             <div style={{ fontSize: 18, fontWeight: 800, color: WHITE, marginBottom: 8 }}>Delete {orgData?.name || "this organization"}?</div>
             <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 20, textAlign: "left" }}>
               {(status === "active" || status === "past_due") ? (<>
@@ -855,7 +850,7 @@ function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, 
             {role.label}
           </span>
         )}
-        {canManage && <span style={{ color: MUTED, fontSize: 12, flexShrink: 0 }}>{expanded ? "\u25B2" : "\u25BC"}</span>}
+        {canManage && <span style={{ color: MUTED, fontSize: 10, flexShrink: 0, fontWeight: 600 }}>{expanded ? "HIDE" : "SHOW"}</span>}
       </div>
       {expanded && canManage && (
         <div style={{ padding: "8px 0 14px 48px" }}>
@@ -995,7 +990,7 @@ function InviteSection({ canManage, onInvite, invitations, onRevoke, onResend })
                     style={{ padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600, cursor: "pointer",
                       background: has ? `${GREEN}22` : "transparent", color: has ? GREEN : MUTED,
                       border: `1px solid ${has ? GREEN + "44" : BORDER}` }}>
-                    {has ? "\u2713 " : ""}{p.label}
+                    {p.label}{has ? " (on)" : ""}
                   </button>
                 );
               })}
@@ -1201,7 +1196,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
                       style={{ padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer",
                         background: checked ? `${GREEN}22` : "transparent", color: checked ? GREEN : disabled ? BORDER : MUTED,
                         border: `1px solid ${checked ? GREEN + "44" : BORDER}`, opacity: disabled ? 0.4 : 1 }}>
-                      {checked ? "\u2713 " : ""}{p.label}
+                      {p.label}{checked ? " (on)" : ""}
                     </button>
                   );
                 })}
@@ -1294,7 +1289,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
                       style={{ padding: "5px 12px", borderRadius: 16, fontSize: 10, fontWeight: 600, cursor: "pointer",
                         background: checked ? `${CYAN}22` : "transparent", color: checked ? CYAN : MUTED,
                         border: `1px solid ${checked ? CYAN + "44" : BORDER}` }}>
-                      {checked ? "\u2713 " : ""}{e.label}
+                      {e.label}{checked ? " (on)" : ""}
                     </button>
                   );
                 })}
@@ -1377,7 +1372,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
             </div>
             {testResults[wh.id] !== undefined && testResults[wh.id] !== null && (
               <div style={{ marginLeft: 18, marginTop: 6, fontSize: 10, color: testResults[wh.id]?.success ? GREEN : RED, fontWeight: 600 }}>
-                {testResults[wh.id]?.success ? `\u2713 Test successful (${testResults[wh.id]?.statusCode})` : `\u2717 Test failed: ${testResults[wh.id]?.error || "Non-2xx response"}`}
+                {testResults[wh.id]?.success ? `Test successful (${testResults[wh.id]?.statusCode})` : `Test failed: ${testResults[wh.id]?.error || "Non-2xx response"}`}
               </div>
             )}
           </div>
@@ -1392,7 +1387,7 @@ function ApiWebhookManagement({ apiKeys, webhooks, onCreateApiKey, onRevokeApiKe
         </div>
         <a href="/api-docs" target="_blank" rel="noopener noreferrer"
           style={{ display: "inline-block", padding: "8px 16px", background: "transparent", color: CYAN, border: `1px solid ${CYAN}44`, borderRadius: 6, fontWeight: 700, fontSize: 11, textDecoration: "none", cursor: "pointer" }}>
-          View API Documentation \u2192
+          View API Documentation
         </a>
       </div>
     </div>
