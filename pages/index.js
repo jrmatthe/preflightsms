@@ -6099,33 +6099,13 @@ export default function PVTAIRFrat() {
     setTimeout(() => setToast(null), 3000);
   }, [profile, session, isOnline, refreshCbt]);
 
-  // Detect password recovery redirect and establish session from hash tokens
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const hash = window.location.hash;
-    const params = new URLSearchParams(window.location.search);
-    if (hash.includes("type=recovery") || params.has("reset")) {
-      // Extract tokens from hash and set session explicitly
-      // (Next.js SSR means Supabase client may not have seen the hash during init)
-      const hashStr = hash.substring(1);
-      const hashParams = new URLSearchParams(hashStr);
-      const accessToken = hashParams.get("access_token");
-      const refreshToken = hashParams.get("refresh_token");
-      if (accessToken && refreshToken) {
-        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(() => {
-          setIsPasswordRecovery(true);
-          // Clear hash from URL after processing
-          window.history.replaceState(null, "", window.location.pathname + window.location.search);
-        });
-      } else {
-        // Tokens already consumed — check if session exists
-        supabase.auth.getSession().then(({ data }) => {
-          if (data?.session) setIsPasswordRecovery(true);
-        });
-      }
-    }
-  }, []);
+  // Detect password recovery — must be synchronous to win the race against onAuthStateChange
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const hash = window.location.hash || "";
+    const search = window.location.search || "";
+    return hash.includes("type=recovery") || search.includes("reset=true");
+  });
 
   // Orphan invite: user has session but no profile and arrived via invite link
   const [orphanInviteProcessing, setOrphanInviteProcessing] = useState(false);
