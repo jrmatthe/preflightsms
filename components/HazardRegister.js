@@ -575,7 +575,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                       const sColor = a.status === "in_progress" ? YELLOW : a.status === "overdue" ? RED : CYAN;
                       return (
                         <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", marginBottom: 4, background: `${sColor}11`, border: `1px solid ${sColor}33`, borderRadius: 6 }}>
-                          <span style={{ fontSize: 10, color: sColor, fontWeight: 700 }}>{"OK"}</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={sColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{a.action_code} — {a.title}</div>
                             {a.assigned_to_name && <div style={{ fontSize: 9, color: MUTED }}>{a.assigned_to_name}{a.due_date ? ` · Due ${a.due_date}` : ""}</div>}
@@ -601,7 +601,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                       <div style={{ opacity: 0.5, marginTop: 4 }}>
                         {completedActions.map(a => (
                           <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", marginBottom: 4, background: `${GREEN}08`, border: `1px solid ${GREEN}22`, borderRadius: 6 }}>
-                            <span style={{ fontSize: 10, color: GREEN, fontWeight: 700 }}>{"OK"}</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 11, color: OFF_WHITE, fontWeight: 600 }}>{a.action_code} — {a.title}</div>
                             </div>
@@ -676,7 +676,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
               ) : (
                 <button onClick={() => setShowInlineActionForm(true)}
                   style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 4, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                  <span style={{ fontSize: 14 }}>{"OK"}</span> Create Corrective Action
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Create Corrective Action
                 </button>
               ))}
             </div>
