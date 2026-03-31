@@ -676,7 +676,7 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
               ) : (
                 <button onClick={() => setShowInlineActionForm(true)}
                   style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 4, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Create Corrective Action
+                  Create Corrective Action
                 </button>
               ))}
             </div>
