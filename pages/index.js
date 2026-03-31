@@ -324,7 +324,26 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
     }
     prevActiveTour.current = activeTour;
   }, [activeTour, showTour]);
-  // Icons removed — text and color only
+  const I = (paths) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">{paths}</svg>;
+  const icons = {
+    home: I(<><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>),
+    submit: I(<><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></>),
+    flights: I(<><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="none"/></>),
+    reports: I(<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>),
+    hazards: I(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>),
+    actions: I(<><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></>),
+    policy: I(<><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>),
+    cbt: I(<><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></>),
+    audit: I(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>),
+    manuals: I(<><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></>),
+    dashboard: I(<><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></>),
+    admin: I(<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>),
+    fleet: I(<><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0011.5 2 1.5 1.5 0 0010 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></>),
+    erp: I(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>),
+    audits: I(<><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></>),
+    moc: I(<><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M16 21h5v-5"/><path d="M8 21H3v-5"/><path d="M21 21l-7-7"/><path d="M3 21l7-7"/></>),
+    asap: I(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></>),
+  };
   const isAdminRole = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(userRole);
   const userPerms = profile?.permissions || [];
   const cvPassesGate = (cv) => { const feat = NAV_FEATURE_MAP[cv]; return !feat || hasFeature(org, feat); };
@@ -356,6 +375,7 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
         cursor: "pointer", transition: "all 0.2s ease", borderRadius: 0,
         fontFamily: "inherit", marginBottom: 1,
       }}>
+      {icons[sec.icon]}
       <span style={{ fontSize: 12, fontWeight: 400, letterSpacing: 0.3 }}>{sec.label}</span>
       {isGated && <span style={{ fontSize: 9, opacity: 0.3, marginLeft: "auto", marginRight: 6, letterSpacing: 0.5 }}>PRO</span>}
     </button>);
@@ -548,6 +568,7 @@ function NavBar({ currentView, setCurrentView, orgLogo, orgName, userName, onSig
             }}
             style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 4px", background: "none", border: "none", cursor: "pointer",
               color: isActive ? WHITE : isGated ? "#444" : MUTED, transition: "color 0.15s" }}>
+            {icons[sec.icon]}
             <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500 }}>{sec.label}</span>
           </button>);
         })}
@@ -3020,12 +3041,15 @@ function HomeView({ profile, profiles, frats, flights, reports, actions, hazards
       {/* Quick Actions — full width */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: gap }}>
         <button onClick={() => onNavigate("submit")} style={{ ...card, padding: "16px 14px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
           <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>Submit FRAT</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>New risk assessment</div></div>
         </button>
         <button onClick={() => onNavigate("reports")} style={{ ...card, padding: "16px 14px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={AMBER} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>File Report</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Hazard or incident</div></div>
         </button>
         <button onClick={() => onNavigate("cbt")} style={{ ...card, padding: "16px 14px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg>
           <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>View Training</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Courses & requirements</div></div>
         </button>
       </div>
@@ -3291,9 +3315,11 @@ function DashboardWrapper({ records, flights, reports, hazards, actions, onDelet
         return (<>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
             <button onClick={() => onNavigate("submit")} style={{ ...card, padding: "16px 14px", border: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
               <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>Submit FRAT</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Start a new flight risk assessment</div></div>
             </button>
             <button onClick={() => onNavigate("reports")} style={{ ...card, padding: "16px 14px", border: `1px solid ${BORDER}`, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={AMBER} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <div><div style={{ fontSize: 13, fontWeight: 700, color: WHITE }}>File Safety Report</div><div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Report a hazard, incident, or near-miss</div></div>
             </button>
           </div>
