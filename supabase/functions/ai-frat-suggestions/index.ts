@@ -157,7 +157,7 @@ Respond ONLY with a JSON array:
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-3-5-haiku-20241022",
         max_tokens: 1024,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -200,7 +200,7 @@ Respond ONLY with a JSON array:
     });
 
     return new Response(
-      JSON.stringify({ suggestions, model: "claude-haiku-4-5-20251001" }),
+      JSON.stringify({ suggestions, model: "claude-3-5-haiku-20241022" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
