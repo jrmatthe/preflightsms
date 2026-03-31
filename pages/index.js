@@ -3965,7 +3965,17 @@ function AuthScreen({ onAuth, initialMode }) {
     const hash = window.location.hash;
     // Supabase appends #access_token=...&type=recovery to the redirect URL
     if (hash.includes("type=recovery") || params.has("reset")) {
-      setMode("reset_password");
+      // Wait for Supabase to process the hash tokens and establish session
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && hash.includes("type=recovery"))) {
+          setMode("reset_password");
+        }
+      });
+      // Also try setting session from hash immediately
+      supabase.auth.getSession().then(({ data }) => {
+        if (data?.session) setMode("reset_password");
+      });
+      return () => subscription?.unsubscribe();
     }
   }, []);
 
