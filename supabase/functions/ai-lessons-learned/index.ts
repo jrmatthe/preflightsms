@@ -44,34 +44,35 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse auth token
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ lessonsLearned: null, error: "Unauthorized" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Auth: verify orgId exists (service role — never expires)
+    const body = await req.json();
+    const { orgId, hazardId } = body;
+    if (!orgId) {
+      console.error("ai-lessons-learned: no orgId provided");
+      return new Response(JSON.stringify({ error: "orgId required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ lessonsLearned: null, error: "Unauthorized" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const { data: orgCheck } = await supabase.from("organizations").select("id").eq("id", orgId).single();
+    if (!orgCheck) {
+      console.error("ai-lessons-learned: invalid orgId", orgId);
+      return new Response(JSON.stringify({ error: "Invalid organization" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { orgId, hazardId } = await req.json();
-    if (!orgId || !hazardId) {
+    if (!hazardId) {
       return new Response(JSON.stringify({ lessonsLearned: null, error: "orgId and hazardId required" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Rate limit: 30 calls/hour/user
+    // Rate limit: 30 calls/hour/org
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
     const { count: recentCalls } = await supabase
       .from("ai_usage_log")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
+      .eq("org_id", orgId)
       .eq("feature", "lessons_learned")
       .gte("created_at", oneHourAgo);
 
@@ -211,7 +212,7 @@ Respond ONLY with a JSON object:
     const tokensUsed = (claudeData.usage?.input_tokens || 0) + (claudeData.usage?.output_tokens || 0);
     await supabase.from("ai_usage_log").insert({
       org_id: orgId,
-      user_id: user.id,
+      user_id: null,
       feature: "lessons_learned",
       tokens_used: tokensUsed,
       cost_estimate: tokensUsed * 0.000003,

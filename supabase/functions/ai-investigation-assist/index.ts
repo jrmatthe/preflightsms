@@ -47,38 +47,36 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse auth token
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("ai-investigation-assist: no auth header");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Auth: verify orgId exists (service role — never expires)
+    const body = await req.json();
+    const { orgId, hazardId } = body;
+    if (!orgId) {
+      console.error("ai-investigation-assist: no orgId provided");
+      return new Response(JSON.stringify({ error: "orgId required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      console.error("ai-investigation-assist: auth failed", authError?.message, "token prefix", token.substring(0, 20));
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const { data: orgCheck } = await supabase.from("organizations").select("id").eq("id", orgId).single();
+    if (!orgCheck) {
+      console.error("ai-investigation-assist: invalid orgId", orgId);
+      return new Response(JSON.stringify({ error: "Invalid organization" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    console.log("ai-investigation-assist: authenticated user", user.id);
 
-    const { orgId, hazardId } = await req.json();
     console.log("ai-investigation-assist: orgId", orgId, "hazardId", hazardId);
-    if (!orgId || !hazardId) {
+    if (!hazardId) {
       return new Response(JSON.stringify({ error: "orgId and hazardId required" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Rate limit: 30 calls/hour/user
+    // Rate limit: 30 calls/hour/org
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
     const { count: recentCalls } = await supabase
       .from("ai_usage_log")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
+      .eq("org_id", orgId)
       .eq("feature", "investigation_assist")
       .gte("created_at", oneHourAgo);
 
@@ -214,7 +212,7 @@ Provide 2-4 root causes with confidence scores (0.0-1.0), 2-4 suggested mitigati
     const tokensUsed = (claudeData.usage?.input_tokens || 0) + (claudeData.usage?.output_tokens || 0);
     await supabase.from("ai_usage_log").insert({
       org_id: orgId,
-      user_id: user.id,
+      user_id: null,
       feature: "investigation_assist",
       tokens_used: tokensUsed,
       cost_estimate: tokensUsed * 0.000003,
