@@ -3958,7 +3958,19 @@ function AuthScreen({ onAuth, initialMode }) {
   const [resetSent, setResetSent] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
 
-  // Recovery mode is set by parent via initialMode prop — no need to detect here
+  // If in recovery mode, ensure session is established from URL hash
+  useEffect(() => {
+    if (initialMode !== "reset_password" || typeof window === "undefined") return;
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      const params = new URLSearchParams(hash);
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (access_token && refresh_token) {
+        supabase.auth.setSession({ access_token, refresh_token });
+      }
+    }
+  }, [initialMode]);
 
   const handleLogin = async () => {
     setError(""); setLoading(true);
@@ -4094,8 +4106,11 @@ export default function PVTAIRFrat() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+  // Intercept Supabase auth hash BEFORE app navigation reads it
   const _initTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
-  const _initHash = typeof window !== "undefined" && window.location.hash ? window.location.hash.slice(1) : null;
+  const _rawHash = typeof window !== "undefined" && window.location.hash ? window.location.hash.slice(1) : null;
+  const _isSupabaseAuthHash = _rawHash && (_rawHash.includes("access_token=") || _rawHash.includes("type=recovery"));
+  const _initHash = _isSupabaseAuthHash ? null : _rawHash;
   const [cv, _setCv] = useState(() => {
     if (_initTab === "subscription") return "admin";
     if (_initTab) return _initTab;
@@ -6099,12 +6114,25 @@ export default function PVTAIRFrat() {
     setTimeout(() => setToast(null), 3000);
   }, [profile, session, isOnline, refreshCbt]);
 
-  // Detect password recovery — must be synchronous to win the race against onAuthStateChange
+  // Detect password recovery — synchronous to prevent dashboard from rendering
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(() => {
     if (typeof window === "undefined") return false;
     const hash = window.location.hash || "";
     const search = window.location.search || "";
-    return hash.includes("type=recovery") || search.includes("reset=true");
+    const isRecovery = hash.includes("type=recovery") || search.includes("reset=true");
+    // If recovery hash present, extract tokens and set session immediately
+    if (isRecovery && hash.includes("access_token=")) {
+      const params = new URLSearchParams(hash.substring(1));
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (access_token && refresh_token) {
+        // Fire and forget — session will be ready by the time user clicks Update
+        supabase.auth.setSession({ access_token, refresh_token });
+        // Clear the hash so app navigation doesn't choke on it
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+    }
+    return isRecovery;
   });
 
   // Orphan invite: user has session but no profile and arrived via invite link
