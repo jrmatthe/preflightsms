@@ -674,10 +674,16 @@ function HazardDetailView({ hazard, linkedReport, linkedActions, onCreateAction,
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setShowInlineActionForm(true)}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", marginTop: 4, background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                  Create Corrective Action
-                </button>
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <button onClick={() => setShowInlineActionForm(true)}
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: GREEN, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    Create My Own Corrective Action
+                  </button>
+                  <button onClick={() => setActiveStepModal(4)}
+                    style={{ padding: "8px 14px", background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.3)", borderRadius: 6, color: "#C9A96E", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    Done with Corrective Actions
+                  </button>
+                </div>
               ))}
             </div>
           </div>
