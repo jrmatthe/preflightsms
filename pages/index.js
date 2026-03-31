@@ -3958,26 +3958,7 @@ function AuthScreen({ onAuth, initialMode }) {
   const [resetSent, setResetSent] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
 
-  // Check for recovery token in URL hash on mount
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const hash = window.location.hash;
-    // Supabase appends #access_token=...&type=recovery to the redirect URL
-    if (hash.includes("type=recovery") || params.has("reset")) {
-      // Wait for Supabase to process the hash tokens and establish session
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && hash.includes("type=recovery"))) {
-          setMode("reset_password");
-        }
-      });
-      // Also try setting session from hash immediately
-      supabase.auth.getSession().then(({ data }) => {
-        if (data?.session) setMode("reset_password");
-      });
-      return () => subscription?.unsubscribe();
-    }
-  }, []);
+  // Recovery mode is set by parent via initialMode prop — no need to detect here
 
   const handleLogin = async () => {
     setError(""); setLoading(true);
@@ -4000,22 +3981,6 @@ function AuthScreen({ onAuth, initialMode }) {
     if (!password || password.length < 6) { setError("Password must be at least 6 characters"); return; }
     if (password !== confirmPassword) { setError("Passwords don't match"); return; }
     setError(""); setLoading(true);
-    // Ensure session exists — Supabase may still be processing hash tokens
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session) {
-      // Try to exchange the hash tokens manually
-      const hash = window.location.hash.substring(1);
-      const hashParams = new URLSearchParams(hash);
-      const accessToken = hashParams.get("access_token");
-      const refreshToken = hashParams.get("refresh_token");
-      if (accessToken && refreshToken) {
-        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-      } else {
-        setError("Session expired. Please request a new password reset link.");
-        setLoading(false);
-        return;
-      }
-    }
     const { error: err } = await updateUserPassword(password);
     setLoading(false);
     if (err) { setError(err.message); return; }
@@ -6134,14 +6099,31 @@ export default function PVTAIRFrat() {
     setTimeout(() => setToast(null), 3000);
   }, [profile, session, isOnline, refreshCbt]);
 
-  // Detect password recovery redirect (Supabase sets session + hash contains type=recovery)
+  // Detect password recovery redirect and establish session from hash tokens
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash;
     const params = new URLSearchParams(window.location.search);
     if (hash.includes("type=recovery") || params.has("reset")) {
-      setIsPasswordRecovery(true);
+      // Extract tokens from hash and set session explicitly
+      // (Next.js SSR means Supabase client may not have seen the hash during init)
+      const hashStr = hash.substring(1);
+      const hashParams = new URLSearchParams(hashStr);
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      if (accessToken && refreshToken) {
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(() => {
+          setIsPasswordRecovery(true);
+          // Clear hash from URL after processing
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        });
+      } else {
+        // Tokens already consumed — check if session exists
+        supabase.auth.getSession().then(({ data }) => {
+          if (data?.session) setIsPasswordRecovery(true);
+        });
+      }
     }
   }, []);
 
