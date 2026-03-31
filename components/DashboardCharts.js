@@ -132,7 +132,7 @@ function ExpandOverlay({ title, onClose, children }) {
   }, [onClose]);
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ ...card, width: "92vw", maxWidth: 1100, maxHeight: "88vh", overflow: "auto", padding: "28px 32px", position: "relative" }}>
+      <div onClick={e => e.stopPropagation()} style={{ ...card, background: "#0e1118", width: "92vw", maxWidth: 1100, maxHeight: "88vh", overflow: "auto", padding: "28px 32px", position: "relative" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h3 style={{ margin: 0, color: WHITE, fontFamily: "Georgia,serif", fontSize: 18 }}>{title}</h3>
           <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 18, cursor: "pointer", padding: "4px 10px", lineHeight: 1, transition: "color 0.15s, border-color 0.15s" }}
