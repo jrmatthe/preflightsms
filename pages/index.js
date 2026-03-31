@@ -4000,6 +4000,22 @@ function AuthScreen({ onAuth, initialMode }) {
     if (!password || password.length < 6) { setError("Password must be at least 6 characters"); return; }
     if (password !== confirmPassword) { setError("Passwords don't match"); return; }
     setError(""); setLoading(true);
+    // Ensure session exists — Supabase may still be processing hash tokens
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session) {
+      // Try to exchange the hash tokens manually
+      const hash = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hash);
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      if (accessToken && refreshToken) {
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      } else {
+        setError("Session expired. Please request a new password reset link.");
+        setLoading(false);
+        return;
+      }
+    }
     const { error: err } = await updateUserPassword(password);
     setLoading(false);
     if (err) { setError(err.message); return; }
