@@ -178,7 +178,7 @@ Examples of good suggestions:
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 100,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -207,7 +207,7 @@ Examples of good suggestions:
     });
 
     return new Response(
-      JSON.stringify({ suggestion, model: "claude-sonnet-4-6" }),
+      JSON.stringify({ suggestion, model: "claude-haiku-4-5-20251001" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
