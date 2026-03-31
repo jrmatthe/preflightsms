@@ -225,7 +225,7 @@ Respond ONLY with a JSON object:
                   "anthropic-version": "2023-06-01",
                 },
                 body: JSON.stringify({
-                  model: "claude-3-5-haiku-20241022",
+                  model: "claude-sonnet-4-6",
                   max_tokens: 1024,
                   messages: [{ role: "user", content: narrativePrompt }],
                 }),

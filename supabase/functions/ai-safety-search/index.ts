@@ -112,7 +112,7 @@ Also include an "interpreted_as" field with a brief human-readable summary of ho
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
+        model: "claude-sonnet-4-6",
         max_tokens: 512,
         messages: [{ role: "user", content: prompt }],
       }),
