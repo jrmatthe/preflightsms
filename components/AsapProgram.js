@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, LineChart, Line } from "recharts";
 
 const DARK = "#050508", NEAR_BLACK = "#0a0d14", CARD_BG = "#0e1118";
@@ -124,7 +124,7 @@ export const DEFAULT_EXCLUSION_CRITERIA = [
 
 export default function AsapProgram({
   profile, session, org, orgProfiles,
-  asapConfig, asapReports, asapReportsTotalCount, onLoadMoreAsapReports, asapCorrActions, asapMeetings,
+  asapConfig, asapReports, asapReportsTotalCount, onLoadMoreAsapReports, onSearchAsapReports, asapCorrActions, asapMeetings,
   onSaveConfig, onCreateReport, onUpdateReport, onDeleteReport,
   onFetchErcReviews, onCreateErcReview, onUpdateErcReview,
   onCreateCorrAction, onUpdateCorrAction, onDeleteCorrAction,
@@ -145,6 +145,23 @@ export default function AsapProgram({
   const [showMeetingForm, setShowMeetingForm] = useState(false);
   const [showCount, setShowCount] = useState(25);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [reportSearch, setReportSearch] = useState("");
+  const [searching, setSearching] = useState(false);
+  const searchTimer = useRef(null);
+
+  const handleReportSearchChange = useCallback((value) => {
+    setReportSearch(value);
+    setShowCount(25);
+    if (!onSearchAsapReports) return;
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      await onSearchAsapReports(value.trim());
+      setSearching(false);
+    }, 400);
+  }, [onSearchAsapReports]);
+  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current); }, []);
+
   const [newAcceptance, setNewAcceptance] = useState("");
   const [newExclusion, setNewExclusion] = useState("");
   const [showHelp, setShowHelp] = useState(false);
@@ -335,7 +352,11 @@ export default function AsapProgram({
 
       {/* Recent reports */}
       <div style={{ ...card, padding: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, marginBottom: 12 }}>Recent Reports</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: WHITE, flex: 1 }}>Recent Reports</div>
+          <input value={reportSearch} onChange={e => handleReportSearchChange(e.target.value)} placeholder="Search reports..." style={{ ...inp, maxWidth: 220, fontSize: 11, padding: "6px 10px" }} />
+          {searching && <span style={{ fontSize: 10, color: MUTED }}>Searching...</span>}
+        </div>
         {reports.length === 0 ? (
           <div style={{ textAlign: "center", padding: 40, color: MUTED }}>
             <div style={{ fontSize: 14, marginBottom: 4 }}>No reports yet</div>

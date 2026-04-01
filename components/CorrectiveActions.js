@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 
 const CARD = "#0e1118", NEAR_BLACK = "#0a0d14";
 const WHITE = "#FFFFFF", OFF_WHITE = "#E5E5E5", MUTED = "rgba(255,255,255,0.35)", BLACK = "#050508";
@@ -168,15 +168,30 @@ function ActionCard({ a, onUpdateAction, linkedInvestigation, orgProfiles }) {
   );
 }
 
-export default function CorrectiveActions({ actions, totalCount, onLoadMore, onCreateAction, onUpdateAction, fromInvestigation, hazards, onClearFromInvestigation, orgProfiles }) {
+export default function CorrectiveActions({ actions, totalCount, onLoadMore, onServerSearch, onCreateAction, onUpdateAction, fromInvestigation, hazards, onClearFromInvestigation, orgProfiles }) {
   const [view, setView] = useState(fromInvestigation ? "new" : "list");
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [showCount, setShowCount] = useState(25);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const searchTimer = useRef(null);
 
-  useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
+  const handleSearchChange = useCallback((value) => {
+    setSearch(value);
+    setShowCount(25);
+    if (!onServerSearch) return;
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      await onServerSearch(value.trim());
+      setSearching(false);
+    }, 400);
+  }, [onServerSearch]);
+  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current); }, []);
+
+  useEffect(() => { setShowCount(25); }, [filter, sortBy]);
 
   // If fromInvestigation changes, switch to new form
   const fromKey = fromInvestigation ? `${fromInvestigation.id}_${fromInvestigation._prefill?.title || ""}` : null;
@@ -206,7 +221,7 @@ export default function CorrectiveActions({ actions, totalCount, onLoadMore, onC
     const q = search.toLowerCase().trim();
     let list = processed.filter(a => {
       if (filter !== "all" && a.status !== filter) return false;
-      if (q) {
+      if (q && !onServerSearch) {
         const hay = `${a.title} ${a.description || ""} ${a.action_code || ""} ${a.assigned_to_name || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
@@ -222,7 +237,7 @@ export default function CorrectiveActions({ actions, totalCount, onLoadMore, onC
       return new Date(b.created_at) - new Date(a.created_at);
     });
     return list;
-  }, [processed, filter, search, sortBy]);
+  }, [processed, filter, search, sortBy, onServerSearch]);
 
   const counts = useMemo(() => {
     const c = { all: 0, open: 0, in_progress: 0, completed: 0, overdue: 0, cancelled: 0 };
@@ -261,7 +276,8 @@ export default function CorrectiveActions({ actions, totalCount, onLoadMore, onC
       </div>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search actions..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+        <input value={search} onChange={e => handleSearchChange(e.target.value)} placeholder="Search actions..." style={{ ...inp, width: 200, maxWidth: 200, padding: "5px 10px", fontSize: 12 }} />
+        {searching && <span style={{ fontSize: 10, color: MUTED }}>Searching...</span>}
         <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>

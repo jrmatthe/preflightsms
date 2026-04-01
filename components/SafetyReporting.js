@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { hasFeature } from "../lib/tiers";
 
 const BLACK = "#050508", DARK = "#050508", NEAR_BLACK = "#0a0d14", CARD = "#0e1118";
@@ -350,20 +350,36 @@ function ReportCard({ report, onStatusChange, onCreateHazard, linkedHazard, orgP
   );
 }
 
-export default function SafetyReporting({ profile, session, onSubmitReport, reports, totalCount, onLoadMore, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles, reportPrefill, onClearPrefill, org, onAiSearch, onAiCategorize, activeFlow, onReportSubmitted }) {
+export default function SafetyReporting({ profile, session, onSubmitReport, reports, totalCount, onLoadMore, onServerSearch, onStatusChange, hazards, onCreateHazardFromReport, fleetAircraft, orgProfiles, reportPrefill, onClearPrefill, org, onAiSearch, onAiCategorize, activeFlow, onReportSubmitted }) {
   const [view, setView] = useState("list"); // list | new
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [showCount, setShowCount] = useState(25);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const searchTimer = useRef(null);
 
   const [aiQuery, setAiQuery] = useState("");
   const [aiFilters, setAiFilters] = useState(null);
   const [aiInterpretation, setAiInterpretation] = useState("");
   const [aiSearchLoading, setAiSearchLoading] = useState(false);
 
-  useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
+  // Debounced server-side search
+  const handleSearchChange = useCallback((value) => {
+    setSearch(value);
+    setShowCount(25);
+    if (!onServerSearch) return;
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      await onServerSearch(value.trim());
+      setSearching(false);
+    }, 400);
+  }, [onServerSearch]);
+  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current); }, []);
+
+  useEffect(() => { setShowCount(25); }, [filter, sortBy]);
   useEffect(() => { if (reportPrefill && activeFlow !== "safety_report") setView("new"); }, [reportPrefill, activeFlow]);
 
   const canManage = ["admin","safety_manager","accountable_exec","chief_pilot"].includes(profile?.role);
@@ -378,7 +394,8 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
   const filtered = useMemo(() => {
     let list = reports.filter(r => {
       if (filter !== "all" && filter !== r.status) return false;
-      if (search && !`${r.title} ${r.description} ${r.location} ${r.category}`.toLowerCase().includes(search.toLowerCase())) return false;
+      // Text search is handled server-side; only fall back to client filter when no onServerSearch
+      if (search && !onServerSearch && !`${r.title} ${r.description} ${r.location} ${r.category}`.toLowerCase().includes(search.toLowerCase())) return false;
       // Apply AI filters
       if (aiFilters) {
         if (aiFilters.category && r.category !== aiFilters.category) return false;
@@ -400,7 +417,7 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
       return new Date(b.created_at) - new Date(a.created_at);
     });
     return list;
-  }, [reports, filter, search, sortBy, aiFilters]);
+  }, [reports, filter, search, sortBy, aiFilters, onServerSearch]);
 
   const counts = useMemo(() => {
     const c = { all: reports.length, open: 0, under_review: 0, investigation: 0, corrective_action: 0, closed: 0 };
@@ -488,7 +505,8 @@ export default function SafetyReporting({ profile, session, onSubmitReport, repo
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <input placeholder="Search reports..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...inp, flex: 1, minWidth: 180, fontSize: 13 }} />
+        <input placeholder="Search reports..." value={search} onChange={e => handleSearchChange(e.target.value)} style={{ ...inp, flex: 1, minWidth: 180, fontSize: 13 }} />
+        {searching && <span style={{ fontSize: 10, color: MUTED }}>Searching...</span>}
         <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, width: "auto", maxWidth: 180, padding: "5px 10px", fontSize: 12 }}>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>

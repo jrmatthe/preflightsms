@@ -1293,7 +1293,7 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
 }
 
 // ── Main Component ──────────────────────────────────────────
-export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, totalCount, onLoadMore, fromReport, onClearFromReport, reports, actions, onCreateAction, onCreateActionInline, onUpdateActionStatus, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess, onAiIdentifyHazard, orgProfiles }) {
+export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, totalCount, onLoadMore, onServerSearch, fromReport, onClearFromReport, reports, actions, onCreateAction, onCreateActionInline, onUpdateActionStatus, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess, onAiIdentifyHazard, orgProfiles }) {
   const [showForm, setShowForm] = useState(!!fromReport);
   const [sortBy, setSortBy] = useState("newest");
   const [searchQ, setSearchQ] = useState("");
@@ -1301,8 +1301,23 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
   const [selectedHazardId, setSelectedHazardId] = useState(null);
   const [showCount, setShowCount] = useState(25);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const searchTimer = useRef(null);
 
-  useEffect(() => { setShowCount(25); }, [filterStatus, searchQ, sortBy]);
+  const handleSearchChange = useCallback((value) => {
+    setSearchQ(value);
+    setShowCount(25);
+    if (!onServerSearch) return;
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      await onServerSearch(value.trim());
+      setSearching(false);
+    }, 400);
+  }, [onServerSearch]);
+  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current); }, []);
+
+  useEffect(() => { setShowCount(25); }, [filterStatus, sortBy]);
   useEffect(() => { if (fromReport) setShowForm(true); }, [fromReport]);
 
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
@@ -1326,7 +1341,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
 
   const filteredHazards = useMemo(() => {
     let list = [...(hazards || [])];
-    if (searchQ) {
+    if (searchQ && !onServerSearch) {
       const q = searchQ.toLowerCase();
       list = list.filter(h => h.title.toLowerCase().includes(q) || h.hazard_code?.toLowerCase().includes(q) || h.category?.toLowerCase().includes(q));
     }
@@ -1344,7 +1359,7 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
       return scoreA - scoreB;
     });
     return list;
-  }, [hazards, searchQ, filterStatus, sortBy]);
+  }, [hazards, searchQ, filterStatus, sortBy, onServerSearch]);
 
   const statusCounts = useMemo(() => {
     const counts = { all: 0 };
@@ -1490,7 +1505,8 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
 
       {/* Search + Sort */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search investigations..." style={{ ...inp, maxWidth: 250, fontSize: 11, padding: "6px 10px" }} />
+        <input value={searchQ} onChange={e => handleSearchChange(e.target.value)} placeholder="Search investigations..." style={{ ...inp, maxWidth: 250, fontSize: 11, padding: "6px 10px" }} />
+        {searching && <span style={{ fontSize: 10, color: MUTED }}>Searching...</span>}
         <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inp, maxWidth: 140, fontSize: 11, padding: "6px 10px" }}>
           <option value="newest">Newest first</option>
           <option value="risk_high">Risk: high {"-->"} low</option>
