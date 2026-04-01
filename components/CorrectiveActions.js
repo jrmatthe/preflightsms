@@ -168,12 +168,13 @@ function ActionCard({ a, onUpdateAction, linkedInvestigation, orgProfiles }) {
   );
 }
 
-export default function CorrectiveActions({ actions, onCreateAction, onUpdateAction, fromInvestigation, hazards, onClearFromInvestigation, orgProfiles }) {
+export default function CorrectiveActions({ actions, totalCount, onLoadMore, onCreateAction, onUpdateAction, fromInvestigation, hazards, onClearFromInvestigation, orgProfiles }) {
   const [view, setView] = useState(fromInvestigation ? "new" : "list");
   const [filter, setFilter] = useState("open");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [showCount, setShowCount] = useState(25);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => { setShowCount(25); }, [filter, search, sortBy]);
 
@@ -302,6 +303,12 @@ export default function CorrectiveActions({ actions, onCreateAction, onUpdateAct
           <button onClick={() => setShowCount(c => c + 25)}
             style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
             Showing {showCount} of {filtered.length} — Show 25 more
+          </button>
+        )}
+        {filtered.length <= showCount && totalCount > actions.length && onLoadMore && (
+          <button onClick={async () => { setLoadingMore(true); await onLoadMore(); setLoadingMore(false); }} disabled={loadingMore}
+            style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: loadingMore ? "default" : "pointer", marginTop: 8, opacity: loadingMore ? 0.5 : 1 }}>
+            {loadingMore ? "Loading..." : `Showing ${actions.length} of ${totalCount} total — Load more from server`}
           </button>
         )}
       </>)}

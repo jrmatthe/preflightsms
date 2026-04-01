@@ -124,7 +124,7 @@ export const DEFAULT_EXCLUSION_CRITERIA = [
 
 export default function AsapProgram({
   profile, session, org, orgProfiles,
-  asapConfig, asapReports, asapCorrActions, asapMeetings,
+  asapConfig, asapReports, asapReportsTotalCount, onLoadMoreAsapReports, asapCorrActions, asapMeetings,
   onSaveConfig, onCreateReport, onUpdateReport, onDeleteReport,
   onFetchErcReviews, onCreateErcReview, onUpdateErcReview,
   onCreateCorrAction, onUpdateCorrAction, onDeleteCorrAction,
@@ -143,6 +143,8 @@ export default function AsapProgram({
   const [dateRange, setDateRange] = useState(6);
   const [showCaForm, setShowCaForm] = useState(false);
   const [showMeetingForm, setShowMeetingForm] = useState(false);
+  const [showCount, setShowCount] = useState(25);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [newAcceptance, setNewAcceptance] = useState("");
   const [newExclusion, setNewExclusion] = useState("");
   const [showHelp, setShowHelp] = useState(false);
@@ -352,7 +354,7 @@ export default function AsapProgram({
                 </tr>
               </thead>
               <tbody>
-                {reports.slice(0, 20).map(r => {
+                {reports.slice(0, showCount).map(r => {
                   const sc = STATUS_COLORS[r.status] || STATUS_COLORS.submitted;
                   return (
                     <tr key={r.id} style={{ borderBottom: `1px solid ${BORDER}`, cursor: "pointer" }}
@@ -367,6 +369,18 @@ export default function AsapProgram({
                 })}
               </tbody>
             </table>
+            {reports.length > showCount && (
+              <button onClick={() => setShowCount(c => c + 25)}
+                style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+                Showing {showCount} of {reports.length} — Show 25 more
+              </button>
+            )}
+            {reports.length <= showCount && asapReportsTotalCount > reports.length && onLoadMoreAsapReports && (
+              <button onClick={async () => { setLoadingMore(true); await onLoadMoreAsapReports(); setLoadingMore(false); }} disabled={loadingMore}
+                style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: loadingMore ? "default" : "pointer", marginTop: 8, opacity: loadingMore ? 0.5 : 1 }}>
+                {loadingMore ? "Loading..." : `Showing ${reports.length} of ${asapReportsTotalCount} total — Load more from server`}
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -1112,10 +1112,11 @@ export default function CbtModules({
   onSaveLesson, onDeleteLesson,
   onUpdateProgress, onUpdateEnrollment,
   onPublishCourse, onRefresh,
-  completions: completionsProp, onLogCompletion, onDeleteCompletion,
+  completions: completionsProp, completionsTotalCount, onLoadMoreCompletions, onLogCompletion, onDeleteCompletion,
   onInitTraining, tourTab,
 }) {
   const completions = completionsProp || [];
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const [topTab, setTopTab] = useState("trainings"); // trainings | records | compliance
   useEffect(() => { if (tourTab) setTopTab(tourTab); }, [tourTab]);
@@ -1478,6 +1479,12 @@ export default function CbtModules({
             <button onClick={() => setShowCount(c => c + 25)}
               style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
               Showing {showCount} of {filteredCompletions.length} — Show 25 more
+            </button>
+          )}
+          {filteredCompletions.length <= showCount && completionsTotalCount > completions.length && onLoadMoreCompletions && (
+            <button onClick={async () => { setLoadingMore(true); await onLoadMoreCompletions(); setLoadingMore(false); }} disabled={loadingMore}
+              style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: loadingMore ? "default" : "pointer", marginTop: 8, opacity: loadingMore ? 0.5 : 1 }}>
+              {loadingMore ? "Loading..." : `Showing ${completions.length} of ${completionsTotalCount} total — Load more from server`}
             </button>
           )}
         </>)}

@@ -1293,13 +1293,16 @@ function HazardForm({ onSubmit, onCancel, existingCount, fromReport, onAiIdentif
 }
 
 // ── Main Component ──────────────────────────────────────────
-export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, fromReport, onClearFromReport, reports, actions, onCreateAction, onCreateActionInline, onUpdateActionStatus, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess, onAiIdentifyHazard, orgProfiles }) {
+export default function HazardRegister({ profile, session, onCreateHazard, onUpdateHazard, hazards, totalCount, onLoadMore, fromReport, onClearFromReport, reports, actions, onCreateAction, onCreateActionInline, onUpdateActionStatus, org, onAiInvestigate, onGenerateLessonsLearned, onPublishBulletin, onCreateTrainingModule, onAiRiskAssess, onAiIdentifyHazard, orgProfiles }) {
   const [showForm, setShowForm] = useState(!!fromReport);
   const [sortBy, setSortBy] = useState("newest");
   const [searchQ, setSearchQ] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedHazardId, setSelectedHazardId] = useState(null);
+  const [showCount, setShowCount] = useState(25);
+  const [loadingMore, setLoadingMore] = useState(false);
 
+  useEffect(() => { setShowCount(25); }, [filterStatus, searchQ, sortBy]);
   useEffect(() => { if (fromReport) setShowForm(true); }, [fromReport]);
 
   const canManage = ["admin", "safety_manager", "accountable_exec", "chief_pilot"].includes(profile?.role);
@@ -1519,14 +1522,26 @@ export default function HazardRegister({ profile, session, onCreateHazard, onUpd
           <div style={{ fontSize: 13, color: MUTED }}>No investigations found</div>
           {canManage && <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>Click "+ New Investigation" to create one</div>}
         </div>
-      ) : (
-        filteredHazards.map(h => (
+      ) : (<>
+        {filteredHazards.slice(0, showCount).map(h => (
           <HazardCard key={h.id} hazard={h}
             linkedReport={h.related_report_id ? linkedReports[h.related_report_id] : null}
             linkedActions={linkedActionsMap[h.id]}
             onSelect={setSelectedHazardId} />
-        ))
-      )}
+        ))}
+        {filteredHazards.length > showCount && (
+          <button onClick={() => setShowCount(c => c + 25)}
+            style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+            Showing {showCount} of {filteredHazards.length} — Show 25 more
+          </button>
+        )}
+        {filteredHazards.length <= showCount && totalCount > hazards.length && onLoadMore && (
+          <button onClick={async () => { setLoadingMore(true); await onLoadMore(); setLoadingMore(false); }} disabled={loadingMore}
+            style={{ width: "100%", padding: "12px 0", background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, fontSize: 12, fontWeight: 600, cursor: loadingMore ? "default" : "pointer", marginTop: 8, opacity: loadingMore ? 0.5 : 1 }}>
+            {loadingMore ? "Loading..." : `Showing ${hazards.length} of ${totalCount} total — Load more from server`}
+          </button>
+        )}
+      </>)}
     </div>
   );
 }
