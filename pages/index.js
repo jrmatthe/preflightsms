@@ -3606,9 +3606,16 @@ function SignupFlow({ onAuth }) {
   const [certType, setCertType] = useState("Part 135");
   const [fleetSize, setFleetSize] = useState("1-5");
   const [selectedPlan, setSelectedPlan] = useState("professional");
+  const [billingInterval, setBillingInterval] = useState("monthly");
   const [agreedTos, setAgreedTos] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Direct checkout mode: ?signup&subscribe skips trial, goes straight to payment
+  const directCheckout = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).has("subscribe");
+  }, []);
 
   const daysLeft = useMemo(() => Math.floor((new Date("2027-05-28") - new Date()) / 864e5), []);
 
@@ -3666,12 +3673,33 @@ function SignupFlow({ onAuth }) {
             body: JSON.stringify({ action: "create-profile", userId: authData.user.id, orgId: orgJson.data.id, fullName: name.trim(), email }) });
         }
       }
-      // 4. Sign in
-      const { data: session } = await signIn(email, password);
-      if (session?.session) {
-        onAuth(session.session);
+      // 4. Direct checkout: redirect to Stripe instead of signing in
+      if (directCheckout && selectedPlan !== "free") {
+        // Sign in first to get a session for the Stripe call
+        const { data: signInData } = await signIn(email, password);
+        if (signInData?.session) {
+          try {
+            const { data: checkoutData, error: checkoutErr } = await supabase.functions.invoke("stripe-checkout", {
+              body: { plan: selectedPlan, interval: billingInterval, orgId: orgJson.data.id, orgName: orgName.trim(), email, returnUrl: window.location.origin },
+            });
+            if (checkoutErr) throw new Error(checkoutErr.message);
+            if (checkoutData?.url) { window.location.href = checkoutData.url; return; }
+          } catch (e) {
+            // Checkout failed — fall through to normal sign-in so they're not stuck
+            console.error("Stripe checkout error:", e);
+            onAuth(signInData.session);
+          }
+        } else {
+          setError("Account created! Check your email to confirm, then log in to subscribe.");
+        }
       } else {
-        setError("Account created! Check your email to confirm, then log in.");
+        // Normal flow: sign in to app
+        const { data: session } = await signIn(email, password);
+        if (session?.session) {
+          onAuth(session.session);
+        } else {
+          setError("Account created! Check your email to confirm, then log in.");
+        }
       }
     } catch (e) {
       // Safari/iOS reports network errors as "Load failed" — give a friendlier message
@@ -3776,7 +3804,7 @@ function SignupFlow({ onAuth }) {
             </div>
             {step === 1 && (<>
               <h1 style={{ fontSize: 24, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Create your account</h1>
-              <p style={{ fontSize: 13, color: MUTED, margin: "0 0 28px" }}>Full Professional access for 14 days. No credit card.</p>
+              <p style={{ fontSize: 13, color: MUTED, margin: "0 0 28px" }}>{directCheckout ? "Set up your account to get started." : "Full Professional access for 14 days. No credit card."}</p>
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: OFF_WHITE, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>Full Name</label>
                 <input value={name} onChange={e => setName(e.target.value)} placeholder="James Mitchell" autoFocus style={{ ...inp, padding: "12px 14px", fontSize: 14 }} />
@@ -3813,29 +3841,59 @@ function SignupFlow({ onAuth }) {
               </div>
             </>)}
             {step === 3 && (<>
-              <h1 style={{ fontSize: 24, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Your 14-day Professional trial</h1>
-              <p style={{ fontSize: 13, color: MUTED, margin: "0 0 24px" }}>No credit card required. Full access to every feature.</p>
-              {selectedPlan !== "free" && (
-                <div style={{ ...card, padding: "20px 22px", marginBottom: 16, border: `2px solid ${GREEN}`, background: "rgba(255,255,255,0.03)", position: "relative" }}>
-                  <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>14-DAY FREE TRIAL</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                    <div><div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Professional</div><div style={{ fontSize: 10, color: MUTED }}>Up to 15 aircraft</div></div>
-                    <div><span style={{ fontSize: 24, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$349</span><span style={{ fontSize: 11, color: MUTED }}>/mo after trial</span></div>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px" }}>
-                    {["FRAT & Flight Following", "Safety Reporting", "Investigation Register", "Policy Library", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows", "API & Webhooks"].map((f, i) => (
-                      <div key={i} style={{ fontSize: 10, color: OFF_WHITE, padding: "2px 0", display: "flex", alignItems: "center", gap: 5 }}>{f}</div>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: 10, color: MUTED, marginTop: 10 }}>Choose your plan when the trial ends — downgrade to Starter ($149/mo) anytime.</div>
+              {directCheckout ? (<>
+                <h1 style={{ fontSize: 24, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Choose your plan</h1>
+                <p style={{ fontSize: 13, color: MUTED, margin: "0 0 24px" }}>You&apos;ll be redirected to our secure checkout to complete payment.</p>
+                {/* Plan selector */}
+                <div className="signup-plan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                  {[{ id: "starter", name: "Starter", price: 149, annualPrice: 1490, desc: "Up to 5 aircraft", features: ["FRAT & Flight Following", "Safety Reporting", "Policy Library", "Dashboard"] },
+                    { id: "professional", name: "Professional", price: 349, annualPrice: 3490, desc: "Up to 15 aircraft", features: ["Everything in Starter", "Custom FRAT Templates", "CBT Modules", "FAA Audit Log", "API & Webhooks"] }
+                  ].map(p => {
+                    const isSelected = selectedPlan === p.id;
+                    const displayPrice = billingInterval === "annual" ? Math.round(p.annualPrice / 12) : p.price;
+                    return (
+                      <button key={p.id} onClick={() => setSelectedPlan(p.id)} style={{ ...card, padding: "18px 20px", cursor: "pointer", textAlign: "left", border: isSelected ? `2px solid ${GREEN}` : `1px solid ${BORDER}`, background: isSelected ? "rgba(74,222,128,0.04)" : "rgba(255,255,255,0.02)", borderRadius: 12, position: "relative", width: "100%" }}>
+                        {isSelected && <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>SELECTED</div>}
+                        <div style={{ fontSize: 15, fontWeight: 700, color: WHITE, marginBottom: 2 }}>{p.name}</div>
+                        <div style={{ fontSize: 10, color: MUTED, marginBottom: 10 }}>{p.desc}</div>
+                        <div style={{ marginBottom: 10 }}><span style={{ fontSize: 22, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>${displayPrice}</span><span style={{ fontSize: 11, color: MUTED }}>/mo</span></div>
+                        {p.features.map((f, i) => <div key={i} style={{ fontSize: 10, color: OFF_WHITE, padding: "2px 0" }}>{f}</div>)}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-              <div style={{ fontSize: 11, color: MUTED, textAlign: "center" }}>No charge during your trial. Cancel anytime.</div>
-              <div style={{ textAlign: "center", marginTop: 10 }}>
-                <button onClick={() => setSelectedPlan(selectedPlan === "free" ? "professional" : "free")} style={{ background: "none", border: "none", color: selectedPlan === "free" ? WHITE : MUTED, cursor: "pointer", fontSize: 11, fontWeight: selectedPlan === "free" ? 700 : 400, padding: 0, fontFamily: "inherit" }}>
-                  Just need the basics? <span style={{ color: selectedPlan === "free" ? GREEN : CYAN, textDecoration: "underline" }}>{selectedPlan === "free" ? "Back to Professional trial" : "Start with our Free plan"}</span>{selectedPlan !== "free" && " — 1 aircraft, core SMS features."}
-                </button>
-              </div>
+                {/* Billing interval toggle */}
+                <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16 }}>
+                  {[["monthly", "Monthly"], ["annual", "Annual (save 17%)"]].map(([id, label]) => (
+                    <button key={id} onClick={() => setBillingInterval(id)} style={{ padding: "8px 16px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", background: billingInterval === id ? "rgba(255,255,255,0.08)" : "transparent", color: billingInterval === id ? WHITE : MUTED, border: `1px solid ${billingInterval === id ? "rgba(255,255,255,0.15)" : BORDER}` }}>{label}</button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: MUTED, textAlign: "center" }}>Have a promo code? You can enter it at checkout.</div>
+              </>) : (<>
+                <h1 style={{ fontSize: 24, fontWeight: 800, color: WHITE, margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Your 14-day Professional trial</h1>
+                <p style={{ fontSize: 13, color: MUTED, margin: "0 0 24px" }}>No credit card required. Full access to every feature.</p>
+                {selectedPlan !== "free" && (
+                  <div style={{ ...card, padding: "20px 22px", marginBottom: 16, border: `2px solid ${GREEN}`, background: "rgba(255,255,255,0.03)", position: "relative" }}>
+                    <div style={{ position: "absolute", top: -8, right: 10, fontSize: 8, fontWeight: 700, color: BLACK, background: GREEN, padding: "2px 8px", borderRadius: 3 }}>14-DAY FREE TRIAL</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                      <div><div style={{ fontSize: 16, fontWeight: 700, color: WHITE }}>Professional</div><div style={{ fontSize: 10, color: MUTED }}>Up to 15 aircraft</div></div>
+                      <div><span style={{ fontSize: 24, fontWeight: 800, color: WHITE, fontFamily: "Georgia,serif" }}>$349</span><span style={{ fontSize: 11, color: MUTED }}>/mo after trial</span></div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px" }}>
+                      {["FRAT & Flight Following", "Safety Reporting", "Investigation Register", "Policy Library", "Dashboard Analytics", "FAA Audit Log", "Custom FRAT Templates", "CBT Modules", "Approval Workflows", "API & Webhooks"].map((f, i) => (
+                        <div key={i} style={{ fontSize: 10, color: OFF_WHITE, padding: "2px 0", display: "flex", alignItems: "center", gap: 5 }}>{f}</div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 10, color: MUTED, marginTop: 10 }}>Choose your plan when the trial ends — downgrade to Starter ($149/mo) anytime.</div>
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: MUTED, textAlign: "center" }}>No charge during your trial. Cancel anytime.</div>
+                <div style={{ textAlign: "center", marginTop: 10 }}>
+                  <button onClick={() => setSelectedPlan(selectedPlan === "free" ? "professional" : "free")} style={{ background: "none", border: "none", color: selectedPlan === "free" ? WHITE : MUTED, cursor: "pointer", fontSize: 11, fontWeight: selectedPlan === "free" ? 700 : 400, padding: 0, fontFamily: "inherit" }}>
+                    Just need the basics? <span style={{ color: selectedPlan === "free" ? GREEN : CYAN, textDecoration: "underline" }}>{selectedPlan === "free" ? "Back to Professional trial" : "Start with our Free plan"}</span>{selectedPlan !== "free" && " — 1 aircraft, core SMS features."}
+                  </button>
+                </div>
+              </>)}
               <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 16, cursor: "pointer" }}>
                 <input type="checkbox" checked={agreedTos} onChange={e => setAgreedTos(e.target.checked)} style={{ marginTop: 2, accentColor: CYAN }} />
                 <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.5 }}>I agree to the <a href="/terms" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Terms of Service</a> and <a href="/privacy" target="_blank" style={{ color: CYAN, textDecoration: "none" }}>Privacy Policy</a></span>
@@ -3845,7 +3903,7 @@ function SignupFlow({ onAuth }) {
             <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
               {step > 1 && <button onClick={() => { setStep(step - 1); setError(""); }} style={{ padding: "13px 20px", background: "transparent", color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Back</button>}
               <button onClick={next} disabled={loading} style={{ flex: 1, padding: "13px 0", background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1, letterSpacing: 0.3 }}>
-                {loading ? "Setting up..." : step === 3 ? (selectedPlan === "free" ? "Start Free Plan" : "Start Professional Trial") : "Continue"}</button>
+                {loading ? (directCheckout && step === 3 ? "Redirecting to checkout..." : "Setting up...") : step === 3 ? (directCheckout ? `Subscribe to ${selectedPlan === "professional" ? "Professional" : "Starter"}` : selectedPlan === "free" ? "Start Free Plan" : "Start Professional Trial") : "Continue"}</button>
             </div>
             <div style={{ textAlign: "center", marginTop: 20, fontSize: 11, color: MUTED }}>
               {step === 1 && <>Already have an account? <button onClick={() => { window.location.search = "login"; }} style={{ background: "none", border: "none", color: CYAN, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Log in</button></>}
