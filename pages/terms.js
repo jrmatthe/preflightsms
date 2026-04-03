@@ -15,7 +15,7 @@ export default function TermsOfService() {
           <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "40px 36px" }}>
             <style>{`@media(max-width:480px){.tos-card{padding:24px 18px !important}}`}</style>
             <h1 style={{ fontSize: 28, fontWeight: 800, color: WHITE, fontFamily: "Georgia, serif", margin: "0 0 4px" }}>Terms of Service</h1>
-            <p style={{ fontSize: 12, color: MUTED, margin: "0 0 32px" }}>Last updated: March 18, 2026</p>
+            <p style={{ fontSize: 12, color: MUTED, margin: "0 0 32px" }}>Last updated: April 2, 2026</p>
 
             <Section title="1. Acceptance of Terms">
               By creating an account or using PreflightSMS ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you are using the Service on behalf of an organization, you represent that you have the authority to bind that organization to these Terms.
@@ -44,7 +44,23 @@ export default function TermsOfService() {
             </Section>
 
             <Section title="5. Subscriptions and Payment">
-              Paid subscriptions are billed monthly in advance. All fees are non-refundable except as required by law. We reserve the right to change pricing with 30 days' notice. Failure to pay may result in suspension or termination of your account.
+              Paid subscriptions are billed monthly or annually in advance. By subscribing, you authorize PreflightSMS to charge your payment method on a recurring basis at the agreed-upon rate until you cancel. All fees are non-refundable except as required by law. We reserve the right to change pricing with 30 days' notice. Failure to pay may result in suspension or termination of your account.
+              <br /><br />
+              <strong style={{ color: WHITE }}>Acknowledgment of Service:</strong> By subscribing and continuing to use the Service, you acknowledge that the Service is functioning as described and that you have had the opportunity to evaluate the Service during any applicable trial period or through product demonstrations. You agree that continued use of the Service beyond 30 days constitutes acceptance that the Service substantially meets its described functionality. Disputes regarding the nature or quality of the Service must be raised within 30 days of the start of your subscription or the date you first become aware of the issue, whichever is later, by contacting support@preflightsms.com.
+              <br /><br />
+              <strong style={{ color: WHITE }}>Chargebacks and Disputes:</strong> You agree to contact us at support@preflightsms.com to resolve any billing disputes before initiating a chargeback or payment dispute with your bank or credit card company. Filing a chargeback without first attempting to resolve the issue directly with PreflightSMS may result in immediate termination of your account and all associated data. We retain the right to contest any chargeback we believe to be fraudulent or filed in bad faith and to recover costs associated with disputed transactions.
+              <br /><br />
+              <strong style={{ color: WHITE }}>Direct Checkout:</strong> If you subscribe to a paid plan at the time of account creation (bypassing the free trial), you acknowledge that billing begins immediately upon completion of checkout and that you are authorizing recurring charges at the selected plan rate. Promotional pricing, if applied, is valid for the duration specified in the promotion and will revert to standard pricing at the end of the promotional period.
+            </Section>
+
+            <Section title="5a. Beta Testing Program">
+              If you subscribe using a beta testing promotional code, the following additional terms apply:
+              <br /><br />
+              <strong style={{ color: WHITE }}>Monthly Check-Ins:</strong> You agree to participate in one (1) monthly check-in session of approximately 30 minutes with the PreflightSMS team to discuss application functionality, usability, and any issues encountered. These sessions may be conducted via video call, phone, or other agreed-upon method. Failure to participate in check-ins for two consecutive months may result in revocation of beta pricing.
+              <br /><br />
+              <strong style={{ color: WHITE }}>Marketing Reference:</strong> You agree to serve as a reference for PreflightSMS marketing purposes. This may include providing a testimonial, participating in a case study, or being listed as a customer reference (with your organization's name only — no confidential operational data will be disclosed without separate written consent). You may withdraw your reference participation at any time by contacting support@preflightsms.com, but withdrawal may result in revocation of beta pricing.
+              <br /><br />
+              <strong style={{ color: WHITE }}>Promotional Pricing:</strong> Beta testing promotional pricing is valid for the duration specified at the time of enrollment. At the end of the promotional period, your subscription will automatically renew at the standard rate for your selected plan unless you cancel or downgrade before the promotional period expires.
             </Section>
 
             <Section title="6. Your Data">
