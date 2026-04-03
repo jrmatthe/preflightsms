@@ -36,6 +36,20 @@ function formatTime(iso) {
   } catch { return ""; }
 }
 
+function getTzAbbr(tz) {
+  if (!tz) return "";
+  try {
+    const s = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date()).find(p => p.type === "timeZoneName")?.value || "";
+    if (/^P[SD]T$/.test(s)) return "PT";
+    if (/^M[SD]T$/.test(s)) return "MT";
+    if (/^C[SD]T$/.test(s)) return "CT";
+    if (/^E[SD]T$/.test(s)) return "ET";
+    if (/^AK[SD]T$/.test(s)) return "AKT";
+    if (/^H[SD]T$/.test(s)) return "HT";
+    return s;
+  } catch { return ""; }
+}
+
 function formatDate(iso) {
   if (!iso) return "";
   try {
@@ -472,8 +486,8 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
 
         {/* Time info */}
         <div style={{ display: "flex", gap: 16, color: MUTED, fontSize: 14 }}>
-          {flight.etd && <span>ETD {flight.etd}{(() => { const c = airportCoords[flight.departure]; return c?.tzAbbr ? ` ${c.tzAbbr}` : ""; })()}</span>}
-          {flight.eta && <span>ETA {(() => { const c = airportCoords[flight.destination]; if (c?.tz) { try { return new Date(flight.eta).toLocaleTimeString("en-US", { timeZone: c.tz, hour: "numeric", minute: "2-digit", hour12: true }) + (c.tzAbbr ? ` ${c.tzAbbr}` : ""); } catch {} } return formatTime(flight.eta); })()}</span>}
+          {flight.etd && <span>ETD {flight.etd}{(() => { const c = airportCoords[flight.departure]; const abbr = c?.tzAbbr || getTzAbbr(flight.depTz); return abbr ? ` ${abbr}` : ""; })()}</span>}
+          {flight.eta && <span>ETA {(() => { const c = airportCoords[flight.destination]; const tz = c?.tz || flight.destTz; if (tz) { try { const abbr = c?.tzAbbr || getTzAbbr(tz); return new Date(flight.eta).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }) + (abbr ? ` ${abbr}` : ""); } catch {} } return formatTime(flight.eta); })()}</span>}
           {isArrived && flight.arrivedAt && <span>Arrived {formatTime(flight.arrivedAt)}</span>}
         </div>
 

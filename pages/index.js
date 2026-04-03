@@ -180,6 +180,20 @@ function formatLocal(d, tz = "America/Los_Angeles") {
   } catch { return ""; }
 }
 
+function getTzAbbr(tz) {
+  if (!tz) return "";
+  try {
+    const s = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date()).find(p => p.type === "timeZoneName")?.value || "";
+    if (/^P[SD]T$/.test(s)) return "PT";
+    if (/^M[SD]T$/.test(s)) return "MT";
+    if (/^C[SD]T$/.test(s)) return "CT";
+    if (/^E[SD]T$/.test(s)) return "ET";
+    if (/^AK[SD]T$/.test(s)) return "AKT";
+    if (/^H[SD]T$/.test(s)) return "HT";
+    return s;
+  } catch { return ""; }
+}
+
 // ── WEATHER ENGINE ──────────────────────────────────────────────
 async function fetchWeather(dep, dest, cruiseAlt, date, etd, ete, depTz) {
   const ids = [dep, dest].filter(Boolean).join(",");
@@ -1799,8 +1813,8 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
                     }}>{isPending ? "AWAITING APPROVAL" : "ENROUTE"}</span>
                   </div>
                   <div style={{ display: "flex", gap: 16, fontSize: 12, marginBottom: 10 }}>
-                    <span><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE }}>{fmtTime(f.etd)}{(() => { const c = airportCoords[f.departure]; return c?.tzAbbr ? ` ${c.tzAbbr}` : ""; })()}</span></span>
-                    {f.eta && <span><span style={{ color: MUTED }}>ETA </span><span style={{ color: WHITE }}>{(() => { const c = airportCoords[f.destination]; const tz = c?.tz; if (tz) { try { return new Date(f.eta).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }) + (c.tzAbbr ? ` ${c.tzAbbr}` : ""); } catch {} } return fmtTime(f.eta); })()}</span></span>}
+                    <span><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE }}>{fmtTime(f.etd)}{(() => { const c = airportCoords[f.departure]; const abbr = c?.tzAbbr || getTzAbbr(f.depTz); return abbr ? ` ${abbr}` : ""; })()}</span></span>
+                    {f.eta && <span><span style={{ color: MUTED }}>ETA </span><span style={{ color: WHITE }}>{(() => { const c = airportCoords[f.destination]; const tz = c?.tz || f.destTz; if (tz) { try { const abbr = c?.tzAbbr || getTzAbbr(tz); return new Date(f.eta).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }) + (abbr ? ` ${abbr}` : ""); } catch {} } return fmtTime(f.eta); })()}</span></span>}
                     {f.tailNumber && <span><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE }}>{f.tailNumber}</span></span>}
                   </div>
                   {progress >= 0 && (
@@ -2238,12 +2252,13 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                     <span style={{ color: OFF_WHITE }}>{(() => {
                       const depCoord = airportCoords[f.departure];
                       const destCoord = airportCoords[f.destination];
-                      const depAbbr = depCoord?.tzAbbr || "";
-                      const destAbbr = destCoord?.tzAbbr || "";
+                      const depAbbr = depCoord?.tzAbbr || getTzAbbr(f.depTz);
+                      const destAbbr = destCoord?.tzAbbr || getTzAbbr(f.destTz);
                       const etdFmt = f.etd ? f.etd.replace(/[^0-9]/g, "").padStart(4, "0").replace(/(\d{2})(\d{2})/, "$1:$2") : "—";
                       let etaFmt = "—";
-                      if (f.eta && destCoord?.tz) {
-                        try { etaFmt = new Date(f.eta).toLocaleTimeString("en-US", { timeZone: destCoord.tz, hour: "2-digit", minute: "2-digit", hour12: false }); } catch { etaFmt = formatLocal(new Date(f.eta), destCoord.tz).replace(/(\d{2})(\d{2})/, "$1:$2"); }
+                      const destTzId = destCoord?.tz || f.destTz;
+                      if (f.eta && destTzId) {
+                        try { etaFmt = new Date(f.eta).toLocaleTimeString("en-US", { timeZone: destTzId, hour: "2-digit", minute: "2-digit", hour12: false }); } catch { etaFmt = formatLocal(new Date(f.eta), destTzId).replace(/(\d{2})(\d{2})/, "$1:$2"); }
                       } else if (f.eta) {
                         etaFmt = formatLocal(new Date(f.eta)).replace(/(\d{2})(\d{2})/, "$1:$2");
                       }
@@ -5008,7 +5023,7 @@ export default function PVTAIRFrat() {
         status: f.status, timestamp: f.created_at, arrivedAt: f.arrived_at, cancelled: f.status === "CANCELLED",
         approvedAt: f.approved_at, approvalStatus: f.approval_status, fratDbId: f.frat_id, attachments: f.attachments || [],
         parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelLeft: f.fuel_remaining_left || "", fuelRight: f.fuel_remaining_right || "", fuelUnit: f.fuel_unit || "",
-        userId: f.user_id,
+        userId: f.user_id, depTz: f.dep_tz || null, destTz: f.dest_tz || null,
       })));
       await reconcileStaleFratApprovals(orgId);
       const { data: frats } = await fetchFRATs(orgId);
@@ -5425,7 +5440,7 @@ export default function PVTAIRFrat() {
         approvalStatus: wasApproved && f.approval_status === "pending" ? "approved" : f.approval_status,
         fratDbId: f.frat_id, attachments: f.attachments || [],
         parkingSpot: f.parking_spot || "", fuelRemaining: f.fuel_remaining || "", fuelLeft: f.fuel_remaining_left || "", fuelRight: f.fuel_remaining_right || "", fuelUnit: f.fuel_unit || "",
-        userId: f.user_id,
+        userId: f.user_id, depTz: f.dep_tz || null, destTz: f.dest_tz || null,
       };
     });
   }, []);
