@@ -11,6 +11,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.47.0",
     "@supabase/supabase-js": "^2.95.3",
     "bcryptjs": "^3.0.3",
     "geo-tz": "^8.1.2",
