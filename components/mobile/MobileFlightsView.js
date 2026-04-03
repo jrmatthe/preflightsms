@@ -318,7 +318,7 @@ function PostFlightNudge({ flight, suggestion, onFileReport, onNothingToReport, 
 }
 
 // ── Flight Card ──
-function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSwipeCancel, onDelete, isLive }) {
+function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSwipeCancel, onDelete, isLive, airportCoords = {} }) {
   const isPending = flight.approvalStatus === "pending" || flight.approvalStatus === "review";
   const isActive = flight.status === "ACTIVE" && !isPending;
   const isArrived = flight.status === "ARRIVED";
@@ -472,8 +472,8 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
 
         {/* Time info */}
         <div style={{ display: "flex", gap: 16, color: MUTED, fontSize: 14 }}>
-          {flight.etd && <span>ETD {flight.etd}</span>}
-          {flight.eta && <span>ETA {formatTime(flight.eta)}</span>}
+          {flight.etd && <span>ETD {flight.etd}{(() => { const c = airportCoords[flight.departure]; return c?.tzAbbr ? ` ${c.tzAbbr}` : ""; })()}</span>}
+          {flight.eta && <span>ETA {(() => { const c = airportCoords[flight.destination]; if (c?.tz) { try { return new Date(flight.eta).toLocaleTimeString("en-US", { timeZone: c.tz, hour: "numeric", minute: "2-digit", hour12: true }) + (c.tzAbbr ? ` ${c.tzAbbr}` : ""); } catch {} } return formatTime(flight.eta); })()}</span>}
           {isArrived && flight.arrivedAt && <span>Arrived {formatTime(flight.arrivedAt)}</span>}
         </div>
 
@@ -570,6 +570,19 @@ export default function MobileFlightsView({
   const [showNudge, setShowNudge] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const scrollRef = useRef(null);
+  const [airportCoords, setAirportCoords] = useState({});
+
+  // Fetch airport timezone data for ETD/ETA display
+  useEffect(() => {
+    const ids = new Set();
+    (flights || []).forEach(f => { if (f.departure) ids.add(f.departure); if (f.destination) ids.add(f.destination); });
+    if (ids.size === 0) return;
+    const toFetch = [...ids].filter(id => !airportCoords[id]);
+    if (toFetch.length === 0) return;
+    fetch(`/api/airports?ids=${toFetch.join(",")}`).then(r => r.json()).then(data => {
+      setAirportCoords(prev => ({ ...prev, ...data }));
+    }).catch(() => {});
+  }, [flights]);
 
   // Live ADS-B positions
   const [livePositions, setLivePositions] = useState({});
@@ -840,6 +853,7 @@ export default function MobileFlightsView({
                   onSwipeCancel={(fl) => setCancelFlight(fl)}
                   onDelete={onDeleteFlight}
                   isLive={f.status === "ACTIVE" && !!(livePositions[f.dbId] && (Date.now() - (livePositions[f.dbId].receivedAt || 0)) < 30000)}
+                  airportCoords={airportCoords}
                 />
               ))}
             </div>
@@ -877,6 +891,7 @@ export default function MobileFlightsView({
                   onSwipeCancel={(fl) => setCancelFlight(fl)}
                   onDelete={onDeleteFlight}
                   isLive={false}
+                  airportCoords={airportCoords}
                 />
               ))}
             </div>

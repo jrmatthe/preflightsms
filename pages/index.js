@@ -1629,6 +1629,19 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
   const [fuelRight, setFuelRight] = useState("");
   const [fuelUnit, setFuelUnit] = useState("lbs");
   const [customFieldValues, setCustomFieldValues] = useState({});
+  const [airportCoords, setAirportCoords] = useState({});
+
+  // Fetch airport timezone data for ETD/ETA display
+  useEffect(() => {
+    const ids = new Set();
+    (flights || []).forEach(f => { if (f.departure) ids.add(f.departure); if (f.destination) ids.add(f.destination); });
+    if (ids.size === 0) return;
+    const toFetch = [...ids].filter(id => !airportCoords[id]);
+    if (toFetch.length === 0) return;
+    fetch(`/api/airports?ids=${toFetch.join(",")}`).then(r => r.json()).then(data => {
+      setAirportCoords(prev => ({ ...prev, ...data }));
+    }).catch(() => {});
+  }, [flights]);
 
   const openArrivedModal = (flight) => {
     setArrivedFlight({ ...flight });
@@ -1786,8 +1799,8 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
                     }}>{isPending ? "AWAITING APPROVAL" : "ENROUTE"}</span>
                   </div>
                   <div style={{ display: "flex", gap: 16, fontSize: 12, marginBottom: 10 }}>
-                    <span><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE }}>{fmtTime(f.etd)}</span></span>
-                    {f.eta && <span><span style={{ color: MUTED }}>ETA </span><span style={{ color: WHITE }}>{fmtTime(f.eta)}</span></span>}
+                    <span><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE }}>{fmtTime(f.etd)}{(() => { const c = airportCoords[f.departure]; return c?.tzAbbr ? ` ${c.tzAbbr}` : ""; })()}</span></span>
+                    {f.eta && <span><span style={{ color: MUTED }}>ETA </span><span style={{ color: WHITE }}>{(() => { const c = airportCoords[f.destination]; const tz = c?.tz; if (tz) { try { return new Date(f.eta).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }) + (c.tzAbbr ? ` ${c.tzAbbr}` : ""); } catch {} } return fmtTime(f.eta); })()}</span></span>}
                     {f.tailNumber && <span><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE }}>{f.tailNumber}</span></span>}
                   </div>
                   {progress >= 0 && (
@@ -2228,8 +2241,12 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                       const depAbbr = depCoord?.tzAbbr || "";
                       const destAbbr = destCoord?.tzAbbr || "";
                       const etdFmt = f.etd ? f.etd.replace(/[^0-9]/g, "").padStart(4, "0").replace(/(\d{2})(\d{2})/, "$1:$2") : "—";
-                      const destTzId = destCoord?.tz || "America/Los_Angeles";
-                      const etaFmt = f.eta ? formatLocal(new Date(f.eta), destTzId).replace(/(\d{2})(\d{2})/, "$1:$2") : "—";
+                      let etaFmt = "—";
+                      if (f.eta && destCoord?.tz) {
+                        try { etaFmt = new Date(f.eta).toLocaleTimeString("en-US", { timeZone: destCoord.tz, hour: "2-digit", minute: "2-digit", hour12: false }); } catch { etaFmt = formatLocal(new Date(f.eta), destCoord.tz).replace(/(\d{2})(\d{2})/, "$1:$2"); }
+                      } else if (f.eta) {
+                        etaFmt = formatLocal(new Date(f.eta)).replace(/(\d{2})(\d{2})/, "$1:$2");
+                      }
                       return `${etdFmt}${depAbbr ? " " + depAbbr : ""} / ${etaFmt}${destAbbr ? " " + destAbbr : ""}`;
                     })()}</span>
                   </div>
