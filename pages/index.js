@@ -1650,7 +1650,7 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
     const ids = new Set();
     (flights || []).forEach(f => { if (f.departure) ids.add(f.departure); if (f.destination) ids.add(f.destination); });
     if (ids.size === 0) return;
-    const toFetch = [...ids].filter(id => !airportCoords[id]);
+    const toFetch = [...ids].filter(id => !airportCoords[id]?.tz);
     if (toFetch.length === 0) return;
     fetch(`/api/airports?ids=${toFetch.join(",")}`).then(r => r.json()).then(data => {
       setAirportCoords(prev => ({ ...prev, ...data }));
