@@ -60,6 +60,24 @@ function icaoTzFallback(icao) {
   return null;
 }
 
+function fmtEtd(v) {
+  if (!v) return "";
+  const s = v.toString().trim();
+  // Already has AM/PM
+  if (/am|pm/i.test(s)) return s;
+  // Strip non-digits to get HHMM
+  const digits = s.replace(/[^0-9]/g, "");
+  if (digits.length >= 3) {
+    const padded = digits.padStart(4, "0");
+    const h = parseInt(padded.slice(0, 2), 10);
+    const m = padded.slice(2, 4);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${m} ${ampm}`;
+  }
+  return s;
+}
+
 function formatDate(iso) {
   if (!iso) return "";
   try {
@@ -496,7 +514,7 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
 
         {/* Time info */}
         <div style={{ display: "flex", gap: 16, color: MUTED, fontSize: 14 }}>
-          {flight.etd && <span>ETD {flight.etd}{(() => { const c = airportCoords[flight.departure]; const fb = icaoTzFallback(flight.departure); const abbr = c?.tzAbbr || getTzAbbr(flight.depTz) || fb?.tzAbbr || ""; return abbr ? ` ${abbr}` : ""; })()}</span>}
+          {flight.etd && <span>ETD {fmtEtd(flight.etd)}{(() => { const c = airportCoords[flight.departure]; const fb = icaoTzFallback(flight.departure); const abbr = c?.tzAbbr || getTzAbbr(flight.depTz) || fb?.tzAbbr || ""; return abbr ? ` ${abbr}` : ""; })()}</span>}
           {flight.eta && <span>ETA {(() => { const c = airportCoords[flight.destination]; const fb = icaoTzFallback(flight.destination); const tz = c?.tz || flight.destTz || fb?.tz; if (tz) { try { const abbr = c?.tzAbbr || getTzAbbr(tz) || fb?.tzAbbr || ""; return new Date(flight.eta).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }) + (abbr ? ` ${abbr}` : ""); } catch {} } return formatTime(flight.eta); })()}</span>}
           {isArrived && flight.arrivedAt && <span>Arrived {formatTime(flight.arrivedAt)}</span>}
         </div>
