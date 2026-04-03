@@ -2022,7 +2022,7 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
     const fallbacks = {};
     ids.forEach(id => { if (FALLBACK_COORDS[id] && !airportCoords[id]) fallbacks[id] = FALLBACK_COORDS[id]; });
     if (Object.keys(fallbacks).length > 0) setAirportCoords(prev => ({ ...prev, ...fallbacks }));
-    const toFetch = [...ids].filter(id => !airportCoords[id] && !fallbacks[id]);
+    const toFetch = [...ids].filter(id => !airportCoords[id]?.tz && !fallbacks[id]?.tz);
     if (toFetch.length === 0) return;
     fetch(`/api/airports?ids=${toFetch.join(",")}`).then(r => r.json()).then(data => {
       setAirportCoords(prev => ({ ...prev, ...data }));
