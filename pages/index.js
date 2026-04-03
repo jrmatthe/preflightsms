@@ -194,6 +194,17 @@ function getTzAbbr(tz) {
   } catch { return ""; }
 }
 
+// Client-side ICAO prefix → timezone fallback for when API doesn't return data
+function icaoTzFallback(icao) {
+  if (!icao) return null;
+  const id = icao.toUpperCase();
+  if (id.startsWith("PA")) return { tz: "America/Anchorage", tzAbbr: "AKT" };
+  if (id.startsWith("PH")) return { tz: "Pacific/Honolulu", tzAbbr: "HT" };
+  if (id.startsWith("PG") || id.startsWith("PW")) return { tz: "Pacific/Guam", tzAbbr: getTzAbbr("Pacific/Guam") };
+  if (id.startsWith("TJ")) return { tz: "America/Puerto_Rico", tzAbbr: "AT" };
+  return null;
+}
+
 // ── WEATHER ENGINE ──────────────────────────────────────────────
 async function fetchWeather(dep, dest, cruiseAlt, date, etd, ete, depTz) {
   const ids = [dep, dest].filter(Boolean).join(",");
@@ -1813,8 +1824,8 @@ function MyFlightsView({ flights, myScheduledFlights, session, profile, onUpdate
                     }}>{isPending ? "AWAITING APPROVAL" : "ENROUTE"}</span>
                   </div>
                   <div style={{ display: "flex", gap: 16, fontSize: 12, marginBottom: 10 }}>
-                    <span><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE }}>{fmtTime(f.etd)}{(() => { const c = airportCoords[f.departure]; const abbr = c?.tzAbbr || getTzAbbr(f.depTz); return abbr ? ` ${abbr}` : ""; })()}</span></span>
-                    {f.eta && <span><span style={{ color: MUTED }}>ETA </span><span style={{ color: WHITE }}>{(() => { const c = airportCoords[f.destination]; const tz = c?.tz || f.destTz; if (tz) { try { const abbr = c?.tzAbbr || getTzAbbr(tz); return new Date(f.eta).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }) + (abbr ? ` ${abbr}` : ""); } catch {} } return fmtTime(f.eta); })()}</span></span>}
+                    <span><span style={{ color: MUTED }}>ETD </span><span style={{ color: WHITE }}>{fmtTime(f.etd)}{(() => { const c = airportCoords[f.departure]; const fb = icaoTzFallback(f.departure); const abbr = c?.tzAbbr || getTzAbbr(f.depTz) || fb?.tzAbbr || ""; return abbr ? ` ${abbr}` : ""; })()}</span></span>
+                    {f.eta && <span><span style={{ color: MUTED }}>ETA </span><span style={{ color: WHITE }}>{(() => { const c = airportCoords[f.destination]; const fb = icaoTzFallback(f.destination); const tz = c?.tz || f.destTz || fb?.tz; if (tz) { try { const abbr = c?.tzAbbr || getTzAbbr(tz) || fb?.tzAbbr || ""; return new Date(f.eta).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }) + (abbr ? ` ${abbr}` : ""); } catch {} } return fmtTime(f.eta); })()}</span></span>}
                     {f.tailNumber && <span><span style={{ color: MUTED }}>Tail </span><span style={{ color: WHITE }}>{f.tailNumber}</span></span>}
                   </div>
                   {progress >= 0 && (
@@ -2252,11 +2263,13 @@ function FlightBoard({ flights, foreflightFlights, schedaeroTrips, onUpdateFligh
                     <span style={{ color: OFF_WHITE }}>{(() => {
                       const depCoord = airportCoords[f.departure];
                       const destCoord = airportCoords[f.destination];
-                      const depAbbr = depCoord?.tzAbbr || getTzAbbr(f.depTz);
-                      const destAbbr = destCoord?.tzAbbr || getTzAbbr(f.destTz);
+                      const depFb = icaoTzFallback(f.departure);
+                      const destFb = icaoTzFallback(f.destination);
+                      const depAbbr = depCoord?.tzAbbr || getTzAbbr(f.depTz) || depFb?.tzAbbr || "";
+                      const destAbbr = destCoord?.tzAbbr || getTzAbbr(f.destTz) || destFb?.tzAbbr || "";
                       const etdFmt = f.etd ? f.etd.replace(/[^0-9]/g, "").padStart(4, "0").replace(/(\d{2})(\d{2})/, "$1:$2") : "—";
                       let etaFmt = "—";
-                      const destTzId = destCoord?.tz || f.destTz;
+                      const destTzId = destCoord?.tz || f.destTz || destFb?.tz;
                       if (f.eta && destTzId) {
                         try { etaFmt = new Date(f.eta).toLocaleTimeString("en-US", { timeZone: destTzId, hour: "2-digit", minute: "2-digit", hour12: false }); } catch { etaFmt = formatLocal(new Date(f.eta), destTzId).replace(/(\d{2})(\d{2})/, "$1:$2"); }
                       } else if (f.eta) {

@@ -50,6 +50,16 @@ function getTzAbbr(tz) {
   } catch { return ""; }
 }
 
+function icaoTzFallback(icao) {
+  if (!icao) return null;
+  const id = icao.toUpperCase();
+  if (id.startsWith("PA")) return { tz: "America/Anchorage", tzAbbr: "AKT" };
+  if (id.startsWith("PH")) return { tz: "Pacific/Honolulu", tzAbbr: "HT" };
+  if (id.startsWith("PG") || id.startsWith("PW")) return { tz: "Pacific/Guam", tzAbbr: getTzAbbr("Pacific/Guam") };
+  if (id.startsWith("TJ")) return { tz: "America/Puerto_Rico", tzAbbr: "AT" };
+  return null;
+}
+
 function formatDate(iso) {
   if (!iso) return "";
   try {
@@ -486,8 +496,8 @@ function FlightCard({ flight, isOverdue, expanded, onToggle, onSwipeArrive, onSw
 
         {/* Time info */}
         <div style={{ display: "flex", gap: 16, color: MUTED, fontSize: 14 }}>
-          {flight.etd && <span>ETD {flight.etd}{(() => { const c = airportCoords[flight.departure]; const abbr = c?.tzAbbr || getTzAbbr(flight.depTz); return abbr ? ` ${abbr}` : ""; })()}</span>}
-          {flight.eta && <span>ETA {(() => { const c = airportCoords[flight.destination]; const tz = c?.tz || flight.destTz; if (tz) { try { const abbr = c?.tzAbbr || getTzAbbr(tz); return new Date(flight.eta).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }) + (abbr ? ` ${abbr}` : ""); } catch {} } return formatTime(flight.eta); })()}</span>}
+          {flight.etd && <span>ETD {flight.etd}{(() => { const c = airportCoords[flight.departure]; const fb = icaoTzFallback(flight.departure); const abbr = c?.tzAbbr || getTzAbbr(flight.depTz) || fb?.tzAbbr || ""; return abbr ? ` ${abbr}` : ""; })()}</span>}
+          {flight.eta && <span>ETA {(() => { const c = airportCoords[flight.destination]; const fb = icaoTzFallback(flight.destination); const tz = c?.tz || flight.destTz || fb?.tz; if (tz) { try { const abbr = c?.tzAbbr || getTzAbbr(tz) || fb?.tzAbbr || ""; return new Date(flight.eta).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true }) + (abbr ? ` ${abbr}` : ""); } catch {} } return formatTime(flight.eta); })()}</span>}
           {isArrived && flight.arrivedAt && <span>Arrived {formatTime(flight.arrivedAt)}</span>}
         </div>
 

@@ -24,6 +24,13 @@ function getTimezoneAbbr(tz) {
   } catch { return ""; }
 }
 
+function buildCoord(id, lat, lon, name, tzResult) {
+  const tz = tzResult && tzResult.length > 0 ? tzResult[0] : "America/Los_Angeles";
+  const coord = { lat, lon, name: name || id, tz, tzAbbr: getTimezoneAbbr(tz) };
+  cache[id] = coord;
+  return coord;
+}
+
 export default async function handler(req, res) {
   const { ids } = req.query;
   if (!ids) return res.status(400).json({ error: "Missing ids" });
@@ -38,54 +45,46 @@ export default async function handler(req, res) {
   }
 
   if (uncached.length > 0) {
-    const found = new Set();
+    // Try stationinfo first — it covers all registered stations reliably
     try {
-      // Fetch METAR for uncached airports - includes lat/lon
-      const r = await fetch(`${AWC}/metar?ids=${uncached.join(",")}&format=json`, {
+      const r = await fetch(`${AWC}/stationinfo?ids=${uncached.join(",")}&format=json`, {
         headers: { "User-Agent": "PreflightSMS/1.0" }
       });
       if (r.ok) {
         const data = await r.json();
         if (Array.isArray(data)) {
-          for (const m of data) {
-            if (m.icaoId && m.lat && m.lon) {
-              const tzResult = find(m.lat, m.lon);
-              const tz = tzResult && tzResult.length > 0 ? tzResult[0] : "America/Los_Angeles";
-              const coord = { lat: m.lat, lon: m.lon, name: m.name || m.icaoId, tz, tzAbbr: getTimezoneAbbr(tz) };
-              cache[m.icaoId.toUpperCase()] = coord;
-              results[m.icaoId.toUpperCase()] = coord;
-              found.add(m.icaoId.toUpperCase());
+          for (const s of data) {
+            if (s.icaoId && s.lat && s.lon) {
+              const id = s.icaoId.toUpperCase();
+              results[id] = buildCoord(id, s.lat, s.lon, s.site || s.icaoId, find(s.lat, s.lon));
             }
           }
         }
       }
     } catch (e) {
-      console.error("Airport METAR lookup error:", e);
+      console.error("Airport stationinfo lookup error:", e);
     }
 
-    // Fallback: fetch station info for airports not found via METAR
-    const remaining = uncached.filter(id => !found.has(id));
+    // Fallback: try METAR for any still-missing airports (METAR has more name detail)
+    const remaining = uncached.filter(id => !results[id]);
     if (remaining.length > 0) {
       try {
-        const r = await fetch(`${AWC}/stationinfo?ids=${remaining.join(",")}&format=json`, {
+        const r = await fetch(`${AWC}/metar?ids=${remaining.join(",")}&format=json`, {
           headers: { "User-Agent": "PreflightSMS/1.0" }
         });
         if (r.ok) {
           const data = await r.json();
           if (Array.isArray(data)) {
-            for (const s of data) {
-              if (s.icaoId && s.lat && s.lon) {
-                const tzResult = find(s.lat, s.lon);
-                const tz = tzResult && tzResult.length > 0 ? tzResult[0] : "America/Los_Angeles";
-                const coord = { lat: s.lat, lon: s.lon, name: s.name || s.icaoId, tz, tzAbbr: getTimezoneAbbr(tz) };
-                cache[s.icaoId.toUpperCase()] = coord;
-                results[s.icaoId.toUpperCase()] = coord;
+            for (const m of data) {
+              if (m.icaoId && m.lat && m.lon) {
+                const id = m.icaoId.toUpperCase();
+                results[id] = buildCoord(id, m.lat, m.lon, m.name || m.icaoId, find(m.lat, m.lon));
               }
             }
           }
         }
       } catch (e) {
-        console.error("Airport station lookup error:", e);
+        console.error("Airport METAR lookup error:", e);
       }
     }
   }
