@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { deleteOrganization } from '../../lib/deleteOrg';
+import { seedDemoOrg } from '../../lib/seedDemo';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
@@ -369,19 +370,8 @@ export default async function handler(req, res) {
     const claims = verifyToken(token);
     if (!claims) return res.status(401).json({ error: 'Unauthorized' });
 
-    try {
-      const { default: seedHandler } = await import('./seed-demo');
-      const fakeReq = { method: 'POST', headers: { authorization: `Bearer ${supabaseServiceKey}` }, body: {}, json: () => ({}) };
-      let statusCode = 200, responseData = {};
-      const fakeRes = {
-        status(code) { statusCode = code; return this; },
-        json(data) { responseData = data; return this; },
-      };
-      await seedHandler(fakeReq, fakeRes);
-      return res.status(statusCode).json(responseData);
-    } catch (e) {
-      return res.status(500).json({ error: e.message });
-    }
+    const result = await seedDemoOrg();
+    return res.status(result.success ? 200 : 500).json(result);
   }
 
   return res.status(400).json({ error: 'Unknown action' });
