@@ -10,6 +10,215 @@ const GREEN = "#4ADE80", RED = "#EF4444", YELLOW = "#FACC15", CYAN = "#22D3EE";
 const inp = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, fontSize: 13, width: "100%", padding: "10px 12px", color: OFF_WHITE, boxSizing: "border-box" };
 const card = { background: "rgba(255,255,255,0.025)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" };
 
+// Render a published manual's markdown-ish content as styled React nodes.
+// Handles: `## h2`, `### h3`, `---` hr, `*italic line*`, `- bullet`, blank line spacing, paragraphs.
+function renderManualContent(content) {
+  if (!content) return null;
+  const lines = content.split("\n");
+  const nodes = [];
+  let listBuffer = [];
+  const flushList = () => {
+    if (listBuffer.length === 0) return;
+    nodes.push(
+      <ul key={`ul-${nodes.length}`} style={{ margin: "4px 0 10px 18px", padding: 0, color: OFF_WHITE, fontSize: 12, lineHeight: 1.7 }}>
+        {listBuffer.map((item, i) => <li key={i} style={{ marginBottom: 2 }}>{item}</li>)}
+      </ul>
+    );
+    listBuffer = [];
+  };
+  lines.forEach((raw, idx) => {
+    const line = raw.trimEnd();
+    if (/^---+$/.test(line.trim())) {
+      flushList();
+      nodes.push(<hr key={`hr-${idx}`} style={{ border: 0, borderTop: `1px solid ${BORDER}`, margin: "16px 0" }} />);
+      return;
+    }
+    if (line.startsWith("## ")) {
+      flushList();
+      nodes.push(<div key={`h2-${idx}`} style={{ fontSize: 15, fontWeight: 700, color: CYAN, marginTop: nodes.length === 0 ? 0 : 14, marginBottom: 6 }}>{line.slice(3).trim()}</div>);
+      return;
+    }
+    if (line.startsWith("### ")) {
+      flushList();
+      nodes.push(<div key={`h3-${idx}`} style={{ fontSize: 13, fontWeight: 700, color: OFF_WHITE, marginTop: 10, marginBottom: 4 }}>{line.slice(4).trim()}</div>);
+      return;
+    }
+    const italicMatch = line.trim().match(/^\*(.+)\*$/);
+    if (italicMatch) {
+      flushList();
+      nodes.push(<div key={`em-${idx}`} style={{ fontSize: 11, color: MUTED, fontStyle: "italic", marginBottom: 8 }}>{italicMatch[1]}</div>);
+      return;
+    }
+    if (/^\s*-\s+/.test(line)) {
+      listBuffer.push(line.replace(/^\s*-\s+/, ""));
+      return;
+    }
+    if (line.trim() === "") {
+      flushList();
+      nodes.push(<div key={`sp-${idx}`} style={{ height: 6 }} />);
+      return;
+    }
+    flushList();
+    nodes.push(<div key={`p-${idx}`} style={{ fontSize: 12, lineHeight: 1.7, color: OFF_WHITE, marginBottom: 4 }}>{line}</div>);
+  });
+  flushList();
+  return nodes;
+}
+
+// Export a published manual policy to PDF using jsPDF.
+async function exportManualPdf(policy) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 50;
+  const contentW = pageW - margin * 2;
+  let y = margin;
+
+  const addFooter = (pg) => {
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text("Created with PreflightSMS", pageW / 2, pageH - 25, { align: "center" });
+    doc.text(`Page ${pg}`, pageW - margin, pageH - 25, { align: "right" });
+  };
+  const checkPage = (needed) => {
+    if (y + needed > pageH - 50) {
+      addFooter(doc.getNumberOfPages());
+      doc.addPage();
+      y = margin;
+    }
+  };
+
+  doc.setFontSize(20);
+  doc.setTextColor(30);
+  doc.setFont(undefined, "bold");
+  doc.text(policy.title || "SMS Manual", margin, y);
+  y += 26;
+
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.setFont(undefined, "normal");
+  const metaParts = [];
+  if (policy.version) metaParts.push(`Version ${policy.version}`);
+  if (policy.effective_date) metaParts.push(`Effective ${policy.effective_date}`);
+  if (metaParts.length) { doc.text(metaParts.join("  |  "), margin, y); y += 18; }
+
+  if (policy.description) {
+    const descLines = doc.splitTextToSize(policy.description, contentW);
+    doc.text(descLines, margin, y);
+    y += descLines.length * 13 + 10;
+  }
+
+  const lines = (policy.content || "").split("\n");
+  lines.forEach((raw) => {
+    const line = raw.trimEnd();
+    if (/^---+$/.test(line.trim())) {
+      checkPage(20);
+      doc.setDrawColor(200);
+      doc.line(margin, y, pageW - margin, y);
+      y += 14;
+      return;
+    }
+    if (line.startsWith("## ")) {
+      checkPage(28);
+      y += 6;
+      doc.setFontSize(14);
+      doc.setTextColor(20);
+      doc.setFont(undefined, "bold");
+      const txt = line.slice(3).trim();
+      const wrapped = doc.splitTextToSize(txt, contentW);
+      wrapped.forEach(w => { checkPage(18); doc.text(w, margin, y); y += 17; });
+      y += 4;
+      return;
+    }
+    if (line.startsWith("### ")) {
+      checkPage(22);
+      doc.setFontSize(12);
+      doc.setTextColor(30);
+      doc.setFont(undefined, "bold");
+      const wrapped = doc.splitTextToSize(line.slice(4).trim(), contentW);
+      wrapped.forEach(w => { checkPage(16); doc.text(w, margin, y); y += 15; });
+      y += 3;
+      return;
+    }
+    const italicMatch = line.trim().match(/^\*(.+)\*$/);
+    if (italicMatch) {
+      checkPage(16);
+      doc.setFontSize(9);
+      doc.setTextColor(110);
+      doc.setFont(undefined, "italic");
+      const wrapped = doc.splitTextToSize(italicMatch[1], contentW);
+      wrapped.forEach(w => { checkPage(13); doc.text(w, margin, y); y += 12; });
+      y += 4;
+      return;
+    }
+    if (line.trim() === "") { y += 6; return; }
+    doc.setFontSize(10);
+    doc.setTextColor(50);
+    doc.setFont(undefined, "normal");
+    const wrapped = doc.splitTextToSize(line, contentW);
+    wrapped.forEach(w => { checkPage(14); doc.text(w, margin, y); y += 13; });
+  });
+
+  addFooter(doc.getNumberOfPages());
+  const safeName = (policy.title || "sms_manual").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+  doc.save(`${safeName}_v${policy.version || "1.0"}.pdf`);
+}
+
+// Export a published manual policy to a Word-compatible .doc file (HTML payload).
+function exportManualDoc(policy) {
+  const escape = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const lines = (policy.content || "").split("\n");
+  const body = [];
+  let inList = false;
+  const closeList = () => { if (inList) { body.push("</ul>"); inList = false; } };
+  lines.forEach((raw) => {
+    const line = raw.trimEnd();
+    if (/^---+$/.test(line.trim())) { closeList(); body.push("<hr/>"); return; }
+    if (line.startsWith("## ")) { closeList(); body.push(`<h2 style="color:#0b6e8a;margin-top:18px;">${escape(line.slice(3).trim())}</h2>`); return; }
+    if (line.startsWith("### ")) { closeList(); body.push(`<h3 style="margin-top:12px;">${escape(line.slice(4).trim())}</h3>`); return; }
+    const italicMatch = line.trim().match(/^\*(.+)\*$/);
+    if (italicMatch) { closeList(); body.push(`<p style="font-style:italic;color:#666;font-size:10pt;">${escape(italicMatch[1])}</p>`); return; }
+    if (/^\s*-\s+/.test(line)) {
+      if (!inList) { body.push("<ul>"); inList = true; }
+      body.push(`<li>${escape(line.replace(/^\s*-\s+/, ""))}</li>`);
+      return;
+    }
+    if (line.trim() === "") { closeList(); body.push("<p>&nbsp;</p>"); return; }
+    closeList();
+    body.push(`<p>${escape(line)}</p>`);
+  });
+  closeList();
+
+  const metaParts = [];
+  if (policy.version) metaParts.push(`Version ${escape(policy.version)}`);
+  if (policy.effective_date) metaParts.push(`Effective ${escape(policy.effective_date)}`);
+
+  const html = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${escape(policy.title || "SMS Manual")}</title></head>
+<body style="font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#222;">
+<h1 style="margin-bottom:4px;">${escape(policy.title || "SMS Manual")}</h1>
+${metaParts.length ? `<p style="color:#666;font-size:10pt;margin-top:0;">${metaParts.join(" &nbsp;|&nbsp; ")}</p>` : ""}
+${policy.description ? `<p>${escape(policy.description)}</p>` : ""}
+<hr/>
+${body.join("\n")}
+<hr/>
+<p style="font-size:9pt;color:#999;text-align:center;">Created with PreflightSMS</p>
+</body></html>`;
+
+  const blob = new Blob(["﻿", html], { type: "application/msword" });
+  const url = URL.createObjectURL(blob);
+  const safeName = (policy.title || "sms_manual").replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${safeName}_v${policy.version || "1.0"}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 const POLICY_CATEGORIES = [
   { id: "safety_policy", label: "Safety Policy" },
   { id: "sop", label: "Standard Operating Procedure" },
@@ -439,17 +648,31 @@ export default function PolicyTraining({
                       </div>
                     )}
                     {p.content && (
-                      <div style={{ marginTop: p.file_url ? 0 : 14, whiteSpace: "pre-wrap", fontSize: 12, lineHeight: 1.7, color: OFF_WHITE, maxHeight: 500, overflowY: "auto", background: NEAR_BLACK, borderRadius: 6, padding: 16 }}>
-                        {p.content}
+                      <div style={{ marginTop: p.file_url ? 0 : 14, maxHeight: 500, overflowY: "auto", background: NEAR_BLACK, borderRadius: 6, padding: 16 }}>
+                        {renderManualContent(p.content)}
                       </div>
                     )}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                       {!acked && (
                         <button onClick={() => onAcknowledgePolicy(p.id)}
                           style={{ padding: "10px 24px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
                             background: "rgba(201,169,110,0.08)", color: GOLD, border: "1px solid rgba(201,169,110,0.3)" }}>
                           I have reviewed this document — Acknowledge
                         </button>
+                      )}
+                      {p.status === "active" && p.content && (
+                        <>
+                          <button onClick={(e) => { e.stopPropagation(); exportManualPdf(p).catch(err => console.error("PDF export failed:", err)); }}
+                            style={{ padding: "10px 16px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                              background: `${CYAN}15`, color: CYAN, border: `1px solid ${CYAN}33` }}>
+                            Export PDF
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); exportManualDoc(p); }}
+                            style={{ padding: "10px 16px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                              background: `${CYAN}15`, color: CYAN, border: `1px solid ${CYAN}33` }}>
+                            Export Word
+                          </button>
+                        </>
                       )}
                       {isAdmin && onDeletePolicy && (
                         <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete "${p.title}"? This cannot be undone.`)) { setExpandedPolicy(null); onDeletePolicy(p.id); } }}
