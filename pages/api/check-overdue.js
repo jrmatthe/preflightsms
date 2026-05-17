@@ -41,7 +41,9 @@ export default async function handler(req, res) {
   try {
     const now = new Date();
     const GRACE_MINUTES = 30;
+    const MAX_AGE_HOURS = 24;
     const graceThreshold = new Date(now.getTime() - GRACE_MINUTES * 60000).toISOString();
+    const maxAgeThreshold = new Date(now.getTime() - MAX_AGE_HOURS * 60 * 60000).toISOString();
     const nowISO = now.toISOString();
     const twentyFourHoursAgoISO = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -49,13 +51,16 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "reset=true is disabled — use the platform admin panel to reset notification flags" });
     }
 
-    // Only notify flights whose ETA is more than GRACE_MINUTES ago
+    // Only notify flights whose ETA is between MAX_AGE_HOURS ago and GRACE_MINUTES ago.
+    // Anything older than 24h is stale data (forgotten test flight, never closed out)
+    // — a real overdue alert is caught within minutes, not days.
     const { data: overdueFlights, error: flightErr } = await supabase
       .from("flights")
       .select("*, organizations(name, slug, timezone)")
       .eq("status", "ACTIVE")
       .not("eta", "is", null)
       .lt("eta", graceThreshold)
+      .gt("eta", maxAgeThreshold)
       .is("overdue_notified_at", null);
 
     if (flightErr) {
