@@ -805,7 +805,7 @@ function SubscriptionTab({ orgData, onUpdateOrg, canManage, onCheckout, onBillin
   );
 }
 
-function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, onUpdateName, onUpdateEmail, onRemoveUser }) {
+function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, onUpdateName, onUpdateEmail, onRemoveUser, hasSignedIn }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [editName, setEditName] = useState(user.full_name || "");
@@ -834,7 +834,7 @@ function UserRow({ user, profile, canManage, onUpdateRole, onUpdatePermissions, 
             {isMe && <span style={{ fontSize: 9, color: CYAN, background: `${CYAN}22`, padding: "1px 6px", borderRadius: 8 }}>You</span>}
           </div>
           <div style={{ fontSize: 10, color: MUTED }}>
-            {user.email || "No email"} · Joined {new Date(user.created_at).toLocaleDateString()}
+            {user.email || "No email"} · {hasSignedIn === false ? "Invited" : "Joined"} {new Date(user.created_at).toLocaleDateString()}
             {userPerms.length > 0 && ` · ${userPerms.length} extra permission${userPerms.length > 1 ? "s" : ""}`}
           </div>
         </div>
@@ -1404,6 +1404,25 @@ export default function AdminPanel({ profile, session, orgProfiles, onUpdateRole
   useEffect(() => { if (tourTab) setActiveTab(tourTab); }, [tourTab]);
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
 
+  // Map of profile.id → boolean (true if user has signed in at least once).
+  // Used to label rows as "Invited" vs "Joined".
+  const [signedInMap, setSignedInMap] = useState({});
+  useEffect(() => {
+    if (activeTab !== "users" || !profile?.org_id || !session?.access_token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/team-signin-status?orgId=${encodeURIComponent(profile.org_id)}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) return;
+        const body = await res.json();
+        if (!cancelled) setSignedInMap(body.signedIn || {});
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [activeTab, profile?.org_id, session?.access_token, orgProfiles.length]);
+
   const handleSaveTemplate = async (templateData) => {
     setSavingTemplate(true);
     try {
@@ -1548,7 +1567,7 @@ export default function AdminPanel({ profile, session, orgProfiles, onUpdateRole
         </div>
 
         {orgProfiles.map(user => (
-          <UserRow key={user.id} user={user} profile={profile} canManage={canManage} onUpdateRole={onUpdateRole} onUpdatePermissions={onUpdatePermissions} onUpdateName={onUpdateName} onUpdateEmail={onUpdateEmail} onRemoveUser={onRemoveUser} />
+          <UserRow key={user.id} user={user} profile={profile} canManage={canManage} onUpdateRole={onUpdateRole} onUpdatePermissions={onUpdatePermissions} onUpdateName={onUpdateName} onUpdateEmail={onUpdateEmail} onRemoveUser={onRemoveUser} hasSignedIn={signedInMap[user.id]} />
         ))}
       </div>
 
