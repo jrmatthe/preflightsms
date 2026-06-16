@@ -3930,57 +3930,52 @@ function InviteAcceptScreen({ token, onAuth }) {
 
   useEffect(() => {
     if (!token) { setStep("error"); setError("No invitation token"); setLoading(false); return; }
-    getInvitationByToken(token).then(({ data, error: err }) => {
-      setLoading(false);
-      if (err || !data) { setStep("expired"); return; }
-      if (new Date(data.expires_at) < new Date()) { setStep("expired"); return; }
-      setInvite(data);
-      setEmail(data.email);
-      setStep("form");
-    });
+    // Read invite info server-side (service role) — the invitations table RLS does
+    // not allow a not-yet-member to read their own invite under the anon key.
+    fetch(`/api/accept-invite?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(info => {
+        setLoading(false);
+        if (!info || !info.valid) { setStep("expired"); return; }
+        setInvite({ token, role: info.role, email: info.email, organizations: { name: info.orgName }, expires_at: info.expires_at });
+        setEmail(info.email);
+        setStep("form");
+      })
+      .catch(() => { setLoading(false); setStep("expired"); });
   }, [token]);
 
   const handleAccept = async () => {
     if (!name.trim()) { setError("Enter your name"); return; }
-    if (!password || password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (!password || password.length < 8) { setError("Password must be at least 8 characters"); return; }
     if (!agreedTos) { setError("Please agree to the Terms of Service and Privacy Policy"); return; }
     setError(""); setSubmitting(true);
     try {
-      // Use rejoin-org to set password (works for both pre-created and returning users)
-      // since admin may have already created the auth user via /api/add-user
-      const rejoinRes = await fetch("/api/rejoin-org", {
+      // Server creates the account + profile and consumes the invite. Role, org and
+      // email are derived from the invitation server-side (never sent from here).
+      const res = await fetch("/api/accept-invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, fullName: name.trim(), orgId: invite.org_id, role: invite.role, invitationToken: invite.token }),
+        body: JSON.stringify({ token, password, fullName: name.trim() }),
       });
-      const rejoinResult = await rejoinRes.json();
-      if (rejoinRes.ok) {
-        // User existed (pre-created by admin or returning) — password is set, sign in
+      const result = await res.json();
+      if (res.ok && result.success) {
         const { data: session, error: loginErr } = await signIn(email, password);
-        if (loginErr) { setError("Password set. Try logging in from the main page."); setSubmitting(false); return; }
+        if (loginErr) { setError("Account created — please sign in from the main page."); setSubmitting(false); return; }
         if (session?.session) {
-          await acceptInvitation(token, session.session.user.id);
           if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname);
           onAuth(session.session);
+          return;
         }
-      } else if (rejoinResult.error === "User not found") {
-        // Brand new user — sign up normally
-        const { error: signupErr } = await signUp(email, password, name.trim(), invite.org_id);
-        if (signupErr) { setError(signupErr.message); setSubmitting(false); return; }
-        const { data: session, error: loginErr } = await signIn(email, password);
-        if (loginErr) { setError("Account created. Check your email to confirm, then log in."); setSubmitting(false); return; }
-        if (session?.session) {
-          const userId = session.session.user.id;
-          await supabase.from("profiles").update({ role: invite.role }).eq("id", userId);
-          await acceptInvitation(token, userId);
-          if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname);
-          onAuth(session.session);
-        }
-      } else {
-        setError(rejoinResult.error || "Failed to set up account"); setSubmitting(false); return;
+        setSubmitting(false);
+        return;
       }
-    } catch (e) { setError(e.message); }
-    setSubmitting(false);
+      if (res.status === 409 && result.error === "account_exists") {
+        setError(result.message || "You already have an account — please sign in from the main page to join.");
+        setSubmitting(false);
+        return;
+      }
+      setError(result.error || "Failed to set up account"); setSubmitting(false);
+    } catch (e) { setError(e.message); setSubmitting(false); }
   };
 
   const roleLabel = invite?.role === "admin" ? "Administrator" :
@@ -4026,7 +4021,7 @@ function InviteAcceptScreen({ token, onAuth }) {
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: MUTED, marginBottom: 4, textTransform: "uppercase" }}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters"
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 8 characters"
                 style={inp} onKeyDown={e => { if (e.key === "Enter") handleAccept(); }} />
             </div>
 
@@ -5405,7 +5400,7 @@ export default function PVTAIRFrat() {
     fetchNotifications(orgId).then(({ data }) => { setNotifications(data || []); notificationsLoadedRef.current = true; });
     if (session?.user?.id) fetchNotificationReads(session.user.id).then(({ data }) => setNotifReads((data || []).map(r => r.notification_id)));
     if (session?.user?.id) fetchNudgeResponsesForUser(session.user.id).then(({ data }) => setNudgeResponses(data || []));
-    reconcileInvitations(orgId).then(() => fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || [])));
+    fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
     // ForeFlight integration (only if feature enabled)
     if (hasFeature(profile?.organizations, "foreflight_integration")) {
       fetchForeflightConfig(orgId).then(({ data }) => setForeflightConfig(data));
@@ -6337,24 +6332,20 @@ export default function PVTAIRFrat() {
     setOrphanInviteProcessing(true);
     (async () => {
       try {
-        const { data: inv, error: invErr } = await getInvitationByToken(orphanInviteToken);
-        if (invErr || !inv) { setOrphanInviteProcessing(false); return; }
-        // Verify invite hasn't expired
-        if (inv.expires_at && new Date(inv.expires_at) < new Date()) { setOrphanInviteProcessing(false); return; }
-        // Verify session user's email matches the invitation
-        const sessionEmail = session.user.email?.toLowerCase().trim();
-        if (!sessionEmail || sessionEmail !== inv.email?.toLowerCase().trim()) { setOrphanInviteProcessing(false); return; }
-        const userId = session.user.id;
-        const { data: existingProfile } = await supabase.from("profiles").select("id").eq("id", userId).single();
-        if (existingProfile) {
-          await supabase.from("profiles").update({ org_id: inv.org_id, role: inv.role }).eq("id", userId);
-        } else {
-          await supabase.from("profiles").insert({ id: userId, org_id: inv.org_id, full_name: session.user.user_metadata?.full_name || session.user.email, email: session.user.email, role: inv.role });
+        // Existing/SSO user accepting an invite: attach server-side. The service role
+        // derives org/role from the invite and verifies the session email matches it,
+        // so the client can no longer self-assign org/role.
+        const accessToken = session?.access_token || (await supabase.auth.getSession())?.data?.session?.access_token;
+        const res = await fetch("/api/accept-invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ token: orphanInviteToken }),
+        });
+        if (res.ok) {
+          if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname);
+          const p = await getProfile();
+          setProfile(p);
         }
-        await acceptInvitation(orphanInviteToken, userId);
-        if (typeof window !== "undefined") window.history.replaceState(null, "", window.location.pathname);
-        const p = await getProfile();
-        setProfile(p);
       } catch (e) { console.error("Orphan invite error:", e); }
       setOrphanInviteProcessing(false);
     })();
@@ -6941,39 +6932,32 @@ export default function PVTAIRFrat() {
             });
             const result = await res.json();
             if (!res.ok) return { error: result.error || "Failed to add user" };
-            // Send the invite email via edge function
-            let emailSent = true;
-            try {
-              const { error: invokeErr } = await supabase.functions.invoke('send-invite', {
-                body: { email, orgName, role, token: result.token },
-              });
-              if (invokeErr) { console.error("Invite email error:", invokeErr); emailSent = false; }
-            } catch (e) { console.error("Failed to send invite email:", e); emailSent = false; }
+            // The invite email is sent server-side by /api/add-user; surface its status.
+            // No profile is created until the invitee accepts, so the member list is unchanged.
             fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
-            if (orgId) fetchOrgProfiles(orgId).then(({ data }) => setOrgProfiles(data || []));
-            if (!emailSent) return { success: true, emailFailed: true };
-            return { success: true };
+            return { success: true, emailFailed: !!result.emailFailed };
           } catch (err) { return { error: err.message }; }
         }} onRevokeInvitation={async (invId) => {
           await revokeInvitation(invId);
           const orgId = profile?.org_id;
           if (orgId) fetchInvitations(orgId).then(({ data }) => setInvitationsList(data || []));
         }} onResendInvitation={async (invId) => {
-          const { data } = await resendInvitation(invId);
-          if (data) {
-            try {
-              const { error: invokeErr } = await supabase.functions.invoke('send-invite', {
-                body: { email: data.email, orgName, role: data.role, token: data.token },
-              });
-              if (invokeErr) {
-                setToast({ message: "Failed to resend invite email — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000);
-              } else {
-                setToast({ message: `Invite resent to ${data.email}`, level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
-              }
-            } catch (e) {
-              console.error("Failed to resend invite:", e);
-              setToast({ message: "Failed to resend invite email — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000);
+          try {
+            const accessToken = (await supabase.auth.getSession())?.data?.session?.access_token;
+            const res = await fetch("/api/resend-invite", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+              body: JSON.stringify({ invitationId: invId }),
+            });
+            const result = await res.json();
+            if (res.ok && result.success && !result.emailFailed) {
+              setToast({ message: "Invitation resent", level: { bg: "rgba(74,222,128,0.08)", border: "rgba(74,222,128,0.25)", color: GREEN } }); setTimeout(() => setToast(null), 3000);
+            } else {
+              setToast({ message: result.error || "Failed to resend invite email — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000);
             }
+          } catch (e) {
+            console.error("Failed to resend invite:", e);
+            setToast({ message: "Failed to resend invite email — try again later", level: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", color: RED } }); setTimeout(() => setToast(null), 4000);
           }
           const orgId = profile?.org_id;
           if (orgId) fetchInvitations(orgId).then(({ data: inv }) => setInvitationsList(inv || []));

@@ -55,7 +55,7 @@ function inviteEmailHtml(orgName: string, role: string, inviteUrl: string): stri
     </tr>
   </table>
   <div style="border-top:1px solid #232323;margin:20px 0;"></div>
-  <p style="margin:0;font-size:11px;color:#444444;line-height:1.5;">This invitation expires in 7 days. If you weren't expecting this, you can safely ignore it.</p>
+  <p style="margin:0;font-size:11px;color:#444444;line-height:1.5;">This invitation expires in 30 days. If you weren't expecting this, you can safely ignore it.</p>
 </td></tr>
 <tr><td align="center" style="padding-top:24px;">
   <p style="margin:0;font-size:10px;color:#444444;">PreflightSMS · Part 5 SMS Compliance for Part 135 Operators</p>
@@ -68,6 +68,20 @@ function inviteEmailHtml(orgName: string, role: string, inviteUrl: string): stri
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // DEPRECATED + LOCKED DOWN. Invite emails are now sent server-side from the
+  // authenticated Next.js routes (/api/add-user, /api/resend-invite). This function
+  // is kept only for server-to-server use and rejects anything that does not present
+  // the service-role key — closing the previous "any logged-in user can email arbitrary
+  // addresses with attacker-chosen org/role text" vector. (Redeploy required to take effect.)
+  const authHeader = req.headers.get("authorization") || "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SERVICE_ROLE_KEY");
+  if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
+    return new Response(
+      JSON.stringify({ error: "Forbidden" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {

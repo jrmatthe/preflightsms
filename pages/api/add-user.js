@@ -1,10 +1,15 @@
 // /api/add-user
-// Admin pre-creates a user: auth account + profile + invitation
-// The user gets an invite email to set their password.
-// They exist in the org immediately with name, role, and permissions.
+// Admin creates a pending INVITATION only. No Supabase auth user and no profile
+// are created here — those are created at ACCEPT time (/api/accept-invite) once
+// the invitee clicks the emailed link and signs up. This keeps invited users OUT
+// of the active-member list until they actually join.
+//
+// The invite email is sent here, server-side, gated behind the admin authorization
+// below (it is no longer invokable from the browser).
 
 import { createClient } from "@supabase/supabase-js";
 import { verifyAuth } from "../../lib/apiAuth";
+import { sendInviteEmail } from "../../lib/inviteEmail";
 import crypto from "crypto";
 
 // In-memory rate limiter (per-process; resets on cold start)
@@ -22,6 +27,8 @@ function checkRateLimit(ip) {
   entry.count++;
   return entry.count > MAX_ATTEMPTS;
 }
+
+const INVITE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
@@ -41,6 +48,7 @@ export default async function handler(req, res) {
   try {
     const { email, fullName, role, permissions, orgId } = req.body;
     if (!email || !fullName || !orgId) return res.status(400).json({ error: "email, fullName, and orgId are required" });
+    const targetEmail = email.toLowerCase().trim();
 
     // Verify caller is admin-level in this org
     const { data: callerProfile, error: callerErr } = await supabase
@@ -57,94 +65,64 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "Insufficient permissions to add users" });
     }
 
-    // Check if user already exists in this org
+    // Already an active member of this org?
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("id")
       .eq("org_id", orgId)
-      .eq("email", email.toLowerCase().trim())
+      .eq("email", targetEmail)
       .single();
 
     if (existingProfile) return res.status(400).json({ error: "This user is already a member of your organization" });
 
-    // Check for existing pending invitation
+    // Already has a pending invitation?
     const { data: existingInvite } = await supabase
       .from("invitations")
       .select("id")
       .eq("org_id", orgId)
-      .eq("email", email.toLowerCase().trim())
+      .eq("email", targetEmail)
       .eq("status", "pending")
       .single();
 
     if (existingInvite) return res.status(400).json({ error: "An invitation is already pending for this email" });
 
-    // Check if auth user already exists
-    let authUserId = null;
-    const targetEmail = email.toLowerCase().trim();
-    const goTrueRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?filter=${encodeURIComponent(targetEmail)}`, {
-      headers: { Authorization: `Bearer ${supabaseServiceKey}`, apikey: supabaseServiceKey },
-    });
-    if (goTrueRes.ok) {
-      const body = await goTrueRes.json();
-      const users = body.users || body;
-      const existing = (Array.isArray(users) ? users : []).find(u => u.email === targetEmail);
-      if (existing) authUserId = existing.id;
-    }
+    // Org name for the email (derived server-side; never trusted from the client)
+    const { data: org } = await supabase.from("organizations").select("name").eq("id", orgId).single();
+    const orgName = org?.name || "your organization";
 
-    if (!authUserId) {
-      // Create auth user with no usable password (random 64-char)
-      const tempPassword = crypto.randomBytes(32).toString("hex");
-      const { data: authUser, error: authErr } = await supabase.auth.admin.createUser({
-        email: targetEmail,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { full_name: fullName.trim() },
-      });
-      if (authErr) return res.status(500).json({ error: "Failed to create auth user: " + authErr.message });
-      authUserId = authUser.user.id;
-    } else {
-      // Update existing auth user metadata
-      await supabase.auth.admin.updateUserById(authUserId, {
-        email_confirm: true,
-        user_metadata: { full_name: fullName.trim() },
-      });
-    }
-
-    // Create profile
-    const { error: profileErr } = await supabase.from("profiles").upsert({
-      id: authUserId,
-      org_id: orgId,
-      full_name: fullName.trim(),
-      email: targetEmail,
-      role: role || "pilot",
-      permissions: permissions || [],
-    }, { onConflict: "id" });
-
-    if (profileErr) return res.status(500).json({ error: "Failed to create profile: " + profileErr.message });
-
-    // Create invitation record (for email + tracking)
+    // Create the invitation record ONLY. No auth user, no profile yet.
+    // role / permissions / full_name are carried here so /api/accept-invite can
+    // build the profile with the admin's intended values at accept time.
     const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + INVITE_TTL_MS).toISOString();
     const { data: invitation, error: invErr } = await supabase
       .from("invitations")
       .insert({
         org_id: orgId,
         email: targetEmail,
         role: role || "pilot",
+        permissions: Array.isArray(permissions) ? permissions : [],
+        full_name: fullName.trim(),
         token,
         invited_by: user.id,
+        expires_at: expiresAt,
       })
       .select()
       .single();
 
     if (invErr) {
-      // Non-fatal — user is created, just no invitation record
-      console.error("Failed to create invitation record:", invErr.message);
+      // Unique violation on (org_id, email, status) — a pending invite already exists
+      if (invErr.code === "23505") return res.status(400).json({ error: "An invitation is already pending for this email" });
+      return res.status(500).json({ error: "Failed to create invitation: " + invErr.message });
     }
+
+    // Send the invite email server-side (admin already verified above).
+    const emailRes = await sendInviteEmail({ email: targetEmail, orgName, role: role || "pilot", token });
 
     return res.status(200).json({
       success: true,
-      userId: authUserId,
       token: invitation?.token || token,
+      emailFailed: !emailRes.ok,
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });
