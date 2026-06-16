@@ -101,7 +101,7 @@ These tools are not Part 5 components themselves; they operationalize the underl
 | **Flight Following & Overdue-Flight Alerting** | Monitors active flights and alerts designated flight followers (email/SMS) when a flight is overdue past its ETA. | § 135.79 Flight locating requirements |
 | **Live ADS-B Flight Tracking** | Displays real-time aircraft positions and auto-arrives flights upon landing near the destination. | Supports § 135.79 (flight locating / operational control) |
 | **Weather Briefing & Analysis** | Pulls METAR, TAF, PIREP, AIRMET/SIGMET, NOTAM, and runway data from the FAA Aviation Weather Center and flags hazards plus the flight-rules category (VFR/MVFR/IFR/LIFR). | § 91.103 Preflight action · § 135.213 Weather reports and forecasts (approved source) |
-| **MEL / Inoperative-Equipment Tracking** | Logs equipment deferrals by category A–D with auto-computed expiration dates and a full rectification audit trail. | § 91.213 / § 135.179 Inoperative/inoperable instruments and equipment (MEL) |
+| **MEL / Inoperative-Equipment Tracking** | Logs equipment deferrals by category A–D with auto-computed expiration dates and a full rectification audit trail; *(planned)* synchronizes deferrals directly from **Veryon** — PVTAIR's adopted maintenance-tracking system of record — so pilots always see current, authoritative MEL status without manual re-entry. | § 91.213 / § 135.179 Inoperative/inoperable instruments and equipment (MEL) |
 | **Fleet / Aircraft Registry** | Central aircraft records (type, registration, capacity, base) that underpin MEL tracking and operational control. | Airworthiness/operational-control data backbone (§ 135.413 context) |
 | **Fuel & Flight-Plan Capture** | Captures fuel load, route, cruise altitude, and crew/passenger counts on each FRAT and flight record. | Supports § 91.151 / § 91.167 (and § 135.209 / § 135.223) fuel requirements |
 | **Weight & Balance Capture** | Retains weight-and-balance data passed from ForeFlight dispatch with the flight record. | Supports § 135.63(c) load-manifest recordkeeping |
@@ -114,6 +114,7 @@ These tools are not Part 5 components themselves; they operationalize the underl
 |---|---|---|
 | **ForeFlight Integration** | Auto-imports released dispatch flights and pushes the completed FRAT PDF back onto the ForeFlight flight record. | Operational data integration (feeds SRM + § 5.97 records) |
 | **SchedAero Integration** | Imports scheduled trips so pilots can start a FRAT directly from the schedule. | Operational data integration |
+| **Veryon Maintenance Integration** *(planned)* | Synchronizes MEL and deferred-maintenance items from **Veryon** — the maintenance-tracking platform PVTAIR has adopted — into the fleet and FRAT, keeping airworthiness deferrals current straight from the maintenance system of record (no double entry). | Supports § 91.213 / § 135.179 (MEL) · § 135.413 (responsibility for airworthiness) |
 | **Public REST API & Webhooks** | Authenticated, rate-limited API and HMAC-signed webhooks for fleet, FRAT, report, and training-compliance data. | Enterprise interoperability / data portability |
 | **Role-Based Access Control & Tenant Isolation** | Seven roles plus granular permissions, enforced by database row-level security so each operator's data is isolated. | § 5.97 (record integrity & access control) · data governance |
 | **Privacy & Data-Deletion Controls** | Documented retention, a CCPA-style deletion workflow with grace period, and disclosed sub-processors. | CCPA / privacy (data protection) |
@@ -155,7 +156,7 @@ To set accurate expectations for an adoption decision:
 
 3. **Single-pilot and small-operator exclusions apply.** Certain § 5.9(e) exclusions exist for operators with a single pilot solely responsible for operations; PVTAIR's specific applicability and timeline should be confirmed with its CHDO/FSDO.
 
-4. **MEL authorization is external.** MEL deferral tracking presumes PVTAIR holds the appropriate MEL authorization (e.g., LOA D095); the tool manages deferrals against that authorization but does not grant it.
+4. **MEL authorization and maintenance data are external.** MEL deferral tracking presumes PVTAIR holds the appropriate MEL authorization (e.g., LOA D095). Once the **Veryon** integration is live, Veryon remains the maintenance system of record for deferrals — PreflightSMS surfaces and applies that data operationally for pilots, but does not replace the approved maintenance-tracking program or grant the authorization. *(Veryon synchronization is a planned/roadmap integration, distinct from the live ForeFlight and SchedAero integrations.)*
 
 5. **Operational aids do not transfer pilot/operator responsibility.** Weather briefing, ADS-B tracking, fuel capture, and flight following are decision aids — the pilot in command and the operator remain responsible under the applicable Part 91/135 operating rules.
 
