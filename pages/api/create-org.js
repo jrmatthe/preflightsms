@@ -19,7 +19,7 @@ async function notifyNewSignup({ org, subscriptionStatus, tier, signupEmail }) {
     const resendKey = process.env.RESEND_API_KEY;
     if (!resendKey) { console.warn("[create-org] RESEND_API_KEY not set; skipping signup notification"); return; }
     const from = process.env.FROM_EMAIL || "PreflightSMS <noreply@preflightsms.com>";
-    const to = process.env.SIGNUP_NOTIFY_EMAIL || "jrmatthe@gmail.com";
+    const to = process.env.SIGNUP_NOTIFY_EMAIL || "jmatthews@preflight360.com";
 
     const isFree = subscriptionStatus === "free";
     const planLabel = isFree ? "Free account" : "30-Day Trial";
